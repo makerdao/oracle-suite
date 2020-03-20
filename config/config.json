@@ -1,0 +1,7 @@
+{
+  "env": "dev",
+  "service": "gofer",
+  "logger": {
+    "level": "debug"
+  }
+}
