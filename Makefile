@@ -16,3 +16,7 @@ build: $(GOFILES)
 test:
 	go test ./...
 .PHONY: test
+
+lint:
+	golangci-lint run ./...
+.PHONY: lint
