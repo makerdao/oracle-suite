@@ -1,0 +1,19 @@
+syntax = "proto3";
+package model;
+
+message Price {
+  int64 timestamp = 1;
+  string exchange = 2;
+  string base = 3;
+  string quote = 4;
+  double price = 5;
+  double volume = 6;
+}
+
+message PriceAverage {
+  string base = 1;
+  string quote = 2;
+  double prices = 3;
+  double mean = 4;
+  double median = 5;
+}

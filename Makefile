@@ -17,6 +17,19 @@ test:
 	go test ./...
 .PHONY: test
 
+bench:
+	go test -bench=. ./...
+.PHONY: bench
+
 lint:
 	golangci-lint run ./...
 .PHONY: lint
+
+proto:
+	mkdir -p model
+	protoc --go_out=model *.proto
+.PHONY: proto
+	
+build: proto
+	go build
+.PHONY: build

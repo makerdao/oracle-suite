@@ -2,9 +2,17 @@ package leveldb
 
 import (
 	"os"
-
-	"github.com/stretchr/testify/assert"
+	"time"
+	"fmt"
+	"math"
+	"math/rand"
 	"testing"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/assert"
+
+	"makerdao/gofer/model"
+
 )
 
 func TestOpenAndClose(t *testing.T) {
@@ -29,11 +37,11 @@ func TestPutAndGet(t *testing.T) {
 	path := "./test-put-get.leveldb"
 	rows := []struct {
 		key string
-		value string
+		value *model.Price
 	}{
-		{"a", "value of a"},
-		{"b", "value of b"},
-		{"c", "value of c"},
+		{"a", &model.Price{ Price: 1 } },
+		{"b", &model.Price{ Price: 2 } },
+		{"c", &model.Price{ Price: 3 } },
 	}
 	db := NewLevelDbStore(3<<30)
 
@@ -42,14 +50,19 @@ func TestPutAndGet(t *testing.T) {
 	assert.Nil(t, openErr, "open without error")
 
 	for _, row := range rows {
-		putErr := db.Put(row.key, []byte(row.value))
+		value, marshalErr := proto.Marshal(row.value)
+		assert.Nil(t, marshalErr, "marshal without error")
+		putErr := db.Put(row.key, value)
 		assert.Nil(t, putErr, "put without error")
 	}
 
 	for _, row := range rows {
-		getValue, getErr := db.Get(row.key)
+		price := &model.Price{}
+		buf, getErr := db.Get(row.key)
 		assert.Nil(t, getErr, "get without error")
-		assert.Equal(t, row.value, string(getValue), "Written value same as read value")
+		unmarshalErr := proto.Unmarshal(buf, price)
+		assert.Nil(t, unmarshalErr, "unmarshal without error")
+		assert.Equal(t, row.value.Price, price.Price, "Written value same as read value")
 	}
 
 	// tear-down
@@ -77,6 +90,38 @@ func TestPutAndDelete(t *testing.T) {
 	getReturn, getErr := db.Get("a")
 	assert.Nil(t, getErr, "get without error")
 	assert.Nil(t, getReturn, "get returns nil")
+
+	// tear-down
+	db.Close()
+	os.RemoveAll(path)
+}
+
+func BenchmarkListRW(b *testing.B) {
+	// setup
+	path := "./benchmark-list.leveldb"
+	db := NewLevelDbStore(3<<30)
+	_ = db.Open(path)
+
+	// assertions
+
+	for i := 0; i < b.N; i++ {
+		price := &model.Price{
+			Timestamp: time.Now().Unix(),
+			Exchange: "mjaucoinmarket",
+			Base: "bench",
+			Quote: "mark",
+			Price: 1337 + float64(i),
+			Volume: 0.1 + float64(i),
+		}
+		buf, _ := proto.Marshal(price)
+		_ = db.Put(fmt.Sprintf("list-%d", i), buf)
+	}
+
+	for i := 0; i < b.N; i++ {
+		price := &model.Price{}
+		buf, _ := db.Get(fmt.Sprintf("list-%f", math.Floor(rand.Float64() * float64(b.N))))
+		_ = proto.Unmarshal(buf, price)
+	}
 
 	// tear-down
 	db.Close()
