@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"makerdao/gofer/lib"
+	"makerdao/gofer/app"
 
 	"github.com/micro/go-micro/v2/config/source/env"
 	"github.com/micro/go-micro/v2/config/source/file"
@@ -27,16 +27,16 @@ func main() {
 	logger := initLogger()
 
 	logger.Info("Initializing application...")
-	app := lib.NewApplication(logger)
-	app.Initialize()
+	application := app.NewApplication(logger)
+	application.Initialize()
 
 	logger.Info("Application initialized. Starting...")
-	if err := app.Start(); err != nil {
+	if err := application.Start(); err != nil {
 		logger.Error(err)
 	}
 	logger.Info("Shutting down.")
 
-	app.Stop()
+	application.Stop()
 	logger.Info("Application stopped.")
 }
 
