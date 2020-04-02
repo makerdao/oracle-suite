@@ -31,26 +31,38 @@ func NewLevelDbStore(cacheSize int) *LevelDbStore {
 	}
 }
 
-func (db *LevelDbStore) IsOpen() (bool, error) {
+func (db *LevelDbStore) GetStatus() string {
 	if db.closed {
-		return false, errors.New("LevelDB store is closed")
+		return "LevelDB store is closed"
 	}
 
 	if db.db == nil {
-		return false, errors.New("LevelDB store hasn't been initialized")
+		return "LevelDB store hasn't been initialized"
 	}
 
-	return true, nil
+	return "LevelDB store is open"
+}
+
+func (db *LevelDbStore) IsOpen() bool {
+	if db.closed {
+		return false
+	}
+
+	if db.db == nil {
+		return false
+	}
+
+	return true
 }
 
 func (db *LevelDbStore) Open(path string) error {
+	var err error
+
 	if db.closed {
-		return errors.New("LevelDB store is closed")
+		return errors.New("Can't open, LevelDB store has been closed")
 	}
 
-	db_, err := levigo.Open(path, db.newOpts)
-	db.db = db_
-
+	db.db, err = levigo.Open(path, db.newOpts)
 	if err != nil {
 		db.closed = true
 	}
@@ -58,33 +70,31 @@ func (db *LevelDbStore) Open(path string) error {
 	return err
 }
 
-func (db *LevelDbStore) Close() error {
-	if ok, err := db.IsOpen(); !ok {
-		return err
+func (db *LevelDbStore) Close() {
+	if db.IsOpen() {
+		db.cache.Close()
+		db.db.Close()
+		db.closed = true
 	}
-	db.cache.Close()
-	db.db.Close()
-	db.closed = true
-	return nil
 }
 
 func (db *LevelDbStore) Get(key string) ([]byte, error) {
-	if ok, err := db.IsOpen(); !ok {
-		return nil, err
+	if !db.IsOpen() {
+		return nil, errors.New(db.GetStatus())
 	}
 	return db.db.Get(db.readOpts, []byte(key))
 }
 
 func (db *LevelDbStore) Put(key string, value []byte) error {
-	if ok, err := db.IsOpen(); !ok {
-		return err
+	if !db.IsOpen() {
+		return errors.New(db.GetStatus())
 	}
 	return db.db.Put(db.writeOpts, []byte(key), value)
 }
 
 func (db *LevelDbStore) Delete(key string) error {
-	if ok, err := db.IsOpen(); !ok {
-		return err
+	if !db.IsOpen() {
+		return errors.New(db.GetStatus())
 	}
 	return db.db.Delete(db.writeOpts, []byte(key))
 }

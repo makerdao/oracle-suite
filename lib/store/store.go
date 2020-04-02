@@ -8,7 +8,7 @@ type Store interface {
 
 	// Close should close any underlying store and disable writing and reading to
 	// it and release any allocated caches.
-	Close() error
+	Close()
 
 	// Put should associate the given value with the given key and persist it to
 	// the underlying store.
