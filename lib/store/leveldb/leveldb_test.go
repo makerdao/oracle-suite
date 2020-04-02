@@ -9,32 +9,50 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"makerdao/gofer/model"
-
 )
 
-func TestOpenAndClose(t *testing.T) {
-	// setup
-	path := "./test-open-close.leveldb"
-	db := NewLevelDbStore(3<<30)
+type LevelDBStoreTestSuite struct {
+    suite.Suite
+    suite.SetupAllSuite
+    suite.SetupTestSuite
+    suite.TearDownTestSuite
 
-	// assertions
-	openErr := db.Open(path)
-	assert.Nil(t, openErr, "has opened without error")
-
-	db.Close()
-	_, statErr := os.Stat(path)
-	assert.False(t, os.IsNotExist(statErr), "has created a DB file")
-
-	// tear-down
-	os.RemoveAll(path)
+    db *LevelDbStore
+    path string
+    counter int
 }
 
-func TestPutAndGet(t *testing.T) {
-	// setup
-	path := "./test-put-get.leveldb"
+// Before all tests
+func (suite *LevelDBStoreTestSuite) SetupSuite() {
+	suite.counter = 1
+}
+
+// Before each test
+func (suite *LevelDBStoreTestSuite) SetupTest() {
+	suite.counter += 1
+	suite.path = fmt.Sprintf("./test-%d.leveldb", suite.counter)
+	suite.db = NewLevelDbStore(3<<30)
+}
+
+// After each test
+func (suite *LevelDBStoreTestSuite) TearDownTest() {
+	suite.db.Close()
+	os.RemoveAll(suite.path)
+}
+
+func (suite *LevelDBStoreTestSuite) TestOpenAndClose() {
+	openErr := suite.db.Open(suite.path)
+	suite.Nil(openErr, "has opened without error")
+
+	suite.db.Close()
+	_, statErr := os.Stat(suite.path)
+	suite.False(os.IsNotExist(statErr), "has created a DB file")
+}
+
+func (suite *LevelDBStoreTestSuite) TestPutAndGet() {
 	rows := []struct {
 		key string
 		value *model.Price
@@ -43,57 +61,48 @@ func TestPutAndGet(t *testing.T) {
 		{"b", &model.Price{ Price: 2 } },
 		{"c", &model.Price{ Price: 3 } },
 	}
-	db := NewLevelDbStore(3<<30)
 
 	// assertions
-	openErr := db.Open(path)
-	assert.Nil(t, openErr, "open without error")
+	openErr := suite.db.Open(suite.path)
+	suite.Nil(openErr, "open without error")
 
 	for _, row := range rows {
 		value, marshalErr := proto.Marshal(row.value)
-		assert.Nil(t, marshalErr, "marshal without error")
-		putErr := db.Put(row.key, value)
-		assert.Nil(t, putErr, "put without error")
+		suite.Nil(marshalErr, "marshal without error")
+		putErr := suite.db.Put(row.key, value)
+		suite.Nil(putErr, "put without error")
 	}
 
 	for _, row := range rows {
 		price := &model.Price{}
-		buf, getErr := db.Get(row.key)
-		assert.Nil(t, getErr, "get without error")
+		buf, getErr := suite.db.Get(row.key)
+		suite.Nil(getErr, "get without error")
 		unmarshalErr := proto.Unmarshal(buf, price)
-		assert.Nil(t, unmarshalErr, "unmarshal without error")
-		assert.Equal(t, row.value.Price, price.Price, "Written value same as read value")
+		suite.Nil(unmarshalErr, "unmarshal without error")
+		suite.Equal(row.value.Price, price.Price, "Written value same as read value")
 	}
-
-	// tear-down
-	db.Close()
-	os.RemoveAll(path)
 }
 
-func TestPutAndDelete(t *testing.T) {
-	// setup
-	path := "./test-put-delete.leveldb"
+func (suite *LevelDBStoreTestSuite) TestPutAndDelete() {
 	aValue := "value of a"
 
-	db := NewLevelDbStore(3<<30)
-
 	// assertions
-	openErr := db.Open(path)
-	assert.Nil(t, openErr, "open without error")
+	openErr := suite.db.Open(suite.path)
+	suite.Nil(openErr, "open without error")
 
-	putErr := db.Put("a", []byte(aValue))
-	assert.Nil(t, putErr, "put without error")
+	putErr := suite.db.Put("a", []byte(aValue))
+	suite.Nil(putErr, "put without error")
 
-	deleteErr := db.Delete("a")
-	assert.Nil(t, deleteErr, "delete without error")
+	deleteErr := suite.db.Delete("a")
+	suite.Nil(deleteErr, "delete without error")
 
-	getReturn, getErr := db.Get("a")
-	assert.Nil(t, getErr, "get without error")
-	assert.Nil(t, getReturn, "get returns nil")
+	getReturn, getErr := suite.db.Get("a")
+	suite.Nil(getErr, "get without error")
+	suite.Nil(getReturn, "get returns nil")
 
 	// tear-down
-	db.Close()
-	os.RemoveAll(path)
+	suite.db.Close()
+	os.RemoveAll(suite.path)
 }
 
 func BenchmarkListRW(b *testing.B) {
@@ -126,4 +135,8 @@ func BenchmarkListRW(b *testing.B) {
 	// tear-down
 	db.Close()
 	os.RemoveAll(path)
+}
+
+func TestLevelDBTestSuite(t *testing.T) {
+	suite.Run(t, new(LevelDBStoreTestSuite))
 }
