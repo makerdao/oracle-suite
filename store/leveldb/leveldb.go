@@ -12,7 +12,6 @@ type LevelDbStore struct {
 	newOpts   *levigo.Options
 	writeOpts *levigo.WriteOptions
 	readOpts  *levigo.ReadOptions
-	closed    bool
 }
 
 func NewLevelDbStore(cacheSize int) *LevelDbStore {
@@ -27,74 +26,58 @@ func NewLevelDbStore(cacheSize int) *LevelDbStore {
 		newOpts:   newOpts,
 		readOpts:  levigo.NewReadOptions(),
 		writeOpts: levigo.NewWriteOptions(),
-		closed:    false,
 	}
 }
 
-func (db *LevelDbStore) GetStatus() string {
-	if db.closed {
-		return "LevelDB store is closed"
-	}
-
-	if db.db == nil {
-		return "LevelDB store hasn't been initialized"
-	}
-
-	return "LevelDB store is open"
+func (db *LevelDbStore) IsConnected() bool {
+	return db.db != nil
 }
 
-func (db *LevelDbStore) IsOpen() bool {
-	if db.closed {
-		return false
+func (db *LevelDbStore) GetStatus() error {
+	if !db.IsConnected() {
+		return errors.New("LevelDB store hasn't been initialized")
 	}
 
-	if db.db == nil {
-		return false
-	}
-
-	return true
+	return nil
 }
 
 func (db *LevelDbStore) Open(path string) error {
 	var err error
 
-	if db.closed {
-		return errors.New("Can't open, LevelDB store has been closed")
+	if db.IsConnected() {
+		return errors.New("Can't open, LevelDB store is already open")
 	}
 
 	db.db, err = levigo.Open(path, db.newOpts)
-	if err != nil {
-		db.closed = true
-	}
 
 	return err
 }
 
 func (db *LevelDbStore) Close() {
-	if db.IsOpen() {
+	if db.IsConnected() {
 		db.cache.Close()
 		db.db.Close()
-		db.closed = true
+		db.db = nil
 	}
 }
 
 func (db *LevelDbStore) Get(key string) ([]byte, error) {
-	if !db.IsOpen() {
-		return nil, errors.New(db.GetStatus())
+	if err := db.GetStatus(); err != nil {
+		return nil, db.GetStatus()
 	}
 	return db.db.Get(db.readOpts, []byte(key))
 }
 
 func (db *LevelDbStore) Put(key string, value []byte) error {
-	if !db.IsOpen() {
-		return errors.New(db.GetStatus())
+	if err := db.GetStatus(); err != nil {
+		return db.GetStatus()
 	}
 	return db.db.Put(db.writeOpts, []byte(key), value)
 }
 
 func (db *LevelDbStore) Delete(key string) error {
-	if !db.IsOpen() {
-		return errors.New(db.GetStatus())
+	if err := db.GetStatus(); err != nil {
+		return db.GetStatus()
 	}
 	return db.db.Delete(db.writeOpts, []byte(key))
 }
