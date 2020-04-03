@@ -11,11 +11,15 @@ CMD_TARGET := $(OUT_DIR)/$(PACKAGE)
 GO := go
 PROTOC := protoc
 
-.PHONY: all clean
 all: $(GEN_SRCS) $(CMD_TARGET)
+.PHONY: all
 
 clean:
 	rm -rf $(OUT_DIR) $(GEN_SRCS)
+.PHONY: clean
+
+build: clean all
+.PHONY: build
 
 $(GEN_SRCS): $(PROTO_SRCS)
 	for x in $^; do $(PROTOC) --go_out=. $$x; done
