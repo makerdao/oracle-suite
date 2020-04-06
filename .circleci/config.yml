@@ -4,7 +4,7 @@ jobs: # basic units of work in a run
     docker: # run the steps with Docker
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.14
-    parallelism: 2
+    parallelism: 1
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-results # path to where test results will be saved
