@@ -14,9 +14,7 @@ jobs: # basic units of work in a run
       - run:
           name: Install dependencies
           command: |
-            sudo apt-get install -y libleveldb-dev protobuf-compiler
-            go get -u github.com/golang/protobuf/protoc-gen-go
-            export PATH=$GOPATH/bin:$PATH
+            sudo apt-get install -y libleveldb-dev
 
       - run: mkdir -p $TEST_RESULTS # create the test results directory
 

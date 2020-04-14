@@ -4,7 +4,6 @@
 
 ## Tech
 
-  - `protobuf` used for serializing data
   - `levigo` LevelDB interface used for persistance
 
 ## Building and testing
