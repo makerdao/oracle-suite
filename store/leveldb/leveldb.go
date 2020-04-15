@@ -42,12 +42,11 @@ func (db *LevelDbStore) GetStatus() error {
 }
 
 func (db *LevelDbStore) Open(path string) error {
-	var err error
-
 	if db.IsConnected() {
 		return errors.New("Can't open, LevelDB store is already open")
 	}
 
+	var err error
 	db.db, err = levigo.Open(path, db.newOpts)
 
 	return err
