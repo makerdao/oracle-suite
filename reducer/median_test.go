@@ -8,69 +8,47 @@ import (
 	"makerdao/gofer/model"
 )
 
-func TestMedainPriceModel(t *testing.T) {
+func TestOddPriceCount(t *testing.T) {
 	rows := []*model.PricePoint{
 		// Should be filtered due to outside time window
-		{
-			Timestamp: -1000,
-			Exchange:  "exchange0",
-			Base:      "a",
-			Quote:     "b",
-			Price:     1000,
-			Volume:    1,
-		},
-		// Should be overwritten by entry 3
-		{
-			Timestamp: 1,
-			Exchange:  "exchange1",
-			Base:      "a",
-			Quote:     "b",
-			Price:     1,
-			Volume:    1,
-		},
-		{
-			Timestamp: 2,
-			Exchange:  "exchange2",
-			Base:      "a",
-			Quote:     "b",
-			Price:     2,
-			Volume:    1,
-		},
-		{
-			Timestamp: 3,
-			Exchange:  "exchange1",
-			Base:      "a",
-			Quote:     "b",
-			Price:     3,
-			Volume:    1,
-		},
-		// Should not be skipped due to wrong pair
-		{
-			Timestamp: 4,
-			Exchange:  "exchange4",
-			Base:      "not",
-			Quote:     "reduced",
-			Price:     4,
-			Volume:    1,
-		},
-		{
-			Timestamp: 5,
-			Exchange:  "exchange5",
-			Base:      "a",
-			Quote:     "b",
-			Price:     5,
-			Volume:    1,
-		},
+		{-1000, "exchange0", &model.Pair{"a", "b"}, 1000, 1},
+		// Should be overwritten by entry 3 due to same exchange but older
+		{1, "exchange1", &model.Pair{"a", "b"}, 2000, 1},
+		{2, "exchange2", &model.Pair{"a", "b"}, 20, 1},
+		{3, "exchange1", &model.Pair{"a", "b"}, 3, 1},
+		// Should not be skipped due to non-matching pair
+		{4, "exchange4", &model.Pair{"n", "o"}, 4, 1},
+		{5, "exchange5", &model.Pair{"a", "b"}, 5, 1},
 	}
 
-	reducer := NewMedianReducer(1000)
-	priceAggregate := model.NewPriceAggregate("a", "b")
+	reducer := NewMedianReducer(&model.Pair{"a", "b"}, 1000)
 
 	for _, price := range rows {
-		priceAggregate = reducer.Reduce(priceAggregate, price)
+		reducer.Ingest(price)
 	}
 
-	assert.Equal(t, int64(5), priceAggregate.NewestTimestamp, "newest timestamp")
+	priceAggregate := reducer.Reduce()
+
 	assert.Equal(t, 3, len(priceAggregate.Prices), "length of aggregate price list")
-	assert.Equal(t, uint64(3), priceAggregate.Price, "aggregate price should be median of price points")
+	assert.Equal(t, uint64(5), priceAggregate.Price, "aggregate price should be median of price points")
+}
+
+func TestEvenPriceCount(t *testing.T) {
+	rows := []*model.PricePoint{
+		{1, "exchange1", &model.Pair{"a", "b"}, 7, 1},
+		{2, "exchange2", &model.Pair{"a", "b"}, 2, 1},
+		{3, "exchange3", &model.Pair{"a", "b"}, 10, 1},
+		{4, "exchange4", &model.Pair{"a", "b"}, 5, 1},
+	}
+
+	reducer := NewMedianReducer(&model.Pair{"a", "b"}, 1000)
+
+	for _, price := range rows {
+		reducer.Ingest(price)
+	}
+
+	priceAggregate := reducer.Reduce()
+
+	assert.Equal(t, 4, len(priceAggregate.Prices), "length of aggregate price list")
+	assert.Equal(t, uint64(6), priceAggregate.Price, "aggregate price should be median of price points")
 }
