@@ -1,18 +1,42 @@
 PACKAGE ?= gofer
-GOFILES = $(shell find . -name '*.go')
+GOFILES := $(shell find . -name '*.go')
 
-vendor:
-	go mod vendor
-.PHONY: vendor
+CMD_SRCS := cmd/main.go
 
-workdir:
-	@mkdir -p workdir
-.PHONY: workdir
+OUT_DIR := workdir
+CMD_TARGET := $(OUT_DIR)/$(PACKAGE)
 
-build: $(GOFILES)
-	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o workdir/gofer ./cmd/main.go
+GO := go
+
+all: $(CMD_TARGET)
+.PHONY: all
+
+clean:
+	rm -rf $(OUT_DIR)
+.PHONY: clean
+
+build: clean all
 .PHONY: build
 
+$(CMD_TARGET): GOOS ?= linux
+$(CMD_TARGET): GOARCH ?= amd64
+$(CMD_TARGET): CGO_ENABLED ?= 0
+$(CMD_TARGET): $(CMD_SRCS)
+	mkdir -p $(@D)
+	$(GO) build -o $@ $<
+
+vendor:
+	$(GO) mod vendor
+.PHONY: vendor
+
 test:
-	go test ./...
+	$(GO) test ./...
 .PHONY: test
+
+bench:
+	$(GO) test -bench=. ./...
+.PHONY: bench
+
+lint:
+	golangci-lint run ./...
+.PHONY: lint
