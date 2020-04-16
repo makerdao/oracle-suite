@@ -21,22 +21,30 @@ type binanceResponse struct {
 type Binance struct{}
 
 // Call implementation
-func (b *Binance) Call(pool *query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error) {
-	if pool == nil || pp == nil {
-		return nil, errNoPotentialPricePoint
+func (b *Binance) Call(pool query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error) {
+	if pool == nil {
+		return nil, errNoPoolPassed
 	}
+	err := gofer.ValidatePotentialPricePoint(pp)
+	if err != nil {
+		return nil, err
+	}
+
 	req := &query.HTTPRequest{
 		URL: fmt.Sprintf(binanceURL, pp.Pair.Base+pp.Pair.Quote),
 	}
 
 	// make query
 	res := pool.Query(req)
+	if res == nil {
+		return nil, errEmptyExchangeResponse
+	}
 	if res.Error != nil {
 		return nil, res.Error
 	}
 	// parsing JSON
 	var resp binanceResponse
-	err := json.Unmarshal(res.Body, &resp)
+	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pargse binance response: %s", err)
 	}

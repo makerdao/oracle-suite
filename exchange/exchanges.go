@@ -8,7 +8,7 @@ import (
 // Handler is interface that all Exchange API handlers should implement
 type Handler interface {
 	// Call should implement making API request to exchange URL and collecting/parsing exhcange data
-	Call(pool *query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error)
+	Call(pool query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error)
 }
 
 // List of implemented exchanges
@@ -17,11 +17,14 @@ var exchangeList = map[string]Handler{
 }
 
 // Call makes exchange call
-func Call(pool *query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error) {
+func Call(pool query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error) {
+	if pool == nil {
+		return nil, errNoPoolPassed
+	}
 	if pp == nil {
 		return nil, errNoPotentialPricePoint
 	}
-	if pp.Exchange == nil {
+	if pp.Exchange == nil || pp.Exchange.Name == "" {
 		return nil, errNoExchangeInPotentialPricePoint
 	}
 

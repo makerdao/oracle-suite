@@ -1,12 +1,18 @@
 package query
 
-import "fmt"
-
 // max amount of tasks in worker pool queue
 const maxTasksQueue = 10
 
-// WorkerPool structure that contain Woker Pool implementation
-type WorkerPool struct {
+// WorkerPool interface for any Query Engine worker pools
+type WorkerPool interface {
+	Start()
+	Stop() error
+	Query(req *HTTPRequest) *HTTPResponse
+}
+
+// HTTPWorkerPool structure that contain Woker Pool HTTP implementation
+// It implements worker pool that will do real HTTP calls to resources using `query.MakeGetRequest`
+type HTTPWorkerPool struct {
 	workerCount int
 	input       chan *asyncHTTPRequest
 }
@@ -16,29 +22,29 @@ type asyncHTTPRequest struct {
 	response chan *HTTPResponse
 }
 
-// NewWorkerPool create new worker pool for queries
-func NewWorkerPool(workerCount int) *WorkerPool {
-	return &WorkerPool{
+// NewHTTPWorkerPool create new worker pool for queries
+func NewHTTPWorkerPool(workerCount int) *HTTPWorkerPool {
+	return &HTTPWorkerPool{
 		workerCount: workerCount,
 		input:       make(chan *asyncHTTPRequest, maxTasksQueue),
 	}
 }
 
 // Start start worker pool
-func (wp *WorkerPool) Start() {
+func (wp *HTTPWorkerPool) Start() {
 	for w := 1; w <= wp.workerCount; w++ {
 		go worker(w, wp.input)
 	}
 }
 
 // Stop stop worker in pool
-func (wp *WorkerPool) Stop() error {
+func (wp *HTTPWorkerPool) Stop() error {
 	close(wp.input)
 	return nil
 }
 
 // Query asdf
-func (wp *WorkerPool) Query(req *HTTPRequest) *HTTPResponse {
+func (wp *HTTPWorkerPool) Query(req *HTTPRequest) *HTTPResponse {
 	asyncReq := &asyncHTTPRequest{
 		request:  req,
 		response: make(chan *HTTPResponse),
@@ -54,7 +60,6 @@ func (wp *WorkerPool) Query(req *HTTPRequest) *HTTPResponse {
 
 func worker(id int, jobs <-chan *asyncHTTPRequest) {
 	for req := range jobs {
-		fmt.Println("worker", id, "making request")
 		// Make request and return result into channel
 		if req.response != nil {
 			req.response <- MakeGetRequest(req.request)
