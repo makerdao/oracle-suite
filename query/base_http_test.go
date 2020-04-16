@@ -1,4 +1,4 @@
-package gofer
+package query
 
 import (
 	"net/http"
@@ -39,7 +39,7 @@ func (suite *MakeRequestSuite) TestMakingRequest() {
 	}))
 
 	assert.NotNil(suite.T(), suite.server)
-	data, err := MakeGetRequest(suite.server.URL)
+	data, err := doMakeGetRequest(&HTTPRequest{URL: suite.server.URL})
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), []byte(serverResponse), data)
@@ -53,7 +53,7 @@ func (suite *MakeRequestSuite) TestMakingRequestToNotFound() {
 	}))
 
 	assert.NotNil(suite.T(), suite.server)
-	data, err := MakeGetRequest(suite.server.URL)
+	data, err := doMakeGetRequest(&HTTPRequest{URL: suite.server.URL})
 
 	assert.Error(suite.T(), err)
 	assert.Empty(suite.T(), data)
@@ -70,7 +70,11 @@ func (suite *MakeRequestSuite) TestMakingRequestWithHeaders() {
 
 	assert.NotNil(suite.T(), suite.server)
 	headers := map[string]string{requiredHeaderKey: requiredHeaderValue}
-	data, err := MakeGetRequestWithHeaders(suite.server.URL, headers)
+	r := &HTTPRequest{
+		URL:     suite.server.URL,
+		Headers: headers,
+	}
+	data, err := doMakeGetRequest(r)
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), []byte(serverResponse), data)
@@ -88,10 +92,15 @@ func (suite *MakeRequestSuite) TestMakeGetRequestWithRetryFails() {
 
 	assert.NotNil(suite.T(), suite.server)
 	headers := map[string]string{requiredHeaderKey: requiredHeaderValue}
-	data, err := MakeGetRequestWithRetry(suite.server.URL, headers, 3)
+	r := &HTTPRequest{
+		URL:     suite.server.URL,
+		Headers: headers,
+		Retry:   3,
+	}
+	res := MakeGetRequest(r)
 
-	assert.Error(suite.T(), err)
-	assert.EqualValues(suite.T(), []byte(nil), data)
+	assert.Error(suite.T(), res.Error)
+	assert.EqualValues(suite.T(), []byte(nil), res.Body)
 	assert.EqualValues(suite.T(), 3, calls)
 }
 
@@ -112,10 +121,15 @@ func (suite *MakeRequestSuite) TestMakeGetRequestWithRetry() {
 
 	assert.NotNil(suite.T(), suite.server)
 	headers := map[string]string{requiredHeaderKey: requiredHeaderValue}
-	data, err := MakeGetRequestWithRetry(suite.server.URL, headers, 3)
+	r := &HTTPRequest{
+		URL:     suite.server.URL,
+		Headers: headers,
+		Retry:   3,
+	}
+	res := MakeGetRequest(r)
 
-	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), []byte(serverResponse), data)
+	assert.NoError(suite.T(), res.Error)
+	assert.EqualValues(suite.T(), []byte(serverResponse), res.Body)
 	assert.EqualValues(suite.T(), 3, calls)
 }
 
