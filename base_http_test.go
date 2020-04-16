@@ -76,6 +76,49 @@ func (suite *MakeRequestSuite) TestMakingRequestWithHeaders() {
 	assert.EqualValues(suite.T(), []byte(serverResponse), data)
 }
 
+func (suite *MakeRequestSuite) TestMakeGetRequestWithRetryFails() {
+	calls := 0
+	// Start a local HTTP server
+	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		assert.EqualValues(suite.T(), requiredHeaderValue, req.Header.Get(requiredHeaderKey))
+		calls++
+		// Send response to be tested.
+		rw.WriteHeader(404)
+	}))
+
+	assert.NotNil(suite.T(), suite.server)
+	headers := map[string]string{requiredHeaderKey: requiredHeaderValue}
+	data, err := MakeGetRequestWithRetry(suite.server.URL, headers, 3)
+
+	assert.Error(suite.T(), err)
+	assert.EqualValues(suite.T(), []byte(nil), data)
+	assert.EqualValues(suite.T(), 3, calls)
+}
+
+func (suite *MakeRequestSuite) TestMakeGetRequestWithRetry() {
+	calls := 0
+	// Start a local HTTP server
+	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		assert.EqualValues(suite.T(), requiredHeaderValue, req.Header.Get(requiredHeaderKey))
+		calls++
+		// Send response to be tested.
+		// Successonly on 3rd call
+		if calls < 3 {
+			rw.WriteHeader(404)
+		} else {
+			rw.Write([]byte(serverResponse))
+		}
+	}))
+
+	assert.NotNil(suite.T(), suite.server)
+	headers := map[string]string{requiredHeaderKey: requiredHeaderValue}
+	data, err := MakeGetRequestWithRetry(suite.server.URL, headers, 3)
+
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), []byte(serverResponse), data)
+	assert.EqualValues(suite.T(), 3, calls)
+}
+
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
 func TestExampleTestSuite(t *testing.T) {
