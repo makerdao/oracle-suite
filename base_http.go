@@ -1,4 +1,4 @@
-package query
+package gofer
 
 import (
 	"fmt"
