@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+// Default retry amount
+const defaultRetry = 5
+
 // HTTPRequest default HTTP Request structure
 type HTTPRequest struct {
 	URL     string
@@ -35,7 +38,7 @@ func MakeGetRequest(r *HTTPRequest) *HTTPResponse {
 
 	// Check for non set Retry
 	if r.Retry == 0 {
-		r.Retry = 1
+		r.Retry = defaultRetry
 	}
 
 	step := 1
