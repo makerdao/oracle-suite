@@ -16,21 +16,17 @@ func TestOddPriceCount(t *testing.T) {
 		{1, "exchange1", &model.Pair{"a", "b"}, 2000, 1},
 		{2, "exchange2", &model.Pair{"a", "b"}, 20, 1},
 		{3, "exchange1", &model.Pair{"a", "b"}, 3, 1},
-		// Should not be skipped due to non-matching pair
+		// Should be skipped due to non-matching pair
 		{4, "exchange4", &model.Pair{"n", "o"}, 4, 1},
 		{5, "exchange5", &model.Pair{"a", "b"}, 5, 1},
 	}
 
-	reducer := NewMedianReducer(&model.Pair{"a", "b"}, 1000)
-
-	for _, price := range rows {
-		reducer.Ingest(price)
+	for i := 0; i < 100; i++ {
+		reducer := NewMedianReducer(&model.Pair{"a", "b"}, 1000)
+		priceAggregate := RandomReduce(reducer, rows)
+		assert.Equal(t, 3, len(priceAggregate.Prices), "length of aggregate price list")
+		assert.Equal(t, uint64(5), priceAggregate.Price, "aggregate price should be median of price points")
 	}
-
-	priceAggregate := reducer.Reduce()
-
-	assert.Equal(t, 3, len(priceAggregate.Prices), "length of aggregate price list")
-	assert.Equal(t, uint64(5), priceAggregate.Price, "aggregate price should be median of price points")
 }
 
 func TestEvenPriceCount(t *testing.T) {
@@ -41,14 +37,10 @@ func TestEvenPriceCount(t *testing.T) {
 		{4, "exchange4", &model.Pair{"a", "b"}, 5, 1},
 	}
 
-	reducer := NewMedianReducer(&model.Pair{"a", "b"}, 1000)
-
-	for _, price := range rows {
-		reducer.Ingest(price)
+	for i := 0; i < 100; i++ {
+		reducer := NewMedianReducer(&model.Pair{"a", "b"}, 1000)
+		priceAggregate := RandomReduce(reducer, rows)
+		assert.Equal(t, 4, len(priceAggregate.Prices), "length of aggregate price list")
+		assert.Equal(t, uint64(6), priceAggregate.Price, "aggregate price should be median of price points")
 	}
-
-	priceAggregate := reducer.Reduce()
-
-	assert.Equal(t, 4, len(priceAggregate.Prices), "length of aggregate price list")
-	assert.Equal(t, uint64(6), priceAggregate.Price, "aggregate price should be median of price points")
 }
