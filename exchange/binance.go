@@ -3,7 +3,7 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer"
+	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"strconv"
 	"time"
@@ -21,11 +21,11 @@ type binanceResponse struct {
 type Binance struct{}
 
 // Call implementation
-func (b *Binance) Call(pool query.WorkerPool, pp *gofer.PotentialPricePoint) (*gofer.PricePoint, error) {
+func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
-	err := gofer.ValidatePotentialPricePoint(pp)
+	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +54,10 @@ func (b *Binance) Call(pool query.WorkerPool, pp *gofer.PotentialPricePoint) (*g
 		return nil, fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
 	}
 	// building PricePoint
-	return &gofer.PricePoint{
+	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     price,
+		Price:     model.PriceFromFloat(price),
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

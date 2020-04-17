@@ -1,7 +1,7 @@
 package exchange
 
 import (
-	"makerdao/gofer"
+	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
 
@@ -56,12 +56,12 @@ func (suite *ExchangesSuite) TestCallErrorNegative() {
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 
-	res, err = Call(pool, &gofer.PotentialPricePoint{})
+	res, err = Call(pool, &model.PotentialPricePoint{})
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 
-	pp := &gofer.PotentialPricePoint{
-		Exchange: &gofer.Exchange{
+	pp := &model.PotentialPricePoint{
+		Exchange: &model.Exchange{
 			Name: "unknown",
 		},
 	}
@@ -72,11 +72,11 @@ func (suite *ExchangesSuite) TestCallErrorNegative() {
 
 func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 	pool := newMockWorkerPool(nil)
-	pp := &gofer.PotentialPricePoint{
-		Exchange: &gofer.Exchange{
+	pp := &model.PotentialPricePoint{
+		Exchange: &model.Exchange{
 			Name: "binance",
 		},
-		Pair: &gofer.Pair{
+		Pair: &model.Pair{
 			Base:  "BTC",
 			Quote: "ETH",
 		},
@@ -93,13 +93,13 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 		Body:  []byte(`{"symbol":"ETHBTC","price":"0.02436100"}`),
 		Error: nil,
 	}
-	p := &gofer.Pair{
+	p := &model.Pair{
 		Base:  "BTC",
 		Quote: "ETH",
 	}
 	pool := newMockWorkerPool(resp)
-	pp := &gofer.PotentialPricePoint{
-		Exchange: &gofer.Exchange{
+	pp := &model.PotentialPricePoint{
+		Exchange: &model.Exchange{
 			Name: "binance",
 		},
 		Pair: p,
@@ -109,7 +109,7 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), p, res.Pair)
-	assert.EqualValues(suite.T(), 0.024361, res.Price)
+	assert.EqualValues(suite.T(), model.PriceFromFloat(0.024361), res.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

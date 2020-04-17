@@ -20,8 +20,8 @@ func calcPrice(pp *model.PricePoint) uint64 {
 		return (pp.Ask + pp.Bid) / 2
 	}
 	// If last auction price is valid return that
-	if pp.Last != 0 {
-		return pp.Last
+	if pp.Price != 0 {
+		return pp.Price
 	}
 	// Otherwise return invalid price
 	return 0
@@ -80,7 +80,7 @@ func (r *MedianReducer) Ingest(pp *model.PricePoint) {
 				// Update existing price if new price is newer
 				p.Ask = pp.Ask
 				p.Bid = pp.Bid
-				p.Last = pp.Last
+				p.Price = pp.Price
 				p.Volume = pp.Volume
 				p.Timestamp = pp.Timestamp
 				addPrice = false
