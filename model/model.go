@@ -10,11 +10,13 @@ func (p *Pair) Equal(pair *Pair) bool {
 }
 
 type PricePoint struct {
-	Timestamp int64
-	Exchange  string
-	Pair      *Pair
-	Price     uint64
-	Volume    uint64
+	Timestamp int64  // Unix time
+	Exchange  string // Exchange id
+	Pair      *Pair  // Asset pair
+	Last      uint64 // Last traded price
+	Ask       uint64 // Best ask price
+	Bid       uint64 // Best bid price
+	Volume    uint64 // Trade volume
 }
 
 type PriceAggregate struct {

@@ -15,3 +15,15 @@ func RandomReduce(r Reducer, prices []*model.PricePoint) *model.PriceAggregate {
 	}
 	return r.Reduce()
 }
+
+func NewTestPricePoint(timestamp int64, exchange string, base string, quote string, last uint64, volume uint64) *model.PricePoint {
+	return &model.PricePoint{
+		Timestamp: timestamp,
+		Exchange:  exchange,
+		Pair:      &model.Pair{Base: base, Quote: quote},
+		Last:      last,
+		Ask:       last,
+		Bid:       last,
+		Volume:    volume,
+	}
+}

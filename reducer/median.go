@@ -13,6 +13,20 @@ type MedianReducer struct {
 	reduced         bool
 }
 
+// Get price estimate from price point
+func calcPrice(pp *model.PricePoint) uint64 {
+	// If ask/bid values are valid return mean of ask and bid
+	if pp.Ask != 0 && pp.Bid != 0 {
+		return (pp.Ask + pp.Bid) / 2
+	}
+	// If last auction price is valid return that
+	if pp.Last != 0 {
+		return pp.Last
+	}
+	// Otherwise return invalid price
+	return 0
+}
+
 func NewMedianReducer(pair *model.Pair, timeWindow int64) *MedianReducer {
 	return &MedianReducer{
 		timeWindow:      timeWindow,
@@ -22,26 +36,33 @@ func NewMedianReducer(pair *model.Pair, timeWindow int64) *MedianReducer {
 	}
 }
 
-func (r *MedianReducer) Ingest(price *model.PricePoint) {
-	if price.Price == 0 || !price.Pair.Equal(r.aggregate.Pair) {
+func (r *MedianReducer) Ingest(pp *model.PricePoint) {
+	// Ignore price point if asset pair not matching price model pair
+	if !pp.Pair.Equal(r.aggregate.Pair) {
+		return
+	}
+
+	// Ignore price point if no valid price
+	price := calcPrice(pp)
+	if price == 0 {
 		return
 	}
 
 	// First ingested price, add it and return
 	if len(r.aggregate.Prices) == 0 {
-		r.newestTimestamp = price.Timestamp
-		r.aggregate.Prices = []*model.PricePoint{price}
+		r.newestTimestamp = pp.Timestamp
+		r.aggregate.Prices = []*model.PricePoint{pp}
 		r.reduced = false
 		return
 	}
 
-	if price.Timestamp > r.newestTimestamp {
-		r.newestTimestamp = price.Timestamp
+	if pp.Timestamp > r.newestTimestamp {
+		r.newestTimestamp = pp.Timestamp
 	}
 
 	timeWindow := r.newestTimestamp - r.timeWindow
 	// New price is outside time window, do nothing
-	if price.Timestamp <= timeWindow {
+	if pp.Timestamp <= timeWindow {
 		return
 	}
 
@@ -52,13 +73,15 @@ func (r *MedianReducer) Ingest(price *model.PricePoint) {
 		if p.Timestamp <= timeWindow {
 			continue
 		}
-		if price.Exchange == p.Exchange {
+		if pp.Exchange == p.Exchange {
 			// Price with same exchange as new price already exists
-			if price.Timestamp > p.Timestamp {
+			if pp.Timestamp > p.Timestamp {
 				// Update existing price if new price is newer
-				p.Price = price.Price
-				p.Volume = price.Volume
-				p.Timestamp = price.Timestamp
+				p.Ask = pp.Ask
+				p.Bid = pp.Bid
+				p.Last = pp.Last
+				p.Volume = pp.Volume
+				p.Timestamp = pp.Timestamp
 				addPrice = false
 			} else {
 				// New price is older than existing price, do nothing
@@ -70,7 +93,7 @@ func (r *MedianReducer) Ingest(price *model.PricePoint) {
 
 	// Add new price if not already updated existing price with same exchange
 	if addPrice {
-		updatedIgnested = append(updatedIgnested, price)
+		updatedIgnested = append(updatedIgnested, pp)
 	}
 
 	r.aggregate.Prices = updatedIgnested
@@ -85,17 +108,19 @@ func (r *MedianReducer) Reduce() *model.PriceAggregate {
 
 	// Sort price points by price
 	sort.Slice(r.aggregate.Prices, func(i, j int) bool {
-		return r.aggregate.Prices[i].Price > r.aggregate.Prices[j].Price
+		return calcPrice(r.aggregate.Prices[i]) > calcPrice(r.aggregate.Prices[j])
 	})
 
 	if priceCount%2 == 0 {
 		// Even price point count, take the mean of the two middle prices
 		i := int(priceCount / 2)
-		r.aggregate.Price = uint64((r.aggregate.Prices[i-1].Price + r.aggregate.Prices[i].Price) / 2)
+		price1 := calcPrice(r.aggregate.Prices[i-1])
+		price2 := calcPrice(r.aggregate.Prices[i])
+		r.aggregate.Price = uint64((price1 + price2) / 2)
 	} else {
 		// Odd price point count, use the middle price
 		i := int((priceCount - 1) / 2)
-		r.aggregate.Price = r.aggregate.Prices[i].Price
+		r.aggregate.Price = calcPrice(r.aggregate.Prices[i])
 	}
 	r.reduced = true
 	return r.aggregate.Clone()

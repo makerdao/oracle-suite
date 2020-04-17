@@ -11,14 +11,14 @@ import (
 func TestOddPriceCount(t *testing.T) {
 	rows := []*model.PricePoint{
 		// Should be filtered due to outside time window
-		{-1000, "exchange0", &model.Pair{"a", "b"}, 1000, 1},
+		NewTestPricePoint(-1000, "exchange0", "a", "b", 1000, 1),
 		// Should be overwritten by entry 3 due to same exchange but older
-		{1, "exchange1", &model.Pair{"a", "b"}, 2000, 1},
-		{2, "exchange2", &model.Pair{"a", "b"}, 20, 1},
-		{3, "exchange1", &model.Pair{"a", "b"}, 3, 1},
+		NewTestPricePoint(1, "exchange1", "a", "b", 2000, 1),
+		NewTestPricePoint(2, "exchange2", "a", "b", 20, 1),
+		NewTestPricePoint(3, "exchange1", "a", "b", 3, 1),
 		// Should be skipped due to non-matching pair
-		{4, "exchange4", &model.Pair{"n", "o"}, 4, 1},
-		{5, "exchange5", &model.Pair{"a", "b"}, 5, 1},
+		NewTestPricePoint(4, "exchange4", "n", "o", 4, 1),
+		NewTestPricePoint(5, "exchange5", "a", "b", 5, 1),
 	}
 
 	for i := 0; i < 100; i++ {
@@ -31,10 +31,10 @@ func TestOddPriceCount(t *testing.T) {
 
 func TestEvenPriceCount(t *testing.T) {
 	rows := []*model.PricePoint{
-		{1, "exchange1", &model.Pair{"a", "b"}, 7, 1},
-		{2, "exchange2", &model.Pair{"a", "b"}, 2, 1},
-		{3, "exchange3", &model.Pair{"a", "b"}, 10, 1},
-		{4, "exchange4", &model.Pair{"a", "b"}, 5, 1},
+		NewTestPricePoint(1, "exchange1", "a", "b", 7, 1),
+		NewTestPricePoint(2, "exchange2", "a", "b", 2, 1),
+		NewTestPricePoint(3, "exchange3", "a", "b", 10, 1),
+		NewTestPricePoint(4, "exchange4", "a", "b", 5, 1),
 	}
 
 	for i := 0; i < 100; i++ {
