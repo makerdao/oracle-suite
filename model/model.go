@@ -15,7 +15,7 @@ type Pair struct {
 
 // Equal check if `Pair` is equal to given one
 func (p *Pair) Equal(pair *Pair) bool {
-	return p.Base == pair.Base && p.Quote == p.Quote
+	return (p.Base == pair.Base && p.Quote == pair.Quote)
 }
 
 // Exchange represent exchange details
