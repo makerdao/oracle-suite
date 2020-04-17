@@ -68,6 +68,12 @@ func (suite *ModelSuite) TestValidatePotentialPricePoint() {
 	assert.NoError(suite.T(), ValidatePotentialPricePoint(pp))
 }
 
+func (suite *ModelSuite) TestPriceToAndFromFloat() {
+	p := 0.0234561
+	assert.NotEqual(suite.T(), p, PriceFromFloat(p))
+	assert.Equal(suite.T(), p, PriceToFloat(PriceFromFloat(p)))
+}
+
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
 func TestModelSuite(t *testing.T) {
