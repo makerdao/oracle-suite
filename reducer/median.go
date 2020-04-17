@@ -36,6 +36,7 @@ func NewMedianReducer(pair *model.Pair, timeWindow int64) *MedianReducer {
 	}
 }
 
+// Add a price point to median reducer state
 func (r *MedianReducer) Ingest(pp *model.PricePoint) {
 	// Ignore price point if asset pair not matching price model pair
 	if !pp.Pair.Equal(r.aggregate.Pair) {
@@ -73,7 +74,7 @@ func (r *MedianReducer) Ingest(pp *model.PricePoint) {
 		if p.Timestamp <= timeWindow {
 			continue
 		}
-		if pp.Exchange == p.Exchange {
+		if pp.Exchange.Name == p.Exchange.Name {
 			// Price with same exchange as new price already exists
 			if pp.Timestamp > p.Timestamp {
 				// Update existing price if new price is newer
@@ -100,6 +101,7 @@ func (r *MedianReducer) Ingest(pp *model.PricePoint) {
 	r.reduced = false
 }
 
+// Sort prices in state and return median
 func (r *MedianReducer) Reduce() *model.PriceAggregate {
 	priceCount := len(r.aggregate.Prices)
 	if priceCount == 0 || r.reduced {
