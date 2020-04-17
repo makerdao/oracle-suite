@@ -1,30 +1,30 @@
 package gofer
 
-// Pair 
+// Pair
 type Pair struct {
-	Base string,
+	Base  string
 	Quote string
 }
 
 // Exchange
 type Exchange struct {
-	Name string
+	Name   string
 	Config map[string]string
 }
 
 // PotentialPricePoint
 type PotentialPricePoint struct {
-	Pair *Pair,
+	Pair     *Pair
 	Exchange *Exchange
 }
 
 // PricePoint
 type PricePoint struct {
-	Exchange *Exchange,
-	Pair *Pair
-	Timestamp int64,
-	Price float64,
-	Bid float64,
-	Ask float64,
-	Volume float64
+	Exchange  *Exchange
+	Pair      *Pair
+	Timestamp int64
+	Price     float64
+	Bid       float64
+	Ask       float64
+	Volume    float64
 }
