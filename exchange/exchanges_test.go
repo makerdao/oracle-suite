@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"fmt"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
@@ -89,8 +90,10 @@ func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 }
 
 func (suite *ExchangesSuite) TestSuccessBinance() {
+	price := 0.024361
+	json := fmt.Sprintf(`{"symbol":"ETHBTC","price":"%f"}`, price)
 	resp := &query.HTTPResponse{
-		Body:  []byte(`{"symbol":"ETHBTC","price":"0.02436100"}`),
+		Body:  []byte(json),
 		Error: nil,
 	}
 	p := &model.Pair{
@@ -109,7 +112,7 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), p, res.Pair)
-	assert.EqualValues(suite.T(), model.PriceFromFloat(0.024361), res.Price)
+	assert.EqualValues(suite.T(), model.PriceFromFloat(price), res.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

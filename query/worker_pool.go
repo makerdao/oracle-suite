@@ -1,5 +1,7 @@
 package query
 
+import "fmt"
+
 // max amount of tasks in worker pool queue
 const maxTasksQueue = 10
 
@@ -13,6 +15,7 @@ type WorkerPool interface {
 // HTTPWorkerPool structure that contain Woker Pool HTTP implementation
 // It implements worker pool that will do real HTTP calls to resources using `query.MakeGetRequest`
 type HTTPWorkerPool struct {
+	started     bool
 	workerCount int
 	input       chan *asyncHTTPRequest
 }
@@ -35,16 +38,24 @@ func (wp *HTTPWorkerPool) Start() {
 	for w := 1; w <= wp.workerCount; w++ {
 		go worker(w, wp.input)
 	}
+	wp.started = true
 }
 
 // Stop stop worker in pool
 func (wp *HTTPWorkerPool) Stop() error {
 	close(wp.input)
+	wp.started = false
 	return nil
 }
 
 // Query asdf
 func (wp *HTTPWorkerPool) Query(req *HTTPRequest) *HTTPResponse {
+	if !wp.started {
+		return &HTTPResponse{
+			Error: fmt.Errorf("worker pool not strated"),
+		}
+	}
+
 	asyncReq := &asyncHTTPRequest{
 		request:  req,
 		response: make(chan *HTTPResponse),

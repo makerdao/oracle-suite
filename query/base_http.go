@@ -11,11 +11,15 @@ import (
 // Default retry amount
 const defaultRetry = 5
 
+// Default timeout for HTTP Request
+const defaultTimeoutInSeconds = 15
+
 // HTTPRequest default HTTP Request structure
 type HTTPRequest struct {
 	URL     string
 	Headers map[string]string
 	Retry   int
+	Timeout time.Duration
 }
 
 // HTTPResponse default query engine response
@@ -48,7 +52,7 @@ func MakeGetRequest(r *HTTPRequest) *HTTPResponse {
 	for step <= r.Retry {
 		res, err = doMakeGetRequest(r)
 		if err != nil {
-			time.Sleep(getTimeout())
+			time.Sleep(getTimeoutBetweenRequests())
 			step++
 			continue
 		}
@@ -67,7 +71,14 @@ func doMakeGetRequest(r *HTTPRequest) ([]byte, error) {
 		return nil, fmt.Errorf("failed to make HTTP request to `nil`")
 	}
 
-	client := &http.Client{}
+	// Binding default timeout
+	if r.Timeout == time.Duration(0) {
+		r.Timeout = defaultTimeoutInSeconds * time.Second
+	}
+
+	client := &http.Client{
+		Timeout: r.Timeout,
+	}
 	req, err := http.NewRequest("GET", r.URL, nil)
 	if err != nil {
 		return nil, err
@@ -91,7 +102,7 @@ func doMakeGetRequest(r *HTTPRequest) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-// getTimeout geenrate random timeout between retry queries
-func getTimeout() time.Duration {
+// getTimeoutBetweenRequests geenrate random timeout between retry queries
+func getTimeoutBetweenRequests() time.Duration {
 	return time.Duration(100 + rand.Intn(900))
 }

@@ -13,7 +13,17 @@ type Handler interface {
 
 // List of implemented exchanges
 var exchangeList = map[string]Handler{
-	"binance": &Binance{},
+	"binance":     &Binance{},
+	"bitfinex":    &Bitfinex{},
+	"bitstamp":    &Bitstamp{},
+	"bittrex":     &BitTrex{},
+	"coinbase":    &Coinbase{},
+	"coinbasepro": &CoinbasePro{},
+	"fx":          &Fx{},
+	"gateio":      &Gateio{},
+	"gemini":      &Gemini{},
+	"hitbtc":      &Hitbtc{},
+	"huobi":       &Huobi{},
 }
 
 // Call makes exchange call
@@ -24,8 +34,9 @@ func Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoi
 	if pp == nil {
 		return nil, errNoPotentialPricePoint
 	}
-	if pp.Exchange == nil || pp.Exchange.Name == "" {
-		return nil, errNoExchangeInPotentialPricePoint
+	err := model.ValidatePotentialPricePoint(pp)
+	if err != nil {
+		return nil, err
 	}
 
 	handler, ok := exchangeList[pp.Exchange.Name]

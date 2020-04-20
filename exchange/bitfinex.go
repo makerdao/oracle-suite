@@ -5,24 +5,23 @@ import (
 	"fmt"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
-	"strconv"
 	"strings"
 	"time"
 )
 
-// Binance URL
-const binanceURL = "https://www.binance.com/api/v3/ticker/price?symbol=%s"
+// Bitfinex URL
+const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
-type binanceResponse struct {
+type bitfinexResponse struct {
 	Symbol string `json:"symbol"`
 	Price  string `json:"price"`
 }
 
-// Binance exchange handler
-type Binance struct{}
+// Bitfinex exchange handler
+type Bitfinex struct{}
 
 // Call implementation
-func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -33,7 +32,7 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 
 	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(binanceURL, pair),
+		URL: fmt.Sprintf(bitfinexURL, pair),
 	}
 
 	// make query
@@ -45,21 +44,20 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, res.Error
 	}
 	// parsing JSON
-	var resp binanceResponse
+	var resp []float64
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse binance response: %s", err)
+		return nil, fmt.Errorf("failed to pargse bitfinex response: %s", err)
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(resp.Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
+	if len(resp) < 8 {
+		return nil, fmt.Errorf("wrong bitfinex response")
 	}
 	// building PricePoint
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
+		Price:     model.PriceFromFloat(resp[6]),
+		Volume:    model.PriceFromFloat(resp[7]),
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

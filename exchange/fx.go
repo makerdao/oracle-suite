@@ -5,24 +5,22 @@ import (
 	"fmt"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
-	"strconv"
 	"strings"
 	"time"
 )
 
-// Binance URL
-const binanceURL = "https://www.binance.com/api/v3/ticker/price?symbol=%s"
+// Fx URL
+const fxURL = "https://api.exchangeratesapi.io/latest?base=%s"
 
-type binanceResponse struct {
-	Symbol string `json:"symbol"`
-	Price  string `json:"price"`
+type fxResponse struct {
+	Rates map[string]float64 `json:"rates"`
 }
 
-// Binance exchange handler
-type Binance struct{}
+// Fx exchange handler
+type Fx struct{}
 
 // Call implementation
-func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -31,9 +29,9 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	pair := strings.ToUpper(pp.Pair.Base)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(binanceURL, pair),
+		URL: fmt.Sprintf(fxURL, pair),
 	}
 
 	// make query
@@ -45,15 +43,17 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, res.Error
 	}
 	// parsing JSON
-	var resp binanceResponse
+	var resp fxResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse binance response: %s", err)
+		return nil, fmt.Errorf("failed to pargse fx response: %s", err)
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(resp.Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
+	if resp.Rates == nil {
+		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
+	}
+	price, ok := resp.Rates[pp.Pair.Quote]
+	if !ok {
+		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
 	}
 	// building PricePoint
 	return &model.PricePoint{
