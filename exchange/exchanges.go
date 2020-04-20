@@ -24,6 +24,7 @@ var exchangeList = map[string]Handler{
 	"gemini":      &Gemini{},
 	"hitbtc":      &Hitbtc{},
 	"huobi":       &Huobi{},
+	"poloniex":    &Poloniex{},
 }
 
 // Call makes exchange call
