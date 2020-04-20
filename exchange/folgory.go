@@ -32,7 +32,7 @@ func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	pair := fmt.Sprintf("%s/%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 	req := &query.HTTPRequest{
 		URL: fmt.Sprintf(folgoryURL, pair),
 	}
