@@ -11,7 +11,7 @@ import (
 )
 
 // Folgory URL
-const folgoryURL = "https://www.folgory.com/api/v3/ticker/price?symbol=%s"
+const folgoryURL = "https://folgory.com/api/v1"
 
 type folgoryResponse struct {
 	Symbol string `json:"symbol"`
@@ -34,7 +34,7 @@ func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 
 	pair := fmt.Sprintf("%s/%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(folgoryURL, pair),
+		URL: fmt.Sprintf(folgoryURL),
 	}
 
 	// make query
@@ -47,7 +47,9 @@ func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	}
 	// parsing JSON
 	var resp []folgoryResponse
-	err = json.Unmarshal(res.Body, &resp)
+	body := strings.TrimSpace(string(res.Body))
+
+	err = json.Unmarshal([]byte(body), &resp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pargse folgory response: %s", err)
 	}
