@@ -12,11 +12,6 @@ import (
 // Bitfinex URL
 const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
-type bitfinexResponse struct {
-	Symbol string `json:"symbol"`
-	Price  string `json:"price"`
-}
-
 // Bitfinex exchange handler
 type Bitfinex struct{}
 

@@ -48,7 +48,9 @@ func (wp *HTTPWorkerPool) Stop() error {
 	return nil
 }
 
-// Query asdf
+// Query makes request to given Request
+// Under the hood it will wrap everything to async query and execute it using
+// worker pool.
 func (wp *HTTPWorkerPool) Query(req *HTTPRequest) *HTTPResponse {
 	if !wp.started {
 		return &HTTPResponse{
