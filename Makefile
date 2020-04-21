@@ -3,6 +3,7 @@ GOFILES := $(shell find . -name '*.go')
 
 OUT_DIR := workdir
 CMD_TARGET := $(OUT_DIR)/$(PACKAGE)
+COVER_FILE := $(OUT_DIR)/cover.out
 
 GO := go
 
@@ -35,3 +36,9 @@ bench:
 lint:
 	golangci-lint run ./...
 .PHONY: lint
+
+cover:
+	@mkdir -p $(dir $(COVER_FILE))
+	$(GO) test -coverprofile=$(COVER_FILE) ./...
+	go tool cover -func=$(COVER_FILE)
+.PHONY: cover
