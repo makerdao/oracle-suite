@@ -34,7 +34,7 @@ func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 
 	pair := fmt.Sprintf("%s/%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(folgoryURL),
+		URL: folgoryURL,
 	}
 
 	// make query
