@@ -33,7 +33,7 @@ func NewTestPricePointPriceOnly(timestamp int64, exchange string, base string, q
 		Timestamp: timestamp,
 		Exchange:  &model.Exchange{Name: exchange},
 		Pair:      &model.Pair{Base: base, Quote: quote},
-		Last:      last,
+		Price:     last,
 		Volume:    volume,
 	}
 }
