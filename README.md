@@ -36,7 +36,7 @@ make bench
   - `config/` run-time configuration using JSON files
 
 
-## Query Engive
+## Query Engine
 
 #### Worker Pool Usage
 
