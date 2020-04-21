@@ -18,6 +18,7 @@ package model
 import (
 	"fmt"
 	"math"
+	"strings"
 )
 
 const priceMultiplier = 10000000
@@ -26,11 +27,6 @@ const priceMultiplier = 10000000
 type Pair struct {
 	Base  string
 	Quote string
-}
-
-// Equal check if `Pair` is equal to given one
-func (p *Pair) Equal(pair *Pair) bool {
-	return (p.Base == pair.Base && p.Quote == pair.Quote)
 }
 
 // Exchange represent exchange details
@@ -61,6 +57,26 @@ type PriceAggregate struct {
 	Pair   *Pair
 	Prices []*PricePoint
 	Price  uint64
+}
+
+// PricePath represents a continuous chain of asset pairs that can be traded in
+// sequence
+type PricePath []*Pair
+
+// PricePath represents a way to convert from a base asset to a quote asset
+// through direct trading pairs
+type PricePaths struct {
+	Target *Pair
+	Paths  []PricePath
+}
+
+// Target returns a Pair with base of first and quote of last pair in path
+func (ppath PricePath) Target() *Pair {
+	pathLen := len(ppath)
+	if pathLen == 0 {
+		return nil
+	}
+	return NewPair(ppath[0].Base, ppath[pathLen-1].Quote)
 }
 
 // NewPriceAggregate create new `PriceAggregate`
@@ -95,6 +111,21 @@ func ValidateExchange(ex *Exchange) error {
 	return nil
 }
 
+// NewPair creates a new instance of `Pair`
+func NewPair(base string, quote string) *Pair {
+	return &Pair{Base: base, Quote: quote}
+}
+
+// Equal check if `Pair` is equal to given one
+func (p *Pair) Equal(pair *Pair) bool {
+	return (p.Base == pair.Base && p.Quote == pair.Quote)
+}
+
+// String returns a string representation of `Pair` e.g. BTC/USD
+func (p *Pair) String() string {
+	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
+}
+
 // ValidatePair checks if `Pair` has some errors.
 // If it's valid no error will be returned, othervise some error.
 func ValidatePair(p *Pair) error {
@@ -106,6 +137,9 @@ func ValidatePair(p *Pair) error {
 	}
 	if p.Quote == "" {
 		return fmt.Errorf("pair has empty Quote")
+	}
+	if p.Base == p.Quote {
+		return fmt.Errorf("pair has same Base and Quote")
 	}
 	return nil
 }
@@ -121,6 +155,83 @@ func ValidatePotentialPricePoint(pp *PotentialPricePoint) error {
 		return fmt.Errorf("given PotentialPricePoint has wrong exchange: %s", err)
 	}
 	return ValidatePair(pp.Pair)
+}
+
+// NewPricePaths creates a new instance of `PricePaths`
+func NewPricePaths(target *Pair, pairs ...PricePath) *PricePaths {
+	return &PricePaths{
+		Target: target,
+		Paths:  pairs,
+	}
+}
+
+// String returns PricePaths string representation
+func (ppaths *PricePaths) String() string {
+	var str strings.Builder
+	str.WriteString(ppaths.Target.String())
+	str.WriteString(" =")
+	for _, path := range ppaths.Paths {
+		str.WriteString(" (")
+		str.WriteString(path.String())
+		str.WriteString(")")
+	}
+	return str.String()
+}
+
+// String returns PricePath string representation
+func (ppath PricePath) String() string {
+	var str strings.Builder
+	str.WriteString(ppath[0].Base)
+	for _, pair := range ppath {
+		str.WriteString(" -> ")
+		str.WriteString(pair.Quote)
+	}
+	return str.String()
+}
+
+// ValidatePricePath checks if price path has at least one pair
+func ValidatePricePath(ppath PricePath) error {
+	if ppath == nil {
+		return fmt.Errorf("price path is nil")
+	}
+	if len(ppath) == 0 {
+		return fmt.Errorf("price path has no pairs")
+	}
+	var prev *Pair
+	for _, p := range ppath {
+		if ValidatePair(p) != nil {
+			return fmt.Errorf("pair in path is invalid")
+		}
+		if prev != nil {
+			if prev.Quote != p.Base {
+				return fmt.Errorf("price path sequence is invalid")
+			}
+		}
+		prev = p
+	}
+	return nil
+}
+
+// ValidatePricePaths checks if price paths all have same target pair
+func ValidatePricePaths(ppaths *PricePaths) error {
+	if ppaths == nil {
+		return fmt.Errorf("price paths is nil")
+	}
+	if ValidatePair(ppaths.Target) != nil {
+		return fmt.Errorf("price paths target pair is invalid")
+	}
+	if len(ppaths.Paths) == 0 {
+		return fmt.Errorf("price paths has no paths")
+	}
+	for _, ppath := range ppaths.Paths {
+		if ValidatePricePath(ppath) != nil {
+			return fmt.Errorf("one path in price paths was invalid")
+		}
+		if !ppaths.Target.Equal(ppath.Target()) {
+			return fmt.Errorf("one path in price paths has non matching target")
+		}
+	}
+	return nil
 }
 
 // PriceFromFloat convert price from float value to uint

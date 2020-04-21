@@ -60,6 +60,7 @@ func (suite *ModelSuite) TestValidatePair() {
 	assert.Error(suite.T(), ValidatePair(&Pair{}))
 	assert.Error(suite.T(), ValidatePair(&Pair{Base: "BTC"}))
 	assert.Error(suite.T(), ValidatePair(&Pair{Quote: "BTC"}))
+	assert.Error(suite.T(), ValidatePair(&Pair{Base: "BTC", Quote: "BTC"}))
 
 	assert.NoError(suite.T(), ValidatePair(&Pair{Base: "ETH", Quote: "BTC"}))
 }
@@ -81,6 +82,22 @@ func (suite *ModelSuite) TestValidatePotentialPricePoint() {
 	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Pair: p, Exchange: &Exchange{}}))
 
 	assert.NoError(suite.T(), ValidatePotentialPricePoint(pp))
+}
+
+func (suite *ModelSuite) TestValidatePricePaths() {
+	target := NewPair("a", "c")
+	ppath := []PricePath{[]*Pair{NewPair("a", "b"), NewPair("b", "c")}}
+	ppaths := NewPricePaths(target, ppath...)
+
+	assert.Error(suite.T(), ValidatePricePaths(nil))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: nil, Paths: ppath}))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: nil}))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, nil)}))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{})}))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "a"), NewPair("a", "c")})}))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "z")})}))
+	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "x"), NewPair("y", "c")})}))
+	assert.NoError(suite.T(), ValidatePricePaths(ppaths))
 }
 
 func (suite *ModelSuite) TestPriceToAndFromFloat() {
