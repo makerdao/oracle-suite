@@ -1,21 +1,16 @@
 PACKAGE ?= gofer
 GOFILES := $(shell find . -name '*.go')
 
-CMD_SRCS := cmd/main.go
-
 OUT_DIR := workdir
 CMD_TARGET := $(OUT_DIR)/$(PACKAGE)
 
 GO := go
 
-all: $(CMD_TARGET)
-.PHONY: all
-
 clean:
 	rm -rf $(OUT_DIR)
 .PHONY: clean
 
-build: clean all
+build: clean
 .PHONY: build
 
 $(CMD_TARGET): GOOS ?= linux
