@@ -7,16 +7,18 @@ import (
 	"makerdao/gofer/query"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Gemini URL
 const geminiURL = "https://api.gemini.com/v1/pubticker/%s"
 
 type geminiResponse struct {
-	Price string `json:"last"`
-	Ask   string `json:"ask"`
-	Bid   string `json:"bid"`
+	Price  string `json:"last"`
+	Ask    string `json:"ask"`
+	Bid    string `json:"bid"`
+	Volume struct {
+		Timestamp int64 `json:"timestamp"`
+	}
 }
 
 // Gemini exchange handler
@@ -73,6 +75,6 @@ func (b *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		Price:     model.PriceFromFloat(price),
 		Ask:       model.PriceFromFloat(ask),
 		Bid:       model.PriceFromFloat(bid),
-		Timestamp: time.Now().Unix(),
+		Timestamp: resp.Volume.Timestamp / 1000,
 	}, nil
 }

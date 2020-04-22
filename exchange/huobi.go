@@ -7,16 +7,16 @@ import (
 	"makerdao/gofer/query"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Huobi URL
 const huobiURL = "https://api.huobi.pro/market/detail/merged?symbol=%s"
 
 type huobiResponse struct {
-	Status string `json:"status"`
-	Volume string `json:"vol"`
-	Tick   struct {
+	Status    string `json:"status"`
+	Volume    string `json:"vol"`
+	Timestamp int64  `json:"ts"`
+	Tick      struct {
 		Bid []string
 	}
 }
@@ -72,6 +72,6 @@ func (b *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		Pair:      pp.Pair,
 		Price:     model.PriceFromFloat(price),
 		Volume:    model.PriceFromFloat(volume),
-		Timestamp: time.Now().Unix(),
+		Timestamp: resp.Timestamp / 1000,
 	}, nil
 }

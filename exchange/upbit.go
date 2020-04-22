@@ -6,15 +6,15 @@ import (
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"strings"
-	"time"
 )
 
 // Upbit URL
 const upbitURL = "https://api.upbit.com/v1/ticker?markets=%s"
 
 type upbitResponse struct {
-	Price  float64 `json:"trade_price"`
-	Volume float64 `json:"acc_trade_volume"`
+	Price     float64 `json:"trade_price"`
+	Volume    float64 `json:"acc_trade_volume"`
+	Timestamp int64   `json:"timestamp"`
 }
 
 // Upbit exchange handler
@@ -59,6 +59,6 @@ func (b *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		Pair:      pp.Pair,
 		Price:     model.PriceFromFloat(data.Price),
 		Volume:    model.PriceFromFloat(data.Volume),
-		Timestamp: time.Now().Unix(),
+		Timestamp: data.Timestamp / 1000,
 	}, nil
 }

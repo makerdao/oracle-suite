@@ -7,17 +7,17 @@ import (
 	"makerdao/gofer/query"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Bitstamp URL
 const bitstampURL = "https://www.bitstamp.net/api/v2/ticker/%s"
 
 type bitstampResponse struct {
-	Ask    string `json:"ask"`
-	Volume string `json:"volume"`
-	Price  string `json:"last"`
-	Bid    string `json:"bid"`
+	Ask       string `json:"ask"`
+	Volume    string `json:"volume"`
+	Price     string `json:"last"`
+	Bid       string `json:"bid"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 // Bitstamp exchange handler
@@ -81,6 +81,6 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		Volume:    model.PriceFromFloat(volume),
 		Ask:       model.PriceFromFloat(ask),
 		Bid:       model.PriceFromFloat(bid),
-		Timestamp: time.Now().Unix(),
+		Timestamp: resp.Timestamp,
 	}, nil
 }

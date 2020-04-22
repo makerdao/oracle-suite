@@ -14,10 +14,11 @@ import (
 const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker/%s"
 
 type hitbtcResponse struct {
-	Ask    string `json:"ask"`
-	Volume string `json:"volume"`
-	Price  string `json:"last"`
-	Bid    string `json:"bid"`
+	Ask       string    `json:"ask"`
+	Volume    string    `json:"volume"`
+	Price     string    `json:"last"`
+	Bid       string    `json:"bid"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // Hitbtc exchange handler
@@ -80,6 +81,6 @@ func (b *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		Volume:    model.PriceFromFloat(volume),
 		Ask:       model.PriceFromFloat(ask),
 		Bid:       model.PriceFromFloat(bid),
-		Timestamp: time.Now().Unix(),
+		Timestamp: resp.Timestamp.Unix(),
 	}, nil
 }
