@@ -27,3 +27,13 @@ func NewTestPricePoint(timestamp int64, exchange string, base string, quote stri
 		Volume:    volume,
 	}
 }
+
+func NewTestPricePointPriceOnly(timestamp int64, exchange string, base string, quote string, last uint64, volume uint64) *model.PricePoint {
+	return &model.PricePoint{
+		Timestamp: timestamp,
+		Exchange:  &model.Exchange{Name: exchange},
+		Pair:      &model.Pair{Base: base, Quote: quote},
+		Price:     last,
+		Volume:    volume,
+	}
+}
