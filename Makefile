@@ -1,8 +1,7 @@
 PACKAGE ?= gofer
-GOFILES := $(shell find . -name '*.go')
+GOFILES := $(shell { git ls-files; git ls-files -o --exclude-standard; } | grep ".go$$")
 
 OUT_DIR := workdir
-CMD_TARGET := $(OUT_DIR)/$(PACKAGE)
 COVER_FILE := $(OUT_DIR)/cover.out
 
 GO := go
@@ -10,16 +9,6 @@ GO := go
 clean:
 	rm -rf $(OUT_DIR)
 .PHONY: clean
-
-build: clean
-.PHONY: build
-
-$(CMD_TARGET): GOOS ?= linux
-$(CMD_TARGET): GOARCH ?= amd64
-$(CMD_TARGET): CGO_ENABLED ?= 0
-$(CMD_TARGET): $(CMD_SRCS)
-	mkdir -p $(@D)
-	$(GO) build -o $@ $<
 
 vendor:
 	$(GO) mod vendor
@@ -42,3 +31,14 @@ cover:
 	$(GO) test -coverprofile=$(COVER_FILE) ./...
 	go tool cover -func=$(COVER_FILE)
 .PHONY: cover
+
+add-license: $(GOFILES)
+	for x in $^; do tmp=$$(cat LICENSE_HEADER; sed -n '/^package /,$$p' $$x); echo "$$tmp" > $$x; done
+.PHONY: add-license
+
+test-license: $(GOFILES)
+	@grep -vlz "$$(tr '\n' . < LICENSE_HEADER)" $^ && exit 1 || exit 0
+.PHONY: test-license
+
+test-all: test lint test-license
+.PHONY: test-all
