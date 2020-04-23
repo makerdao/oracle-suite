@@ -37,7 +37,7 @@ add-license: $(GOFILES)
 .PHONY: add-license
 
 test-license: $(GOFILES)
-	for x in $^; do grep -q "$$(cat LICENSE_HEADER)" $$x || exit 1; done
+	@grep -vlz "$$(tr '\n' . < LICENSE_HEADER)" $^ && exit 1 || exit 0
 .PHONY: test-license
 
 test-all: test lint test-license
