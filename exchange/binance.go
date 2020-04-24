@@ -29,7 +29,6 @@ import (
 const binanceURL = "https://www.binance.com/api/v3/ticker/price?symbol=%s"
 
 type binanceResponse struct {
-	Symbol string `json:"symbol"`
 	Price  string `json:"price"`
 }
 
