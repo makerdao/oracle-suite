@@ -31,6 +31,10 @@ func newMockWorkerPool(resp *query.HTTPResponse) *mockWorkerPool {
 	}
 }
 
+func (mwp *mockWorkerPool) Ready() bool {
+	return true
+}
+
 func (mwp *mockWorkerPool) Start() {}
 
 func (mwp *mockWorkerPool) Stop() error {
