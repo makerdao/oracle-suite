@@ -22,6 +22,7 @@ const maxTasksQueue = 10
 
 // WorkerPool interface for any Query Engine worker pools
 type WorkerPool interface {
+	Ready() bool
 	Start()
 	Stop() error
 	Query(req *HTTPRequest) *HTTPResponse
@@ -46,6 +47,11 @@ func NewHTTPWorkerPool(workerCount int) *HTTPWorkerPool {
 		workerCount: workerCount,
 		input:       make(chan *asyncHTTPRequest, maxTasksQueue),
 	}
+}
+
+// Ready checks if pool is ready to be used
+func (wp *HTTPWorkerPool) Ready() bool {
+	return wp.started
 }
 
 // Start start worker pool
