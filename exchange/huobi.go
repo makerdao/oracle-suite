@@ -71,6 +71,9 @@ func (b *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	if resp.Status == "error" {
 		return nil, fmt.Errorf("wrong response from huobi exchange %s", res.Body)
 	}
+	if len(resp.Tick.Bid) < 1 {
+		return nil, fmt.Errorf("wrong bid response from huobi exchange %s", res.Body)
+	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Tick.Bid[0], 64)
 	if err != nil {

@@ -25,31 +25,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// mockWorkerPool mock worker pool implementation for tests
-type mockWorkerPool struct {
-	resp *query.HTTPResponse
-}
-
-func newMockWorkerPool(resp *query.HTTPResponse) *mockWorkerPool {
-	return &mockWorkerPool{
-		resp: resp,
-	}
-}
-
-func (mwp *mockWorkerPool) Ready() bool {
-	return true
-}
-
-func (mwp *mockWorkerPool) Start() {}
-
-func (mwp *mockWorkerPool) Stop() error {
-	return nil
-}
-
-func (mwp *mockWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
-	return mwp.resp
-}
-
 // Define the suite, and absorb the built-in basic suite
 // functionality from testify - including a T() method which
 // returns the current testing context
