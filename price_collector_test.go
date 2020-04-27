@@ -16,33 +16,32 @@
 package gofer
 
 import (
-	"fmt"
-	"makerdao/gofer/exchange"
+	"github.com/stretchr/testify/assert"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
+	"testing"
 )
 
-// PriceCollector will collect prices for you
-type PriceCollector struct {
-	wp query.WorkerPool
-}
-
-// NewPriceCollector create new ready to work `PriceCollector`
-func NewPriceCollector() *PriceCollector {
-	workerPool := query.NewHTTPWorkerPool(10)
-	workerPool.Start()
-
-	return &PriceCollector{
-		wp: workerPool,
+func TestPriceCollectorFailsWithoutWorkingPool(t *testing.T) {
+	p := &model.Pair{
+		Base:  "BTC",
+		Quote: "ETH",
 	}
-}
-
-// CollectPricePoint makes request to exchange and fetching a price point
-func (pc *PriceCollector) CollectPricePoint(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pc.wp == nil || !pc.wp.Ready() {
-		return nil, fmt.Errorf("wrong worker pool defined for PriceCollector")
+	pp := &model.PotentialPricePoint{
+		Exchange: &model.Exchange{
+			Name: "binance",
+		},
+		Pair: p,
 	}
 
-	// Making a call
-	return exchange.Call(pc.wp, pp)
+	pc := &PriceCollector{}
+	_, err := pc.CollectPricePoint(pp)
+	assert.Error(t, err)
+
+	// Check not started
+	pc = &PriceCollector{
+		wp: &query.HTTPWorkerPool{},
+	}
+	_, err = pc.CollectPricePoint(pp)
+	assert.Error(t, err)
 }
