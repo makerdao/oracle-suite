@@ -34,8 +34,7 @@ const requiredHeaderValue = "test-client"
 // returns the current testing context
 type MakeRequestSuite struct {
 	suite.Suite
-	server       *httptest.Server
-	headerServer *httptest.Server
+	server *httptest.Server
 }
 
 func (suite *MakeRequestSuite) TearDownTest() {
@@ -50,7 +49,7 @@ func (suite *MakeRequestSuite) TestMakingRequest() {
 	// Start a local HTTP server
 	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		// Send response to be tested
-		rw.Write([]byte(serverResponse))
+		rw.Write([]byte(serverResponse)) //nolint:errcheck
 	}))
 
 	assert.NotNil(suite.T(), suite.server)
@@ -80,7 +79,7 @@ func (suite *MakeRequestSuite) TestMakingRequestWithHeaders() {
 	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		assert.EqualValues(suite.T(), requiredHeaderValue, req.Header.Get(requiredHeaderKey))
 		// Send response to be tested
-		rw.Write([]byte(serverResponse))
+		rw.Write([]byte(serverResponse)) //nolint:errcheck
 	}))
 
 	assert.NotNil(suite.T(), suite.server)
@@ -130,7 +129,7 @@ func (suite *MakeRequestSuite) TestMakeGetRequestWithRetry() {
 		if calls < 3 {
 			rw.WriteHeader(404)
 		} else {
-			rw.Write([]byte(serverResponse))
+			rw.Write([]byte(serverResponse)) //nolint:errcheck
 		}
 	}))
 
