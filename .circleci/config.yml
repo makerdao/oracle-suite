@@ -12,6 +12,11 @@ jobs: # basic units of work in a run
     steps: # steps that comprise the `build` job
       - checkout # check out source code to working directory
 
+      - run:
+          name: Install dependencies
+          command: |
+            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.25.1
+
       - run: mkdir -p $TEST_RESULTS # create the test results directory
 
       - restore_cache: # restores saved cache if no changes are detected since last run
@@ -21,6 +26,10 @@ jobs: # basic units of work in a run
       - run:
           name: Check that source files have license header
           command: make test-license
+
+      - run:
+          name: Run linting
+          command: make lint
 
       - run:
           name: Run unit tests

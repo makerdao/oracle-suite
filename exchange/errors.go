@@ -19,8 +19,10 @@ import "fmt"
 
 var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil PotentialPricePoint")
 
+//nolint:deadcode,varcheck,unused
 var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong PotentialPricePoint")
 
+//nolint:deadcode,varcheck,unused
 var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for nil exchange in given PotentialPricePoint")
 
 var errUnknownExchange = fmt.Errorf("unknown exchange name given")
