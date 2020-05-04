@@ -16,12 +16,10 @@
 package gofer
 
 import (
+	"github.com/stretchr/testify/suite"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/suite"
 )
 
 
@@ -60,19 +58,6 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 			Name: exchangeName,
 		},
 		Pair: p,
-	}
-}
-
-func newPricePointFromPotential(pp *model.PotentialPricePoint) *model.PricePoint {
-	if err := model.ValidatePotentialPricePoint(pp); err != nil {
-		return nil
-	}
-	return &model.PricePoint{
-		Pair: pp.Pair,
-		Exchange: pp.Exchange,
-		Timestamp: time.Now().Unix(),
-		Price: model.PriceFromFloat(1.0),
-		Volume: model.PriceFromFloat(1.0),
 	}
 }
 
