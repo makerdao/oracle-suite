@@ -56,7 +56,7 @@ func (p *Processor) Process(pp *model.PotentialPricePoint) (*model.PriceAggregat
 		return nil, err
 	}
 	// TODO: wrong usage, need to define timeWindow & reducer type
-	medianReducer := reducer.NewMedianReducer(pp.Pair, 300)
+	medianReducer := reducer.NewMedianReducer(pp.Pair, 100)
 	medianReducer.Ingest(point)
 
 	return medianReducer.Reduce(), nil

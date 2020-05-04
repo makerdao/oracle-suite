@@ -19,6 +19,7 @@ import (
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -62,6 +63,19 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 	}
 }
 
+func newPricePointFromPotential(pp *model.PotentialPricePoint) *model.PricePoint {
+	if err := model.ValidatePotentialPricePoint(pp); err != nil {
+		return nil
+	}
+	return &model.PricePoint{
+		Pair: pp.Pair,
+		Exchange: pp.Exchange,
+		Timestamp: time.Now().Unix(),
+		Price: model.PriceFromFloat(1.0),
+		Volume: model.PriceFromFloat(1.0),
+	}
+}
+
 // Define the suite, and absorb the built-in basic suite
 // functionality from testify - including a T() method which
 // returns the current testing context
@@ -89,6 +103,20 @@ func (suite *ProcessorSuite) TestNegativeProcess() {
 	resp, err = p.Process(wrongPp)
 	suite.Nil(resp)
 	suite.Error(err)
+}
+
+func (suite *ProcessorSuite) TestProcessorSuccess() {
+	pp := newPotentialPricePoint("binance", "BTC", "ETH")
+	resp := &query.HTTPResponse{
+		Body: []byte(`{"price":"1"}`),
+	}
+	wp := newMockWorkerPool(resp)
+	p := NewProcessor(wp)
+	point, err := p.Process(pp)
+
+	suite.NoError(err)
+	suite.EqualValues(pp.Pair, point.Pair)
+	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create
