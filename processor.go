@@ -42,9 +42,7 @@ func NewProcessorWithHTTPWorkerPool() *Processor {
 	return p
 }
 
-// Process takes `PotentialPricePoint` as an input fetches all required info using `query`
-// system, passes everything to `reducer` and returns result.
-func (p *Processor) Process(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
+func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
 	if p.wp == nil || !p.wp.Ready() {
 		return nil, fmt.Errorf("worker pool is not ready for querying prices")
 	}
@@ -60,4 +58,22 @@ func (p *Processor) Process(pp *model.PotentialPricePoint) (*model.PriceAggregat
 	medianReducer.Ingest(point)
 
 	return medianReducer.Reduce(), nil
+}
+
+// Process takes `PotentialPricePoint` as an input fetches all required info using `query`
+// system, passes everything to `reducer` and returns result.
+func (p *Processor) Process(pps []*model.PotentialPricePoint) ([]*model.PriceAggregate, error) {
+	if p.wp == nil || !p.wp.Ready() {
+		return nil, fmt.Errorf("worker pool is not ready for querying prices")
+	}
+	var result []*model.PriceAggregate
+	for _, pp := range pps {
+		res, err := p.ProcessOne(pp)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, res)
+	}
+
+	return result, nil
 }

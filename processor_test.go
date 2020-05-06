@@ -70,36 +70,53 @@ type ProcessorSuite struct {
 
 // All methods that begin with "Test" are run as tests within a
 // suite.
-func (suite *ProcessorSuite) TestNegativeProcess() {
+func (suite *ProcessorSuite) TestNegativeProcessOne() {
 	pp := newPotentialPricePoint("coinbase", "BTC", "ETH")
 	// Wrong worker pool
 	p := NewProcessor(nil)
-	resp, err := p.Process(pp)
+	resp, err := p.ProcessOne(pp)
 	suite.Nil(resp)
 	suite.Error(err)
 
 	p = NewProcessor(newMockWorkerPool(nil))
-	resp, err = p.Process(&model.PotentialPricePoint{})
+	resp, err = p.ProcessOne(&model.PotentialPricePoint{})
 	suite.Nil(resp)
 	suite.Error(err)
 
 	wrongPp := newPotentialPricePoint("nonexisting", "BTC", "ETH")
 	p = NewProcessor(newMockWorkerPool(nil))
-	resp, err = p.Process(wrongPp)
+	resp, err = p.ProcessOne(wrongPp)
 	suite.Nil(resp)
 	suite.Error(err)
 }
 
-func (suite *ProcessorSuite) TestProcessorSuccess() {
+func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 	pp := newPotentialPricePoint("binance", "BTC", "ETH")
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
 	wp := newMockWorkerPool(resp)
 	p := NewProcessor(wp)
-	point, err := p.Process(pp)
+	point, err := p.ProcessOne(pp)
 
 	suite.NoError(err)
+	suite.EqualValues(pp.Pair, point.Pair)
+	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
+}
+
+func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
+	pp := newPotentialPricePoint("binance", "BTC", "ETH")
+	resp := &query.HTTPResponse{
+		Body: []byte(`{"price":"1"}`),
+	}
+	wp := newMockWorkerPool(resp)
+	p := NewProcessor(wp)
+	points, err := p.Process([]*model.PotentialPricePoint{pp})
+
+	suite.NoError(err)
+	suite.Len(points, 1)
+
+	point := points[0]
 	suite.EqualValues(pp.Pair, point.Pair)
 	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
 }
