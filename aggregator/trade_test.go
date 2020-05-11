@@ -13,13 +13,34 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package reducer
+package aggregator
 
-import "makerdao/gofer/model"
+import (
+	"testing"
 
-type Reducer interface {
-	// Add a price point to be aggregated
-	Ingest(*model.PricePoint)
-	// Calculate and return aggregate
-	Reduce() *model.PriceAggregate
+	"github.com/stretchr/testify/assert"
+
+	. "makerdao/gofer/model"
+)
+
+func TestTradeAggregator(t *testing.T) {
+	pas := []*PriceAggregate{
+		newTestPricePointAggregate(0, "exchange-a", "a", "b", 2, 1),
+		newTestPricePointAggregate(0, "exchange-a", "b", "c", 4, 1),
+		newTestPricePointAggregate(0, "exchange-a", "c", "d", 1, 1),
+	}
+
+	trade := NewTrade(&Pair{Base: "a", Quote: "d"})
+
+	for _, pa := range pas {
+		trade.Ingest(pa)
+	}
+
+	res := trade.Aggregate(&Pair{Base: "a", Quote: "d"})
+	resFail := trade.Aggregate(&Pair{Base: "x", Quote: "y"})
+
+	assert.NotNil(t, res)
+	assert.Equal(t, uint64(8), res.Price)
+	assert.ElementsMatch(t, pas, res.Prices)
+	assert.Nil(t, resFail)
 }
