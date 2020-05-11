@@ -28,7 +28,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 	pas := []*PriceAggregate{
 		newTestPricePointAggregate(6, "exchange1", "ETH", "BTC", 2, 1),
 		newTestPricePointAggregate(7, "exchange2", "ETH", "BTC", 4, 1),
-		// median( leaf()=>ETH/BTC$2, leaf()=>ETH/BTC$4 )=>ETH/BTC$3
+		// median( ()=>ETH/BTC$2, ()=>ETH/BTC$4 )=>ETH/BTC$3
 
 		// Should be filtered due to outside time window
 		newTestPricePointAggregate(-1000, "exchange0", "BTC", "USD", 1000, 1),
@@ -39,7 +39,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		// Should be skipped due to non-matching pair
 		newTestPricePointAggregate(4, "exchange4", "n", "o", 4, 1),
 		newTestPricePointAggregate(5, "exchange5", "BTC", "USD", 5, 1),
-		// median( leaf()=>BTC/USD$3, leaf()=>BTC/USD$5, leaf()=>BTC/USD$20 )=>BTC/USD$5
+		// median( ()=>BTC/USD$3, ()=>BTC/USD$5, ()=>BTC/USD$20 )=>BTC/USD$5
 		// trade( median(..)=>ETH/BTC$3, median(..)=>BTC/USD$5 )=>ETH/USD$15
 
 		newTestPricePointAggregate(8, "exchange1", "ETH", "USDT", 3, 1),
@@ -64,19 +64,19 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		res_ETH_USD := pathAggregator.Aggregate(&Pair{Base: "ETH", Quote: "USD"})
 		assert.NotNil(t, res_ETH_USD)
 		assert.Equal(t, &Pair{Base: "ETH", Quote: "USD"}, res_ETH_USD.Pair)
-		assert.Equal(t, "indirect-median", res_ETH_USD.Name)
+		assert.Equal(t, "indirect-median", res_ETH_USD.PriceModelName)
 		assert.Equal(t, uint64(12), res_ETH_USD.Price)
 
 		res_ETH_BTC := pathAggregator.Aggregate(&Pair{Base: "ETH", Quote: "BTC"})
 		assert.NotNil(t, res_ETH_BTC)
 		assert.Equal(t, &Pair{Base: "ETH", Quote: "BTC"}, res_ETH_BTC.Pair)
-		assert.Equal(t, "indirect-median", res_ETH_BTC.Name)
+		assert.Equal(t, "indirect-median", res_ETH_BTC.PriceModelName)
 		assert.Equal(t, uint64(3), res_ETH_BTC.Price)
 
 		res_BTC_USD := pathAggregator.Aggregate(&Pair{Base: "BTC", Quote: "USD"})
 		assert.NotNil(t, res_BTC_USD)
 		assert.Equal(t, &Pair{Base: "BTC", Quote: "USD"}, res_BTC_USD.Pair)
-		assert.Equal(t, "indirect-median", res_BTC_USD.Name)
+		assert.Equal(t, "indirect-median", res_BTC_USD.PriceModelName)
 		assert.Equal(t, uint64(5), res_BTC_USD.Price)
 
 		res_ETH_KRW := pathAggregator.Aggregate(&Pair{Base: "ETH", Quote: "KRW"})
@@ -85,7 +85,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		res_REP_USD := pathAggregator.Aggregate(&Pair{Base: "REP", Quote: "USD"})
 		assert.NotNil(t, res_REP_USD, "Pair existis in Pather but no price points yet")
 		assert.Equal(t, &Pair{Base: "REP", Quote: "USD"}, res_REP_USD.Pair)
-		assert.Equal(t, "indirect-median", res_REP_USD.Name)
+		assert.Equal(t, "indirect-median", res_REP_USD.PriceModelName)
 		assert.Equal(t, uint64(0), res_REP_USD.Price)
 	}
 }

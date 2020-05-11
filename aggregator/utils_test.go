@@ -42,7 +42,6 @@ func newTestPricePointAggregate(timestamp int64, exchange string, base string, q
 			Bid:       price,
 			Volume:    volume,
 		},
-		Name: "leaf",
 	}
 }
 
@@ -55,7 +54,6 @@ func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base 
 			Price:     price,
 			Volume:    volume,
 		},
-		Name: "leaf",
 	}
 }
 
@@ -65,7 +63,7 @@ func newTestPriceAggregate(name string, base string, quote string, price uint64,
 			Pair:      &model.Pair{Base: base, Quote: quote},
 			Price:     price,
 		},
-		Name: name,
+		PriceModelName: name,
 		Prices: prices,
 	}
 }

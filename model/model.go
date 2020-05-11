@@ -55,8 +55,8 @@ type PotentialPricePoint struct {
 // PriceAggregate price aggregation
 type PriceAggregate struct {
 	*PricePoint
-	Prices []*PriceAggregate
-	Name   string
+	Prices         []*PriceAggregate
+	PriceModelName string
 }
 
 // PricePath represents a continuous chain of asset pairs that can be traded in
@@ -82,18 +82,18 @@ func (ppath PricePath) Target() *Pair {
 // NewPriceAggregate create new `PriceAggregate`
 func NewPriceAggregate(name string, price *PricePoint, prices ...*PriceAggregate) *PriceAggregate {
 	return &PriceAggregate{
-		PricePoint: price,
-		Name:       name,
-		Prices:     prices,
+		PricePoint:     price,
+		PriceModelName: name,
+		Prices:         prices,
 	}
 }
 
 // Clone clones `PriceAggregate`
 func (pa *PriceAggregate) Clone() *PriceAggregate {
 	clone := &PriceAggregate{
-		Name:       pa.Name,
-		PricePoint: &PricePoint{Pair: pa.Pair, Price: pa.Price},
-		Prices:     make([]*PriceAggregate, len(pa.Prices)),
+		PriceModelName: pa.PriceModelName,
+		PricePoint:     &PricePoint{Pair: pa.Pair, Price: pa.Price},
+		Prices:         make([]*PriceAggregate, len(pa.Prices)),
 	}
 	copy(clone.Prices, pa.Prices)
 	return clone
@@ -237,7 +237,7 @@ func ValidatePricePaths(ppaths *PricePaths) error {
 // String returns PricePath string representation
 func (pa *PriceAggregate) String() string {
 	var str strings.Builder
-	str.WriteString(pa.Name)
+	str.WriteString(pa.PriceModelName)
 	str.WriteString("(")
 	count := len(pa.Prices)
 	if count > 0 {

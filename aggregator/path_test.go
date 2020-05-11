@@ -130,46 +130,46 @@ func TestPathAggregator(t *testing.T) {
 		res := randomReduce(pathAggregator, NewPair("a", "d"), pas)
 		assert.NotNil(t, res)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
-		assert.Equal(t, "indirect", res.Name)
+		assert.Equal(t, "indirect", res.PriceModelName)
 		assert.Equal(t, uint64(1337), res.Price)
 
 		resTradeABD := res.Prices[0]
 		assert.NotNil(t, resTradeABD)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, resTradeABD.Pair)
-		assert.Equal(t, "trade", resTradeABD.Name)
+		assert.Equal(t, "trade", resTradeABD.PriceModelName)
 		assert.Equal(t, uint64(1338), resTradeABD.Price)
 
 		resMedinaAB := resTradeABD.Prices[0]
 		assert.NotNil(t, resMedinaAB)
 		assert.Equal(t, &Pair{Base: "a", Quote: "b"}, resMedinaAB.Pair)
-		assert.Equal(t, "median", resMedinaAB.Name)
+		assert.Equal(t, "median", resMedinaAB.PriceModelName)
 		assert.Equal(t, uint64(1001), resMedinaAB.Price)
 		assert.Equal(t, abReturn, resMedinaAB)
 
 		resMedinaBD := resTradeABD.Prices[1]
 		assert.NotNil(t, resMedinaBD)
 		assert.Equal(t, &Pair{Base: "b", Quote: "d"}, resMedinaBD.Pair)
-		assert.Equal(t, "median", resMedinaBD.Name)
+		assert.Equal(t, "median", resMedinaBD.PriceModelName)
 		assert.Equal(t, uint64(1002), resMedinaBD.Price)
 		assert.Equal(t, bdReturn, resMedinaBD)
 
 		resTradeACD := res.Prices[1]
 		assert.NotNil(t, resTradeACD)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, resTradeACD.Pair)
-		assert.Equal(t, "trade", resTradeACD.Name)
+		assert.Equal(t, "trade", resTradeACD.PriceModelName)
 		assert.Equal(t, uint64(1338), resTradeACD.Price)
 
 		resMedinaAC := resTradeACD.Prices[0]
 		assert.NotNil(t, resMedinaAC)
 		assert.Equal(t, &Pair{Base: "a", Quote: "c"}, resMedinaAC.Pair)
-		assert.Equal(t, "median", resMedinaAC.Name)
+		assert.Equal(t, "median", resMedinaAC.PriceModelName)
 		assert.Equal(t, uint64(1003), resMedinaAC.Price)
 		assert.Equal(t, acReturn, resMedinaAC)
 
 		resMedinaCD := resTradeACD.Prices[1]
 		assert.NotNil(t, resMedinaCD)
 		assert.Equal(t, &Pair{Base: "c", Quote: "d"}, resMedinaCD.Pair)
-		assert.Equal(t, "median", resMedinaCD.Name)
+		assert.Equal(t, "median", resMedinaCD.PriceModelName)
 		assert.Equal(t, uint64(1004), resMedinaCD.Price)
 		assert.Equal(t, cdReturn, resMedinaCD)
 	}
