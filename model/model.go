@@ -54,9 +54,9 @@ type PotentialPricePoint struct {
 
 // PriceAggregate price aggregation
 type PriceAggregate struct {
-	Pair   *Pair
-	Prices []*PricePoint
-	Price  uint64
+	*PricePoint
+	Prices         []*PriceAggregate
+	PriceModelName string
 }
 
 // PricePath represents a continuous chain of asset pairs that can be traded in
@@ -80,20 +80,20 @@ func (ppath PricePath) Target() *Pair {
 }
 
 // NewPriceAggregate create new `PriceAggregate`
-func NewPriceAggregate(pair *Pair) *PriceAggregate {
+func NewPriceAggregate(name string, price *PricePoint, prices ...*PriceAggregate) *PriceAggregate {
 	return &PriceAggregate{
-		Pair:   pair,
-		Prices: []*PricePoint{},
-		Price:  0,
+		PricePoint:     price,
+		PriceModelName: name,
+		Prices:         prices,
 	}
 }
 
 // Clone clones `PriceAggregate`
 func (pa *PriceAggregate) Clone() *PriceAggregate {
 	clone := &PriceAggregate{
-		Pair:   pa.Pair,
-		Prices: make([]*PricePoint, len(pa.Prices)),
-		Price:  pa.Price,
+		PriceModelName: pa.PriceModelName,
+		PricePoint:     &PricePoint{Pair: pa.Pair, Price: pa.Price},
+		Prices:         make([]*PriceAggregate, len(pa.Prices)),
 	}
 	copy(clone.Prices, pa.Prices)
 	return clone
@@ -232,6 +232,29 @@ func ValidatePricePaths(ppaths *PricePaths) error {
 		}
 	}
 	return nil
+}
+
+// String returns PricePath string representation
+func (pa *PriceAggregate) String() string {
+	var str strings.Builder
+	str.WriteString(pa.PriceModelName)
+	str.WriteString("(")
+	count := len(pa.Prices)
+	if count > 0 {
+		str.WriteString(" ")
+		for i, pa_ := range pa.Prices {
+			str.WriteString(pa_.String())
+			if i < count-1 {
+				str.WriteString(",")
+			}
+			str.WriteString(" ")
+		}
+	}
+	str.WriteString(")=>")
+	str.WriteString(pa.Pair.String())
+	str.WriteString("$")
+	str.WriteString(fmt.Sprintf("%d", pa.Price))
+	return str.String()
 }
 
 // PriceFromFloat convert price from float value to uint

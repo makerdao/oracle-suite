@@ -84,6 +84,12 @@ func (suite *ModelSuite) TestValidatePotentialPricePoint() {
 	assert.NoError(suite.T(), ValidatePotentialPricePoint(pp))
 }
 
+func (suite *ModelSuite) TestPricePathTarget() {
+	assert.Nil(suite.T(), PricePath{}.Target())
+	assert.Equal(suite.T(), &Pair{Base: "a", Quote: "b"}, PricePath{NewPair("a", "b")}.Target())
+	assert.Equal(suite.T(), &Pair{Base: "a", Quote: "c"}, PricePath{NewPair("a", "b"), NewPair("b", "c")}.Target())
+}
+
 func (suite *ModelSuite) TestValidatePricePaths() {
 	target := NewPair("a", "c")
 	ppath := []PricePath{[]*Pair{NewPair("a", "b"), NewPair("b", "c")}}
@@ -98,6 +104,30 @@ func (suite *ModelSuite) TestValidatePricePaths() {
 	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "z")})}))
 	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "x"), NewPair("y", "c")})}))
 	assert.NoError(suite.T(), ValidatePricePaths(ppaths))
+}
+
+func (suite *ModelSuite) TestClonePriceAggregate() {
+	pa := NewPriceAggregate("a", &PricePoint{},
+		NewPriceAggregate("b", &PricePoint{
+			Timestamp: 0,
+			Exchange:  &Exchange{Name: "exchange-a"},
+			Pair:      &Pair{"a", "b"},
+			Price:     1,
+			Ask:       2,
+			Bid:       3,
+			Volume:    4,
+		}),
+		NewPriceAggregate("c", &PricePoint{
+			Timestamp: 5,
+			Exchange:  &Exchange{Name: "exchange-b"},
+			Pair:      &Pair{"a", "b"},
+			Price:     6,
+			Ask:       7,
+			Bid:       8,
+			Volume:    9,
+		}),
+	)
+	assert.Equal(suite.T(), pa, pa.Clone())
 }
 
 func (suite *ModelSuite) TestPriceToAndFromFloat() {
