@@ -71,6 +71,7 @@ func (p *Processor) Process(pps []*model.PotentialPricePoint) (map[*model.Pair]*
 		// Checking and Creating aggregator
 		agg, ok := aggregators[pp.Pair]
 		if !ok || agg == nil {
+			// TODO: check how to introduce aggregator
 			agg = aggregator.NewIndirectMedian(pp.Pair)
 			aggregators[pp.Pair] = agg
 		}
