@@ -16,6 +16,7 @@
 package gofer
 
 import (
+	"makerdao/gofer/aggregator"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
@@ -115,18 +116,18 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	}
 	pp := newPotentialPricePoint("binance", pair)
 	pp2 := newPotentialPricePoint("binance", pair)
+	agg := aggregator.NewIndirectMedian(pair)
 
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
 	wp := newMockWorkerPool(resp)
 	p := NewProcessor(wp)
-	points, err := p.Process([]*model.PotentialPricePoint{pp, pp2})
+	point, err := p.Process([]*model.PotentialPricePoint{pp, pp2}, agg)
 
 	suite.NoError(err)
-	suite.Len(points, 1)
+	suite.NotNil(point)
 
-	point := points[pp.Pair]
 	suite.EqualValues(pp.Pair, point.Pair)
 	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
 }
