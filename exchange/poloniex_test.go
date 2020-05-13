@@ -17,7 +17,6 @@ package exchange
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
@@ -30,7 +29,7 @@ import (
 // returns the current testing context
 type PoloniexSuite struct {
 	suite.Suite
-	pool query.WorkerPool
+	pool     query.WorkerPool
 	exchange Handler
 }
 
@@ -135,7 +134,7 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"2","baseVolume":"3","highestBid":"4"}}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
-	spew.Dump(err)
+
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
