@@ -61,14 +61,18 @@ func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggre
 
 // Process takes `PotentialPricePoint` as an input fetches all required info using `query`
 // system, passes everything to `reducer` and returns result.
-func (p *Processor) Process(pps []*model.PotentialPricePoint, agg aggregator.Aggregator) (*model.PriceAggregate, error) {
+func (p *Processor) Process(pps []*model.PotentialPricePoint, agg aggregator.Aggregator) (map[*model.Pair]*model.PriceAggregate, error) {
 	if p.wp == nil || !p.wp.Ready() {
 		return nil, fmt.Errorf("worker pool is not ready for querying prices")
 	}
 	if agg == nil {
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}
+	pairs := make(map[*model.Pair]bool)
 	for _, pp := range pps {
+		if _, ok := pairs[pp.Pair]; !ok {
+			pairs[pp.Pair] = true
+		}
 		res, err := p.ProcessOne(pp)
 		if err != nil {
 			return nil, err
@@ -80,5 +84,9 @@ func (p *Processor) Process(pps []*model.PotentialPricePoint, agg aggregator.Agg
 	if pp == nil {
 		return nil, fmt.Errorf("wrong pair received for aggregating data in rpocessor")
 	}
-	return agg.Aggregate(pp.Pair), nil
+	result := make(map[*model.Pair]*model.PriceAggregate)
+	for pair, _ := range pairs {
+		result[pair] = agg.Aggregate(pair)
+	}
+	return result, nil
 }
