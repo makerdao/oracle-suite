@@ -17,10 +17,10 @@ package gofer
 
 import (
 	"fmt"
+	"makerdao/gofer/aggregator"
 	"makerdao/gofer/exchange"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
-	"makerdao/gofer/reducer"
 )
 
 type Processor struct {
@@ -34,6 +34,7 @@ func NewProcessor(wp query.WorkerPool) *Processor {
 	}
 }
 
+// NewProcessorWithHTTPWorkerPool creates new `Processor` with default worker pool
 func NewProcessorWithHTTPWorkerPool() *Processor {
 	p := &Processor{
 		wp: query.NewHTTPWorkerPool(5),
@@ -42,6 +43,7 @@ func NewProcessorWithHTTPWorkerPool() *Processor {
 	return p
 }
 
+// ProcessOne processes `PotentialPricePoint` and fetches new price for it
 func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
 	if p.wp == nil || !p.wp.Ready() {
 		return nil, fmt.Errorf("worker pool is not ready for querying prices")
@@ -53,27 +55,35 @@ func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggre
 	if err != nil {
 		return nil, err
 	}
-	// TODO: wrong usage, need to define timeWindow & reducer type
-	medianReducer := reducer.NewMedianReducer(pp.Pair, 100)
-	medianReducer.Ingest(point)
-
-	return medianReducer.Reduce(), nil
+	return &model.PriceAggregate{
+		PricePoint: point,
+	}, nil
 }
 
 // Process takes `PotentialPricePoint` as an input fetches all required info using `query`
 // system, passes everything to `reducer` and returns result.
-func (p *Processor) Process(pps []*model.PotentialPricePoint) ([]*model.PriceAggregate, error) {
+func (p *Processor) Process(pps []*model.PotentialPricePoint) (map[*model.Pair]*model.PriceAggregate, error) {
 	if p.wp == nil || !p.wp.Ready() {
 		return nil, fmt.Errorf("worker pool is not ready for querying prices")
 	}
-	var result []*model.PriceAggregate
+	aggregators := make(map[*model.Pair]aggregator.Aggregator)
 	for _, pp := range pps {
+		// Checking and Creating aggregator
+		agg, ok := aggregators[pp.Pair]
+		if !ok || agg == nil {
+			agg = aggregator.NewIndirectMedian(pp.Pair)
+			aggregators[pp.Pair] = agg
+		}
 		res, err := p.ProcessOne(pp)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, res)
+		agg.Ingest(res)
 	}
 
+	result := make(map[*model.Pair]*model.PriceAggregate)
+	for pair, agg := range aggregators {
+		result[pair] = agg.Aggregate(pair)
+	}
 	return result, nil
 }

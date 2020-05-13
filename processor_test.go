@@ -16,12 +16,12 @@
 package gofer
 
 import (
-	"github.com/stretchr/testify/suite"
 	"makerdao/gofer/model"
 	"makerdao/gofer/query"
 	"testing"
-)
 
+	"github.com/stretchr/testify/suite"
+)
 
 // mockWorkerPool mock worker pool implementation for tests
 type mockWorkerPool struct {
@@ -48,16 +48,12 @@ func (mwp *mockWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
 	return mwp.resp
 }
 
-func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPricePoint {
-	p := &model.Pair{
-		Base:  base,
-		Quote: quote,
-	}
+func newPotentialPricePoint(exchangeName string, pair *model.Pair) *model.PotentialPricePoint {
 	return &model.PotentialPricePoint{
 		Exchange: &model.Exchange{
 			Name: exchangeName,
 		},
-		Pair: p,
+		Pair: pair,
 	}
 }
 
@@ -71,7 +67,11 @@ type ProcessorSuite struct {
 // All methods that begin with "Test" are run as tests within a
 // suite.
 func (suite *ProcessorSuite) TestNegativeProcessOne() {
-	pp := newPotentialPricePoint("coinbase", "BTC", "ETH")
+	pair := &model.Pair{
+		Base:  "BTC",
+		Quote: "ETH",
+	}
+	pp := newPotentialPricePoint("coinbase", pair)
 	// Wrong worker pool
 	p := NewProcessor(nil)
 	resp, err := p.ProcessOne(pp)
@@ -83,7 +83,7 @@ func (suite *ProcessorSuite) TestNegativeProcessOne() {
 	suite.Nil(resp)
 	suite.Error(err)
 
-	wrongPp := newPotentialPricePoint("nonexisting", "BTC", "ETH")
+	wrongPp := newPotentialPricePoint("nonexisting", pair)
 	p = NewProcessor(newMockWorkerPool(nil))
 	resp, err = p.ProcessOne(wrongPp)
 	suite.Nil(resp)
@@ -91,7 +91,11 @@ func (suite *ProcessorSuite) TestNegativeProcessOne() {
 }
 
 func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
-	pp := newPotentialPricePoint("binance", "BTC", "ETH")
+	pair := &model.Pair{
+		Base:  "BTC",
+		Quote: "ETH",
+	}
+	pp := newPotentialPricePoint("binance", pair)
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
@@ -105,18 +109,24 @@ func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 }
 
 func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
-	pp := newPotentialPricePoint("binance", "BTC", "ETH")
+	pair := &model.Pair{
+		Base:  "BTC",
+		Quote: "ETH",
+	}
+	pp := newPotentialPricePoint("binance", pair)
+	pp2 := newPotentialPricePoint("binance", pair)
+
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
 	wp := newMockWorkerPool(resp)
 	p := NewProcessor(wp)
-	points, err := p.Process([]*model.PotentialPricePoint{pp})
+	points, err := p.Process([]*model.PotentialPricePoint{pp, pp2})
 
 	suite.NoError(err)
 	suite.Len(points, 1)
 
-	point := points[0]
+	point := points[pp.Pair]
 	suite.EqualValues(pp.Pair, point.Pair)
 	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
 }
