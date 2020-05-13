@@ -36,11 +36,10 @@ func NewProcessor(wp query.WorkerPool) *Processor {
 
 // NewProcessorWithHTTPWorkerPool creates new `Processor` with default worker pool
 func NewProcessorWithHTTPWorkerPool() *Processor {
-	p := &Processor{
-		wp: query.NewHTTPWorkerPool(5),
-	}
-	p.wp.Start()
-	return p
+	wp := query.NewHTTPWorkerPool(5)
+	wp.Start()
+
+	return NewProcessor(wp)
 }
 
 // ProcessOne processes `PotentialPricePoint` and fetches new price for it
