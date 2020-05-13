@@ -85,7 +85,7 @@ func (p *Processor) Process(pps []*model.PotentialPricePoint, agg aggregator.Agg
 		return nil, fmt.Errorf("wrong pair received for aggregating data in rpocessor")
 	}
 	result := make(map[*model.Pair]*model.PriceAggregate)
-	for pair, _ := range pairs {
+	for pair := range pairs {
 		result[pair] = agg.Aggregate(pair)
 	}
 	return result, nil
