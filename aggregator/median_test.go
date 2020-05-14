@@ -37,7 +37,7 @@ func TestOddPriceCount(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, rows)
 		assert.Equal(t, 3, len(pa.Prices), "length of aggregate price list")
 		assert.Equal(t, uint64(5), pa.Price, "aggregate price should be median of price points")
@@ -53,7 +53,7 @@ func TestEvenPriceCount(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, rows)
 		assert.Equal(t, 4, len(pa.Prices), "length of aggregate price list")
 		assert.Equal(t, uint64(6), pa.Price, "aggregate price should be median of price points")
@@ -71,7 +71,7 @@ func TestAskBidPriceFallback(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, rows)
 		assert.Equal(t, 2, len(pa.Prices), "length of aggregate price list")
 		assert.Equal(t, uint64(3), pa.Price, "aggregate price should be median of price points")
@@ -85,7 +85,7 @@ func TestInvalidPair(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "x", Quote: "y"}, rows)
 		assert.Nil(t, pa)
 	}

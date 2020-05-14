@@ -68,7 +68,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		pathAggregator := NewPath(
 			ppathss,
 			func(pair *Pair) Aggregator {
-				return NewMedian(pair, 1000)
+				return NewMedian(1000)
 			},
 			func(pair *Pair) Aggregator {
 				return NewIndirectMedian(pair)
