@@ -20,27 +20,33 @@ import (
 )
 
 type Trade struct {
+	ppath model.PricePath
 	aggregate *model.PriceAggregate
 }
 
-func NewTrade(pair *model.Pair) *Trade {
+func NewTrade() *Trade {
 	return &Trade{
-		aggregate: model.NewPriceAggregate("trade", &model.PricePoint{Pair: pair}),
+		aggregate: model.NewPriceAggregate("trade", &model.PricePoint{}),
 	}
 }
 
-func (t *Trade) Ingest(pa *model.PriceAggregate) {
-	if t.aggregate.Price == 0 {
-		t.aggregate.Price = pa.Price
+func (t *Trade) Ingest(next *model.PriceAggregate) {
+	current := t.aggregate
+	t.ppath = append(t.ppath, next.Pair)
+	if current.Price == 0 {
+		current.Price = next.Price
+	} else if current.Pair.Base == next.Pair.Base {
+		current.Price = next.Price / current.Price
 	} else {
-		t.aggregate.Price *= pa.Price
+		current.Price *= next.Price
 	}
-	t.aggregate.Prices = append(t.aggregate.Prices, pa)
+	current.Pair = t.ppath.Target()
+	current.Prices = append(current.Prices, next)
 }
 
 func (t *Trade) Aggregate(pair *model.Pair) *model.PriceAggregate {
-	if pair == nil || !pair.Equal(t.aggregate.Pair) {
+	if pair == nil || len(t.ppath) == 0 || !pair.Equal(t.ppath.Target()) {
 		return nil
 	}
-  return t.aggregate.Clone()
+	return t.aggregate.Clone()
 }

@@ -16,73 +16,89 @@
 package aggregator
 
 import (
-	"makerdao/gofer/model"
-	"makerdao/gofer/pather"
+	. "makerdao/gofer/model"
 )
 
 type Path struct {
-	pather             pather.Pather
-	newDirectReducer   func(*model.Pair) Aggregator
-	newIndirectReducer func(*model.Pair) Aggregator
-	newTradeReducer    func(*model.Pair) Aggregator
-	reducers           map[model.Pair]Aggregator
+	paths                 map[Pair]*PricePaths
+	newDirectAggregator   func(*Pair) Aggregator
+	newIndirectAggregator func(*Pair) Aggregator
+	aggregators           map[Pair]Aggregator
 }
 
-func NewPath(pather pather.Pather, newDirectReducer func(*model.Pair) Aggregator, newIndirectReducer func(*model.Pair) Aggregator, newTradeReducer func(*model.Pair) Aggregator) *Path {
+func NewPath(ppaths []*PricePaths, newDirectAggregator func(*Pair) Aggregator, newIndirectAggregator func(*Pair) Aggregator) *Path {
+	paths := make(map[Pair]*PricePaths)
+	for _, ppath := range ppaths {
+		paths[*ppath.Target] = ppath
+	}
 	return &Path{
-		pather:             pather,
-		newDirectReducer:   newDirectReducer,
-		newIndirectReducer: newIndirectReducer,
-		newTradeReducer:    newTradeReducer,
-		reducers:           make(map[model.Pair]Aggregator),
+		paths:                 paths,
+		newDirectAggregator:   newDirectAggregator,
+		newIndirectAggregator: newIndirectAggregator,
+		aggregators:           make(map[Pair]Aggregator),
 	}
 }
 
-func NewPathWithDefaultTrade(pather pather.Pather, newDirectReducer func(*model.Pair) Aggregator, newIndirectReducer func(*model.Pair) Aggregator) *Path {
-	return NewPath(
-		pather,
-		newDirectReducer,
-		newIndirectReducer,
-		func(pair *model.Pair) Aggregator {
-			return NewTrade(pair)
+func trade(pas []*PriceAggregate) *PriceAggregate {
+	var pair *Pair
+	var price uint64
+
+	for _, pa := range pas {
+		if price == 0 {
+			price = pa.Price
+			pair = pa.Pair.Clone()
+		} else if pair.Base == pa.Pair.Base {
+			price = pa.Price / price
+			pair.Base = pair.Quote
+			pair.Quote = pa.Pair.Quote
+		} else {
+			price *= pa.Price
+			pair.Quote = pa.Pair.Quote
+		}
+	}
+
+	return NewPriceAggregate(
+		"trade",
+		&PricePoint{
+			Pair:  pair,
+			Price: price,
 		},
+		pas...,
 	)
 }
 
-func (r *Path) resolve(ppath model.PricePath) *model.PriceAggregate {
-	target := ppath.Target()
-	trade := r.newTradeReducer(target)
-	//pa := model.NewPriceAggregate(ppath.String(), &model.PricePoint{Pair: ppath.Target()})
+func (r *Path) resolve(ppath PricePath) *PriceAggregate {
+	var pas []*PriceAggregate
 	for _, pair := range ppath {
-		if r_, ok := r.reducers[*pair]; ok {
-			trade.Ingest(r_.Aggregate(pair))
+		if r_, ok := r.aggregators[*pair]; ok {
+			pas = append(pas, r_.Aggregate(pair))
 		} else {
 			return nil
 		}
 	}
-	return trade.Aggregate(target)
+	return trade(pas)
 }
 
-func (r *Path) Ingest(pa *model.PriceAggregate) {
+func (r *Path) Ingest(pa *PriceAggregate) {
 	pair := *pa.Pair
-	if _, ok := r.reducers[pair]; !ok {
-		r.reducers[pair] = r.newDirectReducer(pa.Pair)
+	if _, ok := r.aggregators[pair]; !ok {
+		r.aggregators[pair] = r.newDirectAggregator(pa.Pair)
 	}
-	r.reducers[pair].Ingest(pa)
+	r.aggregators[pair].Ingest(pa)
 }
 
-func (r *Path) Aggregate(pair *model.Pair) *model.PriceAggregate {
-	ppaths := r.pather.Path(pair)
+func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
+	ppaths := r.paths[*pair]
 	if ppaths == nil {
 		return nil
 	}
 
-	topReducer := r.newIndirectReducer(pair)
+	rootAggregator := r.newIndirectAggregator(pair)
 	for _, path := range ppaths.Paths {
 		if pa := r.resolve(path); pa != nil {
-			topReducer.Ingest(pa)
+			rootAggregator.Ingest(pa)
 		}
 	}
 
-	return topReducer.Aggregate(pair)
+	return rootAggregator.Aggregate(pair)
 }

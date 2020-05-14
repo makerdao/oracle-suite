@@ -86,13 +86,23 @@ func (suite *ModelSuite) TestValidatePotentialPricePoint() {
 
 func (suite *ModelSuite) TestPricePathTarget() {
 	assert.Nil(suite.T(), PricePath{}.Target())
+	assert.Nil(suite.T(), PricePath{NewPair("a", "b"), NewPair("c", "d")}.Target())
 	assert.Equal(suite.T(), &Pair{Base: "a", Quote: "b"}, PricePath{NewPair("a", "b")}.Target())
 	assert.Equal(suite.T(), &Pair{Base: "a", Quote: "c"}, PricePath{NewPair("a", "b"), NewPair("b", "c")}.Target())
+	assert.Equal(suite.T(), &Pair{Base: "a", Quote: "c"}, PricePath{NewPair("b", "a"), NewPair("b", "c")}.Target())
+	assert.Equal(suite.T(), &Pair{Base: "c", Quote: "d"}, PricePath{NewPair("a", "b"), NewPair("b", "c"), NewPair("a", "d")}.Target())
+	assert.Equal(suite.T(), &Pair{Base: "c", Quote: "d"}, PricePath{NewPair("b", "a"), NewPair("b", "c"), NewPair("a", "d")}.Target())
+	assert.Equal(suite.T(), &Pair{Base: "c", Quote: "e"}, PricePath{NewPair("a", "b"), NewPair("b", "c"), NewPair("a", "d"), NewPair("d", "e")}.Target())
 }
 
 func (suite *ModelSuite) TestValidatePricePaths() {
-	target := NewPair("a", "c")
-	ppath := []PricePath{[]*Pair{NewPair("a", "b"), NewPair("b", "c")}}
+	target := NewPair("a", "d")
+	ppath := []PricePath{
+		[]*Pair{NewPair("a", "b"), NewPair("b", "c"), NewPair("c", "d")},
+		[]*Pair{NewPair("b", "a"), NewPair("b", "d")},
+		[]*Pair{NewPair("b", "a"), NewPair("b", "c"), NewPair("c", "d")},
+		[]*Pair{NewPair("x", "y"), NewPair("y", "a"), NewPair("x", "b"), NewPair("b", "d")},
+	}
 	ppaths := NewPricePaths(target, ppath...)
 
 	assert.Error(suite.T(), ValidatePricePaths(nil))
@@ -128,6 +138,11 @@ func (suite *ModelSuite) TestClonePriceAggregate() {
 		}),
 	)
 	assert.Equal(suite.T(), pa, pa.Clone())
+}
+
+func (suite *ModelSuite) TestClonePair() {
+	pair := NewPair("a", "b")
+	assert.Equal(suite.T(), pair, pair.Clone())
 }
 
 func (suite *ModelSuite) TestPriceToAndFromFloat() {

@@ -25,22 +25,34 @@ import (
 
 func TestTradeAggregator(t *testing.T) {
 	pas := []*PriceAggregate{
-		newTestPricePointAggregate(0, "exchange-a", "a", "b", 2, 1),
-		newTestPricePointAggregate(0, "exchange-a", "b", "c", 4, 1),
-		newTestPricePointAggregate(0, "exchange-a", "c", "d", 1, 1),
+		newTestPricePointAggregate(0, "exchange-a", "b", "a", 4, 1),
+		newTestPricePointAggregate(0, "exchange-a", "b", "c", 8, 1),
+		newTestPricePointAggregate(0, "exchange-a", "c", "d", 2, 1),
 	}
 
-	trade := NewTrade(&Pair{Base: "a", Quote: "d"})
-
-	for _, pa := range pas {
-		trade.Ingest(pa)
-	}
-
+	trade := NewTrade()
 	res := trade.Aggregate(&Pair{Base: "a", Quote: "d"})
-	resFail := trade.Aggregate(&Pair{Base: "x", Quote: "y"})
+	assert.Nil(t, res)
+
+	trade.Ingest(pas[0])
+	res = trade.Aggregate(&Pair{Base: "b", Quote: "a"})
+	assert.NotNil(t, res)
+	assert.Equal(t, &Pair{Base: "b", Quote: "a"}, res.Pair)
+
+	trade.Ingest(pas[1])
+	res = trade.Aggregate(&Pair{Base: "a", Quote: "c"})
+	assert.NotNil(t, res)
+	assert.Equal(t, &Pair{Base: "a", Quote: "c"}, res.Pair)
+
+	trade.Ingest(pas[2])
+
+	res = trade.Aggregate(&Pair{Base: "a", Quote: "d"})
 
 	assert.NotNil(t, res)
-	assert.Equal(t, uint64(8), res.Price)
+	assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
+	assert.Equal(t, uint64(4), res.Price)
 	assert.ElementsMatch(t, pas, res.Prices)
+
+	resFail := trade.Aggregate(&Pair{Base: "x", Quote: "y"})
 	assert.Nil(t, resFail)
 }
