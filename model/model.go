@@ -72,11 +72,21 @@ type PricePaths struct {
 
 // Target returns a Pair with base of first and quote of last pair in path
 func (ppath PricePath) Target() *Pair {
-	pathLen := len(ppath)
-	if pathLen == 0 {
-		return nil
+	var pair *Pair
+  for _, p := range ppath {
+		if pair == nil {
+			pair = p.Clone()
+		} else if pair.Base == p.Base {
+			pair.Base = pair.Quote
+			pair.Quote = p.Quote
+		} else if pair.Quote == p.Base {
+			pair.Quote = p.Quote
+		} else {
+			return nil
+		}
 	}
-	return NewPair(ppath[0].Base, ppath[pathLen-1].Quote)
+
+	return pair
 }
 
 // NewPriceAggregate create new `PriceAggregate`
@@ -124,6 +134,11 @@ func (p *Pair) Equal(pair *Pair) bool {
 // String returns a string representation of `Pair` e.g. BTC/USD
 func (p *Pair) String() string {
 	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
+}
+
+// Create a copy of Pair
+func (p *Pair) Clone() *Pair {
+	return &Pair{Base: p.Base, Quote: p.Quote}
 }
 
 // ValidatePair checks if `Pair` has some errors.
@@ -194,21 +209,17 @@ func ValidatePricePath(ppath PricePath) error {
 	if ppath == nil {
 		return fmt.Errorf("price path is nil")
 	}
-	if len(ppath) == 0 {
-		return fmt.Errorf("price path has no pairs")
-	}
-	var prev *Pair
+
 	for _, p := range ppath {
 		if ValidatePair(p) != nil {
 			return fmt.Errorf("pair in path is invalid")
 		}
-		if prev != nil {
-			if prev.Quote != p.Base {
-				return fmt.Errorf("price path sequence is invalid")
-			}
-		}
-		prev = p
 	}
+
+	if ppath.Target() == nil {
+		return fmt.Errorf("price path is not valid")
+	}
+
 	return nil
 }
 

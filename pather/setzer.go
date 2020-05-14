@@ -267,11 +267,10 @@ func (sppf *Setzer) Path(target *model.Pair) *model.PricePaths {
 			[]*model.Pair{
 				model.NewPair("USDC", "USD"),
 			},
-			// TODO: This path should be added but (A/C = B/C / B/A) is not yet supported
-			//[]*model.Pair{
-			//	model.NewPair("BTC", "USDC"),
-			//	model.NewPair("BTC", "USD"),
-			//},
+			[]*model.Pair{
+				model.NewPair("BTC", "USDC"),
+				model.NewPair("BTC", "USD"),
+			},
 		)
 	case "USDT/USD":
 		return model.NewPricePaths(
@@ -279,11 +278,10 @@ func (sppf *Setzer) Path(target *model.Pair) *model.PricePaths {
 			[]*model.Pair{
 				model.NewPair("USDT", "USD"),
 			},
-			// TODO: This path should be added but (A/C = B/C / B/A) is not yet supported
-			//[]*model.Pair{
-			//	model.NewPair("BTC", "USDT"),
-			//	model.NewPair("BTC", "USD"),
-			//},
+			[]*model.Pair{
+				model.NewPair("BTC", "USDT"),
+				model.NewPair("BTC", "USD"),
+			},
 		)
 	case "WBTC/USD":
 		return model.NewPricePaths(
