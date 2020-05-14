@@ -116,7 +116,7 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	}
 	pp := newPotentialPricePoint("binance", pair)
 	pp2 := newPotentialPricePoint("binance", pair)
-	agg := aggregator.NewIndirectMedian(pair)
+	agg := aggregator.NewMedian(1000)
 
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),

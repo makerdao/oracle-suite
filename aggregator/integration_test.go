@@ -67,12 +67,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		pathAggregator := NewPath(
 			ppathss,
-			func(pair *Pair) Aggregator {
-				return NewMedian(1000)
-			},
-			func(pair *Pair) Aggregator {
-				return NewIndirectMedian(pair)
-			},
+			NewMedian(1000),
 		)
 
 		randomReduce(pathAggregator, &Pair{Base: "ETH", Quote: "USD"}, pas)
@@ -103,6 +98,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		assert.Equal(t, &Pair{Base: "REP", Quote: "USD"}, res_REP_USD.Pair)
 		assert.Equal(t, "indirect-median", res_REP_USD.PriceModelName)
 		assert.Equal(t, uint64(0), res_REP_USD.Price)
+
 
 		res_USDC_USD := pathAggregator.Aggregate(&Pair{Base: "USDC", Quote: "USD"})
 		assert.NotNil(t, res_USDC_USD)

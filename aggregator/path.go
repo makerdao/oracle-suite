@@ -19,26 +19,27 @@ import (
 	. "makerdao/gofer/model"
 )
 
+// Path is an aggregator that resolves price paths for indirect pairs and takes
+// the median of all paths for each pair
 type Path struct {
-	paths                 map[Pair]*PricePaths
-	newDirectAggregator   func(*Pair) Aggregator
-	newIndirectAggregator func(*Pair) Aggregator
-	aggregators           map[Pair]Aggregator
+	paths              map[Pair]*PricePaths
+	directAggregator   Aggregator
 }
 
-func NewPath(ppaths []*PricePaths, newDirectAggregator func(*Pair) Aggregator, newIndirectAggregator func(*Pair) Aggregator) *Path {
+// NewPath returns a new instance of `Path` that uses the given price paths to
+// aggregate indirect pairs and an aggregator to merge direct pairs.
+func NewPath(ppaths []*PricePaths, directAggregator Aggregator) *Path {
 	paths := make(map[Pair]*PricePaths)
 	for _, ppath := range ppaths {
 		paths[*ppath.Target] = ppath
 	}
 	return &Path{
-		paths:                 paths,
-		newDirectAggregator:   newDirectAggregator,
-		newIndirectAggregator: newIndirectAggregator,
-		aggregators:           make(map[Pair]Aggregator),
+		paths:              paths,
+		directAggregator:   directAggregator,
 	}
 }
 
+// Calculate the final trade price of an ordered list of prices
 func trade(pas []*PriceAggregate) *PriceAggregate {
 	var pair *Pair
 	var price uint64
@@ -70,21 +71,18 @@ func trade(pas []*PriceAggregate) *PriceAggregate {
 func (r *Path) resolve(ppath PricePath) *PriceAggregate {
 	var pas []*PriceAggregate
 	for _, pair := range ppath {
-		if r_, ok := r.aggregators[*pair]; ok {
-			pas = append(pas, r_.Aggregate(pair))
-		} else {
+		pa := r.directAggregator.Aggregate(pair)
+		if pa == nil {
 			return nil
 		}
+
+		pas = append(pas, pa)
 	}
 	return trade(pas)
 }
 
 func (r *Path) Ingest(pa *PriceAggregate) {
-	pair := *pa.Pair
-	if _, ok := r.aggregators[pair]; !ok {
-		r.aggregators[pair] = r.newDirectAggregator(pa.Pair)
-	}
-	r.aggregators[pair].Ingest(pa)
+	r.directAggregator.Ingest(pa)
 }
 
 func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
@@ -93,12 +91,21 @@ func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
 		return nil
 	}
 
-	rootAggregator := r.newIndirectAggregator(pair)
+	var pas []*PriceAggregate
+	var prices []uint64
 	for _, path := range ppaths.Paths {
 		if pa := r.resolve(path); pa != nil {
-			rootAggregator.Ingest(pa)
+			pas = append(pas, pa)
+			prices = append(prices, pa.Price)
 		}
 	}
 
-	return rootAggregator.Aggregate(pair)
+	return NewPriceAggregate(
+		"indirect-median",
+		&PricePoint{
+			Pair:  pair.Clone(),
+			Price: median(prices),
+		},
+		pas...,
+	)
 }

@@ -145,35 +145,3 @@ func median(xs []uint64) uint64 {
 	i := int((count - 1) / 2)
 	return xs[i]
 }
-
-type IndirectMedian struct {
-	pair   *model.Pair
-	prices []*model.PriceAggregate
-}
-
-func NewIndirectMedian(pair *model.Pair) *IndirectMedian {
-	return &IndirectMedian{pair: pair}
-}
-
-func (im *IndirectMedian) Ingest(pa *model.PriceAggregate) {
-	if im.pair.Equal(pa.Pair) {
-		im.prices = append(im.prices, pa)
-	}
-}
-
-func (im *IndirectMedian) Aggregate(pair *model.Pair) *model.PriceAggregate {
-	if !im.pair.Equal(pair) {
-		return nil
-	}
-
-	var prices []uint64
-	for _, pa := range im.prices {
-		prices = append(prices, pa.Price)
-	}
-
-	return model.NewPriceAggregate(
-		"indirect-median",
-		&model.PricePoint{Pair: im.pair, Price: median(prices)},
-		im.prices...,
-	)
-}
