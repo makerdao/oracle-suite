@@ -123,12 +123,12 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	}
 	wp := newMockWorkerPool(resp)
 	p := NewProcessor(wp)
-	points, err := p.Process([]*model.PotentialPricePoint{pp, pp2}, agg)
+	aggr, err := p.Process([]*model.PotentialPricePoint{pp, pp2}, agg)
 
 	suite.NoError(err)
-	suite.Len(points, 1)
+	suite.Equal(agg, aggr)
 
-	point := points[pair]
+	point := agg.Aggregate(pair)
 	suite.NotNil(point)
 
 	suite.EqualValues(pp.Pair, point.Pair)
