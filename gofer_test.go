@@ -36,7 +36,7 @@ func (mr *mockAggregator) Aggregate(pair *Pair) *PriceAggregate {
 }
 
 type mockPather struct {
-	ppaths map[Pair]*PricePaths
+	ppaths map[Pair][]*PricePath
 	pairs  []*Pair
 }
 
@@ -44,7 +44,7 @@ func (mp *mockPather) Pairs() []*Pair {
 	return mp.pairs
 }
 
-func (mp *mockPather) Path(pair *Pair) *PricePaths {
+func (mp *mockPather) Path(pair *Pair) []*PricePath {
 	return mp.ppaths[*pair]
 }
 
@@ -121,30 +121,28 @@ func (suite *GoferLibSuite) SetupTest() {
 		},
 	}
 
-	newAggregator := func(ppathss []*PricePaths) aggregator.Aggregator {
+	newAggregator := func(ppathss []*PricePath) aggregator.Aggregator {
 		return agg
 	}
 
 	pather := &mockPather{
-		ppaths: map[Pair]*PricePaths{
-			{Base: "e", Quote: "f"}: NewPricePaths(
-				NewPair("e", "f"),
-				[]*Pair{
+		ppaths: map[Pair][]*PricePath{
+			{Base: "e", Quote: "f"}: []*PricePath{
+				&PricePath{
 					NewPair("e", "x"),
 					NewPair("x", "f"),
 				},
-			),
-			{Base: "a", Quote: "d"}: NewPricePaths(
-				NewPair("a", "d"),
-				[]*Pair{
+			},
+			{Base: "a", Quote: "d"}: []*PricePath{
+				&PricePath{
 					NewPair("a", "b"),
 					NewPair("b", "d"),
 				},
-				[]*Pair{
+				&PricePath{
 					NewPair("a", "c"),
 					NewPair("c", "d"),
 				},
-			),
+			},
 		},
 		pairs: []*Pair{
 			NewPair("a", "d"),

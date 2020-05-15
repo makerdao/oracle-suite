@@ -24,35 +24,33 @@ type Pather interface {
 	// Pairs returns a list of Pairs that are tradeable
 	Pairs() []*model.Pair
 	// Path returns PricePaths describing how to trade between two assets
-	Path(*model.Pair) *model.PricePaths
+	Path(*model.Pair) []*model.PricePath
 }
 
 // FilterPotentialPricePoints returns the PotentialPricePoints that are required
 // to complete the PricePaths given and nil if path is not possible to complete
 // with the given PotentialPricePoints
-func FilterPotentialPricePoints(ppaths []*model.PricePaths, ppps []*model.PotentialPricePoint) []*model.PotentialPricePoint {
+func FilterPotentialPricePoints(ppaths []*model.PricePath, ppps []*model.PotentialPricePoint) []*model.PotentialPricePoint {
 	resIndex := make(map[*model.PotentialPricePoint]bool)
 	for _, ppath := range ppaths {
-		for _, path := range ppath.Paths {
-			index := make(map[model.Pair]bool)
-			for _, pair := range path {
-				index[*pair] = true
-			}
+		index := make(map[model.Pair]bool)
+		for _, pair := range *ppath {
+			index[*pair] = true
+		}
 
-			pppIndex := make(map[*model.PotentialPricePoint]bool)
-			pairIndex := make(map[model.Pair]bool)
-			for _, ppp := range ppps {
-				pair := *ppp.Pair
-				if _, ok := index[pair]; ok {
-					pppIndex[ppp] = true
-					pairIndex[pair] = true
-				}
+		pppIndex := make(map[*model.PotentialPricePoint]bool)
+		pairIndex := make(map[model.Pair]bool)
+		for _, ppp := range ppps {
+			pair := *ppp.Pair
+			if _, ok := index[pair]; ok {
+				pppIndex[ppp] = true
+				pairIndex[pair] = true
 			}
+		}
 
-			if len(pairIndex) == len(index) {
-				for ppp := range pppIndex {
-					resIndex[ppp] = true
-				}
+		if len(pairIndex) == len(index) {
+			for ppp := range pppIndex {
+				resIndex[ppp] = true
 			}
 		}
 	}

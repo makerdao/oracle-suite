@@ -55,7 +55,7 @@ func patherFromJSON(jp *jsonPather) (Pather, error) {
 	return nil, fmt.Errorf("No pather found with name %s", jp.Name)
 }
 
-func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePaths) Aggregator, error) {
+func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePath) Aggregator, error) {
 	switch ja.Name {
 	case "median":
 		timewindow, ok := ja.Parameters["timewindow"].(int64)
@@ -63,7 +63,7 @@ func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePaths)
 			return nil, fmt.Errorf("Couldn't parse median aggregator parameter: timewindow as number")
 		}
 
-		return func(ppathss []*PricePaths) Aggregator {
+		return func(ppaths []*PricePath) Aggregator {
 			return NewMedian(timewindow)
 		}, nil
 
@@ -77,8 +77,8 @@ func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePaths)
 			return nil, err
 		}
 
-		return func(ppathss []*PricePaths) Aggregator {
-			return NewPath(ppathss, newDirect(ppathss))
+		return func(ppaths []*PricePath) Aggregator {
+			return NewPath(ppaths, newDirect(ppaths))
 		}, nil
 	}
 

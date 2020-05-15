@@ -27,11 +27,10 @@ func TestPairsAndPath(t *testing.T) {
 	assert.Nil(t, sppf.Path(model.NewPair("a", "z")), "Non existing pair should return nil")
 	for _, p := range pairs {
 		ppaths := sppf.Path(p)
-		assert.NotNilf(t, ppaths, "Path should return PricePaths for Pair: %+v", p)
+		assert.NotNilf(t, ppaths, "Path should return paths for pair: %s", p)
 		if ppaths != nil {
-			err := model.ValidatePricePaths(ppaths)
+			err := model.ValidatePricePathMap(&model.PricePathMap{*p: ppaths})
 			assert.NoError(t, err, "PricePaths must be valid")
-			assert.Equal(t, p, ppaths.Target, "Target pair of path should be same as requested pair")
 		}
 	}
 }

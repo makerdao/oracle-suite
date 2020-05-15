@@ -95,25 +95,24 @@ func (suite *ModelSuite) TestPricePathTarget() {
 	assert.Equal(suite.T(), &Pair{Base: "c", Quote: "e"}, PricePath{NewPair("a", "b"), NewPair("b", "c"), NewPair("a", "d"), NewPair("d", "e")}.Target())
 }
 
-func (suite *ModelSuite) TestValidatePricePaths() {
-	target := NewPair("a", "d")
-	ppath := []PricePath{
-		[]*Pair{NewPair("a", "b"), NewPair("b", "c"), NewPair("c", "d")},
-		[]*Pair{NewPair("b", "a"), NewPair("b", "d")},
-		[]*Pair{NewPair("b", "a"), NewPair("b", "c"), NewPair("c", "d")},
-		[]*Pair{NewPair("x", "y"), NewPair("y", "a"), NewPair("x", "b"), NewPair("b", "d")},
+func (suite *ModelSuite) TestValidatePricePathMap() {
+	target := Pair{Base: "a", Quote: "d"}
+	ppaths_ := []*PricePath{
+		&PricePath{NewPair("a", "b"), NewPair("b", "c"), NewPair("c", "d")},
+		&PricePath{NewPair("b", "a"), NewPair("b", "d")},
+		&PricePath{NewPair("b", "a"), NewPair("b", "c"), NewPair("c", "d")},
+		&PricePath{NewPair("x", "y"), NewPair("y", "a"), NewPair("x", "b"), NewPair("b", "d")},
 	}
-	ppaths := NewPricePaths(target, ppath...)
+	ppaths := NewPricePathMap(ppaths_)
 
-	assert.Error(suite.T(), ValidatePricePaths(nil))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: nil, Paths: ppath}))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: nil}))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, nil)}))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{})}))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "a"), NewPair("a", "c")})}))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "z")})}))
-	assert.Error(suite.T(), ValidatePricePaths(&PricePaths{Target: target, Paths: append(ppath, []*Pair{NewPair("a", "x"), NewPair("y", "c")})}))
-	assert.NoError(suite.T(), ValidatePricePaths(ppaths))
+	assert.Error(suite.T(), ValidatePricePathMap(nil))
+	assert.Error(suite.T(), ValidatePricePathMap(&PricePathMap{target: nil}))
+	assert.Error(suite.T(), ValidatePricePathMap(&PricePathMap{target: append(ppaths_, nil)}))
+	assert.Error(suite.T(), ValidatePricePathMap(&PricePathMap{target: append(ppaths_, &PricePath{})}))
+	assert.Error(suite.T(), ValidatePricePathMap(&PricePathMap{target: append(ppaths_, &PricePath{NewPair("a", "a"), NewPair("a", "c")})}))
+	assert.Error(suite.T(), ValidatePricePathMap(&PricePathMap{target: append(ppaths_, &PricePath{NewPair("a", "z")})}))
+	assert.Error(suite.T(), ValidatePricePathMap(&PricePathMap{target: append(ppaths_, &PricePath{NewPair("a", "x"), NewPair("y", "c")})}))
+	assert.NoError(suite.T(), ValidatePricePathMap(ppaths))
 }
 
 func (suite *ModelSuite) TestClonePriceAggregate() {

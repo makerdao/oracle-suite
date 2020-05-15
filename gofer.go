@@ -32,18 +32,22 @@ func NewGofer(config *Config) *Gofer {
 	}
 }
 
-// Price returns a map of aggregated prices according
-func (g *Gofer) Price(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
-	var ppathss []*model.PricePaths
+func (g *Gofer) paths(pairs ...*model.Pair) []*model.PricePath {
+	var ppaths []*model.PricePath
 	for _, pair := range pairs {
-		ppath := g.config.Pather.Path(pair)
-		if ppath != nil {
-			ppathss = append(ppathss, g.config.Pather.Path(pair))
+		ppaths_ := g.config.Pather.Path(pair)
+		if ppaths_ != nil {
+			ppaths = append(ppaths, ppaths_...)
 		}
 	}
+	return ppaths
+}
 
-	aggregator := g.config.NewAggregator(ppathss)
-	ppps := pather.FilterPotentialPricePoints(ppathss, g.config.Sources)
+// Price returns a map of aggregated prices according
+func (g *Gofer) Price(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
+	ppaths := g.paths(pairs...)
+	aggregator := g.config.NewAggregator(ppaths)
+	ppps := pather.FilterPotentialPricePoints(ppaths, g.config.Sources)
 
 	if _, err := g.config.Processor.Process(ppps, aggregator); err != nil {
 		return nil, err
@@ -58,16 +62,9 @@ func (g *Gofer) Price(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregat
 }
 
 // Paths returns a map of price paths for the given indirect pairs
-func (g *Gofer) Paths(pairs ...*model.Pair) map[model.Pair]*model.PricePaths {
-	ppathss := make(map[model.Pair]*model.PricePaths)
-	for _, pair := range pairs {
-		ppath := g.config.Pather.Path(pair)
-		if ppath != nil {
-			ppathss[*pair] = ppath
-		}
-	}
-
-	return ppathss
+func (g *Gofer) Paths(pairs ...*model.Pair) map[model.Pair][]*model.PricePath {
+	ppaths := g.paths(pairs...)
+	return *model.NewPricePathMap(ppaths)
 }
 
 // TODO: Implement getting configured exchanges

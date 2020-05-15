@@ -27,12 +27,12 @@ type AggregateProcessor interface {
 
 type Config struct {
 	Sources       []*model.PotentialPricePoint
-	NewAggregator func([]*model.PricePaths) aggregator.Aggregator
+	NewAggregator func([]*model.PricePath) aggregator.Aggregator
 	Pather        pather.Pather
 	Processor     AggregateProcessor
 }
 
-func NewConfig(sources []*model.PotentialPricePoint, newAggregator func([]*model.PricePaths) aggregator.Aggregator, pather pather.Pather, processor AggregateProcessor) *Config {
+func NewConfig(sources []*model.PotentialPricePoint, newAggregator func([]*model.PricePath) aggregator.Aggregator, pather pather.Pather, processor AggregateProcessor) *Config {
 	return &Config{
 		Sources:       sources,
 		NewAggregator: newAggregator,
@@ -44,8 +44,8 @@ func NewConfig(sources []*model.PotentialPricePoint, newAggregator func([]*model
 func NewConfigWithDefaults(sources []*model.PotentialPricePoint) *Config {
 	return NewConfig(
 		sources,
-		func(ppathss []*model.PricePaths) aggregator.Aggregator {
-			return aggregator.NewPath(ppathss, aggregator.NewMedian(1000))
+		func(ppaths []*model.PricePath) aggregator.Aggregator {
+			return aggregator.NewPath(ppaths, aggregator.NewMedian(1000))
 		},
 		pather.NewSetzer(),
 		NewProcessorWithHTTPWorkerPool(),
