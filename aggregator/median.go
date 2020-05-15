@@ -21,28 +21,38 @@ import (
 	"makerdao/gofer/model"
 )
 
-type Median struct {
-	timeWindow      int64
-	aggregate       *model.PriceAggregate
-	prices          map[string]*model.PriceAggregate
+type traceAggregate struct {
+	*model.PriceAggregate
+	prices map[string]*model.PriceAggregate
 	newestTimestamp int64
 	reduced         bool
 }
 
-func NewMedian(pair *model.Pair, timeWindow int64) *Median {
+type Median struct {
+	timeWindow      int64
+	aggregates      map[model.Pair]*traceAggregate
+}
+
+func NewMedian(timeWindow int64) *Median {
 	return &Median{
 		timeWindow:      timeWindow,
+		aggregates:      make(map[model.Pair]*traceAggregate),
+	}
+}
+
+func newTraceAggregate(pair *model.Pair) *traceAggregate {
+	return &traceAggregate{
+		PriceAggregate: model.NewPriceAggregate("median", &model.PricePoint{Pair: pair}),
 		newestTimestamp: 0,
 		prices:          make(map[string]*model.PriceAggregate),
-		aggregate:       model.NewPriceAggregate("median", &model.PricePoint{Pair: pair}),
 		reduced:         false,
 	}
 }
 
 // Add a price point to median reducer state
 func (r *Median) Ingest(pa *model.PriceAggregate) {
-	// Ignore price point if asset pair not matching price model pair
-	if !pa.Pair.Equal(r.aggregate.Pair) {
+	// Ignore if input is nil
+	if pa == nil {
 		return
 	}
 
@@ -52,44 +62,56 @@ func (r *Median) Ingest(pa *model.PriceAggregate) {
 		return
 	}
 
-	if len(r.prices) == 0 || pa.Timestamp > r.newestTimestamp {
-		r.newestTimestamp = pa.Timestamp
+	pair := *pa.Pair
+	// Create new trace aggregate if one doesn't already exist for asset pair
+	if _, ok := r.aggregates[pair]; !ok {
+		r.aggregates[pair] = newTraceAggregate(pa.Pair.Clone())
+	}
+	trace := r.aggregates[pair]
+
+	if len(trace.prices) == 0 || pa.Timestamp > trace.newestTimestamp {
+		trace.newestTimestamp = pa.Timestamp
 	}
 
-	timeWindow := r.newestTimestamp - r.timeWindow
+	timeWindow := trace.newestTimestamp - r.timeWindow
 	// New price is outside time window, do nothing
 	if pa.Timestamp <= timeWindow {
 		return
 	}
 
-	existingPrice := r.prices[pa.Exchange.Name]
+	existingPrice := trace.prices[pa.Exchange.Name]
 	// Price with same exchange as new price already exists
 	if existingPrice == nil || pa.Timestamp > existingPrice.Timestamp {
 		// Update existing price if new price is newer
-		r.prices[pa.Exchange.Name] = pa
+		trace.prices[pa.Exchange.Name] = pa
 		// Set state to dirty
-		r.reduced = false
+		trace.reduced = false
 	}
 }
 
 // Sort prices in state and return median
 func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
-	if pair == nil || !pair.Equal(r.aggregate.Pair) {
+	if pair == nil {
 		return nil
 	}
 
-	if r.reduced || len(r.prices) == 0 {
-		return r.aggregate.Clone()
+	trace := r.aggregates[*pair]
+	if trace == nil {
+		return nil
 	}
 
-	timeWindow := r.newestTimestamp - r.timeWindow
+	if trace.reduced || len(trace.prices) == 0 {
+		return trace.Clone()
+	}
+
+	timeWindow := trace.newestTimestamp - r.timeWindow
 	var pas []*model.PriceAggregate
-	for _, p := range r.prices {
+	for _, p := range trace.prices {
 		// Only add prices inside time window
 		if p.Timestamp > timeWindow {
 			pas = append(pas, p)
 		} else {
-			delete(r.prices, p.Exchange.Name)
+			delete(trace.prices, p.Exchange.Name)
 		}
 	}
 
@@ -97,10 +119,10 @@ func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	for i, pa := range pas {
 		prices[i] = calcPrice(pa)
 	}
-	r.aggregate.Price = median(prices)
-	r.aggregate.Prices = pas
-	r.reduced = true
-	return r.aggregate.Clone()
+	trace.Price = median(prices)
+	trace.Prices = pas
+	trace.reduced = true
+	return trace.Clone()
 }
 
 func median(xs []uint64) uint64 {
@@ -122,36 +144,4 @@ func median(xs []uint64) uint64 {
 	// Odd price point count, use the middle price
 	i := int((count - 1) / 2)
 	return xs[i]
-}
-
-type IndirectMedian struct {
-	pair   *model.Pair
-	prices []*model.PriceAggregate
-}
-
-func NewIndirectMedian(pair *model.Pair) *IndirectMedian {
-	return &IndirectMedian{pair: pair}
-}
-
-func (im *IndirectMedian) Ingest(pa *model.PriceAggregate) {
-	if im.pair.Equal(pa.Pair) {
-		im.prices = append(im.prices, pa)
-	}
-}
-
-func (im *IndirectMedian) Aggregate(pair *model.Pair) *model.PriceAggregate {
-	if !im.pair.Equal(pair) {
-		return nil
-	}
-
-	var prices []uint64
-	for _, pa := range im.prices {
-		prices = append(prices, pa.Price)
-	}
-
-	return model.NewPriceAggregate(
-		"indirect-median",
-		&model.PricePoint{Pair: im.pair, Price: median(prices)},
-		im.prices...,
-	)
 }

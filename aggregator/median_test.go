@@ -25,6 +25,8 @@ import (
 
 func TestOddPriceCount(t *testing.T) {
 	rows := []*PriceAggregate{
+		// nil is ignored
+		nil,
 		// Should be filtered due to outside time window
 		newTestPricePointAggregate(-1000, "exchange0", "a", "b", 1000, 1),
 		// Should be overwritten by entry 3 due to same exchange but older
@@ -32,15 +34,20 @@ func TestOddPriceCount(t *testing.T) {
 		newTestPricePointAggregate(2, "exchange2", "a", "b", 20, 1),
 		newTestPricePointAggregate(3, "exchange1", "a", "b", 3, 1),
 		// Should be skipped due to non-matching pair
-		newTestPricePointAggregate(4, "exchange4", "n", "o", 4, 1),
+		newTestPricePointAggregate(4, "exchange4", "n", "o", 1337, 1),
 		newTestPricePointAggregate(5, "exchange5", "a", "b", 5, 1),
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, rows)
+		assert.Nil(t, reducer.Aggregate(nil))
 		assert.Equal(t, 3, len(pa.Prices), "length of aggregate price list")
 		assert.Equal(t, uint64(5), pa.Price, "aggregate price should be median of price points")
+
+		paNO := randomReduce(reducer, &Pair{Base: "n", Quote: "o"}, rows)
+		assert.Equal(t, 1, len(paNO.Prices), "length of aggregate price list")
+		assert.Equal(t, uint64(1337), paNO.Price, "aggregate price should be median of price points")
 	}
 }
 
@@ -53,7 +60,7 @@ func TestEvenPriceCount(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, rows)
 		assert.Equal(t, 4, len(pa.Prices), "length of aggregate price list")
 		assert.Equal(t, uint64(6), pa.Price, "aggregate price should be median of price points")
@@ -71,7 +78,7 @@ func TestAskBidPriceFallback(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, rows)
 		assert.Equal(t, 2, len(pa.Prices), "length of aggregate price list")
 		assert.Equal(t, uint64(3), pa.Price, "aggregate price should be median of price points")
@@ -85,35 +92,8 @@ func TestInvalidPair(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		reducer := NewMedian(&Pair{Base: "a", Quote: "b"}, 1000)
+		reducer := NewMedian(1000)
 		pa := randomReduce(reducer, &Pair{Base: "x", Quote: "y"}, rows)
 		assert.Nil(t, pa)
-	}
-}
-
-func TestIndirectMedian(t *testing.T) {
-	// Only pair and price are considered in IndirectMedian
-	pas := []*PriceAggregate{
-		newTestPricePointAggregate(99999, "", "a", "b", 2, 1),
-		newTestPricePointAggregate(3, "any exchange", "a", "b", 6, 1),
-		newTestPricePointAggregatePriceOnly(1, "", "a", "b", 20, 1),
-	}
-	ignoredPAs := []*PriceAggregate{
-		// Ignored, non matchin pair
-		newTestPricePointAggregate(4, "", "x", "y", 1001, 1),
-	}
-
-	for i := 0; i < 100; i++ {
-		reducer := NewIndirectMedian(&Pair{Base: "a", Quote: "b"})
-
-		res := randomReduce(reducer, &Pair{Base: "a", Quote: "b"}, append(pas, ignoredPAs...))
-		resFail := reducer.Aggregate(&Pair{Base: "x", Quote: "y"})
-
-		assert.NotNil(t, res)
-		assert.Equal(t, uint64(6), res.Price)
-		assert.Equal(t, &Pair{Base: "a", Quote: "b"}, res.Pair)
-		assert.ElementsMatch(t, pas, res.Prices)
-
-		assert.Nil(t, resFail)
 	}
 }

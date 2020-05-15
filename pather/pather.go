@@ -30,26 +30,29 @@ type Pather interface {
 // FilterPotentialPricePoints returns the PotentialPricePoints that are required
 // to complete the PricePaths given and nil if path is not possible to complete
 // with the given PotentialPricePoints
-func FilterPotentialPricePoints(ppath *model.PricePaths, ppps []*model.PotentialPricePoint) []*model.PotentialPricePoint {
+func FilterPotentialPricePoints(ppaths []*model.PricePaths, ppps []*model.PotentialPricePoint) []*model.PotentialPricePoint {
 	resIndex := make(map[*model.PotentialPricePoint]bool)
-	for _, path := range ppath.Paths {
-		index := make(map[model.Pair]bool)
-		for _, pair := range path {
-			index[*pair] = true
-		}
-
-		pppIndex := make(map[*model.PotentialPricePoint]bool)
-		pairIndex := make(map[model.Pair]bool)
-		for _, ppp := range ppps {
-			if _, ok := index[*ppp.Pair]; ok {
-				pppIndex[ppp] = true
-				pairIndex[*ppp.Pair] = true
+	for _, ppath := range ppaths {
+		for _, path := range ppath.Paths {
+			index := make(map[model.Pair]bool)
+			for _, pair := range path {
+				index[*pair] = true
 			}
-		}
 
-		if len(pairIndex) == len(index) {
-			for ppp := range pppIndex {
-				resIndex[ppp] = true
+			pppIndex := make(map[*model.PotentialPricePoint]bool)
+			pairIndex := make(map[model.Pair]bool)
+			for _, ppp := range ppps {
+				pair := *ppp.Pair
+				if _, ok := index[pair]; ok {
+					pppIndex[ppp] = true
+					pairIndex[pair] = true
+				}
+			}
+
+			if len(pairIndex) == len(index) {
+				for ppp := range pppIndex {
+					resIndex[ppp] = true
+				}
 			}
 		}
 	}

@@ -23,33 +23,15 @@ import (
 	. "makerdao/gofer/model"
 )
 
-type mockReducer struct {
-	returns *PriceAggregate
+type mockAggregator struct {
+	returns map[Pair]*PriceAggregate
 }
 
-func (mr *mockReducer) Ingest(pa *PriceAggregate) {
+func (mr *mockAggregator) Ingest(pa *PriceAggregate) {
 }
 
-func (mr *mockReducer) Aggregate(pair *Pair) *PriceAggregate {
-	return mr.returns
-}
-
-type mockAccReducer struct {
-	name string
-	pair *Pair
-	price uint64
-	returns []*PriceAggregate
-}
-
-func (mr *mockAccReducer) Ingest(pa *PriceAggregate) {
-	mr.returns = append(mr.returns, pa)
-}
-
-func (mr *mockAccReducer) Aggregate(pair *Pair) *PriceAggregate {
-	if pair.Base != "a" || pair.Quote != "d" {
-		return nil
-	}
-	return newTestPriceAggregate(mr.name, mr.pair.Base, mr.pair.Quote, mr.price, mr.returns...)
+func (mr *mockAggregator) Aggregate(pair *Pair) *PriceAggregate {
+	return mr.returns[*pair]
 }
 
 func TestPathAggregator(t *testing.T) {
@@ -73,18 +55,14 @@ func TestPathAggregator(t *testing.T) {
 	baReturn := newTestPriceAggregate("median", "b", "a", 2,
 		newTestPricePointAggregate(0, "exchange1", "b", "a", 10, 1),
 	)
-	directReducers := func (pair *Pair) Aggregator {
-		switch *pair {
-		case Pair{Base: "a", Quote: "b"}: return &mockReducer{returns: abReturn}
-		case Pair{Base: "b", Quote: "d"}: return &mockReducer{returns: bdReturn}
-		case Pair{Base: "a", Quote: "c"}: return &mockReducer{returns: acReturn}
-		case Pair{Base: "c", Quote: "d"}: return &mockReducer{returns: cdReturn}
-		case Pair{Base: "b", Quote: "a"}: return &mockReducer{returns: baReturn}
-		}
-		return nil
-	}
-	indirectReducers := func (pair *Pair) Aggregator {
-		return &mockAccReducer{name: "indirect", pair: pair, price: 1337}
+	directAggregator := &mockAggregator{
+		returns: map[Pair]*PriceAggregate{
+			Pair{Base: "a", Quote: "b"}: abReturn,
+			Pair{Base: "b", Quote: "d"}: bdReturn,
+			Pair{Base: "a", Quote: "c"}: acReturn,
+			Pair{Base: "c", Quote: "d"}: cdReturn,
+			Pair{Base: "b", Quote: "a"}: baReturn,
+		},
 	}
 	pas := []*PriceAggregate{
 		newTestPricePointAggregate(0, "exchange3", "a", "b", 101, 1),
@@ -114,15 +92,14 @@ func TestPathAggregator(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		pathAggregator := NewPath(
 			ppathss,
-			directReducers,
-			indirectReducers,
+			directAggregator,
 		)
 
 		res := randomReduce(pathAggregator, NewPair("a", "d"), pas)
 		assert.NotNil(t, res)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
-		assert.Equal(t, "indirect", res.PriceModelName)
-		assert.Equal(t, uint64(1337), res.Price)
+		assert.Equal(t, "indirect-median", res.PriceModelName)
+		assert.Equal(t, uint64(1001 * 1002), res.Price)
 
 		resTradeABD := res.Prices[0]
 		assert.NotNil(t, resTradeABD)

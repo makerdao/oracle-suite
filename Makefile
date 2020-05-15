@@ -1,8 +1,9 @@
 PACKAGE ?= gofer
-GOFILES := $(shell { git ls-files; git ls-files -o --exclude-standard; } | grep ".go$$")
+GOFILES := $(shell { git ls-files; } | grep ".go$$") # git ls-files -o --exclude-standard;
 
 OUT_DIR := workdir
 COVER_FILE := $(OUT_DIR)/cover.out
+TEST_FLAGS ?= all
 
 GO := go
 
@@ -15,11 +16,11 @@ vendor:
 .PHONY: vendor
 
 test:
-	$(GO) test ./...
+	$(GO) test -tags $(TEST_FLAGS) ./...
 .PHONY: test
 
 bench:
-	$(GO) test -bench=. ./...
+	$(GO) test -tags $(TEST_FLAGS) -bench=. ./...
 .PHONY: bench
 
 lint:
@@ -28,7 +29,7 @@ lint:
 
 cover:
 	@mkdir -p $(dir $(COVER_FILE))
-	$(GO) test -coverprofile=$(COVER_FILE) ./...
+	$(GO) test -tags $(TEST_FLAGS) -coverprofile=$(COVER_FILE) ./...
 	go tool cover -func=$(COVER_FILE)
 .PHONY: cover
 
