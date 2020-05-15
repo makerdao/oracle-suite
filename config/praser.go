@@ -1,0 +1,129 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package config
+
+import (
+	"encoding/json"
+	"fmt"
+	. "makerdao/gofer"
+	. "makerdao/gofer/aggregator"
+	. "makerdao/gofer/model"
+	. "makerdao/gofer/pather"
+)
+
+type jsonSource struct {
+	Base       string            `json:"base"`
+	Quote      string            `json:"quote"`
+	Exchange   string            `json:"exchange"`
+	Parameters map[string]string `json:"parameters"`
+}
+
+type jsonAggregator struct {
+	Name       string                 `json:"name"`
+	Parameters map[string]interface{} `json:"parameters"`
+}
+
+type jsonPather struct {
+	Name       string                 `json:"name"`
+	Parameters map[string]interface{} `json:"parameters"`
+}
+
+type jsonConfig struct {
+	Sources    []jsonSource   `json:"sources"`
+	Aggregator jsonAggregator `json:"aggregator"`
+	Pather     jsonPather     `json:"pather"`
+}
+
+func patherFromJSON(jp *jsonPather) (Pather, error) {
+	switch jp.Name {
+	case "setzer":
+		return NewSetzer(), nil
+	}
+	return nil, fmt.Errorf("No pather found with name %s", jp.Name)
+}
+
+func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePaths) Aggregator, error) {
+	switch ja.Name {
+	case "median":
+		timewindow, ok := ja.Parameters["timewindow"].(int64)
+		if !ok {
+			return nil, fmt.Errorf("Couldn't parse median aggregator parameter: timewindow as number")
+		}
+
+		return func(ppathss []*PricePaths) Aggregator {
+			return NewMedian(timewindow)
+		}, nil
+
+	case "path":
+		jaDirect, ok := ja.Parameters["direct"].(jsonAggregator)
+		if !ok {
+			return nil, fmt.Errorf("Couldn't parse path aggregator parameter: direct as aggregator")
+		}
+		newDirect, err := aggregatorFromJSON(jc, &jaDirect)
+		if err != nil {
+			return nil, err
+		}
+
+		return func(ppathss []*PricePaths) Aggregator {
+			return NewPath(ppathss, newDirect(ppathss))
+		}, nil
+	}
+
+	return nil, fmt.Errorf("No aggregator found with name \"%s\"", ja.Name)
+}
+
+func fromJSON(jc *jsonConfig) (*Config, error) {
+	var ppps []*PotentialPricePoint
+	for _, s := range jc.Sources {
+		ppp := &PotentialPricePoint{
+			Pair: &Pair{
+				Base:  s.Base,
+				Quote: s.Quote,
+			},
+			Exchange: &Exchange{
+				Name:   s.Exchange,
+				Config: s.Parameters,
+			},
+		}
+		ppps = append(ppps, ppp)
+	}
+
+	newAggregator, err := aggregatorFromJSON(jc, &jc.Aggregator)
+	if err != nil {
+		return nil, err
+	}
+
+	pather, err := patherFromJSON(&jc.Pather)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewConfig(ppps, newAggregator, pather, nil), nil
+}
+
+func ReadConfig(blob []byte) (*Config, error) {
+	var jc jsonConfig
+	if err := json.Unmarshal(blob, &jc); err != nil {
+		return nil, err
+	}
+
+	config, err := fromJSON(&jc)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}

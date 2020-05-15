@@ -1,0 +1,168 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package gofer
+
+import (
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"makerdao/gofer/aggregator"
+	. "makerdao/gofer/model"
+	"testing"
+)
+
+type mockAggregator struct {
+	returns map[Pair]*PriceAggregate
+}
+
+func (mr *mockAggregator) Ingest(pa *PriceAggregate) {
+}
+
+func (mr *mockAggregator) Aggregate(pair *Pair) *PriceAggregate {
+	return mr.returns[*pair]
+}
+
+type mockPather struct {
+	ppaths map[Pair]*PricePaths
+	pairs  []*Pair
+}
+
+func (mp *mockPather) Pairs() []*Pair {
+	return mp.pairs
+}
+
+func (mp *mockPather) Path(pair *Pair) *PricePaths {
+	return mp.ppaths[*pair]
+}
+
+type mockProcessor struct {
+	returnsErr error
+}
+
+func (mp *mockProcessor) Process(ppps []*PotentialPricePoint, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
+	return nil, mp.returnsErr
+}
+
+// Define the suite, and absorb the built-in basic suite
+// functionality from testify - including a T() method which
+// returns the current testing context
+type GoferLibSuite struct {
+	suite.Suite
+	config     *Config
+	pather     *mockPather
+	aggregator *mockAggregator
+	sources    []*PotentialPricePoint
+	processor  *mockProcessor
+}
+
+func (suite *GoferLibSuite) TestGoferLibPrices() {
+	t := suite.T()
+
+	lib := NewGofer(suite.config)
+
+	pair := Pair{Base: "a", Quote: "b"}
+	prices, err := lib.Price(&pair)
+	assert.NoError(t, err)
+	assert.Nil(t, prices[pair])
+
+	pair = Pair{Base: "a", Quote: "d"}
+	prices, err = lib.Price(&pair)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(0xad), prices[pair].Price)
+
+	suite.processor.returnsErr = fmt.Errorf("processor error")
+	_, err = lib.Price(&pair)
+	assert.Error(t, err)
+}
+
+func (suite *GoferLibSuite) TestGoferLibPaths() {
+	t := suite.T()
+
+	lib := NewGofer(suite.config)
+
+	ppaths := lib.Paths(&Pair{Base: "a", Quote: "d"}, &Pair{Base: "x", Quote: "y"})
+	assert.Len(t, ppaths, 1)
+	assert.Nil(t, ppaths[Pair{Base: "x", Quote: "y"}])
+	assert.Nil(t, ppaths[Pair{Base: "x", Quote: "z"}])
+	assert.NotNil(t, ppaths[Pair{Base: "a", Quote: "d"}])
+	assert.Equal(t, suite.pather.ppaths[Pair{Base: "a", Quote: "d"}], ppaths[Pair{Base: "a", Quote: "d"}])
+}
+
+// Runs before each test
+func (suite *GoferLibSuite) SetupTest() {
+	sources := []*PotentialPricePoint{
+		newPotentialPricePoint("exchange-a", NewPair("a", "b")),
+	}
+	agg := &mockAggregator{
+		returns: map[Pair]*PriceAggregate{
+			{Base: "a", Quote: "d"}: {
+				PricePoint: &PricePoint{
+					Price: 0xad,
+				},
+			},
+			{Base: "e", Quote: "f"}: {
+				PricePoint: &PricePoint{
+					Price: 0xef,
+				},
+			},
+		},
+	}
+
+	newAggregator := func(ppathss []*PricePaths) aggregator.Aggregator {
+		return agg
+	}
+
+	pather := &mockPather{
+		ppaths: map[Pair]*PricePaths{
+			{Base: "e", Quote: "f"}: NewPricePaths(
+				NewPair("e", "f"),
+				[]*Pair{
+					NewPair("e", "x"),
+					NewPair("x", "f"),
+				},
+			),
+			{Base: "a", Quote: "d"}: NewPricePaths(
+				NewPair("a", "d"),
+				[]*Pair{
+					NewPair("a", "b"),
+					NewPair("b", "d"),
+				},
+				[]*Pair{
+					NewPair("a", "c"),
+					NewPair("c", "d"),
+				},
+			),
+		},
+		pairs: []*Pair{
+			NewPair("a", "d"),
+			NewPair("e", "f"),
+		},
+	}
+
+	processor := &mockProcessor{}
+
+	suite.config = NewConfig(sources, newAggregator, pather, processor)
+	suite.sources = sources
+	suite.aggregator = agg
+	suite.pather = pather
+	suite.processor = processor
+}
+
+// In order for 'go test' to run this suite, we need to create
+// a normal test function and pass our suite to suite.Run
+func TestGoferLibSuite(t *testing.T) {
+	suite.Run(t, &GoferLibSuite{})
+}
