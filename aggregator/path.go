@@ -22,20 +22,16 @@ import (
 // Path is an aggregator that resolves price paths for indirect pairs and takes
 // the median of all paths for each pair
 type Path struct {
-	paths              map[Pair]*PricePaths
-	directAggregator   Aggregator
+	paths            PricePathMap
+	directAggregator Aggregator
 }
 
 // NewPath returns a new instance of `Path` that uses the given price paths to
 // aggregate indirect pairs and an aggregator to merge direct pairs.
-func NewPath(ppaths []*PricePaths, directAggregator Aggregator) *Path {
-	paths := make(map[Pair]*PricePaths)
-	for _, ppath := range ppaths {
-		paths[*ppath.Target] = ppath
-	}
+func NewPath(ppaths []*PricePath, directAggregator Aggregator) *Path {
 	return &Path{
-		paths:              paths,
-		directAggregator:   directAggregator,
+		paths:            *NewPricePathMap(ppaths),
+		directAggregator: directAggregator,
 	}
 }
 
@@ -93,8 +89,8 @@ func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
 
 	var pas []*PriceAggregate
 	var prices []uint64
-	for _, path := range ppaths.Paths {
-		if pa := r.resolve(path); pa != nil {
+	for _, path := range ppaths {
+		if pa := r.resolve(*path); pa != nil {
 			pas = append(pas, pa)
 			prices = append(prices, pa.Price)
 		}

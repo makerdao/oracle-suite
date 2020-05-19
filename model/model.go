@@ -63,17 +63,14 @@ type PriceAggregate struct {
 // sequence
 type PricePath []*Pair
 
-// PricePath represents a way to convert from a base asset to a quote asset
-// through direct trading pairs
-type PricePaths struct {
-	Target *Pair
-	Paths  []PricePath
-}
+// PricePathMap represents a set of PricePath indexed by their target pair, each
+// pair can have multiples paths
+type PricePathMap map[Pair][]*PricePath
 
 // Target returns a Pair with base of first and quote of last pair in path
 func (ppath PricePath) Target() *Pair {
 	var pair *Pair
-  for _, p := range ppath {
+	for _, p := range ppath {
 		if pair == nil {
 			pair = p.Clone()
 		} else if pair.Base == p.Base {
@@ -172,27 +169,6 @@ func ValidatePotentialPricePoint(pp *PotentialPricePoint) error {
 	return ValidatePair(pp.Pair)
 }
 
-// NewPricePaths creates a new instance of `PricePaths`
-func NewPricePaths(target *Pair, pairs ...PricePath) *PricePaths {
-	return &PricePaths{
-		Target: target,
-		Paths:  pairs,
-	}
-}
-
-// String returns PricePaths string representation
-func (ppaths *PricePaths) String() string {
-	var str strings.Builder
-	str.WriteString(ppaths.Target.String())
-	str.WriteString(" =")
-	for _, path := range ppaths.Paths {
-		str.WriteString(" (")
-		str.WriteString(path.String())
-		str.WriteString(")")
-	}
-	return str.String()
-}
-
 // String returns PricePath string representation
 func (ppath PricePath) String() string {
 	var str strings.Builder
@@ -204,13 +180,39 @@ func (ppath PricePath) String() string {
 	return str.String()
 }
 
+// NewPricePathMap creates a new instance of `PricePaths`
+func NewPricePathMap(ppaths []*PricePath) *PricePathMap {
+	ppaths_ := make(PricePathMap)
+	for _, ppath := range ppaths {
+		target := *ppath.Target()
+		ppaths_[target] = append(ppaths_[target], ppath)
+	}
+	return &ppaths_
+}
+
+// String returns PricePaths string representation
+func (ppaths PricePathMap) String() string {
+	var str strings.Builder
+	for pair, ppaths_ := range ppaths {
+		str.WriteString(pair.String())
+		str.WriteString(" =")
+		for _, path := range ppaths_ {
+			str.WriteString(" (")
+			str.WriteString(path.String())
+			str.WriteString(")")
+		}
+		str.WriteString("\n")
+	}
+	return str.String()
+}
+
 // ValidatePricePath checks if price path has at least one pair
-func ValidatePricePath(ppath PricePath) error {
+func ValidatePricePath(ppath *PricePath) error {
 	if ppath == nil {
 		return fmt.Errorf("price path is nil")
 	}
 
-	for _, p := range ppath {
+	for _, p := range *ppath {
 		if ValidatePair(p) != nil {
 			return fmt.Errorf("pair in path is invalid")
 		}
@@ -223,23 +225,35 @@ func ValidatePricePath(ppath PricePath) error {
 	return nil
 }
 
-// ValidatePricePaths checks if price paths all have same target pair
-func ValidatePricePaths(ppaths *PricePaths) error {
+// ValidatePricePathMap checks if price paths all have matching target pairs and
+// paths are valid
+func ValidatePricePathMap(ppaths *PricePathMap) error {
 	if ppaths == nil {
 		return fmt.Errorf("price paths is nil")
 	}
-	if ValidatePair(ppaths.Target) != nil {
-		return fmt.Errorf("price paths target pair is invalid")
-	}
-	if len(ppaths.Paths) == 0 {
-		return fmt.Errorf("price paths has no paths")
-	}
-	for _, ppath := range ppaths.Paths {
-		if ValidatePricePath(ppath) != nil {
-			return fmt.Errorf("one path in price paths was invalid")
+
+	for pair, ppaths_ := range *ppaths {
+		if err := ValidatePair(&pair); err != nil {
+			return fmt.Errorf("a target pair is invalid: %v", err)
 		}
-		if !ppaths.Target.Equal(ppath.Target()) {
-			return fmt.Errorf("one path in price paths has non matching target")
+
+		if ppaths_ == nil {
+			return fmt.Errorf("no paths for pair %s", pair)
+		}
+
+		for _, ppath := range ppaths_ {
+			if err := ValidatePricePath(ppath); err != nil {
+				return fmt.Errorf("a path for pair %s is invalid: %v", pair, err)
+			}
+
+			target := ppath.Target()
+			if err := ValidatePair(target); err != nil {
+				return fmt.Errorf("a path for pair %s has invalid target pair: %v", pair, err)
+			}
+
+			if !pair.Equal(target) {
+				return fmt.Errorf("a path for pair %s has mismatching target pair %s", pair, target)
+			}
 		}
 	}
 	return nil

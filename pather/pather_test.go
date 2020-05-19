@@ -22,12 +22,11 @@ import (
 )
 
 func TestPricePathETHBTC(t *testing.T) {
-	ppath := NewPricePaths(
-		NewPair("ETH", "BTC"),
-		[]*Pair{
+	ppath := []*PricePath{
+		&PricePath{
 			NewPair("ETH", "BTC"),
 		},
-	)
+	}
 	ppps := []*PotentialPricePoint{
 		{
 			Pair: NewPair("ETH", "BTC"),
@@ -52,7 +51,7 @@ func TestPricePathETHBTC(t *testing.T) {
 	}
 
 	var pppRes []*PotentialPricePoint
-	pppRes = FilterPotentialPricePoints([]*PricePaths{ppath}, ppps)
+	_, pppRes = FilterPotentialPricePoints(ppath, ppps)
 	assert.NotNil(t, pppRes)
 	assert.Equal(t, pppRes, []*PotentialPricePoint{
 		{
@@ -63,22 +62,25 @@ func TestPricePathETHBTC(t *testing.T) {
 		},
 	})
 
-	pppRes = FilterPotentialPricePoints([]*PricePaths{ppath}, pppsFail)
+	_, pppRes = FilterPotentialPricePoints(ppath, pppsFail)
 	assert.Nil(t, pppRes)
 }
 
 func TestPricePathBATUSD(t *testing.T) {
-	ppath := NewPricePaths(
-		NewPair("BAT", "USD"),
-		[]*Pair{
+	ppath := []*PricePath{
+		&PricePath{
 			NewPair("BAT", "BTC"),
 			NewPair("BTC", "USD"),
 		},
-		[]*Pair{
+		&PricePath{
+			NewPair("ETH", "BTC"),
+			NewPair("BTC", "USD"),
+		},
+		&PricePath{
 			NewPair("BAT", "KRW"),
 			NewPair("KRW", "USD"),
 		},
-	)
+	}
 
 	ppps_BAT_BTC := []*PotentialPricePoint{
 		{
@@ -133,6 +135,15 @@ func TestPricePathBATUSD(t *testing.T) {
 			},
 		},
 	)
+	ppps_BAT_ETH_BTC := append(
+		ppps_BAT_BTC,
+		&PotentialPricePoint{
+			Pair: NewPair("ETH", "BTC"),
+			Exchange: &Exchange{
+				Name: "lol",
+			},
+		},
+	)
 	pppsFail := []*PotentialPricePoint{
 		{
 			Pair: NewPair("KRW", "USD"),
@@ -155,7 +166,7 @@ func TestPricePathBATUSD(t *testing.T) {
 	}
 
 	var pppRes []*PotentialPricePoint
-	pppRes = FilterPotentialPricePoints([]*PricePaths{ppath}, ppps_BAT_BTC)
+	_, pppRes = FilterPotentialPricePoints(ppath, ppps_BAT_BTC)
 	assert.NotNil(t, pppRes)
 	assert.ElementsMatch(t, []*PotentialPricePoint{
 		{
@@ -178,7 +189,37 @@ func TestPricePathBATUSD(t *testing.T) {
 		},
 	}, pppRes)
 
-	pppRes = FilterPotentialPricePoints([]*PricePaths{ppath}, ppps_BAT_BTC_KRW)
+	ppathsRes, pppRes := FilterPotentialPricePoints(ppath, ppps_BAT_ETH_BTC)
+	assert.NotNil(t, pppRes)
+	assert.Len(t, ppathsRes, 2)
+	assert.ElementsMatch(t, []*PotentialPricePoint{
+		{
+			Pair: NewPair("BAT", "BTC"),
+			Exchange: &Exchange{
+				Name: "exchange-a",
+			},
+		},
+		{
+			Pair: NewPair("BTC", "USD"),
+			Exchange: &Exchange{
+				Name: "exchange-a",
+			},
+		},
+		{
+			Pair: NewPair("BAT", "BTC"),
+			Exchange: &Exchange{
+				Name: "exchange-b",
+			},
+		},
+		{
+			Pair: NewPair("ETH", "BTC"),
+			Exchange: &Exchange{
+				Name: "lol",
+			},
+		},
+	}, pppRes)
+
+	_, pppRes = FilterPotentialPricePoints(ppath, ppps_BAT_BTC_KRW)
 	assert.NotNil(t, pppRes)
 	assert.ElementsMatch(t, []*PotentialPricePoint{
 		{
@@ -219,6 +260,6 @@ func TestPricePathBATUSD(t *testing.T) {
 		},
 	}, pppRes)
 
-	pppRes = FilterPotentialPricePoints([]*PricePaths{ppath}, pppsFail)
+	_, pppRes = FilterPotentialPricePoints(ppath, pppsFail)
 	assert.Nil(t, pppRes)
 }

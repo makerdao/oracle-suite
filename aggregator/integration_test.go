@@ -55,18 +55,16 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 
 	// Get relevant price paths to pass to aggregator, using setzer pathing
 	setzerPather := pather.NewSetzer()
-	ppathss := append(
-		[]*PricePaths{},
-		setzerPather.Path(&Pair{Base: "ETH", Quote: "USD"}),
-		setzerPather.Path(&Pair{Base: "BTC", Quote: "USD"}),
-		setzerPather.Path(&Pair{Base: "ETH", Quote: "BTC"}),
-		setzerPather.Path(&Pair{Base: "REP", Quote: "USD"}),
-		setzerPather.Path(&Pair{Base: "USDC", Quote: "USD"}),
-	)
+	var ppaths []*PricePath
+	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "ETH", Quote: "USD"})...)
+	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "BTC", Quote: "USD"})...)
+	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "ETH", Quote: "BTC"})...)
+	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "REP", Quote: "USD"})...)
+	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "USDC", Quote: "USD"})...)
 
 	for i := 0; i < 100; i++ {
 		pathAggregator := NewPath(
-			ppathss,
+			ppaths,
 			NewMedian(1000),
 		)
 

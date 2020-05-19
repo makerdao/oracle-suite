@@ -24,42 +24,43 @@ type Pather interface {
 	// Pairs returns a list of Pairs that are tradeable
 	Pairs() []*model.Pair
 	// Path returns PricePaths describing how to trade between two assets
-	Path(*model.Pair) *model.PricePaths
+	Path(*model.Pair) []*model.PricePath
 }
 
 // FilterPotentialPricePoints returns the PotentialPricePoints that are required
-// to complete the PricePaths given and nil if path is not possible to complete
+// to complete the PricePaths given and nil if no paths are possible to complete
 // with the given PotentialPricePoints
-func FilterPotentialPricePoints(ppaths []*model.PricePaths, ppps []*model.PotentialPricePoint) []*model.PotentialPricePoint {
-	resIndex := make(map[*model.PotentialPricePoint]bool)
+func FilterPotentialPricePoints(ppaths []*model.PricePath, ppps []*model.PotentialPricePoint) ([]*model.PricePath, []*model.PotentialPricePoint) {
+	// Group all PotentialPricePoints by pair
+	pppIndex := make(map[model.Pair][]*model.PotentialPricePoint)
+	for _, ppp := range ppps {
+		pair := *ppp.Pair
+		pppIndex[pair] = append(pppIndex[pair], ppp)
+	}
+
+	var resPricePaths []*model.PricePath
+	pairs := make(map[model.Pair]bool)
+	outer:
 	for _, ppath := range ppaths {
-		for _, path := range ppath.Paths {
-			index := make(map[model.Pair]bool)
-			for _, pair := range path {
-				index[*pair] = true
-			}
-
-			pppIndex := make(map[*model.PotentialPricePoint]bool)
-			pairIndex := make(map[model.Pair]bool)
-			for _, ppp := range ppps {
-				pair := *ppp.Pair
-				if _, ok := index[pair]; ok {
-					pppIndex[ppp] = true
-					pairIndex[pair] = true
-				}
-			}
-
-			if len(pairIndex) == len(index) {
-				for ppp := range pppIndex {
-					resIndex[ppp] = true
-				}
+		// Check that each PricePath has all of its Pairs in PotentialPricePoints
+		for _, pair := range *ppath {
+			if _, ok := pppIndex[*pair]; !ok {
+				// Continue with next PricePath and don't add pairs to list
+				continue outer
 			}
 		}
+		// Add each uniqe Pair to a list
+		for _, pair := range *ppath {
+			pairs[*pair] = true
+		}
+		resPricePaths = append(resPricePaths, ppath)
 	}
 
-	var result []*model.PotentialPricePoint
-	for ppp := range resIndex {
-		result = append(result, ppp)
+	// Add each uniqe PotentialPricePoint by completed PricePath Pair
+	var resPPP []*model.PotentialPricePoint
+	for pair := range pairs {
+		resPPP = append(resPPP, pppIndex[pair]...)
 	}
-	return result
+
+	return resPricePaths, resPPP
 }

@@ -71,27 +71,24 @@ func TestPathAggregator(t *testing.T) {
 		newTestPricePointAggregate(0, "exchange5", "c", "d", 104, 1),
 		newTestPricePointAggregate(0, "exchange5", "b", "a", 105, 1),
 	}
-	ppathss := []*PricePaths{
-		NewPricePaths(
-			NewPair("a", "d"),
-			[]*Pair{
-				NewPair("a", "b"),
-				NewPair("b", "d"),
-			},
-			[]*Pair{
-				NewPair("a", "c"),
-				NewPair("c", "d"),
-			},
-			[]*Pair{
-				NewPair("b", "a"),
-				NewPair("b", "d"),
-			},
-		),
+	ppaths := []*PricePath{
+		&PricePath{
+			NewPair("a", "b"),
+			NewPair("b", "d"),
+		},
+		&PricePath{
+			NewPair("a", "c"),
+			NewPair("c", "d"),
+		},
+		&PricePath{
+			NewPair("b", "a"),
+			NewPair("b", "d"),
+		},
 	}
 
 	for i := 0; i < 100; i++ {
 		pathAggregator := NewPath(
-			ppathss,
+			ppaths,
 			directAggregator,
 		)
 
