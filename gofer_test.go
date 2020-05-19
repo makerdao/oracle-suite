@@ -74,17 +74,17 @@ func (suite *GoferLibSuite) TestGoferLibPrices() {
 	lib := NewGofer(suite.config)
 
 	pair := Pair{Base: "a", Quote: "b"}
-	prices, err := lib.Price(&pair)
+	prices, err := lib.Prices(&pair)
 	assert.NoError(t, err)
 	assert.Nil(t, prices[pair])
 
 	pair = Pair{Base: "a", Quote: "d"}
-	prices, err = lib.Price(&pair)
+	prices, err = lib.Prices(&pair)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(0xad), prices[pair].Price)
 
 	suite.processor.returnsErr = fmt.Errorf("processor error")
-	_, err = lib.Price(&pair)
+	_, err = lib.Prices(&pair)
 	assert.Error(t, err)
 }
 
@@ -101,10 +101,37 @@ func (suite *GoferLibSuite) TestGoferLibPaths() {
 	assert.Equal(t, suite.pather.ppaths[Pair{Base: "a", Quote: "d"}], ppaths[Pair{Base: "a", Quote: "d"}])
 }
 
+func (suite *GoferLibSuite) TestGoferLibExchanges() {
+	t := suite.T()
+
+	lib := NewGofer(suite.config)
+
+	exchanges := lib.Exchanges(&Pair{Base: "a", Quote: "d"}, &Pair{Base: "x", Quote: "y"})
+	assert.ElementsMatch(t, []*Exchange{&Exchange{Name: "exchange-a"}, &Exchange{Name: "exchange-c"}}, exchanges)
+
+	exchanges = lib.Exchanges()
+	assert.Len(t, exchanges, 3)
+
+	exchanges = lib.Exchanges(&Pair{Base: "x", Quote: "y"})
+	assert.Len(t, exchanges, 0)
+}
+
+func (suite *GoferLibSuite) TestGoferLibPairs() {
+	t := suite.T()
+
+	lib := NewGofer(suite.config)
+
+	pairs := lib.Pairs()
+	assert.ElementsMatch(t, []*Pair{&Pair{Base: "a", Quote: "d"}}, pairs)
+}
+
 // Runs before each test
 func (suite *GoferLibSuite) SetupTest() {
 	sources := []*PotentialPricePoint{
 		newPotentialPricePoint("exchange-a", NewPair("a", "b")),
+		newPotentialPricePoint("exchange-a", NewPair("a", "z")),
+		newPotentialPricePoint("exchange-b", NewPair("a", "z")),
+		newPotentialPricePoint("exchange-c", NewPair("b", "d")),
 	}
 	agg := &mockAggregator{
 		returns: map[Pair]*PriceAggregate{

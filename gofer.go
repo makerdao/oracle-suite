@@ -32,7 +32,7 @@ func NewGofer(config *Config) *Gofer {
 	}
 }
 
-func (g *Gofer) paths(pairs ...*model.Pair) []*model.PricePath {
+func (g *Gofer) paths(pairs []*model.Pair) []*model.PricePath {
 	var ppaths []*model.PricePath
 	for _, pair := range pairs {
 		ppaths_ := g.config.Pather.Path(pair)
@@ -44,10 +44,10 @@ func (g *Gofer) paths(pairs ...*model.Pair) []*model.PricePath {
 }
 
 // Price returns a map of aggregated prices according
-func (g *Gofer) Price(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
-	ppaths := g.paths(pairs...)
+func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
+	ppaths := g.paths(pairs)
 	aggregator := g.config.NewAggregator(ppaths)
-	ppps := pather.FilterPotentialPricePoints(ppaths, g.config.Sources)
+	_, ppps := pather.FilterPotentialPricePoints(ppaths, g.config.Sources)
 
 	if _, err := g.config.Processor.Process(ppps, aggregator); err != nil {
 		return nil, err
@@ -63,16 +63,59 @@ func (g *Gofer) Price(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregat
 
 // Paths returns a map of price paths for the given indirect pairs
 func (g *Gofer) Paths(pairs ...*model.Pair) map[model.Pair][]*model.PricePath {
-	ppaths := g.paths(pairs...)
+	ppaths := g.paths(pairs)
 	return *model.NewPricePathMap(ppaths)
 }
 
-// TODO: Implement getting configured exchanges
-//func (g *Gofer) Exchanges(pair *model.Pair) []*model.Exchange {
-//	return nil
-//}
+// Exchanges returns a list of Exchanges that will be queried for the given
+// pairs
+func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
+	exchanges := make(map[string]*model.Exchange)
 
-// TODO: Implement getting configured indirect pairs
-//func (g *Gofer) Pairs() []*model.Pair {
-//	return nil
-//}
+	if pairs == nil {
+		for _, ppp := range g.config.Sources {
+			exchanges[ppp.Exchange.Name] = ppp.Exchange
+		}
+	} else {
+		exchangeIndex := make(map[model.Pair][]*model.Exchange)
+		for _, ppp := range g.config.Sources {
+			pair := *ppp.Pair
+			exchangeIndex[pair] = append(exchangeIndex[pair], ppp.Exchange)
+		}
+
+		ppaths := g.paths(pairs)
+		for _, ppath := range ppaths {
+			for _, pair := range *ppath {
+				if es, ok := exchangeIndex[*pair]; ok {
+					for _, e := range es {
+						exchanges[e.Name] = e
+					}
+				}
+			}
+		}
+	}
+
+	var result []*model.Exchange
+	for _, e := range exchanges {
+		result = append(result, e)
+	}
+
+	return result
+}
+
+// Pairs returns a list of pairs that are possible to resolve given the current
+// configured Pather and set of PotentialPricePoints
+func (g *Gofer) Pairs() []*model.Pair {
+	pairs := g.config.Pather.Pairs()
+	paths := g.paths(pairs)
+	ppaths, _ := pather.FilterPotentialPricePoints(paths, g.config.Sources)
+	targets := make(map[model.Pair]bool)
+	for _, ppath := range ppaths {
+		targets[*ppath.Target()] = true
+	}
+	var results []*model.Pair
+	for pair := range targets {
+		results = append(results, &pair)
+	}
+	return results
+}
