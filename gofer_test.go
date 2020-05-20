@@ -32,6 +32,9 @@ func (mr *mockAggregator) Ingest(pa *PriceAggregate) {
 }
 
 func (mr *mockAggregator) Aggregate(pair *Pair) *PriceAggregate {
+	if pair == nil {
+		return nil
+	}
 	return mr.returns[*pair]
 }
 
@@ -46,14 +49,6 @@ func (mp *mockPather) Pairs() []*Pair {
 
 func (mp *mockPather) Path(pair *Pair) []*PricePath {
 	return mp.ppaths[*pair]
-}
-
-type mockProcessor struct {
-	returnsErr error
-}
-
-func (mp *mockProcessor) Process(ppps []*PotentialPricePoint, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
-	return nil, mp.returnsErr
 }
 
 // Define the suite, and absorb the built-in basic suite

@@ -92,7 +92,13 @@ func TestPathAggregator(t *testing.T) {
 			directAggregator,
 		)
 
-		res := randomReduce(pathAggregator, NewPair("a", "d"), pas)
+		res := pathAggregator.Aggregate(nil)
+		assert.Nil(t, res)
+
+		res = pathAggregator.Aggregate(NewPair("x", "y"))
+		assert.Nil(t, res)
+
+		res = randomReduce(pathAggregator, NewPair("a", "d"), pas)
 		assert.NotNil(t, res)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
 		assert.Equal(t, "indirect-median", res.PriceModelName)
@@ -178,4 +184,31 @@ func TestTrade(t *testing.T) {
 	assert.NotNil(t, resCE)
 	assert.Equal(t, &Pair{Base: "c", Quote: "e"}, resCE.Pair)
 	assert.Equal(t, uint64(40), resCE.Price)
+}
+
+func TestPathResolveMissingPair(t *testing.T) {
+	ppath := &PricePath{
+		NewPair("a", "b"),
+		NewPair("b", "d"),
+	}
+
+	directAggregator := &mockAggregator{
+		returns: map[Pair]*PriceAggregate{
+			Pair{Base: "a", Quote: "b"}: newTestPricePointAggregate(0, "exchange5", "a", "b", 100, 1),
+		},
+	}
+
+	pathAggregator := NewPath(
+		[]*PricePath{ppath},
+		directAggregator,
+	)
+
+	var res *PriceAggregate
+
+	res = pathAggregator.resolve(PricePath{ NewPair("a", "b") })
+	assert.NotNil(t, res)
+	assert.Equal(t, uint64(100), res.Price)
+
+	res = pathAggregator.resolve(*ppath)
+	assert.Nil(t, res)
 }

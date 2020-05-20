@@ -82,6 +82,10 @@ func (r *Path) Ingest(pa *PriceAggregate) {
 }
 
 func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
+	if pair == nil {
+		return nil
+	}
+
 	ppaths := r.paths[*pair]
 	if ppaths == nil {
 		return nil

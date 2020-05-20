@@ -97,3 +97,16 @@ func TestInvalidPair(t *testing.T) {
 		assert.Nil(t, pa)
 	}
 }
+
+func TestMedian(t *testing.T) {
+	var res uint64
+
+	res = median([]uint64{})
+	assert.Equal(t, uint64(0), res)
+
+	res = median([]uint64{4,2,3,4,5})
+	assert.Equal(t, uint64(4), res)
+
+	res = median([]uint64{5,2,10,19})
+	assert.Equal(t, uint64(7), res)
+}
