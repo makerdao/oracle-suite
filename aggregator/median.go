@@ -33,6 +33,7 @@ type Median struct {
 	aggregates      map[model.Pair]*traceAggregate
 }
 
+// NewMedian returns a new instance of Medain with a time window in milliseconds
 func NewMedian(timeWindow int64) *Median {
 	return &Median{
 		timeWindow:      timeWindow,
