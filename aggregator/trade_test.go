@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "makerdao/gofer/model"
+	. "github.com/makerdao/gofer/model"
 )
 
 func TestTradeAggregator(t *testing.T) {

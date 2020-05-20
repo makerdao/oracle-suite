@@ -16,7 +16,7 @@
 package aggregator
 
 import (
-	. "makerdao/gofer/model"
+	. "github.com/makerdao/gofer/model"
 )
 
 // Path is an aggregator that resolves price paths for indirect pairs and takes

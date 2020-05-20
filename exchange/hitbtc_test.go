@@ -18,8 +18,8 @@ package exchange
 import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"testing"
 )
 

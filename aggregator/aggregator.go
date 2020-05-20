@@ -15,7 +15,7 @@
 
 package aggregator
 
-import "makerdao/gofer/model"
+import "github.com/makerdao/gofer/model"
 
 type Aggregator interface {
 	// Add a price point to be aggregated

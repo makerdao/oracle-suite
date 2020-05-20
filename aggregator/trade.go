@@ -16,7 +16,7 @@
 package aggregator
 
 import (
-	"makerdao/gofer/model"
+	"github.com/makerdao/gofer/model"
 )
 
 type Trade struct {

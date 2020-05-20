@@ -17,8 +17,8 @@ package gofer
 
 import (
 	"github.com/stretchr/testify/assert"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"testing"
 )
 

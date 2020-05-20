@@ -16,9 +16,9 @@
 package gofer
 
 import (
-	"makerdao/gofer/aggregator"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/aggregator"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"testing"
 
 	"github.com/stretchr/testify/suite"

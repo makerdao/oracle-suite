@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "makerdao/gofer/model"
-	"makerdao/gofer/pather"
+	. "github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/pather"
 )
 
 func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
@@ -96,7 +96,6 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		assert.Equal(t, &Pair{Base: "REP", Quote: "USD"}, res_REP_USD.Pair)
 		assert.Equal(t, "indirect-median", res_REP_USD.PriceModelName)
 		assert.Equal(t, uint64(0), res_REP_USD.Price)
-
 
 		res_USDC_USD := pathAggregator.Aggregate(&Pair{Base: "USDC", Quote: "USD"})
 		assert.NotNil(t, res_USDC_USD)

@@ -18,7 +18,7 @@ package aggregator
 import (
 	"sort"
 
-	"makerdao/gofer/model"
+	"github.com/makerdao/gofer/model"
 )
 
 type traceAggregate struct {

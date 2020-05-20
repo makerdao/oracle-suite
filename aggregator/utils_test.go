@@ -18,7 +18,7 @@ package aggregator
 import (
 	"math/rand"
 
-	"makerdao/gofer/model"
+	"github.com/makerdao/gofer/model"
 )
 
 func randomReduce(r Aggregator, pair *model.Pair, prices []*model.PriceAggregate) *model.PriceAggregate {

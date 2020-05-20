@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"makerdao/gofer/aggregator"
-	. "makerdao/gofer/model"
+	"github.com/makerdao/gofer/aggregator"
+	. "github.com/makerdao/gofer/model"
 	"testing"
 )
 

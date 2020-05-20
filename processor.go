@@ -17,10 +17,10 @@ package gofer
 
 import (
 	"fmt"
-	"makerdao/gofer/aggregator"
-	"makerdao/gofer/exchange"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/aggregator"
+	"github.com/makerdao/gofer/exchange"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 type Processor struct {
