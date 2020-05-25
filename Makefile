@@ -34,7 +34,7 @@ cover:
 .PHONY: cover
 
 add-license: $(GOFILES)
-	for x in $^; do tmp=$$(cat LICENSE_HEADER; sed -n '/^package /,$$p' $$x); echo "$$tmp" > $$x; done
+	for x in $^; do tmp=$$(cat LICENSE_HEADER; sed -n '/^package \|^\/\/ *+build /,$$p' $$x); echo "$$tmp" > $$x; done
 .PHONY: add-license
 
 test-license: $(GOFILES)
