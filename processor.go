@@ -55,6 +55,7 @@ func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggre
 		return nil, err
 	}
 	return &model.PriceAggregate{
+		PriceModelName: fmt.Sprintf("exchange[%s]", pp.Exchange.Name),
 		PricePoint: point,
 	}, nil
 }

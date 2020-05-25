@@ -101,7 +101,7 @@ func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
 	}
 
 	return NewPriceAggregate(
-		"indirect-median",
+		"path",
 		&PricePoint{
 			Pair:  pair.Clone(),
 			Price: median(prices),

@@ -101,7 +101,7 @@ func TestPathAggregator(t *testing.T) {
 		res = randomReduce(pathAggregator, NewPair("a", "d"), pas)
 		assert.NotNil(t, res)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
-		assert.Equal(t, "indirect-median", res.PriceModelName)
+		assert.Equal(t, "path", res.PriceModelName)
 		assert.Equal(t, 1001.0 * 1002.0, res.Price)
 
 		resTradeABD := res.Prices[0]
