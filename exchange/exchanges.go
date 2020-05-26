@@ -42,6 +42,7 @@ var exchangeList = map[string]Handler{
 	"poloniex":    &Poloniex{},
 	"upbit":       &Upbit{},
 	"folgory":     &Folgory{},
+	"kraken":      &Kraken{},
 }
 
 // Call makes exchange call
