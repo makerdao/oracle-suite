@@ -16,7 +16,7 @@
 package pather
 
 import (
-	"makerdao/gofer/model"
+	"github.com/makerdao/gofer/model"
 )
 
 // Pather describes a set of asset pairs and how to trade between them

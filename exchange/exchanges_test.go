@@ -17,8 +17,8 @@ package exchange
 
 import (
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -106,7 +106,7 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), p, res.Pair)
-	assert.EqualValues(suite.T(), model.PriceFromFloat(price), res.Price)
+	assert.EqualValues(suite.T(), price, res.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

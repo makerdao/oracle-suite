@@ -18,8 +18,8 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
 )
@@ -74,7 +74,7 @@ func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
+		Price:     price,
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

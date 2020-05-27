@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"makerdao/gofer/aggregator"
-	. "makerdao/gofer/model"
+	"github.com/makerdao/gofer/aggregator"
+	. "github.com/makerdao/gofer/model"
 	"testing"
 )
 
@@ -32,6 +32,9 @@ func (mr *mockAggregator) Ingest(pa *PriceAggregate) {
 }
 
 func (mr *mockAggregator) Aggregate(pair *Pair) *PriceAggregate {
+	if pair == nil {
+		return nil
+	}
 	return mr.returns[*pair]
 }
 
@@ -46,14 +49,6 @@ func (mp *mockPather) Pairs() []*Pair {
 
 func (mp *mockPather) Path(pair *Pair) []*PricePath {
 	return mp.ppaths[*pair]
-}
-
-type mockProcessor struct {
-	returnsErr error
-}
-
-func (mp *mockProcessor) Process(ppps []*PotentialPricePoint, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
-	return nil, mp.returnsErr
 }
 
 // Define the suite, and absorb the built-in basic suite
@@ -81,7 +76,7 @@ func (suite *GoferLibSuite) TestGoferLibPrices() {
 	pair = Pair{Base: "a", Quote: "d"}
 	prices, err = lib.Prices(&pair)
 	assert.NoError(t, err)
-	assert.Equal(t, uint64(0xad), prices[pair].Price)
+	assert.Equal(t, 0.123, prices[pair].Price)
 
 	suite.processor.returnsErr = fmt.Errorf("processor error")
 	_, err = lib.Prices(&pair)
@@ -137,7 +132,7 @@ func (suite *GoferLibSuite) SetupTest() {
 		returns: map[Pair]*PriceAggregate{
 			{Base: "a", Quote: "d"}: {
 				PricePoint: &PricePoint{
-					Price: 0xad,
+					Price: 0.123,
 				},
 			},
 			{Base: "e", Quote: "f"}: {

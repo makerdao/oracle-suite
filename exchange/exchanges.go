@@ -16,8 +16,8 @@
 package exchange
 
 import (
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Handler is interface that all Exchange API handlers should implement

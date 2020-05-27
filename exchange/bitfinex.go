@@ -18,8 +18,8 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
 )
@@ -66,8 +66,8 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(resp[6]),
-		Volume:    model.PriceFromFloat(resp[7]),
+		Price:     resp[6],
+		Volume:    resp[7],
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

@@ -17,7 +17,7 @@ package pather
 
 import (
 	"github.com/stretchr/testify/assert"
-	"makerdao/gofer/model"
+	"github.com/makerdao/gofer/model"
 	"testing"
 )
 

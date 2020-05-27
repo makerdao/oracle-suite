@@ -17,8 +17,8 @@ package exchange
 
 import (
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -95,7 +95,7 @@ func (suite *BitfinexSuite) TestSuccessResponse() {
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(model.PriceFromFloat(1.0), point.Price)
+	suite.Equal(1.0, point.Price)
 	suite.Greater(point.Timestamp, int64(0))
 }
 

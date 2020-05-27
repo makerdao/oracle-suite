@@ -18,10 +18,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	. "makerdao/gofer"
-	. "makerdao/gofer/aggregator"
-	. "makerdao/gofer/model"
-	. "makerdao/gofer/pather"
+	. "github.com/makerdao/gofer"
+	. "github.com/makerdao/gofer/aggregator"
+	. "github.com/makerdao/gofer/model"
+	. "github.com/makerdao/gofer/pather"
 )
 
 type jsonSource struct {

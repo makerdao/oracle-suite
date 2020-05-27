@@ -18,8 +18,8 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
@@ -91,10 +91,10 @@ func (b *Coinbase) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
-		Volume:    model.PriceFromFloat(volume),
-		Ask:       model.PriceFromFloat(ask),
-		Bid:       model.PriceFromFloat(bid),
+		Price:     price,
+		Volume:    volume,
+		Ask:       ask,
+		Bid:       bid,
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

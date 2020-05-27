@@ -16,8 +16,8 @@
 package exchange
 
 import (
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // mockWorkerPool mock worker pool implementation for tests

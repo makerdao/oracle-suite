@@ -16,8 +16,8 @@
 package gofer
 
 import (
-	"makerdao/gofer/model"
-	"makerdao/gofer/pather"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/pather"
 )
 
 // Gofer library API

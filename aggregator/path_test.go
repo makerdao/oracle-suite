@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "makerdao/gofer/model"
+	. "github.com/makerdao/gofer/model"
 )
 
 type mockAggregator struct {
@@ -92,63 +92,69 @@ func TestPathAggregator(t *testing.T) {
 			directAggregator,
 		)
 
-		res := randomReduce(pathAggregator, NewPair("a", "d"), pas)
+		res := pathAggregator.Aggregate(nil)
+		assert.Nil(t, res)
+
+		res = pathAggregator.Aggregate(NewPair("x", "y"))
+		assert.Nil(t, res)
+
+		res = randomReduce(pathAggregator, NewPair("a", "d"), pas)
 		assert.NotNil(t, res)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
 		assert.Equal(t, "indirect-median", res.PriceModelName)
-		assert.Equal(t, uint64(1001 * 1002), res.Price)
+		assert.Equal(t, 1001.0 * 1002.0, res.Price)
 
 		resTradeABD := res.Prices[0]
 		assert.NotNil(t, resTradeABD)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, resTradeABD.Pair)
 		assert.Equal(t, "trade", resTradeABD.PriceModelName)
-		assert.Equal(t, uint64(1001 * 1002), resTradeABD.Price)
+		assert.Equal(t, 1001.0 * 1002.0, resTradeABD.Price)
 
 		resMedinaAB := resTradeABD.Prices[0]
 		assert.NotNil(t, resMedinaAB)
 		assert.Equal(t, &Pair{Base: "a", Quote: "b"}, resMedinaAB.Pair)
 		assert.Equal(t, "median", resMedinaAB.PriceModelName)
-		assert.Equal(t, uint64(1001), resMedinaAB.Price)
+		assert.Equal(t, 1001.0, resMedinaAB.Price)
 		assert.Equal(t, abReturn, resMedinaAB)
 
 		resMedinaBD := resTradeABD.Prices[1]
 		assert.NotNil(t, resMedinaBD)
 		assert.Equal(t, &Pair{Base: "b", Quote: "d"}, resMedinaBD.Pair)
 		assert.Equal(t, "median", resMedinaBD.PriceModelName)
-		assert.Equal(t, uint64(1002), resMedinaBD.Price)
+		assert.Equal(t, 1002.0, resMedinaBD.Price)
 		assert.Equal(t, bdReturn, resMedinaBD)
 
 		resTradeACD := res.Prices[1]
 		assert.NotNil(t, resTradeACD)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, resTradeACD.Pair)
 		assert.Equal(t, "trade", resTradeACD.PriceModelName)
-		assert.Equal(t, uint64(1003 * 1004), resTradeACD.Price)
+		assert.Equal(t, 1003.0 * 1004.0, resTradeACD.Price)
 
 		resMedinaAC := resTradeACD.Prices[0]
 		assert.NotNil(t, resMedinaAC)
 		assert.Equal(t, &Pair{Base: "a", Quote: "c"}, resMedinaAC.Pair)
 		assert.Equal(t, "median", resMedinaAC.PriceModelName)
-		assert.Equal(t, uint64(1003), resMedinaAC.Price)
+		assert.Equal(t, 1003.0, resMedinaAC.Price)
 		assert.Equal(t, acReturn, resMedinaAC)
 
 		resMedinaCD := resTradeACD.Prices[1]
 		assert.NotNil(t, resMedinaCD)
 		assert.Equal(t, &Pair{Base: "c", Quote: "d"}, resMedinaCD.Pair)
 		assert.Equal(t, "median", resMedinaCD.PriceModelName)
-		assert.Equal(t, uint64(1004), resMedinaCD.Price)
+		assert.Equal(t, 1004.0, resMedinaCD.Price)
 		assert.Equal(t, cdReturn, resMedinaCD)
 
 		resTradeBAD := res.Prices[2]
 		assert.NotNil(t, resTradeBAD)
 		assert.Equal(t, &Pair{Base: "a", Quote: "d"}, resTradeBAD.Pair)
 		assert.Equal(t, "trade", resTradeBAD.PriceModelName)
-		assert.Equal(t, uint64(1002 / 2), resTradeBAD.Price)
+		assert.Equal(t, 1002.0 / 2, resTradeBAD.Price)
 
 		resMedinaBA := resTradeBAD.Prices[0]
 		assert.NotNil(t, resMedinaBA)
 		assert.Equal(t, &Pair{Base: "b", Quote: "a"}, resMedinaBA.Pair)
 		assert.Equal(t, "median", resMedinaAC.PriceModelName)
-		assert.Equal(t, uint64(2), resMedinaBA.Price)
+		assert.Equal(t, 2.0, resMedinaBA.Price)
 		assert.Equal(t, baReturn, resMedinaBA)
 
 		assert.Equal(t, resMedinaBD, resTradeBAD.Prices[1])
@@ -172,10 +178,37 @@ func TestTrade(t *testing.T) {
 	resAE := trade(pasAE)
 	assert.NotNil(t, resAE)
 	assert.Equal(t, &Pair{Base: "a", Quote: "e"}, resAE.Pair)
-	assert.Equal(t, uint64(1600000), resAE.Price)
+	assert.Equal(t, 1600000.0, resAE.Price)
 
 	resCE := trade(pasCE)
 	assert.NotNil(t, resCE)
 	assert.Equal(t, &Pair{Base: "c", Quote: "e"}, resCE.Pair)
-	assert.Equal(t, uint64(40), resCE.Price)
+	assert.Equal(t, 40.0, resCE.Price)
+}
+
+func TestPathResolveMissingPair(t *testing.T) {
+	ppath := &PricePath{
+		NewPair("a", "b"),
+		NewPair("b", "d"),
+	}
+
+	directAggregator := &mockAggregator{
+		returns: map[Pair]*PriceAggregate{
+			Pair{Base: "a", Quote: "b"}: newTestPricePointAggregate(0, "exchange5", "a", "b", 100, 1),
+		},
+	}
+
+	pathAggregator := NewPath(
+		[]*PricePath{ppath},
+		directAggregator,
+	)
+
+	var res *PriceAggregate
+
+	res = pathAggregator.resolve(PricePath{ NewPair("a", "b") })
+	assert.NotNil(t, res)
+	assert.Equal(t, 100.0, res.Price)
+
+	res = pathAggregator.resolve(*ppath)
+	assert.Nil(t, res)
 }

@@ -17,9 +17,9 @@ package gofer
 
 import (
 	"fmt"
-	"makerdao/gofer/exchange"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/exchange"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // PriceCollector will collect prices for you

@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "makerdao/gofer/model"
+	. "github.com/makerdao/gofer/model"
 )
 
 func TestTradeAggregator(t *testing.T) {
@@ -50,7 +50,7 @@ func TestTradeAggregator(t *testing.T) {
 
 	assert.NotNil(t, res)
 	assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
-	assert.Equal(t, uint64(4), res.Price)
+	assert.Equal(t, 4.0, res.Price)
 	assert.ElementsMatch(t, pas, res.Prices)
 
 	resFail := trade.Aggregate(&Pair{Base: "x", Quote: "y"})

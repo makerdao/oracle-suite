@@ -18,8 +18,8 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 )
@@ -88,8 +88,8 @@ func (b *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
-		Volume:    model.PriceFromFloat(volume),
+		Price:     price,
+		Volume:    volume,
 		Timestamp: resp.Timestamp / 1000,
 	}, nil
 }

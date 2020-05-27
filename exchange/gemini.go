@@ -18,8 +18,8 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 )
@@ -87,9 +87,9 @@ func (b *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
-		Ask:       model.PriceFromFloat(ask),
-		Bid:       model.PriceFromFloat(bid),
+		Price:     price,
+		Ask:       ask,
+		Bid:       bid,
 		Timestamp: resp.Volume.Timestamp / 1000,
 	}, nil
 }

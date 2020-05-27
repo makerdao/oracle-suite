@@ -18,8 +18,8 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"makerdao/gofer/model"
-	"makerdao/gofer/query"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
 )
@@ -75,9 +75,9 @@ func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(resp.Result.Last),
-		Ask:       model.PriceFromFloat(resp.Result.Ask),
-		Bid:       model.PriceFromFloat(resp.Result.Bid),
+		Price:     resp.Result.Last,
+		Ask:       resp.Result.Ask,
+		Bid:       resp.Result.Bid,
 		Timestamp: time.Now().Unix(),
 	}, nil
 }
