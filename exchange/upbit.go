@@ -72,8 +72,8 @@ func (b *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(data.Price),
-		Volume:    model.PriceFromFloat(data.Volume),
+		Price:     data.Price,
+		Volume:    data.Volume,
 		Timestamp: data.Timestamp / 1000,
 	}, nil
 }

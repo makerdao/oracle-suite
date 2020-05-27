@@ -76,7 +76,7 @@ func (suite *GoferLibSuite) TestGoferLibPrices() {
 	pair = Pair{Base: "a", Quote: "d"}
 	prices, err = lib.Prices(&pair)
 	assert.NoError(t, err)
-	assert.Equal(t, uint64(0xad), prices[pair].Price)
+	assert.Equal(t, 0.123, prices[pair].Price)
 
 	suite.processor.returnsErr = fmt.Errorf("processor error")
 	_, err = lib.Prices(&pair)
@@ -132,7 +132,7 @@ func (suite *GoferLibSuite) SetupTest() {
 		returns: map[Pair]*PriceAggregate{
 			{Base: "a", Quote: "d"}: {
 				PricePoint: &PricePoint{
-					Price: 0xad,
+					Price: 0.123,
 				},
 			},
 			{Base: "e", Quote: "f"}: {

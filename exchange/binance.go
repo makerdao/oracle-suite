@@ -73,7 +73,7 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
+		Price:     price,
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

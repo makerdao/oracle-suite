@@ -109,8 +109,8 @@ func (suite *GateioSuite) TestSuccessResponse() {
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(model.PriceFromFloat(1.0), point.Price)
-	suite.Equal(model.PriceFromFloat(3.0), point.Volume)
+	suite.Equal(1.0, point.Price)
+	suite.Equal(3.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(2))
 }
 

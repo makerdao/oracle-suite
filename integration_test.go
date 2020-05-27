@@ -91,19 +91,19 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		assert.NotNil(t, res_ETH_USD)
 		assert.Equal(t, &Pair{Base: "ETH", Quote: "USD"}, res_ETH_USD.Pair)
 		assert.Equal(t, "indirect-median", res_ETH_USD.PriceModelName)
-		assert.Equal(t, uint64(19), res_ETH_USD.Price)
+		assert.Equal(t, 19.5, res_ETH_USD.Price)
 
 		res_ETH_BTC := res[Pair{Base: "ETH", Quote: "BTC"}]
 		assert.NotNil(t, res_ETH_BTC)
 		assert.Equal(t, &Pair{Base: "ETH", Quote: "BTC"}, res_ETH_BTC.Pair)
 		assert.Equal(t, "indirect-median", res_ETH_BTC.PriceModelName)
-		assert.Equal(t, uint64(3), res_ETH_BTC.Price)
+		assert.Equal(t, 3.0, res_ETH_BTC.Price)
 
 		res_BTC_USD := res[Pair{Base: "BTC", Quote: "USD"}]
 		assert.NotNil(t, res_BTC_USD)
 		assert.Equal(t, &Pair{Base: "BTC", Quote: "USD"}, res_BTC_USD.Pair)
 		assert.Equal(t, "indirect-median", res_BTC_USD.PriceModelName)
-		assert.Equal(t, uint64(10), res_BTC_USD.Price)
+		assert.Equal(t, 10.0, res_BTC_USD.Price)
 
 		res_ETH_KRW := res[Pair{Base: "ETH", Quote: "KRW"}]
 		assert.Nil(t, res_ETH_KRW, "Pair not existing in Pather")
@@ -112,12 +112,12 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 		assert.NotNil(t, res_REP_USD, "Pair existis in Pather but no price points yet")
 		assert.Equal(t, &Pair{Base: "REP", Quote: "USD"}, res_REP_USD.Pair)
 		assert.Equal(t, "indirect-median", res_REP_USD.PriceModelName)
-		assert.Equal(t, uint64(0), res_REP_USD.Price)
+		assert.Equal(t, 0.0, res_REP_USD.Price)
 
 		res_USDC_USD := res[Pair{Base: "USDC", Quote: "USD"}]
 		assert.NotNil(t, res_USDC_USD)
 		assert.Equal(t, &Pair{Base: "USDC", Quote: "USD"}, res_USDC_USD.Pair)
 		assert.Equal(t, "indirect-median", res_USDC_USD.PriceModelName)
-		assert.Equal(t, uint64(5), res_USDC_USD.Price)
+		assert.Equal(t, 5.0, res_USDC_USD.Price)
 	}
 }

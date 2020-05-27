@@ -115,7 +115,7 @@ func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
 		}
 	}
 
-	prices := make([]uint64, len(pas))
+	prices := make([]float64, len(pas))
 	for i, pa := range pas {
 		prices[i] = calcPrice(pa)
 	}
@@ -125,7 +125,7 @@ func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return trace.Clone()
 }
 
-func median(xs []uint64) uint64 {
+func median(xs []float64) float64 {
 	count := len(xs)
 	if count == 0 {
 		return 0
@@ -139,7 +139,7 @@ func median(xs []uint64) uint64 {
 		i := int(count / 2)
 		x1 := xs[i-1]
 		x2 := xs[i]
-		return uint64((x1 + x2) / 2)
+		return (x1 + x2) / 2
 	}
 	// Odd price point count, use the middle price
 	i := int((count - 1) / 2)

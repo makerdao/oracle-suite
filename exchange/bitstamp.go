@@ -92,10 +92,10 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
-		Volume:    model.PriceFromFloat(volume),
-		Ask:       model.PriceFromFloat(ask),
-		Bid:       model.PriceFromFloat(bid),
+		Price:     price,
+		Volume:    volume,
+		Ask:       ask,
+		Bid:       bid,
 		Timestamp: resp.Timestamp,
 	}, nil
 }

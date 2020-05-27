@@ -95,7 +95,7 @@ func (suite *BinanceSuite) TestSuccessResponse() {
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(model.PriceFromFloat(1.0), point.Price)
+	suite.Equal(1.0, point.Price)
 	suite.Greater(point.Timestamp, int64(0))
 }
 
