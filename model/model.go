@@ -161,7 +161,7 @@ func ValidatePotentialPricePoint(pp *PotentialPricePoint) error {
 	}
 	err := ValidateExchange(pp.Exchange)
 	if err != nil {
-		return fmt.Errorf("given PotentialPricePoint has wrong exchange: %s", err)
+		return fmt.Errorf("given PotentialPricePoint has wrong exchange: %w", err)
 	}
 	return ValidatePair(pp.Pair)
 }
@@ -231,7 +231,7 @@ func ValidatePricePathMap(ppaths *PricePathMap) error {
 
 	for pair, ppaths_ := range *ppaths {
 		if err := ValidatePair(&pair); err != nil {
-			return fmt.Errorf("a target pair is invalid: %v", err)
+			return fmt.Errorf("a target pair is invalid: %w", err)
 		}
 
 		if ppaths_ == nil {
@@ -240,12 +240,12 @@ func ValidatePricePathMap(ppaths *PricePathMap) error {
 
 		for _, ppath := range ppaths_ {
 			if err := ValidatePricePath(ppath); err != nil {
-				return fmt.Errorf("a path for pair %s is invalid: %v", pair, err)
+				return fmt.Errorf("a path for pair %s is invalid: %w", pair, err)
 			}
 
 			target := ppath.Target()
 			if err := ValidatePair(target); err != nil {
-				return fmt.Errorf("a path for pair %s has invalid target pair: %v", pair, err)
+				return fmt.Errorf("a path for pair %s has invalid target pair: %w", pair, err)
 			}
 
 			if !pair.Equal(target) {

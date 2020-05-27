@@ -33,9 +33,13 @@ func NewGofer(config *Config) *Gofer {
 }
 
 func (g *Gofer) paths(pairs []*model.Pair) []*model.PricePath {
+	pairs_ := make(map[model.Pair]bool)
+	for _, p := range pairs {
+		pairs_[*p] = true
+	}
 	var ppaths []*model.PricePath
-	for _, pair := range pairs {
-		ppaths_ := g.config.Pather.Path(pair)
+	for pair := range pairs_ {
+		ppaths_ := g.config.Pather.Path(&pair)
 		if ppaths_ != nil {
 			ppaths = append(ppaths, ppaths_...)
 		}
@@ -54,7 +58,8 @@ func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggrega
 	}
 
 	prices := make(map[model.Pair]*model.PriceAggregate)
-	for _, pair := range pairs {
+	for _, ppath := range ppaths {
+		pair := ppath.Target()
 		prices[*pair] = aggregator.Aggregate(pair)
 	}
 
@@ -115,7 +120,7 @@ func (g *Gofer) Pairs() []*model.Pair {
 	}
 	var results []*model.Pair
 	for pair := range targets {
-		results = append(results, &pair)
+		results = append(results, pair.Clone())
 	}
 	return results
 }

@@ -41,11 +41,13 @@ func NewConfig(sources []*model.PotentialPricePoint, newAggregator func([]*model
 	}
 }
 
+// NewConfigWithDefaults returns a new instance of Config using setzer pather
+// and a median aggregator with 1 minute time window
 func NewConfigWithDefaults(sources []*model.PotentialPricePoint) *Config {
 	return NewConfig(
 		sources,
 		func(ppaths []*model.PricePath) aggregator.Aggregator {
-			return aggregator.NewPath(ppaths, aggregator.NewMedian(1000))
+			return aggregator.NewPath(ppaths, aggregator.NewMedian(60 * 1000)) // 1 minute
 		},
 		pather.NewSetzer(),
 		NewProcessorWithHTTPWorkerPool(),
