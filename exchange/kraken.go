@@ -73,7 +73,7 @@ func (b *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	var resp krakenResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse kraken response: %s", err)
+		return nil, fmt.Errorf("failed to parse kraken response: %w", err)
 	}
 	if len(resp.Errors) > 0 {
 		return nil, fmt.Errorf("kraken API error: %s", strings.Join(resp.Errors, " "))

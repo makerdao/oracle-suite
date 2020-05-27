@@ -66,7 +66,7 @@ func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	var resp bittrexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse bittrex response: %s", err)
+		return nil, fmt.Errorf("failed to parse bittrex response: %w", err)
 	}
 	if !resp.Success {
 		return nil, fmt.Errorf("wrong response from bittrex %v", resp)

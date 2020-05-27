@@ -66,7 +66,7 @@ func (b *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	var resp hitbtcResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse hitbtc response: %s", err)
+		return nil, fmt.Errorf("failed to parse hitbtc response: %w", err)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)

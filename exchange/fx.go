@@ -61,7 +61,7 @@ func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.
 	var resp fxResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse fx response: %s", err)
+		return nil, fmt.Errorf("failed to parse fx response: %w", err)
 	}
 	if resp.Rates == nil {
 		return nil, fmt.Errorf("failed to parse FX response %+v", resp)

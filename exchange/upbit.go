@@ -62,7 +62,7 @@ func (b *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	var resp []upbitResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse upbit response: %s", err)
+		return nil, fmt.Errorf("failed to parse upbit response: %w", err)
 	}
 	if len(resp) < 1 {
 		return nil, fmt.Errorf("wrong upbit response: %s", res.Body)

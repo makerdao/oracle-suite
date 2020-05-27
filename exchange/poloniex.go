@@ -65,7 +65,7 @@ func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	var resp map[string]poloniexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse poloniex response: %s", err)
+		return nil, fmt.Errorf("failed to parse poloniex response: %w", err)
 	}
 	p, ok := resp[pair]
 	if !ok {

@@ -65,7 +65,7 @@ func (b *Coinbase) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	var resp coinbaseResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse coinbase response: %s", err)
+		return nil, fmt.Errorf("failed to parse coinbase response: %w", err)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)

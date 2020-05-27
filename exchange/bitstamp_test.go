@@ -110,7 +110,7 @@ func (suite *BitstampSuite) TestFailOnWrongInput() {
 func (suite *BitstampSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("bitstamp", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","timestamp":5}`),
+		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","timestamp":"5"}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)
@@ -120,7 +120,7 @@ func (suite *BitstampSuite) TestSuccessResponse() {
 	suite.Equal(2.0, point.Ask)
 	suite.Equal(3.0, point.Volume)
 	suite.Equal(4.0, point.Bid)
-	suite.Equal(point.Timestamp, int64(5))
+	suite.Equal(int64(5), point.Timestamp)
 }
 
 // In order for 'go test' to run this suite, we need to create

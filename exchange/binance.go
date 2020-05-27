@@ -62,7 +62,7 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	var resp binanceResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse binance response: %s", err)
+		return nil, fmt.Errorf("failed to parse binance response: %w", err)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)

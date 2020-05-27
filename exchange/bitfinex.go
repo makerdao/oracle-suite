@@ -57,7 +57,7 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	var resp []float64
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse bitfinex response: %s", err)
+		return nil, fmt.Errorf("failed to parse bitfinex response: %w", err)
 	}
 	if len(resp) < 8 {
 		return nil, fmt.Errorf("wrong bitfinex response")
