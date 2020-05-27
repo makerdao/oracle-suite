@@ -25,7 +25,7 @@ type Aggregator interface {
 }
 
 // Get price estimate from price point
-func calcPrice(pp *model.PriceAggregate) uint64 {
+func calcPrice(pp *model.PriceAggregate) float64 {
 	// If ask/bid values are valid return mean of ask and bid
 	if pp.Ask != 0 && pp.Bid != 0 {
 		return (pp.Ask + pp.Bid) / 2

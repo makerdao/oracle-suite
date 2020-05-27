@@ -38,7 +38,7 @@ func NewPath(ppaths []*PricePath, directAggregator Aggregator) *Path {
 // Calculate the final trade price of an ordered list of prices
 func trade(pas []*PriceAggregate) *PriceAggregate {
 	var pair *Pair
-	var price uint64
+	var price float64
 
 	for _, pa := range pas {
 		if price == 0 {
@@ -92,7 +92,7 @@ func (r *Path) Aggregate(pair *Pair) *PriceAggregate {
 	}
 
 	var pas []*PriceAggregate
-	var prices []uint64
+	var prices []float64
 	for _, path := range ppaths {
 		if pa := r.resolve(*path); pa != nil {
 			pas = append(pas, pa)

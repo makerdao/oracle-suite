@@ -31,7 +31,7 @@ func randomReduce(r Aggregator, pair *model.Pair, prices []*model.PriceAggregate
 	return r.Aggregate(pair)
 }
 
-func newTestPricePointAggregate(timestamp int64, exchange string, base string, quote string, price uint64, volume uint64) *model.PriceAggregate {
+func newTestPricePointAggregate(timestamp int64, exchange string, base string, quote string, price float64, volume float64) *model.PriceAggregate {
 	return &model.PriceAggregate{
 		PricePoint: &model.PricePoint{
 			Timestamp: timestamp,
@@ -45,7 +45,7 @@ func newTestPricePointAggregate(timestamp int64, exchange string, base string, q
 	}
 }
 
-func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base string, quote string, price uint64, volume uint64) *model.PriceAggregate {
+func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base string, quote string, price float64, volume float64) *model.PriceAggregate {
 	return &model.PriceAggregate{
 		PricePoint: &model.PricePoint{
 			Timestamp: timestamp,
@@ -57,7 +57,7 @@ func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base 
 	}
 }
 
-func newTestPriceAggregate(name string, base string, quote string, price uint64, prices ...*model.PriceAggregate) *model.PriceAggregate {
+func newTestPriceAggregate(name string, base string, quote string, price float64, prices ...*model.PriceAggregate) *model.PriceAggregate {
 	return &model.PriceAggregate{
 		PricePoint: &model.PricePoint{
 			Pair:      &model.Pair{Base: base, Quote: quote},

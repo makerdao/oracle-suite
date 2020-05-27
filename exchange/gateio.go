@@ -82,8 +82,8 @@ func (b *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     model.PriceFromFloat(price),
-		Volume:    model.PriceFromFloat(volume),
+		Price:     price,
+		Volume:    volume,
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

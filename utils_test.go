@@ -32,7 +32,7 @@ func (mp *mockProcessor) Process(ppps []*PotentialPricePoint, agg Aggregator) (A
 	return agg, mp.returnsErr
 }
 
-func newTestPricePointAggregate(timestamp int64, exchange string, base string, quote string, price uint64, volume uint64) *PriceAggregate {
+func newTestPricePointAggregate(timestamp int64, exchange string, base string, quote string, price float64, volume float64) *PriceAggregate {
 	return &PriceAggregate{
 		PricePoint: &PricePoint{
 			Timestamp: timestamp,

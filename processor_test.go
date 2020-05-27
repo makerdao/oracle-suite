@@ -106,7 +106,7 @@ func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 
 	suite.NoError(err)
 	suite.EqualValues(pp.Pair, point.Pair)
-	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
+	suite.EqualValues(1.0, point.Price)
 }
 
 func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
@@ -132,7 +132,7 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	suite.NotNil(point)
 
 	suite.EqualValues(pp.Pair, point.Pair)
-	suite.EqualValues(model.PriceFromFloat(1.0), point.Price)
+	suite.EqualValues(1.0, point.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create
