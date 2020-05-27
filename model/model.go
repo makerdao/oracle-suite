@@ -17,11 +17,8 @@ package model
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
-
-const priceMultiplier = 10000000
 
 // Pair represents currency pair
 type Pair struct {
@@ -40,10 +37,10 @@ type PricePoint struct {
 	Timestamp int64     // Unix time
 	Exchange  *Exchange // Exchange id
 	Pair      *Pair     // Asset pair
-	Price     uint64    // Last traded price
-	Ask       uint64    // Best ask price
-	Bid       uint64    // Best bid price
-	Volume    uint64    // Trade volume
+	Price     float64    // Last traded price
+	Ask       float64    // Best ask price
+	Bid       float64    // Best bid price
+	Volume    float64    // Trade volume
 }
 
 // PotentialPricePoint represents PricePoint that shuold be fetched from Exchange
@@ -278,16 +275,6 @@ func (pa *PriceAggregate) String() string {
 	str.WriteString(")=>")
 	str.WriteString(pa.Pair.String())
 	str.WriteString("$")
-	str.WriteString(fmt.Sprintf("%d", pa.Price))
+	str.WriteString(fmt.Sprintf("%f", pa.Price))
 	return str.String()
-}
-
-// PriceFromFloat convert price from float value to uint
-func PriceFromFloat(f float64) uint64 {
-	return uint64(math.Round(f * priceMultiplier))
-}
-
-// PriceToFloat convert given `uint64` price to human readable form
-func PriceToFloat(price uint64) float64 {
-	return float64(price) / priceMultiplier
 }

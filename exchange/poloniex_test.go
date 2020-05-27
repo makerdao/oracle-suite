@@ -138,10 +138,10 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(model.PriceFromFloat(1.0), point.Price)
-	suite.Equal(model.PriceFromFloat(2.0), point.Ask)
-	suite.Equal(model.PriceFromFloat(3.0), point.Volume)
-	suite.Equal(model.PriceFromFloat(4.0), point.Bid)
+	suite.Equal(1.0, point.Price)
+	suite.Equal(2.0, point.Ask)
+	suite.Equal(3.0, point.Volume)
+	suite.Equal(4.0, point.Bid)
 	suite.Greater(point.Timestamp, int64(2))
 }
 

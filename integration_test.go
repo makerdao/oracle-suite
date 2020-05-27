@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package aggregator
+package gofer
 
 import (
 	"testing"
@@ -21,10 +21,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/pather"
+	. "github.com/makerdao/gofer/aggregator"
+	. "github.com/makerdao/gofer/pather"
 )
 
 func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
+	pairs := []*Pair{
+		&Pair{Base: "ETH", Quote: "USD"},
+		&Pair{Base: "ETH", Quote: "BTC"},
+		&Pair{Base: "BTC", Quote: "USD"},
+		&Pair{Base: "REP", Quote: "USD"},
+		&Pair{Base: "USDC", Quote: "USD"},
+	}
+
 	pas := []*PriceAggregate{
 		newTestPricePointAggregate(6, "exchange1", "ETH", "BTC", 2, 1),
 		newTestPricePointAggregate(7, "exchange2", "ETH", "BTC", 4, 1),
@@ -53,54 +62,62 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 	// indirect-median( trade(..)=>ETH/USD$9, trade(..)=>ETH/USD$30 )=>ETH/USD$19
 	// indirect-median( trade(..)=>USDC/USD$5 )=>USDC/USD$5
 
+	sources := []*PotentialPricePoint{ }
+
+	newPathAggregator := func(ppaths []*PricePath) Aggregator {
+		return NewPath(ppaths, NewMedian(1000))
+	}
+
 	// Get relevant price paths to pass to aggregator, using setzer pathing
-	setzerPather := pather.NewSetzer()
-	var ppaths []*PricePath
-	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "ETH", Quote: "USD"})...)
-	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "BTC", Quote: "USD"})...)
-	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "ETH", Quote: "BTC"})...)
-	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "REP", Quote: "USD"})...)
-	ppaths = append(ppaths, setzerPather.Path(&Pair{Base: "USDC", Quote: "USD"})...)
+	setzerPather := NewSetzer()
+
+	config := NewConfig(
+		sources,
+		newPathAggregator,
+		setzerPather,
+		&mockProcessor{
+			returns: pas,
+			pairs: append(pairs, nil),
+		},
+	)
+	gofer := NewGofer(config)
 
 	for i := 0; i < 100; i++ {
-		pathAggregator := NewPath(
-			ppaths,
-			NewMedian(1000),
-		)
+		res, err := gofer.Prices(pairs...)
 
-		randomReduce(pathAggregator, &Pair{Base: "ETH", Quote: "USD"}, pas)
+		assert.NoError(t, err)
 
-		res_ETH_USD := pathAggregator.Aggregate(&Pair{Base: "ETH", Quote: "USD"})
+		res_ETH_USD := res[Pair{Base: "ETH", Quote: "USD"}]
 		assert.NotNil(t, res_ETH_USD)
 		assert.Equal(t, &Pair{Base: "ETH", Quote: "USD"}, res_ETH_USD.Pair)
 		assert.Equal(t, "indirect-median", res_ETH_USD.PriceModelName)
-		assert.Equal(t, uint64(19), res_ETH_USD.Price)
+		assert.Equal(t, 19.5, res_ETH_USD.Price)
 
-		res_ETH_BTC := pathAggregator.Aggregate(&Pair{Base: "ETH", Quote: "BTC"})
+		res_ETH_BTC := res[Pair{Base: "ETH", Quote: "BTC"}]
 		assert.NotNil(t, res_ETH_BTC)
 		assert.Equal(t, &Pair{Base: "ETH", Quote: "BTC"}, res_ETH_BTC.Pair)
 		assert.Equal(t, "indirect-median", res_ETH_BTC.PriceModelName)
-		assert.Equal(t, uint64(3), res_ETH_BTC.Price)
+		assert.Equal(t, 3.0, res_ETH_BTC.Price)
 
-		res_BTC_USD := pathAggregator.Aggregate(&Pair{Base: "BTC", Quote: "USD"})
+		res_BTC_USD := res[Pair{Base: "BTC", Quote: "USD"}]
 		assert.NotNil(t, res_BTC_USD)
 		assert.Equal(t, &Pair{Base: "BTC", Quote: "USD"}, res_BTC_USD.Pair)
 		assert.Equal(t, "indirect-median", res_BTC_USD.PriceModelName)
-		assert.Equal(t, uint64(10), res_BTC_USD.Price)
+		assert.Equal(t, 10.0, res_BTC_USD.Price)
 
-		res_ETH_KRW := pathAggregator.Aggregate(&Pair{Base: "ETH", Quote: "KRW"})
+		res_ETH_KRW := res[Pair{Base: "ETH", Quote: "KRW"}]
 		assert.Nil(t, res_ETH_KRW, "Pair not existing in Pather")
 
-		res_REP_USD := pathAggregator.Aggregate(&Pair{Base: "REP", Quote: "USD"})
+		res_REP_USD := res[Pair{Base: "REP", Quote: "USD"}]
 		assert.NotNil(t, res_REP_USD, "Pair existis in Pather but no price points yet")
 		assert.Equal(t, &Pair{Base: "REP", Quote: "USD"}, res_REP_USD.Pair)
 		assert.Equal(t, "indirect-median", res_REP_USD.PriceModelName)
-		assert.Equal(t, uint64(0), res_REP_USD.Price)
+		assert.Equal(t, 0.0, res_REP_USD.Price)
 
-		res_USDC_USD := pathAggregator.Aggregate(&Pair{Base: "USDC", Quote: "USD"})
+		res_USDC_USD := res[Pair{Base: "USDC", Quote: "USD"}]
 		assert.NotNil(t, res_USDC_USD)
 		assert.Equal(t, &Pair{Base: "USDC", Quote: "USD"}, res_USDC_USD.Pair)
 		assert.Equal(t, "indirect-median", res_USDC_USD.PriceModelName)
-		assert.Equal(t, uint64(5), res_USDC_USD.Price)
+		assert.Equal(t, 5.0, res_USDC_USD.Price)
 	}
 }
