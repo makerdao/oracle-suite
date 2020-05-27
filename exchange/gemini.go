@@ -66,7 +66,7 @@ func (b *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	var resp geminiResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse gemini response: %s", err)
+		return nil, fmt.Errorf("failed to parse gemini response: %w", err)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)

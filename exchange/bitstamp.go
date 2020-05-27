@@ -32,7 +32,7 @@ type bitstampResponse struct {
 	Volume    string `json:"volume"`
 	Price     string `json:"last"`
 	Bid       string `json:"bid"`
-	Timestamp int64  `json:"timestamp"`
+	Timestamp string `json:"timestamp"`
 }
 
 // Bitstamp exchange handler
@@ -48,7 +48,7 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
 		URL: fmt.Sprintf(bitstampURL, pair),
 	}
@@ -65,7 +65,7 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	var resp bitstampResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse bitstamp response: %s", err)
+		return nil, fmt.Errorf("failed to parse bitstamp response: %w", err)
 	}
 
 	// Parsing price from string
@@ -88,6 +88,11 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from bitstamp exchange %s", res.Body)
 	}
+	// Parsing timestamp from string
+	timestamp, err := strconv.ParseInt(resp.Timestamp, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse timestamp from bitstamp exchange %s", res.Body)
+	}
 	// building PricePoint
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
@@ -96,6 +101,6 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		Volume:    volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: resp.Timestamp,
+		Timestamp: timestamp,
 	}, nil
 }

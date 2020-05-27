@@ -66,7 +66,7 @@ func (b *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	var resp huobiResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse huobi response: %s", err)
+		return nil, fmt.Errorf("failed to parse huobi response: %w", err)
 	}
 	if resp.Status == "error" {
 		return nil, fmt.Errorf("wrong response from huobi exchange %s", res.Body)

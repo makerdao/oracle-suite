@@ -66,7 +66,7 @@ func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 
 	err = json.Unmarshal([]byte(body), &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse folgory response: %s", err)
+		return nil, fmt.Errorf("failed to parse folgory response: %w", err)
 	}
 
 	var data *folgoryResponse

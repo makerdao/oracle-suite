@@ -63,7 +63,7 @@ func (b *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	var resp []gateioResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to pargse gateio response: %s", err)
+		return nil, fmt.Errorf("failed to parse gateio response: %w", err)
 	}
 	if len(resp) < 1 {
 		return nil, fmt.Errorf("wrong gateio response %s", res.Body)
