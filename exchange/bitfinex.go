@@ -40,7 +40,11 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	pair, ok := pp.Exchange.Config["pair"]
+	if !ok || pair == "" {
+		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	}
+
 	req := &query.HTTPRequest{
 		URL: fmt.Sprintf(bitfinexURL, pair),
 	}
