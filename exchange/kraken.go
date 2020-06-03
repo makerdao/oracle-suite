@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Kraken URL
@@ -38,11 +39,25 @@ type krakenResponse struct {
 	Result map[string]*krakenPairResponse
 }
 
+func getPair(pp *model.PotentialPricePoint) string {
+	pair, ok := pp.Exchange.Config["pair"]
+	if !ok || pair == "" {
+		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	}
+	return pair
+}
+
 // Kraken exchange handler
 type Kraken struct{}
 
+// GetURL implementation
+func (k *Kraken) GetURL(pp *model.PotentialPricePoint) string {
+	pair := getPair(pp)
+	return fmt.Sprintf(krakenURL, pair)
+}
+
 // Call implementation
-func (b *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -51,15 +66,10 @@ func (b *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, err
 	}
 
-	var pair string
-	pair, ok := pp.Exchange.Config["pair"]
-	if !ok || pair == "" {
-		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
-	}
-
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(krakenURL, pair),
+		URL: k.GetURL(pp),
 	}
+	pair := getPair(pp)
 
 	// make query
 	res := pool.Query(req)

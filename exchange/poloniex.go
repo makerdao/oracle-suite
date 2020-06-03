@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Poloniex URL
@@ -38,6 +39,11 @@ type poloniexResponse struct {
 // Poloniex exchange handler
 type Poloniex struct{}
 
+// GetURL implementation
+func (b *Poloniex) GetURL(pp *model.PotentialPricePoint) string {
+	return poloniexURL
+}
+
 // Call implementation
 func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
@@ -48,10 +54,11 @@ func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		return nil, err
 	}
 
-	pair := fmt.Sprintf("%s_%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
 	req := &query.HTTPRequest{
-		URL: poloniexURL,
+		URL: b.GetURL(pp),
 	}
+
+	pair := fmt.Sprintf("%s_%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
 
 	// make query
 	res := pool.Query(req)

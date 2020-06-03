@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Gemini URL
@@ -39,8 +40,14 @@ type geminiResponse struct {
 // Gemini exchange handler
 type Gemini struct{}
 
+// GetURL implementation
+func (g *Gemini) GetURL(pp *model.PotentialPricePoint) string {
+	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
+	return fmt.Sprintf(geminiURL, pair)
+}
+
 // Call implementation
-func (b *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (g *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -49,9 +56,8 @@ func (b *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, err
 	}
 
-	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(geminiURL, pair),
+		URL: g.GetURL(pp),
 	}
 
 	// make query

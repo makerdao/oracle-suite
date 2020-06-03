@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Folgory URL
@@ -37,8 +38,13 @@ type folgoryResponse struct {
 // Folgory exchange handler
 type Folgory struct{}
 
+// GetURL implementation
+func (f *Folgory) GetURL(pp *model.PotentialPricePoint) string {
+	return folgoryURL
+}
+
 // Call implementation
-func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (f *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -47,10 +53,11 @@ func (b *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, err
 	}
 
-	pair := fmt.Sprintf("%s/%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 	req := &query.HTTPRequest{
 		URL: folgoryURL,
 	}
+
+	pair := fmt.Sprintf("%s/%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 
 	// make query
 	res := pool.Query(req)

@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Bitfinex URL
@@ -29,6 +30,15 @@ const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
 // Bitfinex exchange handler
 type Bitfinex struct{}
+
+// GetURL implementation
+func (b *Bitfinex) GetURL(pp *model.PotentialPricePoint) string {
+	pair, ok := pp.Exchange.Config["pair"]
+	if !ok || pair == "" {
+		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	}
+	return fmt.Sprintf(bitfinexURL, pair)
+}
 
 // Call implementation
 func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
@@ -40,13 +50,8 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		return nil, err
 	}
 
-	pair, ok := pp.Exchange.Config["pair"]
-	if !ok || pair == "" {
-		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
-	}
-
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(bitfinexURL, pair),
+		URL: b.GetURL(pp),
 	}
 
 	// make query

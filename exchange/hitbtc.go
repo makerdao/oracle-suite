@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Hitbtc URL
@@ -39,8 +40,14 @@ type hitbtcResponse struct {
 // Hitbtc exchange handler
 type Hitbtc struct{}
 
+// GetURL implementation
+func (h *Hitbtc) GetURL(pp *model.PotentialPricePoint) string {
+	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	return fmt.Sprintf(hitbtcURL, pair)
+}
+
 // Call implementation
-func (b *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (h *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -49,9 +56,8 @@ func (b *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(hitbtcURL, pair),
+		URL: h.GetURL(pp),
 	}
 
 	// make query

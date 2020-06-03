@@ -22,6 +22,9 @@ import (
 
 // Handler is interface that all Exchange API handlers should implement
 type Handler interface {
+	// GetURL should generate URL to get given `PotentialPricePoint`
+	GetURL(pp *model.PotentialPricePoint) string
+
 	// Call should implement making API request to exchange URL and collecting/parsing exhcange data
 	Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error)
 }

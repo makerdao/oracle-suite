@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Gateio URL
@@ -36,8 +37,14 @@ type gateioResponse struct {
 // Gateio exchange handler
 type Gateio struct{}
 
+// GetURL implementation
+func (g *Gateio) GetURL(pp *model.PotentialPricePoint) string {
+	pair := fmt.Sprintf("%s_%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
+	return fmt.Sprintf(gateioURL, pair)
+}
+
 // Call implementation
-func (b *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -46,9 +53,8 @@ func (b *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, err
 	}
 
-	pair := fmt.Sprintf("%s_%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(gateioURL, pair),
+		URL: g.GetURL(pp),
 	}
 
 	// make query

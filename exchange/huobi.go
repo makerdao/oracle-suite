@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Huobi URL
@@ -39,8 +40,14 @@ type huobiResponse struct {
 // Huobi exchange handler
 type Huobi struct{}
 
+// GetURL implementation
+func (h *Huobi) GetURL(pp *model.PotentialPricePoint) string {
+	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
+	return fmt.Sprintf(hitbtcURL, pair)
+}
+
 // Call implementation
-func (b *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -49,9 +56,8 @@ func (b *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		return nil, err
 	}
 
-	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(huobiURL, pair),
+		URL: h.GetURL(pp),
 	}
 
 	// make query

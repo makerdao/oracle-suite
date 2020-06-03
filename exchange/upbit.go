@@ -18,9 +18,10 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"strings"
 )
 
 // Upbit URL
@@ -35,8 +36,14 @@ type upbitResponse struct {
 // Upbit exchange handler
 type Upbit struct{}
 
+// GetURL implementation
+func (u *Upbit) GetURL(pp *model.PotentialPricePoint) string {
+	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
+	return fmt.Sprintf(upbitURL, pair)
+}
+
 // Call implementation
-func (b *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (u *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -45,9 +52,8 @@ func (b *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		return nil, err
 	}
 
-	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(upbitURL, pair),
+		URL: u.GetURL(pp),
 	}
 
 	// make query

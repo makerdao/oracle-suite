@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Fx URL
@@ -34,8 +35,14 @@ type fxResponse struct {
 // Fx exchange handler
 type Fx struct{}
 
+// GetURL implementation
+func (fx *Fx) GetURL(pp *model.PotentialPricePoint) string {
+	pair := strings.ToUpper(pp.Pair.Base)
+	return fmt.Sprintf(fxURL, pair)
+}
+
 // Call implementation
-func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -44,9 +51,8 @@ func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(fxURL, pair),
+		URL: fx.GetURL(pp),
 	}
 
 	// make query

@@ -18,22 +18,29 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Binance URL
 const binanceURL = "https://www.binance.com/api/v3/ticker/price?symbol=%s"
 
 type binanceResponse struct {
-	Price  string `json:"price"`
+	Price string `json:"price"`
 }
 
 // Binance exchange handler
 type Binance struct{}
+
+// GetURL implementation
+func (b *Binance) GetURL(pp *model.PotentialPricePoint) string {
+	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+	return fmt.Sprintf(binanceURL, pair)
+}
 
 // Call implementation
 func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
@@ -45,9 +52,8 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(binanceURL, pair),
+		URL: b.GetURL(pp),
 	}
 
 	// make query
