@@ -33,20 +33,19 @@ func (mwp *FakeWorkerPool) Stop() error {
 	return nil
 }
 
-func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
-	ethUsd := &model.PotentialPricePoint{
-		Pair: &model.Pair{
-			Base:  "ETH",
-			Quote: "USD",
-		},
+func newPotentialPoint(base, quote string) *model.PotentialPricePoint {
+	return &model.PotentialPricePoint{
+		Pair: model.NewPair(base, quote),
 	}
+}
 
-	batUsd := &model.PotentialPricePoint{
-		Pair: &model.Pair{
-			Base:  "ETH",
-			Quote: "USD",
-		},
-	}
+func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
+	ethUsd := newPotentialPoint("ETH", "USD")
+	batUsd := newPotentialPoint("BAT", "USD")
+	batBtc := newPotentialPoint("BAT", "BTC")
+	btcUsd := newPotentialPoint("BTC", "USD")
+	batKrw := newPotentialPoint("BAT", "KRW")
+	krwUsd := newPotentialPoint("KRW", "USD")
 
 	bitstamp := &exchange.Bitstamp{}
 	coinbase := &exchange.Coinbase{}
@@ -55,6 +54,7 @@ func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
 	binance := &exchange.Binance{}
 	bittrex := &exchange.BitTrex{}
 	upbit := &exchange.Upbit{}
+	fx := &exchange.Fx{}
 
 	body := "{\"error\":\"unknown\"}"
 	switch req.URL {
@@ -66,14 +66,20 @@ func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
 		body = "{\"bid\":\"239.64\",\"ask\":\"239.82\",\"volume\":{\"ETH\":\"27270.82577847\",\"USD\":\"6433027.9072109886\",\"timestamp\":1591191900000},\"last\":\"239.50\"}"
 	case kraken.GetURL(ethUsd):
 		body = "{\"error\":[],\"result\":{\"XETHZUSD\":{\"a\":[\"239.76000\",\"4\",\"4.000\"],\"b\":[\"239.75000\",\"1\",\"1.000\"],\"c\":[\"239.74000\",\"0.19083179\"],\"v\":[\"31378.67589429\",\"106844.51178263\"],\"p\":[\"237.40044\",\"236.61147\"],\"t\":[4495,15800],\"l\":[\"233.47000\",\"218.48000\"],\"h\":[\"240.70000\",\"252.29000\"],\"o\":\"237.55000\"}}}"
-	case binance.GetURL(batUsd):
-		body = ""
-	case bittrex.GetURL(batUsd):
-		body = ""
+	case binance.GetURL(batBtc):
+		body = "{\"symbol\":\"BATBTC\",\"price\":\"0.00002489\"}"
+	case binance.GetURL(btcUsd):
+		body = "{\"symbol\":\"BTCUSDC\",\"price\":\"9813.38000000\"}"
+	case bittrex.GetURL(batBtc):
+		body = "{\"success\":true,\"message\":\"\",\"result\":{\"Bid\":0.00002484,\"Ask\":0.00002493,\"Last\":0.00002488}}"
+	case bittrex.GetURL(btcUsd):
+		body = "{\"success\":true,\"message\":\"\",\"result\":{\"Bid\":9834.25300000,\"Ask\":9839.50000000,\"Last\":9838.66000000}}"
 	case coinbase.GetURL(batUsd):
-		body = ""
-	case upbit.GetURL(batUsd):
-		body = ""
+		body = "{\"trade_id\":3575777,\"price\":\"0.243869\",\"size\":\"2\",\"time\":\"2020-06-05T08:50:05.469136Z\",\"bid\":\"0.243943\",\"ask\":\"0.244333\",\"volume\":\"12368752.00000000\"}"
+	case upbit.GetURL(batKrw):
+		body = "[{\"market\":\"KRW-BAT\",\"trade_date\":\"20200605\",\"trade_time\":\"085628\",\"trade_date_kst\":\"20200605\",\"trade_time_kst\":\"175628\",\"trade_timestamp\":1591347388000,\"opening_price\":291.00000000,\"high_price\":298.00000000,\"low_price\":288.00000000,\"trade_price\":292.00000000,\"prev_closing_price\":290.00000000,\"change\":\"RISE\",\"change_price\":2.00000000,\"change_rate\":0.0068965517,\"signed_change_price\":2.00000000,\"signed_change_rate\":0.0068965517,\"trade_volume\":21.40466320,\"acc_trade_price\":314088265.68810931,\"acc_trade_price_24h\":688375303.17847536,\"acc_trade_volume\":1072719.24124764,\"acc_trade_volume_24h\":2394247.57223916,\"highest_52_week_price\":440.00000000,\"highest_52_week_date\":\"2019-06-09\",\"lowest_52_week_price\":111.00000000,\"lowest_52_week_date\":\"2020-03-13\",\"timestamp\":1591347388594}]"
+	case fx.GetURL(krwUsd):
+		body = "{\"rates\":{\"CAD\":0.0011107377,\"HKD\":0.0063700657,\"ISK\":0.108494736,\"PHP\":0.0409934757,\"DKK\":0.0054471664,\"HUF\":0.2519854171,\"CZK\":0.0194508778,\"GBP\":0.0006552425,\"RON\":0.0035341521,\"SEK\":0.0076108509,\"IDR\":11.5851044399,\"INR\":0.0620516829,\"BRL\":0.0041636407,\"RUB\":0.0568506572,\"HRK\":0.0055325009,\"JPY\":0.0894844126,\"THB\":0.0259649456,\"CHF\":0.0007880298,\"EUR\":0.0007306043,\"MYR\":0.0035125262,\"BGN\":0.0014289159,\"TRY\":0.0055429486,\"CNY\":0.0058496563,\"NOK\":0.0077479123,\"NZD\":0.0012792881,\"ZAR\":0.0138857919,\"USD\":0.0008219298,\"MXN\":0.0178823435,\"SGD\":0.0011512862,\"AUD\":0.0011891315,\"ILS\":0.0028543248,\"KRW\":1.0,\"PLN\":0.0032418373},\"base\":\"KRW\",\"date\":\"2020-06-04\"}"
 	}
 
 	return &query.HTTPResponse{

@@ -16,9 +16,10 @@
 package pather
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/makerdao/gofer/model"
 	"testing"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPairsAndPath(t *testing.T) {
@@ -33,4 +34,11 @@ func TestPairsAndPath(t *testing.T) {
 			assert.NoError(t, err, "PricePaths must be valid")
 		}
 	}
+}
+
+func TestValidBATUSDPath(t *testing.T) {
+	setzer := NewSetzer()
+
+	paths := setzer.Path(model.NewPair("BAT", "USD"))
+	assert.Greater(t, len(paths), 0)
 }
