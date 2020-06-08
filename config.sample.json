@@ -1,0 +1,62 @@
+{
+  "sources": [
+    {
+      "base": "ETH",
+      "quote": "USD",
+      "exchange": "bitstamp",
+      "parameters": {}
+    },
+    {
+      "base": "ETH",
+      "quote": "USD",
+      "exchange": "coinbase",
+      "parameters": {}
+    },
+    {
+      "base": "ETH",
+      "quote": "USD",
+      "exchange": "gemini",
+      "parameters": {}
+    },
+    {
+      "base": "ETH",
+      "quote": "USD",
+      "exchange": "kraken",
+      "parameters": {}
+    },
+    {
+      "base": "BAT",
+      "quote": "USD",
+      "exchange": "binance",
+      "parameters": {}
+    },
+    {
+      "base": "BAT",
+      "quote": "USD",
+      "exchange": "bittrex",
+      "parameters": {}
+    },
+    {
+      "base": "BAT",
+      "quote": "USD",
+      "exchange": "coinbase",
+      "parameters": {}
+    },
+    {
+      "base": "BAT",
+      "quote": "USD",
+      "exchange": "upbit",
+      "parameters": {}
+    }
+  ],
+  "aggregator": {
+    "name": "median",
+    "parameters": {
+      "timewindow": 1000
+    }
+  },
+  "pather": {
+    "name": "setzer",
+    "parameters": {}
+  }
+}

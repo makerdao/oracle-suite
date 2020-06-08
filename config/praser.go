@@ -18,6 +18,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	. "github.com/makerdao/gofer"
 	. "github.com/makerdao/gofer/aggregator"
 	. "github.com/makerdao/gofer/model"
@@ -52,25 +55,26 @@ func patherFromJSON(jp *jsonPather) (Pather, error) {
 	case "setzer":
 		return NewSetzer(), nil
 	}
-	return nil, fmt.Errorf("No pather found with name %s", jp.Name)
+	return nil, fmt.Errorf("no pather found with name %s", jp.Name)
 }
 
 func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePath) Aggregator, error) {
 	switch ja.Name {
 	case "median":
-		timewindow, ok := ja.Parameters["timewindow"].(int64)
+		// JSON numbers will always be parsed to float64
+		timewindow, ok := ja.Parameters["timewindow"].(float64)
 		if !ok {
-			return nil, fmt.Errorf("Couldn't parse median aggregator parameter: timewindow as number")
+			return nil, fmt.Errorf("couldn't parse median aggregator parameter: timewindow as number")
 		}
 
 		return func(ppaths []*PricePath) Aggregator {
-			return NewMedian(timewindow)
+			return NewMedian(int64(timewindow))
 		}, nil
 
 	case "path":
 		jaDirect, ok := ja.Parameters["direct"].(jsonAggregator)
 		if !ok {
-			return nil, fmt.Errorf("Couldn't parse path aggregator parameter: direct as aggregator")
+			return nil, fmt.Errorf("couldn't parse path aggregator parameter: direct as aggregator")
 		}
 		newDirect, err := aggregatorFromJSON(jc, &jaDirect)
 		if err != nil {
@@ -82,7 +86,7 @@ func aggregatorFromJSON(jc *jsonConfig, ja *jsonAggregator) (func([]*PricePath) 
 		}, nil
 	}
 
-	return nil, fmt.Errorf("No aggregator found with name \"%s\"", ja.Name)
+	return nil, fmt.Errorf("no aggregator found with name \"%s\"", ja.Name)
 }
 
 func fromJSON(jc *jsonConfig) (*Config, error) {
@@ -126,4 +130,15 @@ func ReadConfig(blob []byte) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+func ReadFile(path string) (*Config, error) {
+	jsonFile, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load json config file: %w", err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	return ReadConfig(byteValue)
 }
