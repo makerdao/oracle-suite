@@ -40,10 +40,14 @@ type hitbtcResponse struct {
 // Hitbtc exchange handler
 type Hitbtc struct{}
 
+// LocalPairName implementation
+func (h *Hitbtc) LocalPairName(pair *model.Pair) string {
+	return strings.ToUpper(pair.Base + pair.Quote)
+}
+
 // GetURL implementation
 func (h *Hitbtc) GetURL(pp *model.PotentialPricePoint) string {
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
-	return fmt.Sprintf(hitbtcURL, pair)
+	return fmt.Sprintf(hitbtcURL, h.LocalPairName(pp.Pair))
 }
 
 // Call implementation

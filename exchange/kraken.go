@@ -39,21 +39,25 @@ type krakenResponse struct {
 	Result map[string]*krakenPairResponse
 }
 
-func getPair(pp *model.PotentialPricePoint) string {
+// Kraken exchange handler
+type Kraken struct{}
+
+func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
 	pair, ok := pp.Exchange.Config["pair"]
 	if !ok || pair == "" {
-		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+		pair = k.LocalPairName(pp.Pair)
 	}
 	return pair
 }
 
-// Kraken exchange handler
-type Kraken struct{}
+// LocalPairName implementation
+func (k *Kraken) LocalPairName(pair *model.Pair) string {
+	return strings.ToUpper(fmt.Sprintf("X%sZ%s", pair.Base, pair.Quote))
+}
 
 // GetURL implementation
 func (k *Kraken) GetURL(pp *model.PotentialPricePoint) string {
-	pair := getPair(pp)
-	return fmt.Sprintf(krakenURL, pair)
+	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
 // Call implementation
@@ -69,7 +73,7 @@ func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	req := &query.HTTPRequest{
 		URL: k.GetURL(pp),
 	}
-	pair := getPair(pp)
+	pair := k.getPair(pp)
 
 	// make query
 	res := pool.Query(req)

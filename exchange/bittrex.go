@@ -40,10 +40,14 @@ type bittrexResponse struct {
 // BitTrex exchange handler
 type BitTrex struct{}
 
+// LocalPairName implementation
+func (b *BitTrex) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
+}
+
 // GetURL implementation
 func (b *BitTrex) GetURL(pp *model.PotentialPricePoint) string {
-	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
-	return fmt.Sprintf(bittrexURL, pair)
+	return fmt.Sprintf(bittrexURL, b.LocalPairName(pp.Pair))
 }
 
 // Call implementation

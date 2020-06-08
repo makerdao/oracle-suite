@@ -38,6 +38,19 @@ type folgoryResponse struct {
 // Folgory exchange handler
 type Folgory struct{}
 
+func (f *Folgory) renameSymbol(symbol string) string {
+	switch strings.ToUpper(symbol) {
+	case "USD":
+		return "USDC"
+	}
+	return strings.ToUpper(symbol)
+}
+
+// LocalPairName implementation
+func (f *Folgory) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
+}
+
 // GetURL implementation
 func (f *Folgory) GetURL(pp *model.PotentialPricePoint) string {
 	return folgoryURL
@@ -57,7 +70,7 @@ func (f *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		URL: folgoryURL,
 	}
 
-	pair := fmt.Sprintf("%s/%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
+	pair := f.LocalPairName(pp.Pair)
 
 	// make query
 	res := pool.Query(req)

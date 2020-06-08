@@ -36,10 +36,22 @@ type binanceResponse struct {
 // Binance exchange handler
 type Binance struct{}
 
+func (b *Binance) renameSymbol(symbol string) string {
+	switch strings.ToUpper(symbol) {
+	case "USD":
+		return "USDC"
+	}
+	return strings.ToUpper(symbol)
+}
+
+// LocalPairName implementation
+func (b *Binance) LocalPairName(pair *model.Pair) string {
+	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
+}
+
 // GetURL implementation
 func (b *Binance) GetURL(pp *model.PotentialPricePoint) string {
-	pair := strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
-	return fmt.Sprintf(binanceURL, pair)
+	return fmt.Sprintf(binanceURL, b.LocalPairName(pp.Pair))
 }
 
 // Call implementation

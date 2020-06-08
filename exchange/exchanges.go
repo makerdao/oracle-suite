@@ -22,11 +22,11 @@ import (
 
 // Handler is interface that all Exchange API handlers should implement
 type Handler interface {
-	// BuildPairName should build symbot/pair name for exchange.
+	// LocalPairName should build symbol/pair name for exchange.
 	// In case of some pairs exchanges might need to rename it for itself.
 	// Example: for `BTCUSD` on binance we should as for `BTCUSDC`
 	// and this is correct place to rename/build pair name
-	BuildPairName(pair *model.Pair) string
+	LocalPairName(pair *model.Pair) string
 
 	// GetURL should generate URL to get given `PotentialPricePoint`
 	GetURL(pp *model.PotentialPricePoint) string

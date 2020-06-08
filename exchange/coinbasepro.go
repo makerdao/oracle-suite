@@ -39,10 +39,14 @@ type coinbaseProResponse struct {
 // Coinbase exchange handler
 type CoinbasePro struct{}
 
+// LocalPairName implementation
+func (c *CoinbasePro) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
+}
+
 // GetURL implementation
 func (c *CoinbasePro) GetURL(pp *model.PotentialPricePoint) string {
-	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
-	return fmt.Sprintf(coinbaseProURL, pair)
+	return fmt.Sprintf(coinbaseProURL, c.LocalPairName(pp.Pair))
 }
 
 // Call implementation

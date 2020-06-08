@@ -31,11 +31,20 @@ const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 // Bitfinex exchange handler
 type Bitfinex struct{}
 
+func (b *Bitfinex) renameSymbol(symbol string) string {
+	return symbol
+}
+
+// LocalPairName implementation
+func (b *Bitfinex) LocalPairName(pair *model.Pair) string {
+	return strings.ToUpper(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
+}
+
 // GetURL implementation
 func (b *Bitfinex) GetURL(pp *model.PotentialPricePoint) string {
 	pair, ok := pp.Exchange.Config["pair"]
 	if !ok || pair == "" {
-		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
+		pair = b.LocalPairName(pp.Pair)
 	}
 	return fmt.Sprintf(bitfinexURL, pair)
 }

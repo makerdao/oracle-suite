@@ -40,10 +40,14 @@ type huobiResponse struct {
 // Huobi exchange handler
 type Huobi struct{}
 
+// LocalPairName implementation
+func (h *Huobi) LocalPairName(pair *model.Pair) string {
+	return strings.ToLower(pair.Base + pair.Quote)
+}
+
 // GetURL implementation
 func (h *Huobi) GetURL(pp *model.PotentialPricePoint) string {
-	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
-	return fmt.Sprintf(hitbtcURL, pair)
+	return fmt.Sprintf(huobiURL, h.LocalPairName(pp.Pair))
 }
 
 // Call implementation

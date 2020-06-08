@@ -17,10 +17,11 @@ package exchange
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
+	"testing"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"testing"
+	"github.com/stretchr/testify/suite"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -28,7 +29,7 @@ import (
 // returns the current testing context
 type HitbtcSuite struct {
 	suite.Suite
-	pool query.WorkerPool
+	pool     query.WorkerPool
 	exchange Handler
 }
 
@@ -42,6 +43,11 @@ func (suite *HitbtcSuite) TearDownTest() {
 	if suite.pool != nil {
 		suite.pool = nil
 	}
+}
+
+func (suite *HitbtcSuite) TestLocalPair() {
+	suite.EqualValues("BTCETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTCUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *HitbtcSuite) TestFailOnWrongInput() {

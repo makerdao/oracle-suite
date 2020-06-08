@@ -35,10 +35,18 @@ type fxResponse struct {
 // Fx exchange handler
 type Fx struct{}
 
+func (fx *Fx) renameSymbol(symbol string) string {
+	return strings.ToUpper(symbol)
+}
+
+// LocalPairName implementation
+func (fx *Fx) LocalPairName(pair *model.Pair) string {
+	return fx.renameSymbol(pair.Base)
+}
+
 // GetURL implementation
 func (fx *Fx) GetURL(pp *model.PotentialPricePoint) string {
-	pair := strings.ToUpper(pp.Pair.Base)
-	return fmt.Sprintf(fxURL, pair)
+	return fmt.Sprintf(fxURL, fx.LocalPairName(pp.Pair))
 }
 
 // Call implementation
@@ -72,7 +80,7 @@ func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model
 	if resp.Rates == nil {
 		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
 	}
-	price, ok := resp.Rates[pp.Pair.Quote]
+	price, ok := resp.Rates[fx.renameSymbol(pp.Pair.Quote)]
 	if !ok {
 		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
 	}

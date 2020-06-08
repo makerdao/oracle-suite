@@ -36,10 +36,22 @@ type upbitResponse struct {
 // Upbit exchange handler
 type Upbit struct{}
 
+func (u *Upbit) renameSymbol(symbol string) string {
+	switch strings.ToUpper(symbol) {
+	case "USD":
+		return "USDC"
+	}
+	return strings.ToUpper(symbol)
+}
+
+// LocalPairName implementation
+func (u *Upbit) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
+}
+
 // GetURL implementation
 func (u *Upbit) GetURL(pp *model.PotentialPricePoint) string {
-	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
-	return fmt.Sprintf(upbitURL, pair)
+	return fmt.Sprintf(upbitURL, u.LocalPairName(pp.Pair))
 }
 
 // Call implementation

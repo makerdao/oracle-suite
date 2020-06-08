@@ -39,10 +39,18 @@ type bitstampResponse struct {
 // Bitstamp exchange handler
 type Bitstamp struct{}
 
+func (b *Bitstamp) renameSymbol(symbol string) string {
+	return symbol
+}
+
+// LocalPairName implementation
+func (b *Bitstamp) LocalPairName(pair *model.Pair) string {
+	return strings.ToLower(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
+}
+
 // GetURL implementation
 func (b *Bitstamp) GetURL(pp *model.PotentialPricePoint) string {
-	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
-	return fmt.Sprintf(bitstampURL, pair)
+	return fmt.Sprintf(bitstampURL, b.LocalPairName(pp.Pair))
 }
 
 // Call implementation

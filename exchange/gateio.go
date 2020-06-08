@@ -37,10 +37,18 @@ type gateioResponse struct {
 // Gateio exchange handler
 type Gateio struct{}
 
+func (g *Gateio) renameSymbol(symbol string) string {
+	return strings.ToUpper(symbol)
+}
+
+// LocalPairName implementation
+func (g *Gateio) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
+}
+
 // GetURL implementation
 func (g *Gateio) GetURL(pp *model.PotentialPricePoint) string {
-	pair := fmt.Sprintf("%s_%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
-	return fmt.Sprintf(gateioURL, pair)
+	return fmt.Sprintf(gateioURL, g.LocalPairName(pp.Pair))
 }
 
 // Call implementation

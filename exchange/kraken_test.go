@@ -17,9 +17,10 @@ package exchange
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -43,6 +44,11 @@ func (suite *KrakenSuite) TearDownTest() {
 	if suite.pool != nil {
 		suite.pool = nil
 	}
+}
+
+func (suite *KrakenSuite) TestLocalPair() {
+	suite.EqualValues("XBTCZETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("XBTCZUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
@@ -94,7 +100,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 
 	// Error
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"error":[], "result":{"DAIUSD":{}}}`),
+		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}}}`),
 	}
 	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.Error(err)
@@ -103,7 +109,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 func (suite *KrakenSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("kraken", "DAI", "USD")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"error":[],"result":{"DAIUSD":{"c":["1"],"v":["2"]}}}`),
+		Body: []byte(`{"error":[],"result":{"XDAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)
