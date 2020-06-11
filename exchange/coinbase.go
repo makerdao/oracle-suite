@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Coinbase URL
@@ -38,8 +39,18 @@ type coinbaseResponse struct {
 // Coinbase exchange handler
 type Coinbase struct{}
 
+// LocalPairName implementation
+func (c *Coinbase) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
+}
+
+// GetURL implementation
+func (c *Coinbase) GetURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(coinbaseURL, c.LocalPairName(pp.Pair))
+}
+
 // Call implementation
-func (b *Coinbase) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (c *Coinbase) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -48,9 +59,8 @@ func (b *Coinbase) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		return nil, err
 	}
 
-	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Base), strings.ToUpper(pp.Pair.Quote))
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(coinbaseURL, pair),
+		URL: c.GetURL(pp),
 	}
 
 	// make query

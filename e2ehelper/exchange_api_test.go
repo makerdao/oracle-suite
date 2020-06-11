@@ -13,32 +13,32 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package pather
+package e2ehelper
 
 import (
 	"testing"
 
-	"github.com/makerdao/gofer/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/exchange"
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
-func TestPairsAndPath(t *testing.T) {
-	sppf := NewSetzer()
-	pairs := sppf.Pairs()
-	assert.Nil(t, sppf.Path(model.NewPair("a", "z")), "Non existing pair should return nil")
-	for _, p := range pairs {
-		ppaths := sppf.Path(p)
-		assert.NotNilf(t, ppaths, "Path should return paths for pair: %s", p)
-		if ppaths != nil {
-			err := model.ValidatePricePathMap(&model.PricePathMap{*p: ppaths})
-			assert.NoError(t, err, "PricePaths must be valid")
-		}
+func TestResponse(t *testing.T) {
+	wp := NewFakeWorkerPool()
+
+	assert.NotNil(t, wp)
+
+	ethUsd := &model.PotentialPricePoint{
+		Pair: &model.Pair{
+			Base:  "ETH",
+			Quote: "USD",
+		},
 	}
-}
+	bitstamp := &exchange.Bitstamp{}
+	resp := wp.Query(&query.HTTPRequest{URL: bitstamp.GetURL(ethUsd)})
 
-func TestValidBATUSDPath(t *testing.T) {
-	setzer := NewSetzer()
-
-	paths := setzer.Path(model.NewPair("BAT", "USD"))
-	assert.Greater(t, len(paths), 0)
+	assert.NotNil(t, resp)
+	t.Log(string(resp.Body))
 }

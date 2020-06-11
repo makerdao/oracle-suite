@@ -17,9 +17,10 @@ package exchange
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -29,7 +30,7 @@ import (
 // returns the current testing context
 type BitTrexSuite struct {
 	suite.Suite
-	pool query.WorkerPool
+	pool     query.WorkerPool
 	exchange Handler
 }
 
@@ -43,6 +44,11 @@ func (suite *BitTrexSuite) TearDownTest() {
 	if suite.pool != nil {
 		suite.pool = nil
 	}
+}
+
+func (suite *BitTrexSuite) TestLocalPair() {
+	suite.EqualValues("ETH-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("USD-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *BitTrexSuite) TestFailOnWrongInput() {

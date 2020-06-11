@@ -18,11 +18,12 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Kraken URL
@@ -41,8 +42,26 @@ type krakenResponse struct {
 // Kraken exchange handler
 type Kraken struct{}
 
+func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
+	pair, ok := pp.Exchange.Config["pair"]
+	if !ok || pair == "" {
+		pair = k.LocalPairName(pp.Pair)
+	}
+	return pair
+}
+
+// LocalPairName implementation
+func (k *Kraken) LocalPairName(pair *model.Pair) string {
+	return strings.ToUpper(fmt.Sprintf("X%sZ%s", pair.Base, pair.Quote))
+}
+
+// GetURL implementation
+func (k *Kraken) GetURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(krakenURL, k.getPair(pp))
+}
+
 // Call implementation
-func (b *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -51,15 +70,10 @@ func (b *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, err
 	}
 
-	var pair string
-	pair, ok := pp.Exchange.Config["pair"]
-	if !ok || pair == "" {
-		pair = strings.ToUpper(pp.Pair.Base + pp.Pair.Quote)
-	}
-
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(krakenURL, pair),
+		URL: k.GetURL(pp),
 	}
+	pair := k.getPair(pp)
 
 	// make query
 	res := pool.Query(req)

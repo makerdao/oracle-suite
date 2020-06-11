@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"strings"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Bitstamp URL
@@ -38,6 +39,20 @@ type bitstampResponse struct {
 // Bitstamp exchange handler
 type Bitstamp struct{}
 
+func (b *Bitstamp) renameSymbol(symbol string) string {
+	return symbol
+}
+
+// LocalPairName implementation
+func (b *Bitstamp) LocalPairName(pair *model.Pair) string {
+	return strings.ToLower(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
+}
+
+// GetURL implementation
+func (b *Bitstamp) GetURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(bitstampURL, b.LocalPairName(pp.Pair))
+}
+
 // Call implementation
 func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
@@ -48,9 +63,8 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 		return nil, err
 	}
 
-	pair := strings.ToLower(pp.Pair.Base + pp.Pair.Quote)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(bitstampURL, pair),
+		URL: b.GetURL(pp),
 	}
 
 	// make query

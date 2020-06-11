@@ -17,9 +17,10 @@ package exchange
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -43,6 +44,11 @@ func (suite *HuobiSuite) TearDownTest() {
 	if suite.pool != nil {
 		suite.pool = nil
 	}
+}
+
+func (suite *HuobiSuite) TestLocalPair() {
+	suite.EqualValues("btceth", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("btcusd", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *HuobiSuite) TestFailOnWrongInput() {

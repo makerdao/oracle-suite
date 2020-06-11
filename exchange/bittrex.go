@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // BitTrex URL
@@ -39,6 +40,16 @@ type bittrexResponse struct {
 // BitTrex exchange handler
 type BitTrex struct{}
 
+// LocalPairName implementation
+func (b *BitTrex) LocalPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
+}
+
+// GetURL implementation
+func (b *BitTrex) GetURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(bittrexURL, b.LocalPairName(pp.Pair))
+}
+
 // Call implementation
 func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
@@ -49,9 +60,8 @@ func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, err
 	}
 
-	pair := fmt.Sprintf("%s-%s", strings.ToUpper(pp.Pair.Quote), strings.ToUpper(pp.Pair.Base))
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(bittrexURL, pair),
+		URL: b.GetURL(pp),
 	}
 
 	// make query

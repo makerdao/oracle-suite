@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Fx URL
@@ -34,8 +35,22 @@ type fxResponse struct {
 // Fx exchange handler
 type Fx struct{}
 
+func (fx *Fx) renameSymbol(symbol string) string {
+	return strings.ToUpper(symbol)
+}
+
+// LocalPairName implementation
+func (fx *Fx) LocalPairName(pair *model.Pair) string {
+	return fx.renameSymbol(pair.Base)
+}
+
+// GetURL implementation
+func (fx *Fx) GetURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(fxURL, fx.LocalPairName(pp.Pair))
+}
+
 // Call implementation
-func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
 	}
@@ -44,9 +59,8 @@ func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.
 		return nil, err
 	}
 
-	pair := strings.ToUpper(pp.Pair.Base)
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(fxURL, pair),
+		URL: fx.GetURL(pp),
 	}
 
 	// make query
@@ -66,7 +80,7 @@ func (b *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.
 	if resp.Rates == nil {
 		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
 	}
-	price, ok := resp.Rates[pp.Pair.Quote]
+	price, ok := resp.Rates[fx.renameSymbol(pp.Pair.Quote)]
 	if !ok {
 		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
 	}
