@@ -48,7 +48,7 @@ func (suite *FolgorySuite) TearDownTest() {
 
 func (suite *FolgorySuite) TestLocalPair() {
 	suite.EqualValues("BTC/ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTC/USDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.NotEqual("BTC/USDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *FolgorySuite) TestFailOnWrongInput() {

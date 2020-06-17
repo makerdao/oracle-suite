@@ -37,10 +37,6 @@ type binanceResponse struct {
 type Binance struct{}
 
 func (b *Binance) renameSymbol(symbol string) string {
-	switch strings.ToUpper(symbol) {
-	case "USD":
-		return "USDC"
-	}
 	return strings.ToUpper(symbol)
 }
 

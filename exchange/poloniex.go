@@ -40,10 +40,6 @@ type poloniexResponse struct {
 type Poloniex struct{}
 
 func (b *Poloniex) renameSymbol(symbol string) string {
-	switch strings.ToUpper(symbol) {
-	case "USD":
-		return "USDC"
-	}
 	return strings.ToUpper(symbol)
 }
 
