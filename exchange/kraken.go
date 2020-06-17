@@ -50,9 +50,18 @@ func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
 	return pair
 }
 
+func (k *Kraken) getSymbol(symbol string) string {
+	switch strings.ToUpper(symbol) {
+	case "BTC":
+		return "XBT"
+	default:
+		return strings.ToUpper(symbol)
+	}
+}
+
 // LocalPairName implementation
 func (k *Kraken) LocalPairName(pair *model.Pair) string {
-	return strings.ToUpper(fmt.Sprintf("X%sZ%s", pair.Base, pair.Quote))
+	return strings.ToUpper(fmt.Sprintf("X%sZ%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote)))
 }
 
 // GetURL implementation
