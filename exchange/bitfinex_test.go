@@ -48,7 +48,7 @@ func (suite *BitfinexSuite) TearDownTest() {
 
 func (suite *BitfinexSuite) TestLocalPair() {
 	suite.EqualValues("BTCETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTCUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTCUSDT", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *BitfinexSuite) TestFailOnWrongInput() {
