@@ -47,8 +47,8 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("XBTCZETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("XBTCZUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("XXBTZETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("XXBTZUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {

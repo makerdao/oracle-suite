@@ -39,10 +39,6 @@ type folgoryResponse struct {
 type Folgory struct{}
 
 func (f *Folgory) renameSymbol(symbol string) string {
-	switch strings.ToUpper(symbol) {
-	case "USD":
-		return "USDC"
-	}
 	return strings.ToUpper(symbol)
 }
 

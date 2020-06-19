@@ -32,7 +32,12 @@ const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 type Bitfinex struct{}
 
 func (b *Bitfinex) renameSymbol(symbol string) string {
-	return symbol
+	switch strings.ToUpper(symbol) {
+	case "USDT":
+		return "USD"
+	default:
+		return strings.ToUpper(symbol)
+	}
 }
 
 // LocalPairName implementation

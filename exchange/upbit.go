@@ -37,10 +37,6 @@ type upbitResponse struct {
 type Upbit struct{}
 
 func (u *Upbit) renameSymbol(symbol string) string {
-	switch strings.ToUpper(symbol) {
-	case "USD":
-		return "USDC"
-	}
 	return strings.ToUpper(symbol)
 }
 
