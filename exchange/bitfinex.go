@@ -33,8 +33,8 @@ type Bitfinex struct{}
 
 func (b *Bitfinex) renameSymbol(symbol string) string {
 	switch strings.ToUpper(symbol) {
-	case "USD":
-		return "USDT"
+	case "USDT":
+		return "USD"
 	default:
 		return strings.ToUpper(symbol)
 	}
