@@ -64,16 +64,18 @@ func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggre
 // system, passes everything to given `aggregator` and returns it.
 // Technically you don't even need to get passed `aggregator` back, because you can use pointer to passed one.
 // and here it returns just for clearer API.
-func (p *Processor) Process(pps []*model.PotentialPricePoint, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
+func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
 	if p.wp == nil || !p.wp.Ready() {
 		return nil, fmt.Errorf("worker pool is not ready for querying prices")
 	}
 	if agg == nil {
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}
-	for _, pp := range pps {
+	for _, pp := range agg.GetSources(pairs) {
 		res, err := p.ProcessOne(pp)
 		if err != nil {
+			// TODO: ignore exchange errors here so we don't fail all prair requests
+			// because of one bad exchange reply
 			return nil, err
 		}
 		agg.Ingest(res)

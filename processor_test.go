@@ -116,14 +116,14 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	}
 	pp := newPotentialPricePoint("binance", pair)
 	pp2 := newPotentialPricePoint("binance", pair)
-	agg := aggregator.NewMedian(1000)
+	agg := aggregator.NewMedian([]*model.PotentialPricePoint{pp, pp2}, 1000)
 
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
 	wp := newMockWorkerPool(resp)
 	p := NewProcessor(wp)
-	aggr, err := p.Process([]*model.PotentialPricePoint{pp, pp2}, agg)
+	aggr, err := p.Process([]*model.Pair{pair, pair}, agg)
 
 	suite.NoError(err)
 	suite.Equal(agg, aggr)

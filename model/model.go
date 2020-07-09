@@ -28,8 +28,8 @@ type Pair struct {
 
 // Exchange represent exchange details
 type Exchange struct {
-	Name   string
-	Config map[string]string
+	Name   string            `json:"name"`
+	Config map[string]string `json:"parameters"`
 }
 
 // PricePoint given price point
@@ -47,6 +47,19 @@ type PricePoint struct {
 type PotentialPricePoint struct {
 	Pair     *Pair
 	Exchange *Exchange
+}
+
+// String returns a string representation of `PotentialPricePoint` e.g. source[exchange](BTC/USD)
+func (ppp *PotentialPricePoint) String() string {
+	var pair string
+	var exchange string
+	if ppp.Exchange != nil {
+		exchange = ppp.Exchange.Name
+	}
+	if ppp.Pair != nil {
+		pair = ppp.Pair.String()
+	}
+	return fmt.Sprintf("source[%s](%s)", exchange, pair)
 }
 
 // PriceAggregate price aggregation
@@ -117,7 +130,7 @@ func ValidateExchange(ex *Exchange) error {
 
 // NewPair creates a new instance of `Pair`
 func NewPair(base string, quote string) *Pair {
-	return &Pair{Base: base, Quote: quote}
+	return &Pair{Base: strings.ToUpper(base), Quote: strings.ToUpper(quote)}
 }
 
 // Equal check if `Pair` is equal to given one
@@ -178,13 +191,13 @@ func (ppath PricePath) String() string {
 }
 
 // NewPricePathMap creates a new instance of `PricePaths`
-func NewPricePathMap(ppaths []*PricePath) *PricePathMap {
+func NewPricePathMap(ppaths []*PricePath) PricePathMap {
 	ppaths_ := make(PricePathMap)
 	for _, ppath := range ppaths {
 		target := *ppath.Target()
 		ppaths_[target] = append(ppaths_[target], ppath)
 	}
-	return &ppaths_
+	return ppaths_
 }
 
 // String returns PricePaths string representation
@@ -224,12 +237,12 @@ func ValidatePricePath(ppath *PricePath) error {
 
 // ValidatePricePathMap checks if price paths all have matching target pairs and
 // paths are valid
-func ValidatePricePathMap(ppaths *PricePathMap) error {
+func ValidatePricePathMap(ppaths PricePathMap) error {
 	if ppaths == nil {
 		return fmt.Errorf("price paths is nil")
 	}
 
-	for pair, ppaths_ := range *ppaths {
+	for pair, ppaths_ := range ppaths {
 		if err := ValidatePair(&pair); err != nil {
 			return fmt.Errorf("a target pair is invalid: %w", err)
 		}
@@ -259,6 +272,10 @@ func ValidatePricePathMap(ppaths *PricePathMap) error {
 // String returns PricePath string representation
 func (pa *PriceAggregate) String() string {
 	var str strings.Builder
+	str.WriteString(fmt.Sprintf("%f", pa.Price))
+	str.WriteString("$")
+	str.WriteString(pa.Pair.String())
+	str.WriteString("<=")
 	str.WriteString(pa.PriceModelName)
 	str.WriteString("(")
 	count := len(pa.Prices)
@@ -272,9 +289,6 @@ func (pa *PriceAggregate) String() string {
 			str.WriteString(" ")
 		}
 	}
-	str.WriteString(")=>")
-	str.WriteString(pa.Pair.String())
-	str.WriteString("$")
-	str.WriteString(fmt.Sprintf("%f", pa.Price))
+	str.WriteString(")")
 	return str.String()
 }

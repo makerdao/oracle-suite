@@ -17,85 +17,57 @@ package gofer
 
 import (
 	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/pather"
+	"github.com/makerdao/gofer/aggregator"
 )
 
 // Gofer library API
 type Gofer struct {
-	config    *Config
+	aggregator aggregator.Aggregator
+	processor AggregateProcessor
 }
 
 // NewGofer creates a new instance of the Gofer library API given a config
-func NewGofer(config *Config) *Gofer {
+func NewGofer(agg aggregator.Aggregator, processor AggregateProcessor) *Gofer {
 	return &Gofer{
-		config:    config,
+		aggregator: agg,
+		processor: processor,
 	}
-}
-
-func (g *Gofer) paths(pairs []*model.Pair) []*model.PricePath {
-	pairs_ := make(map[model.Pair]bool)
-	for _, p := range pairs {
-		pairs_[*p] = true
-	}
-	var ppaths []*model.PricePath
-	for pair := range pairs_ {
-		ppaths_ := g.config.Pather.Path(&pair)
-		if ppaths_ != nil {
-			ppaths = append(ppaths, ppaths_...)
-		}
-	}
-	return ppaths
 }
 
 // Price returns a map of aggregated prices according
 func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
-	ppaths := g.paths(pairs)
-	aggregator := g.config.NewAggregator(ppaths)
-	_, ppps := pather.FilterPotentialPricePoints(ppaths, g.config.Sources)
-
-	if _, err := g.config.Processor.Process(ppps, aggregator); err != nil {
+	if _, err := g.processor.Process(pairs, g.aggregator); err != nil {
 		return nil, err
 	}
 
 	prices := make(map[model.Pair]*model.PriceAggregate)
-	for _, ppath := range ppaths {
-		pair := ppath.Target()
-		prices[*pair] = aggregator.Aggregate(pair)
+	for _, pair := range pairs {
+		prices[*pair] = g.aggregator.Aggregate(pair)
 	}
 
 	return prices, nil
 }
 
-// Paths returns a map of price paths for the given indirect pairs
-func (g *Gofer) Paths(pairs ...*model.Pair) map[model.Pair][]*model.PricePath {
-	ppaths := g.paths(pairs)
-	return *model.NewPricePathMap(ppaths)
-}
-
-// Exchanges returns a list of Exchanges that will be queried for the given
-// pairs
+// Exchanges returns a list of Exchange that support all pairs
 func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
 	exchanges := make(map[string]*model.Exchange)
 
-	if pairs == nil {
-		for _, ppp := range g.config.Sources {
-			exchanges[ppp.Exchange.Name] = ppp.Exchange
-		}
-	} else {
-		exchangeIndex := make(map[model.Pair][]*model.Exchange)
-		for _, ppp := range g.config.Sources {
-			pair := *ppp.Pair
-			exchangeIndex[pair] = append(exchangeIndex[pair], ppp.Exchange)
-		}
+	// Get all exchanges for aggregator
+	for _, ppp := range g.aggregator.GetSources(pairs) {
+		exchanges[ppp.Exchange.Name] = ppp.Exchange
+	}
 
-		ppaths := g.paths(pairs)
-		for _, ppath := range ppaths {
-			for _, pair := range *ppath {
-				if es, ok := exchangeIndex[*pair]; ok {
-					for _, e := range es {
-						exchanges[e.Name] = e
-					}
-				}
+	// Find intersection of all exchanges per pair
+	for _, p := range pairs {
+		pairExchanges := make(map[string]bool)
+		for _, ppp := range g.aggregator.GetSources([]*model.Pair{p}) {
+			if ppp.Pair.Equal(p) {
+				pairExchanges[ppp.Exchange.Name] = true
+			}
+		}
+		for name := range exchanges {
+			if _, ok := pairExchanges[name]; !ok {
+				delete(exchanges, name)
 			}
 		}
 	}
@@ -106,21 +78,4 @@ func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
 	}
 
 	return result
-}
-
-// Pairs returns a list of pairs that are possible to resolve given the current
-// configured Pather and set of PotentialPricePoints
-func (g *Gofer) Pairs() []*model.Pair {
-	pairs := g.config.Pather.Pairs()
-	paths := g.paths(pairs)
-	ppaths, _ := pather.FilterPotentialPricePoints(paths, g.config.Sources)
-	targets := make(map[model.Pair]bool)
-	for _, ppath := range ppaths {
-		targets[*ppath.Target()] = true
-	}
-	var results []*model.Pair
-	for pair := range targets {
-		results = append(results, pair.Clone())
-	}
-	return results
 }

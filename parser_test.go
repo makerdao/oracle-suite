@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package config
+package gofer
 
 import (
 	"testing"
@@ -30,7 +30,7 @@ func (suite *ConfigParserSuite) TestGoferLibPrices() {
 	suite.Error(err)
 	suite.Nil(cfg)
 
-	cfg, err = ReadFile("../config.sample.json")
+	cfg, err = ReadFile("./config.sample.json")
 	suite.NoError(err)
 	suite.NotNil(cfg)
 }

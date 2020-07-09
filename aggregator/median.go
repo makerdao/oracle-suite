@@ -16,34 +16,71 @@
 package aggregator
 
 import (
-	"sort"
+	"encoding/json"
+	"fmt"
 
 	"github.com/makerdao/gofer/model"
 )
 
 type traceAggregate struct {
 	*model.PriceAggregate
-	prices map[string]*model.PriceAggregate
+	prices          map[string]*model.PriceAggregate
 	newestTimestamp int64
 	reduced         bool
 }
 
 type Median struct {
-	timeWindow      int64
-	aggregates      map[model.Pair]*traceAggregate
+	timeWindow int64
+	aggregates map[model.Pair]*traceAggregate
+	sources    []*model.PotentialPricePoint
 }
 
 // NewMedian returns a new instance of Medain with a time window in milliseconds
-func NewMedian(timeWindow int64) *Median {
+func NewMedian(sources []*model.PotentialPricePoint, timeWindow int64) *Median {
 	return &Median{
-		timeWindow:      timeWindow,
-		aggregates:      make(map[model.Pair]*traceAggregate),
+		timeWindow: timeWindow,
+		aggregates: make(map[model.Pair]*traceAggregate),
+		sources:    sources,
 	}
+}
+
+type Source struct {
+	Base       string            `json:"base"`
+	Quote      string            `json:"quote"`
+	Exchange   string            `json:"exchange"`
+	Parameters map[string]string `json:"parameters"`
+}
+
+func ToPotentialPricePoints(sources []Source) []*model.PotentialPricePoint {
+	var ppps []*model.PotentialPricePoint
+	for _, s := range sources {
+		ppps = append(ppps, &model.PotentialPricePoint{
+			Pair:     model.NewPair(s.Base, s.Quote),
+			Exchange: &model.Exchange{Name: s.Exchange, Config: s.Parameters},
+		})
+	}
+	return ppps
+}
+
+type MedianParams struct {
+	TimeWindow int64    `json:"timewindow"`
+	Sources    []Source `json:"sources"`
+}
+
+// NewMedian returns a new instance of Medain with a time window in milliseconds
+func NewMedianFromJSON(raw []byte) (Aggregator, error) {
+	var params MedianParams
+	err := json.Unmarshal(raw, &params)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse median aggregator parameters: %w", err)
+	}
+
+	return NewMedian(ToPotentialPricePoints(params.Sources), params.TimeWindow), nil
 }
 
 func newTraceAggregate(pair *model.Pair) *traceAggregate {
 	return &traceAggregate{
-		PriceAggregate: model.NewPriceAggregate("median", &model.PricePoint{Pair: pair}),
+		PriceAggregate:  model.NewPriceAggregate("median", &model.PricePoint{Pair: pair}),
 		newestTimestamp: 0,
 		prices:          make(map[string]*model.PriceAggregate),
 		reduced:         false,
@@ -126,23 +163,17 @@ func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return trace.Clone()
 }
 
-func median(xs []float64) float64 {
-	count := len(xs)
-	if count == 0 {
-		return 0
+func (a *Median) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
+	pairMap := make(map[model.Pair]bool)
+	for _, pair := range pairs {
+		pairMap[*pair] = true
 	}
 
-	// Sort
-	sort.Slice(xs, func(i, j int) bool { return xs[i] > xs[j] })
-
-	if count%2 == 0 {
-		// Even price point count, take the mean of the two middle prices
-		i := int(count / 2)
-		x1 := xs[i-1]
-		x2 := xs[i]
-		return (x1 + x2) / 2
+	var ppps []*model.PotentialPricePoint
+	for _, ppp := range a.sources {
+		if _, ok := pairMap[*ppp.Pair]; ok {
+			ppps = append(ppps, ppp)
+		}
 	}
-	// Odd price point count, use the middle price
-	i := int((count - 1) / 2)
-	return xs[i]
+	return ppps
 }

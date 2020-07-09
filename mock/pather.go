@@ -13,22 +13,22 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package gofer
+package mock
 
 import (
 	"github.com/makerdao/gofer/model"
 )
 
-func newTestPricePointAggregate(timestamp int64, exchange string, base string, quote string, price float64, volume float64) *model.PriceAggregate {
-	return &model.PriceAggregate{
-		PricePoint: &model.PricePoint{
-			Timestamp: timestamp,
-			Exchange:  &model.Exchange{Name: exchange},
-			Pair:      &model.Pair{Base: base, Quote: quote},
-			Price:     price,
-			Ask:       price,
-			Bid:       price,
-			Volume:    volume,
-		},
-	}
+type Pather struct {
+	Ppaths map[model.Pair][]*model.PricePath
+	ReturnPairs  []*model.Pair
 }
+
+func (mp *Pather) Pairs() []*model.Pair {
+	return mp.ReturnPairs
+}
+
+func (mp *Pather) Path(pair *model.Pair) []*model.PricePath {
+	return mp.Ppaths[*pair]
+}
+

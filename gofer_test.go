@@ -17,167 +17,128 @@ package gofer
 
 import (
 	"fmt"
+	"testing"
+
+	"github.com/makerdao/gofer/mock"
+	"github.com/makerdao/gofer/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/makerdao/gofer/aggregator"
-	. "github.com/makerdao/gofer/model"
-	"testing"
 )
-
-type mockAggregator struct {
-	returns map[Pair]*PriceAggregate
-}
-
-func (mr *mockAggregator) Ingest(pa *PriceAggregate) {
-}
-
-func (mr *mockAggregator) Aggregate(pair *Pair) *PriceAggregate {
-	if pair == nil {
-		return nil
-	}
-	return mr.returns[*pair]
-}
-
-type mockPather struct {
-	ppaths map[Pair][]*PricePath
-	pairs  []*Pair
-}
-
-func (mp *mockPather) Pairs() []*Pair {
-	return mp.pairs
-}
-
-func (mp *mockPather) Path(pair *Pair) []*PricePath {
-	return mp.ppaths[*pair]
-}
 
 // Define the suite, and absorb the built-in basic suite
 // functionality from testify - including a T() method which
 // returns the current testing context
 type GoferLibSuite struct {
 	suite.Suite
-	config     *Config
-	pather     *mockPather
-	aggregator *mockAggregator
-	sources    []*PotentialPricePoint
-	processor  *mockProcessor
+	aggregator *mock.Aggregator
+	sources    []*model.PotentialPricePoint
+	processor  *mock.Processor
 }
 
 func (suite *GoferLibSuite) TestGoferLibPrices() {
 	t := suite.T()
 
-	lib := NewGofer(suite.config)
+	lib := NewGofer(suite.aggregator, suite.processor)
 
-	pair := Pair{Base: "a", Quote: "b"}
-	prices, err := lib.Prices(&pair)
+	pair := model.NewPair("a", "b")
+	prices, err := lib.Prices(pair)
 	assert.NoError(t, err)
-	assert.Nil(t, prices[pair])
+	assert.Nil(t, prices[*pair])
 
-	pair = Pair{Base: "a", Quote: "d"}
-	prices, err = lib.Prices(&pair)
+	pair = model.NewPair("a", "d")
+	prices, err = lib.Prices(pair)
 	assert.NoError(t, err)
-	assert.Equal(t, 0.123, prices[pair].Price)
+	assert.Equal(t, 0.123, prices[*pair].Price)
 
-	suite.processor.returnsErr = fmt.Errorf("processor error")
-	_, err = lib.Prices(&pair)
+	suite.processor.ReturnsErr = fmt.Errorf("processor error")
+	_, err = lib.Prices(pair)
 	assert.Error(t, err)
-}
-
-func (suite *GoferLibSuite) TestGoferLibPaths() {
-	t := suite.T()
-
-	lib := NewGofer(suite.config)
-
-	ppaths := lib.Paths(&Pair{Base: "a", Quote: "d"}, &Pair{Base: "x", Quote: "y"})
-	assert.Len(t, ppaths, 1)
-	assert.Nil(t, ppaths[Pair{Base: "x", Quote: "y"}])
-	assert.Nil(t, ppaths[Pair{Base: "x", Quote: "z"}])
-	assert.NotNil(t, ppaths[Pair{Base: "a", Quote: "d"}])
-	assert.Equal(t, suite.pather.ppaths[Pair{Base: "a", Quote: "d"}], ppaths[Pair{Base: "a", Quote: "d"}])
 }
 
 func (suite *GoferLibSuite) TestGoferLibExchanges() {
 	t := suite.T()
 
-	lib := NewGofer(suite.config)
+	lib := NewGofer(suite.aggregator, suite.processor)
 
-	exchanges := lib.Exchanges(&Pair{Base: "a", Quote: "d"}, &Pair{Base: "x", Quote: "y"})
-	assert.ElementsMatch(t, []*Exchange{&Exchange{Name: "exchange-a"}, &Exchange{Name: "exchange-c"}}, exchanges)
+	exchanges := lib.Exchanges(model.NewPair("a", "b"), model.NewPair("x", "y"))
+	assert.Len(t, exchanges, 0)
+
+	exchanges = lib.Exchanges(model.NewPair("a", "b"), model.NewPair("a", "z"))
+	assert.ElementsMatch(
+		t,
+		[]*model.Exchange{
+			{Name: "exchange-a"},
+		},
+		exchanges,
+	)
+
+	exchanges = lib.Exchanges(model.NewPair("a", "z"))
+	assert.ElementsMatch(
+		t,
+		[]*model.Exchange{
+			{Name: "exchange-a"},
+			{Name: "exchange-b"},
+		},
+		exchanges,
+	)
+
+	exchanges = lib.Exchanges(model.NewPair("b", "d"))
+	assert.ElementsMatch(
+		t,
+		[]*model.Exchange{
+			{Name: "exchange-c"},
+		},
+		exchanges,
+	)
 
 	exchanges = lib.Exchanges()
-	assert.Len(t, exchanges, 3)
+	assert.Len(t, exchanges, 4)
 
-	exchanges = lib.Exchanges(&Pair{Base: "x", Quote: "y"})
+	exchanges = lib.Exchanges(model.NewPair("x", "y"))
 	assert.Len(t, exchanges, 0)
-}
-
-func (suite *GoferLibSuite) TestGoferLibPairs() {
-	t := suite.T()
-
-	lib := NewGofer(suite.config)
-
-	pairs := lib.Pairs()
-	assert.ElementsMatch(t, []*Pair{&Pair{Base: "a", Quote: "d"}}, pairs)
 }
 
 // Runs before each test
 func (suite *GoferLibSuite) SetupTest() {
-	sources := []*PotentialPricePoint{
-		newPotentialPricePoint("exchange-a", NewPair("a", "b")),
-		newPotentialPricePoint("exchange-a", NewPair("a", "z")),
-		newPotentialPricePoint("exchange-b", NewPair("a", "z")),
-		newPotentialPricePoint("exchange-c", NewPair("b", "d")),
+	sources := []*model.PotentialPricePoint{
+		newPotentialPricePoint("exchange-a", model.NewPair("a", "b")),
+		newPotentialPricePoint("exchange-a", model.NewPair("a", "z")),
+		newPotentialPricePoint("exchange-b", model.NewPair("a", "z")),
+		newPotentialPricePoint("exchange-c", model.NewPair("b", "d")),
 	}
-	agg := &mockAggregator{
-		returns: map[Pair]*PriceAggregate{
-			{Base: "a", Quote: "d"}: {
-				PricePoint: &PricePoint{
+	agg := &mock.Aggregator{
+		Returns: map[model.Pair]*model.PriceAggregate{
+			*model.NewPair("a", "d"): {
+				PricePoint: &model.PricePoint{
 					Price: 0.123,
 				},
 			},
-			{Base: "e", Quote: "f"}: {
-				PricePoint: &PricePoint{
+			*model.NewPair("e", "f"): {
+				PricePoint: &model.PricePoint{
 					Price: 0xef,
 				},
 			},
 		},
-	}
-
-	newAggregator := func(ppathss []*PricePath) aggregator.Aggregator {
-		return agg
-	}
-
-	pather := &mockPather{
-		ppaths: map[Pair][]*PricePath{
-			{Base: "e", Quote: "f"}: []*PricePath{
-				&PricePath{
-					NewPair("e", "x"),
-					NewPair("x", "f"),
-				},
+		Sources: map[model.Pair][]*model.PotentialPricePoint{
+			*model.NewPair("a", "b"): []*model.PotentialPricePoint{
+				newPotentialPricePoint("exchange-a", model.NewPair("a", "b")),
 			},
-			{Base: "a", Quote: "d"}: []*PricePath{
-				&PricePath{
-					NewPair("a", "b"),
-					NewPair("b", "d"),
-				},
-				&PricePath{
-					NewPair("a", "c"),
-					NewPair("c", "d"),
-				},
+			*model.NewPair("a", "z"): []*model.PotentialPricePoint{
+				newPotentialPricePoint("exchange-a", model.NewPair("a", "z")),
+				newPotentialPricePoint("exchange-b", model.NewPair("a", "z")),
+			},
+			*model.NewPair("b", "d"): []*model.PotentialPricePoint{
+				newPotentialPricePoint("exchange-c", model.NewPair("b", "d")),
+				newPotentialPricePoint("exchange-d", model.NewPair("b", "c")),
+				newPotentialPricePoint("exchange-d", model.NewPair("d", "c")),
 			},
 		},
-		pairs: []*Pair{
-			NewPair("a", "d"),
-			NewPair("e", "f"),
-		},
 	}
 
-	processor := &mockProcessor{}
+	processor := &mock.Processor{}
 
-	suite.config = NewConfig(sources, newAggregator, pather, processor)
 	suite.sources = sources
 	suite.aggregator = agg
-	suite.pather = pather
 	suite.processor = processor
 }
 

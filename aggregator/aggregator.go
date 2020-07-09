@@ -15,13 +15,44 @@
 
 package aggregator
 
-import "github.com/makerdao/gofer/model"
+import (
+	"encoding/json"
+	"fmt"
+	"sort"
+
+	"github.com/makerdao/gofer/model"
+)
 
 type Aggregator interface {
 	// Add a price point to be aggregated
 	Ingest(*model.PriceAggregate)
 	// Calculate asset pair aggregate returning nil if pair not available
 	Aggregate(*model.Pair) *model.PriceAggregate
+	// GetSources returns PotentialPricePoints
+	GetSources([]*model.Pair) []*model.PotentialPricePoint
+}
+
+type AggregatorParams struct {
+	Name string `json:"name"`
+	Parameters interface{} `json:"parameters"`
+}
+
+type AggregatorFactory func ([]byte) (Aggregator, error)
+
+var AggregatorMap = map[string]AggregatorFactory {}
+
+func FromConfig(ap AggregatorParams) (Aggregator, error) {
+	rawParams, err := json.Marshal(ap.Parameters)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't re-marshal aggregator parameters: %w", err)
+	}
+
+	af, ok := AggregatorMap[ap.Name]
+	if !ok {
+		return nil, fmt.Errorf("no aggregator found with name \"%s\"", ap.Name)
+	}
+
+	return af(rawParams)
 }
 
 // Get price estimate from price point
@@ -36,4 +67,31 @@ func calcPrice(pp *model.PriceAggregate) float64 {
 	}
 	// Otherwise return invalid price
 	return 0
+}
+
+func median(xs []float64) float64 {
+	count := len(xs)
+	if count == 0 {
+		return 0
+	}
+
+	// Sort
+	sort.Slice(xs, func(i, j int) bool { return xs[i] > xs[j] })
+
+	if count%2 == 0 {
+		// Even price point count, take the mean of the two middle prices
+		i := int(count / 2)
+		x1 := xs[i-1]
+		x2 := xs[i]
+		return (x1 + x2) / 2
+	}
+	// Odd price point count, use the middle price
+	i := int((count - 1) / 2)
+	return xs[i]
+}
+
+func init() {
+	 AggregatorMap["setzer"] = NewSetzFromJSON
+	 AggregatorMap["median"] = NewMedianFromJSON
+	 AggregatorMap["path"] = NewPathFromJSON
 }
