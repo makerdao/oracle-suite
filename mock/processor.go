@@ -13,32 +13,40 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package pather
+package mock
 
 import (
-	"testing"
+	"math/rand"
 
+	"github.com/makerdao/gofer/aggregator"
 	"github.com/makerdao/gofer/model"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestPairsAndPath(t *testing.T) {
-	sppf := NewSetzer()
-	pairs := sppf.Pairs()
-	assert.Nil(t, sppf.Path(model.NewPair("a", "z")), "Non existing pair should return nil")
-	for _, p := range pairs {
-		ppaths := sppf.Path(p)
-		assert.NotNilf(t, ppaths, "Path should return paths for pair: %s", p)
-		if ppaths != nil {
-			err := model.ValidatePricePathMap(&model.PricePathMap{*p: ppaths})
-			assert.NoError(t, err, "PricePaths must be valid")
-		}
-	}
+type Processor struct {
+	ReturnsErr error
+	Returns    []*model.PriceAggregate
+	Pairs      []*model.Pair
 }
 
-func TestValidBATUSDPath(t *testing.T) {
-	setzer := NewSetzer()
+func (mp *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
+	RandomReduce(agg, mp.Pairs, mp.Returns)
+	return agg, mp.ReturnsErr
+}
 
-	paths := setzer.Path(model.NewPair("BAT", "USD"))
-	assert.Greater(t, len(paths), 0)
+func RandomReduce(r aggregator.Aggregator, pairs []*model.Pair, prices []*model.PriceAggregate) {
+	for _, i := range rand.Perm(len(prices)) {
+		r.Ingest(prices[i])
+		if rand.Intn(2) == 1 {
+			r.Aggregate(RandPair(pairs))
+		}
+	}
+	r.Aggregate(RandPair(pairs))
+}
+
+func RandPair(pairs []*model.Pair) *model.Pair {
+  pairsCount := len(pairs)
+  if pairsCount == 0 {
+    return nil
+  }
+  return pairs[rand.Intn(pairsCount)]
 }

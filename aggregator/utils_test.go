@@ -36,7 +36,7 @@ func newTestPricePointAggregate(timestamp int64, exchange string, base string, q
 		PricePoint: &model.PricePoint{
 			Timestamp: timestamp,
 			Exchange:  &model.Exchange{Name: exchange},
-			Pair:      &model.Pair{Base: base, Quote: quote},
+			Pair:      model.NewPair(base, quote),
 			Price:     price,
 			Ask:       price,
 			Bid:       price,
@@ -50,7 +50,7 @@ func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base 
 		PricePoint: &model.PricePoint{
 			Timestamp: timestamp,
 			Exchange:  &model.Exchange{Name: exchange},
-			Pair:      &model.Pair{Base: base, Quote: quote},
+			Pair:      model.NewPair(base, quote),
 			Price:     price,
 			Volume:    volume,
 		},
@@ -60,7 +60,7 @@ func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base 
 func newTestPriceAggregate(name string, base string, quote string, price float64, prices ...*model.PriceAggregate) *model.PriceAggregate {
 	return &model.PriceAggregate{
 		PricePoint: &model.PricePoint{
-			Pair:      &model.Pair{Base: base, Quote: quote},
+			Pair:      model.NewPair(base, quote),
 			Price:     price,
 		},
 		PriceModelName: name,

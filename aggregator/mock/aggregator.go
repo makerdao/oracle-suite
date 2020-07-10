@@ -13,22 +13,37 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package gofer
+package mock
 
 import (
 	"github.com/makerdao/gofer/model"
 )
 
-func newTestPricePointAggregate(timestamp int64, exchange string, base string, quote string, price float64, volume float64) *model.PriceAggregate {
-	return &model.PriceAggregate{
-		PricePoint: &model.PricePoint{
-			Timestamp: timestamp,
-			Exchange:  &model.Exchange{Name: exchange},
-			Pair:      &model.Pair{Base: base, Quote: quote},
-			Price:     price,
-			Ask:       price,
-			Bid:       price,
-			Volume:    volume,
-		},
+type Aggregator struct {
+	Returns map[model.Pair]*model.PriceAggregate
+	Sources map[model.Pair][]*model.PotentialPricePoint
+}
+
+func (mr *Aggregator) Ingest(pa *model.PriceAggregate) {
+}
+
+func (mr *Aggregator) Aggregate(pair *model.Pair) *model.PriceAggregate {
+	if pair == nil {
+		return nil
 	}
+	return mr.Returns[*pair]
+}
+
+func (mr *Aggregator) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
+	ppps := make(map[model.PotentialPricePoint]bool)
+	for _, p := range pairs {
+		for _, ppp := range mr.Sources[*p] {
+			ppps[*ppp] = true
+		}
+	}
+	var sources []*model.PotentialPricePoint
+	for ppp := range ppps {
+		sources = append(sources, &ppp)
+	}
+	return sources
 }

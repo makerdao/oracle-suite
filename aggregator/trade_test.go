@@ -20,39 +20,39 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/model"
 )
 
 func TestTradeAggregator(t *testing.T) {
-	pas := []*PriceAggregate{
+	pas := []*model.PriceAggregate{
 		newTestPricePointAggregate(0, "exchange-a", "b", "a", 4, 1),
 		newTestPricePointAggregate(0, "exchange-a", "b", "c", 8, 1),
 		newTestPricePointAggregate(0, "exchange-a", "c", "d", 2, 1),
 	}
 
 	trade := NewTrade()
-	res := trade.Aggregate(&Pair{Base: "a", Quote: "d"})
+	res := trade.Aggregate(model.NewPair("a", "d"))
 	assert.Nil(t, res)
 
 	trade.Ingest(pas[0])
-	res = trade.Aggregate(&Pair{Base: "b", Quote: "a"})
+	res = trade.Aggregate(model.NewPair("b", "a"))
 	assert.NotNil(t, res)
-	assert.Equal(t, &Pair{Base: "b", Quote: "a"}, res.Pair)
+	assert.Equal(t, model.NewPair("b", "a"), res.Pair)
 
 	trade.Ingest(pas[1])
-	res = trade.Aggregate(&Pair{Base: "a", Quote: "c"})
+	res = trade.Aggregate(model.NewPair("a", "c"))
 	assert.NotNil(t, res)
-	assert.Equal(t, &Pair{Base: "a", Quote: "c"}, res.Pair)
+	assert.Equal(t, model.NewPair("a", "c"), res.Pair)
 
 	trade.Ingest(pas[2])
 
-	res = trade.Aggregate(&Pair{Base: "a", Quote: "d"})
+	res = trade.Aggregate(model.NewPair("a", "d"))
 
 	assert.NotNil(t, res)
-	assert.Equal(t, &Pair{Base: "a", Quote: "d"}, res.Pair)
+	assert.Equal(t, model.NewPair("a", "d"), res.Pair)
 	assert.Equal(t, 4.0, res.Price)
 	assert.ElementsMatch(t, pas, res.Prices)
 
-	resFail := trade.Aggregate(&Pair{Base: "x", Quote: "y"})
+	resFail := trade.Aggregate(model.NewPair("x", "y"))
 	assert.Nil(t, resFail)
 }

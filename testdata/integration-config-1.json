@@ -1,0 +1,33 @@
+{
+  "processor": "TODO",
+  "aggregator": {
+    "name": "setzer",
+    "parameters": {
+      "exchanges": {
+        "e-c": { "a": "1" }
+      },
+      "pricemodels": {
+        "B/C": {
+          "method": "median",
+          "sources": [
+            {"exchange": "e-a", "pair": "B/C" },
+            {"exchange": "e-b", "pair": "B/C" }
+          ]
+        },
+        "A/C": {
+          "method": "median",
+          "sources": [
+            {"exchange": "e-c", "pair": "A/C" },
+            {"exchange": "e-d", "pair": "A/B", "op": "*", "ref": { "pair": "B/C" } }
+          ]
+        },
+        "D/E": {
+          "method": "median",
+          "sources": [
+            {"exchange": "e-e", "pair": "D/B", "op": "/", "ref": { "exchange": "e-f", "pair": "E/B" } }
+          ]
+        }
+      }
+    }
+  }
+}
