@@ -29,19 +29,15 @@ func TestPriceModelMapParse(t *testing.T) {
     "b/c": {
       "method": "median",
       "sources": [
-        { "exchange": "e-a", "pair": "b/c" },
-        { "exchange": "e-b", "pair": "b/c" }
+        [{"origin": "e-a", "pair": "b/c"}],
+        [{"origin": "e-b", "pair": "b/c"}]
       ]
     },
     "a/c": {
       "method": "median",
       "sources": [
-        { "exchange": "e-a", "pair": "a/c" },
-        { "exchange": "e-a",
-          "pair": "a/b",
-          "op": "multiply",
-          "ref": { "pair": "b/c" }
-        }
+        [{"origin": "e-a", "pair": "a/c"}],
+        [{"origin": "e-a", "pair": "a/b"}, {"origin": ".", "pair": "b/c"}]
       ]
     }
   }`)
@@ -53,16 +49,19 @@ func TestPriceModelMapParse(t *testing.T) {
 	bcPriceModel := pmm[Pair{*model.NewPair("b", "c")}]
 	assert.NotNil(t, bcPriceModel)
 	assert.Equal(t, "median", bcPriceModel.Method)
-	assert.ElementsMatch(t, []*PriceRef{
-		{ExchangeName: "e-a", Pair: &Pair{*model.NewPair("b", "c")}},
-		{ExchangeName: "e-b", Pair: &Pair{*model.NewPair("b", "c")}},
+	assert.ElementsMatch(t, []PriceRefPath{
+		{{Origin: "e-a", Pair: Pair{*model.NewPair("b", "c")}}},
+		{{Origin: "e-b", Pair: Pair{*model.NewPair("b", "c")}}},
 	}, bcPriceModel.Sources)
 
 	acPriceModel := pmm[Pair{*model.NewPair("a", "c")}]
 	assert.NotNil(t, acPriceModel)
 	assert.Equal(t, "median", acPriceModel.Method)
-	assert.ElementsMatch(t, []*PriceRef{
-		{ExchangeName: "e-a", Pair: &Pair{*model.NewPair("b", "c")}},
-		{ExchangeName: "e-b", Pair: &Pair{*model.NewPair("b", "c")}},
-	}, bcPriceModel.Sources)
+	assert.ElementsMatch(t, []PriceRefPath{
+		{{Origin: "e-a", Pair: Pair{*model.NewPair("a", "c")}}},
+		{
+			{Origin: "e-a", Pair: Pair{*model.NewPair("a", "b")}},
+			{Origin: ".", Pair: Pair{*model.NewPair("b", "c")}},
+		},
+	}, acPriceModel.Sources)
 }

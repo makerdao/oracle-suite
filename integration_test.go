@@ -64,13 +64,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 
 	sources := []*model.PotentialPricePoint{}
 
-	//newPathAggregator := func(ppaths []*model.PricePath) aggregator.Aggregator {
-	//	return aggregator.NewPath(ppaths, aggregator.NewMedian(nil, 1000))
-	//}
 	agg := aggregator.NewPath(aggregator.NewSetzer(), sources, aggregator.NewMedian(nil, 1000))
-
-	// Get relevant price paths to pass to aggregator, using setzer pathing
-	//setzerPather := pather.NewSetzer()
 
 	processor := &mock.Processor{
 		Returns: pas,

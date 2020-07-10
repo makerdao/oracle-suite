@@ -43,7 +43,7 @@ func NewSetz(exchanges []*model.Exchange, pairMap PriceModelMap) *Setz {
 type SetzParams struct {
 	// TODO: change this into map[string]model.Exchange to allow aliasing of
 	// exchange configs
-	Exchanges   map[string]map[string]string `json:"exchanges"`
+	Exchanges   map[string]map[string]string `json:"origins"`
 	PriceModels PriceModelMap                `json:"pricemodels"`
 }
 
@@ -73,7 +73,14 @@ func (a *Setz) Aggregate(pair *model.Pair) *model.PriceAggregate {
 		return nil
 	}
 
-	return a.pairMap.ResolveRef(&PriceRef{Pair: &Pair{*pair}}, a.cache)
+	pa, err := a.pairMap.ResolveRef(a.cache, PriceRef{Origin: ".", Pair: Pair{*pair}})
+	if err != nil {
+		// TODO: refactor Aggregator to return error not just nil
+		//fmt.Println(err)
+		return nil
+	}
+
+	return pa
 }
 
 func (a *Setz) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
@@ -84,9 +91,16 @@ func (a *Setz) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
 		}
 	}
 
-	var refs []*PriceRef
+	var refs []PriceRef
 	for _, p := range pairs {
-		refs = append(refs, &PriceRef{Pair: &Pair{*p}})
+		refs = append(refs, PriceRef{Origin: ".", Pair: Pair{*p}})
 	}
-	return a.pairMap.GetRefSources(a.exchangeMap, refs...)
+	ppps, err := a.pairMap.GetRefSources(a.exchangeMap, refs...)
+	if err != nil {
+		// TODO: refactor Aggregator to return error not just nil
+		//fmt.Println(err)
+		return nil
+	}
+
+	return ppps
 }
