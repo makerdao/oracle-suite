@@ -74,9 +74,9 @@ func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (agg
 	for _, pp := range agg.GetSources(pairs) {
 		res, err := p.ProcessOne(pp)
 		if err != nil {
-			// TODO: ignore exchange errors here so we don't fail all prair requests
-			// because of one bad exchange reply
-			return nil, err
+			// TODO: log exchange errors here so failures are traceable but does't fail
+			// everything because of a single bad exchange reply
+			continue
 		}
 		agg.Ingest(res)
 	}

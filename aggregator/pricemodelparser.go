@@ -16,38 +16,9 @@
 package aggregator
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 )
-
-func (o *PriceOp) UnmarshalJSON(b []byte) error {
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
-	}
-	switch strings.ToLower(s) {
-	case "*":
-		fallthrough
-	case "multiply":
-		*o = MULTIPLY
-	case "/":
-		fallthrough
-	case "divide":
-		*o = DIVIDE
-	case "":
-		fallthrough
-	case "noop":
-		*o = NOOP
-	default:
-		return fmt.Errorf("price op '%s' not supported", s)
-	}
-	return nil
-}
-
-func (o PriceOp) MarshalJSON() ([]byte, error) {
-	return json.Marshal(o.String())
-}
 
 func (p *Pair) UnmarshalText(text []byte) error {
 	s := string(text)

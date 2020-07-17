@@ -21,29 +21,8 @@ import (
 	"github.com/makerdao/gofer/model"
 )
 
-//  {
-//    "b/c": {
-//      "method": "median",
-//      "sources": [
-//        { "exchange": "e-a", "pair": "b/c" },
-//        { "exchange": "e-b", "pair": "b/c" },
-//      ]
-//    },
-//    "a/c": {
-//      "method": "median",
-//      "sources": [
-//        { "exchange": "e-a", "pair": "a/c" },
-//        { "exchange": "e-a",
-//          "pair": "a/b",
-//          "op": "multiply",
-//          "ref": { "pair": "b/c" }
-//        },
-//      ]
-//    }
-//  }
-
 type CacheGetter interface {
-	Get(string, Pair) *model.PriceAggregate
+	Get(string, Pair) (*model.PriceAggregate, error)
 }
 
 type cacheID struct {
@@ -53,107 +32,85 @@ type cacheID struct {
 
 type PriceCache map[cacheID]*model.PriceAggregate
 
-func (pc PriceCache) Get(exchange string, pair Pair) *model.PriceAggregate {
-	pa := pc[cacheID{exchangeName: exchange, pair: pair}]
-	if pa == nil {
-		return nil
+func (pc PriceCache) Get(exchange string, pair Pair) (*model.PriceAggregate, error) {
+	ci := cacheID{exchangeName: exchange, pair: pair}
+	pa, ok := pc[ci]
+	if !ok {
+		return nil, fmt.Errorf("key '%s' in price cache not found", ci)
 	}
-	return pa.Clone()
+	return pa.Clone(), nil
 }
 
 type Pair struct {
 	model.Pair
 }
 
-type PriceOp int
-
-func (op PriceOp) String() string {
-	switch op {
-	case MULTIPLY:
-		return "*"
-	case DIVIDE:
-		return "/"
-	}
-	return "noop"
-}
-
-const (
-	NOOP PriceOp = iota
-	MULTIPLY
-	DIVIDE
-)
-
 type PriceRef struct {
-	ExchangeName string    `json:"exchange,omitempty"`
-	Pair         *Pair     `json:"pair,omitempty"`
-	Op           PriceOp   `json:"op,omitempty"`
-	Ref          *PriceRef `json:"ref,omitempty"`
+	// TODO: Origin is synonyous with exchange name but needs to map to an exchange
+	Origin string `json:"origin,omitempty"`
+	Pair   Pair   `json:"pair,omitempty"`
 }
 
-func (pr *PriceRef) String() string {
-	var ref string
-	if pr.Ref != nil {
-		ref = pr.Ref.String()
-	}
-	if pr.ExchangeName != "" {
-		return fmt.Sprintf("{<- (%s %s) %s %s}", pr.ExchangeName, pr.Pair, pr.Op, ref)
-	}
-	if pr.Op != NOOP {
-		return fmt.Sprintf("{-> %s %s %s}", pr.Pair, pr.Op, ref)
-	}
-	return fmt.Sprintf("{-> %s}", pr.Pair)
-}
+type PriceRefPath []PriceRef
 
 type PriceModel struct {
-	Method  string      `json:"method"`
-	Sources []*PriceRef `json:"sources"`
+	Method     string         `json:"method"`
+	MinSources int            `json:"minSourceSuccess"`
+	Sources    []PriceRefPath `json:"sources"`
 }
+
+type PriceModelMethod func([]*model.PriceAggregate) (float64, error)
+
+var PriceModelMethods = map[string]PriceModelMethod{}
 
 type PriceModelMap map[Pair]PriceModel
 
-func (pmm PriceModelMap) getRefSources(ref *PriceRef) []cacheID {
+func (pmm PriceModelMap) getRefSources(pr PriceRef) ([]cacheID, error) {
 	cis := make(map[cacheID]bool)
 
-	if ref.ExchangeName != "" {
-		// PriceRef has an exchange, then return a direct source
-		pair := ref.Pair
-		ci := cacheID{
-			pair:         *pair,
-			exchangeName: ref.ExchangeName,
-		}
-		cis[ci] = true
-	} else {
-		// PriceRef doesn't have an exchange, then recursivley get price sources
-		m, ok := pmm[*ref.Pair]
+	if pr.Origin == "." {
+		// PriceRef is pointing recursivley back to price model map
+		m, ok := pmm[pr.Pair]
 		if !ok {
-			return nil
+			return nil, fmt.Errorf("no pair '%s' in price model map found", pr.Pair.String())
 		}
 
-		for _, pr := range m.Sources {
-			for _, ci := range pmm.getRefSources(pr) {
-				cis[ci] = true
+		for _, prp := range m.Sources {
+			for _, pr := range prp {
+				cs, err := pmm.getRefSources(pr)
+				if err != nil {
+					return nil, err
+				}
+				for _, ci := range cs {
+					cis[ci] = true
+				}
 			}
 		}
-	}
-
-	if ref.Ref != nil {
-		// PriceRef has a reference to another PriceRef
-		for _, ci := range pmm.getRefSources(ref.Ref) {
-			cis[ci] = true
+	} else {
+		// PriceRef has an origin, then return a direct source
+		pair := pr.Pair
+		ci := cacheID{
+			pair:         pair,
+			exchangeName: pr.Origin,
 		}
+		cis[ci] = true
 	}
 
 	var result []cacheID
 	for ci := range cis {
 		result = append(result, ci)
 	}
-	return result
+	return result, nil
 }
 
-func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, refs ...*PriceRef) []*model.PotentialPricePoint {
+func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, refs ...PriceRef) ([]*model.PotentialPricePoint, error) {
 	cis := make(map[cacheID]bool)
 	for _, ref := range refs {
-		for _, ci := range pmm.getRefSources(ref) {
+		cs, err := pmm.getRefSources(ref)
+		if err != nil {
+			return nil, err
+		}
+		for _, ci := range cs {
 			cis[ci] = true
 		}
 	}
@@ -170,104 +127,131 @@ func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, r
 			Exchange: exchange,
 		})
 	}
-	return result
+	return result, nil
 }
 
 // GetSources returns PotentialPricePoints
-func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) []*model.PotentialPricePoint {
-	var refs []*PriceRef
+func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) ([]*model.PotentialPricePoint, error) {
+	var refs []PriceRef
 	for pair := range pmm {
-		refs = append(refs, &PriceRef{Pair: &pair})
+		refs = append(refs, PriceRef{Origin: ".", Pair: pair})
 	}
 	return pmm.GetRefSources(exchangeMap, refs...)
 }
 
-func (pmm PriceModelMap) execOp(pa *model.PriceAggregate, op PriceOp, ref *PriceRef, cache CacheGetter) *model.PriceAggregate {
-	if pa == nil {
-		return nil
+// Calculate the final model.trade price of an ordered list of prices
+func resolvePath(pas []*model.PriceAggregate) (*model.PriceAggregate, error) {
+	if len(pas) == 1 {
+		return pas[0], nil
 	}
-	switch op {
-	case MULTIPLY:
-		refPa := pmm.ResolveRef(ref, cache)
-		if refPa == nil {
-			return nil
+
+	var pair *model.Pair
+	var price float64
+
+	for _, pa := range pas {
+		if pair == nil {
+			pair = pa.Pair.Clone()
+			price = pa.Price
+		} else if pair.Quote == pa.Pair.Quote {
+			price = pa.Price / price
+			pair.Quote = pa.Pair.Base
+		} else if pair.Quote == pa.Pair.Base {
+			price *= pa.Price
+			pair.Quote = pa.Pair.Quote
+		} else {
+			return nil, fmt.Errorf("can't convert between %s and %s", pair, pa.Pair)
 		}
-		return &model.PriceAggregate{
-			PricePoint: &model.PricePoint{
-				Pair: &model.Pair{
-					Base:  pa.Pair.Base,
-					Quote: refPa.Pair.Quote,
-				},
-				Price: pa.Price * refPa.Price,
-			},
-			Prices:         []*model.PriceAggregate{pa.Clone(), refPa.Clone()},
-			PriceModelName: "*",
-		}
-	case DIVIDE:
-		refPa := pmm.ResolveRef(ref, cache)
-		if refPa == nil {
-			return nil
-		}
-		return &model.PriceAggregate{
-			PricePoint: &model.PricePoint{
-				Pair: &model.Pair{
-					Base:  pa.Pair.Quote,
-					Quote: refPa.Pair.Quote,
-				},
-				Price: refPa.Price / pa.Price,
-			},
-			Prices:         []*model.PriceAggregate{refPa.Clone(), pa.Clone()},
-			PriceModelName: "/",
-		}
-	case NOOP:
-		return pa.Clone()
 	}
-	return nil
+
+	return model.NewPriceAggregate(
+		"trade",
+		&model.PricePoint{
+			Pair:  pair,
+			Price: price,
+		},
+		pas...,
+	), nil
 }
 
-func (pmm PriceModelMap) ResolveRef(ref *PriceRef, cache CacheGetter) *model.PriceAggregate {
-	if ref.ExchangeName != "" {
-		pair := ref.Pair
-		pa := cache.Get(ref.ExchangeName, *pair)
-		return pmm.execOp(pa, ref.Op, ref.Ref, cache)
+func (pmm PriceModelMap) resolvePath(cache CacheGetter, prp PriceRefPath) (*model.PriceAggregate, error) {
+	var pas []*model.PriceAggregate
+	for _, pr := range prp {
+		pa, err := pmm.ResolveRef(cache, pr)
+		if err != nil {
+			return nil, err
+		}
+		pas = append(pas, pa)
+	}
+	pa, err := resolvePath(pas)
+	if err != nil {
+		return nil, err
+	}
+	return pa, nil
+}
+
+func (pmm PriceModelMap) ResolveRef(cache CacheGetter, pr PriceRef) (*model.PriceAggregate, error) {
+	if pr.Origin != "." {
+		return cache.Get(pr.Origin, pr.Pair)
 	}
 
-	rootPair := *ref.Pair
-	m, ok := pmm[rootPair]
+	m, ok := pmm[pr.Pair]
 	if !ok {
-		return nil
+		return nil, fmt.Errorf("no pair '%s' in price model map found", pr.Pair.String())
 	}
 
 	result := model.PriceAggregate{
-		PricePoint: &model.PricePoint{Pair: rootPair.Clone()},
+		PricePoint: &model.PricePoint{Pair: pr.Pair.Clone()},
 	}
-	for _, pr := range m.Sources {
-		// Default pair in PriceRef to context pair
-		if pr.Pair == nil {
-			pr.Pair = &rootPair
+	for _, prp := range m.Sources {
+		pa, err := pmm.resolvePath(cache, prp)
+		if err != nil {
+			// TODO: log sources that couldn't be resolved?
+			//fmt.Printf(err)
+			continue
 		}
-		pa := pmm.ResolveRef(pr, cache)
-		if pa == nil {
-			return nil
+		if !pr.Pair.Equal(pa.Pair) {
+			// TODO: log error when indirect pair of resolved path doesn't match price
+			// model key
+			//fmt.Printf(
+			//  "failed to resolve source %s, %s != %s\n\t%s\n",
+			//  pr, pr.Pair.String(), pa.Pair.String(), pa
+			//)
+			continue
 		}
+		// Add price aggregate if resolved successfully
 		result.Prices = append(result.Prices, pa)
 	}
 
-	// TODO: selectable method
-	switch m.Method {
-	case "":
-		fallthrough
-	case "median":
-		var prices []float64
-		for _, pa := range result.Prices {
-			prices = append(prices, pa.Price)
-		}
-		result.Price = median(prices)
-		result.PriceModelName = "median"
-	default:
-		// TODO: replace panic with returning an error
-		panic(fmt.Sprintf("price model method '%s' isn't supported", m.Method))
+	successes := len(result.Prices)
+	if successes == 0 || successes < m.MinSources {
+		return nil, fmt.Errorf("minimum amount of sources not met for '%s' in price model", pr.Pair.String())
 	}
 
-	return &result
+	method, ok := PriceModelMethods[m.Method]
+	if !ok {
+		return nil, fmt.Errorf("price model method '%s' isn't supported", m.Method)
+	}
+
+	var err error
+	result.Price, err = method(result.Prices)
+	if err != nil {
+		return nil, err
+	}
+
+	result.PriceModelName = m.Method
+
+	return &result, nil
+}
+
+func medianPriceModelMethod(pas []*model.PriceAggregate) (float64, error) {
+	var prices []float64
+	for _, p := range pas {
+		prices = append(prices, p.Price)
+	}
+	return median(prices), nil
+}
+
+func init() {
+	PriceModelMethods[""] = medianPriceModelMethod
+	PriceModelMethods["median"] = medianPriceModelMethod
 }
