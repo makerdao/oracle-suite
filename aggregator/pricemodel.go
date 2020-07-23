@@ -17,6 +17,7 @@ package aggregator
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/makerdao/gofer/model"
 )
@@ -206,16 +207,15 @@ func (pmm PriceModelMap) ResolveRef(cache CacheGetter, pr PriceRef) (*model.Pric
 		pa, err := pmm.resolvePath(cache, prp)
 		if err != nil {
 			// TODO: log sources that couldn't be resolved?
-			//fmt.Printf(err)
+			log.Print(err)
 			continue
 		}
 		if !pr.Pair.Equal(pa.Pair) {
 			// TODO: log error when indirect pair of resolved path doesn't match price
 			// model key
-			//fmt.Printf(
-			//  "failed to resolve source %s, %s != %s\n\t%s\n",
-			//  pr, pr.Pair.String(), pa.Pair.String(), pa
-			//)
+			log.Printf(
+				"failed to resolve source %s, %s != %s\n\t%s\n",
+				pr, pr.Pair.String(), pa.Pair.String(), pa)
 			continue
 		}
 		// Add price aggregate if resolved successfully

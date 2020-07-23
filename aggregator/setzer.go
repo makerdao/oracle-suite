@@ -18,6 +18,7 @@ package aggregator
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/makerdao/gofer/model"
 )
@@ -76,7 +77,7 @@ func (a *Setz) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	pa, err := a.pairMap.ResolveRef(a.cache, PriceRef{Origin: ".", Pair: Pair{*pair}})
 	if err != nil {
 		// TODO: refactor Aggregator to return error not just nil
-		//fmt.Println(err)
+		log.Println(err)
 		return nil
 	}
 
@@ -98,7 +99,7 @@ func (a *Setz) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
 	ppps, err := a.pairMap.GetRefSources(a.exchangeMap, refs...)
 	if err != nil {
 		// TODO: refactor Aggregator to return error not just nil
-		//fmt.Println(err)
+		log.Println(err)
 		return nil
 	}
 
