@@ -55,7 +55,7 @@ type PriceRef struct {
 
 func (p *PriceRef) String() string {
 	if p.Origin == "." {
-		return fmt.Sprintf("%s", p.Pair.String())
+		return p.Pair.String()
 	}
 	return fmt.Sprintf("%s@%s", p.Pair.String(), p.Origin)
 }
