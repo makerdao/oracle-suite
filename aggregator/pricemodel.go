@@ -18,6 +18,7 @@ package aggregator
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/makerdao/gofer/model"
 )
@@ -52,12 +53,42 @@ type PriceRef struct {
 	Pair   Pair   `json:"pair,omitempty"`
 }
 
+func (p *PriceRef) String() string {
+	if p.Origin == "." {
+		return fmt.Sprintf("%s", p.Pair.String())
+	}
+	return fmt.Sprintf("%s@%s", p.Pair.String(), p.Origin)
+}
+
 type PriceRefPath []PriceRef
+
+func (p PriceRefPath) String() string {
+	var b strings.Builder
+	b.WriteString("[")
+	for i, ref := range p {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		b.WriteString(ref.String())
+	}
+	b.WriteString("]")
+	return b.String()
+}
 
 type PriceModel struct {
 	Method     string         `json:"method"`
 	MinSources int            `json:"minSourceSuccess"`
 	Sources    []PriceRefPath `json:"sources"`
+}
+
+func (p *PriceModel) String() string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("(%s:%d)[", p.Method, p.MinSources))
+	for _, ref := range p.Sources {
+		b.WriteString(ref.String())
+	}
+	b.WriteString("]")
+	return b.String()
 }
 
 type PriceModelMethod func([]*model.PriceAggregate) (float64, error)

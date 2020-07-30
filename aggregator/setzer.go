@@ -42,8 +42,7 @@ func NewSetz(exchanges []*model.Exchange, pairMap PriceModelMap) *Setz {
 }
 
 type SetzParams struct {
-	// TODO: change this into map[string]model.Exchange to allow aliasing of
-	// exchange configs
+	// TODO: change this into map[string]model.Exchange to allow aliasing of exchange configs
 	Exchanges   map[string]map[string]string `json:"origins"`
 	PriceModels PriceModelMap                `json:"pricemodels"`
 }
