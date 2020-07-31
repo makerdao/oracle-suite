@@ -244,8 +244,7 @@ func (pmm PriceModelMap) ResolveRef(cache CacheGetter, pr PriceRef) (*model.Pric
 		if !pr.Pair.Equal(pa.Pair) {
 			// TODO: log error when indirect pair of resolved path doesn't match price
 			// model key
-			log.Printf(
-				"failed to resolve source %s, %s != %s\n\t%s\n",
+			log.Printf("failed to resolve source %s, %s != %s\n\t%s\n",
 				pr, pr.Pair.String(), pa.Pair.String(), pa)
 			continue
 		}
