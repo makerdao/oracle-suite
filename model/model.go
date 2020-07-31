@@ -37,10 +37,10 @@ type PricePoint struct {
 	Timestamp int64     // Unix time
 	Exchange  *Exchange // Exchange id
 	Pair      *Pair     // Asset pair
-	Price     float64    // Last traded price
-	Ask       float64    // Best ask price
-	Bid       float64    // Best bid price
-	Volume    float64    // Trade volume
+	Price     float64   // Last traded price
+	Ask       float64   // Best ask price
+	Bid       float64   // Best bid price
+	Volume    float64   // Trade volume
 }
 
 // PotentialPricePoint represents PricePoint that shuold be fetched from Exchange
@@ -135,7 +135,7 @@ func NewPair(base string, quote string) *Pair {
 
 // Equal check if `Pair` is equal to given one
 func (p *Pair) Equal(pair *Pair) bool {
-	return (p.Base == pair.Base && p.Quote == pair.Quote)
+	return p.Base == pair.Base && p.Quote == pair.Quote
 }
 
 // String returns a string representation of `Pair` e.g. BTC/USD

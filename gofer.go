@@ -16,21 +16,21 @@
 package gofer
 
 import (
-	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/aggregator"
+	"github.com/makerdao/gofer/model"
 )
 
 // Gofer library API
 type Gofer struct {
 	aggregator aggregator.Aggregator
-	processor AggregateProcessor
+	processor  AggregateProcessor
 }
 
 // NewGofer creates a new instance of the Gofer library API given a config
 func NewGofer(agg aggregator.Aggregator, processor AggregateProcessor) *Gofer {
 	return &Gofer{
 		aggregator: agg,
-		processor: processor,
+		processor:  processor,
 	}
 }
 
