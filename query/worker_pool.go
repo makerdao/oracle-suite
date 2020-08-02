@@ -29,7 +29,7 @@ type WorkerPool interface {
 }
 
 // HTTPWorkerPool structure that contain Woker Pool HTTP implementation
-// It implements worker pool that will do real HTTP calls to resources using `query.MakeGetRequest`
+// It implements worker pool that will do real HTTP calls to resources using `query.MakeHTTPRequest`
 type HTTPWorkerPool struct {
 	started     bool
 	workerCount int
@@ -96,7 +96,7 @@ func worker(id int, jobs <-chan *asyncHTTPRequest) {
 	for req := range jobs {
 		// Make request and return result into channel
 		if req.response != nil {
-			req.response <- MakeGetRequest(req.request)
+			req.response <- MakeHTTPRequest(req.request)
 		}
 	}
 }

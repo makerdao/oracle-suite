@@ -53,7 +53,7 @@ func (suite *MakeRequestSuite) TestMakingRequest() {
 	}))
 
 	assert.NotNil(suite.T(), suite.server)
-	data, err := doMakeGetRequest(&HTTPRequest{URL: suite.server.URL})
+	data, err := doMakeHTTPRequest(&HTTPRequest{URL: suite.server.URL})
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), []byte(serverResponse), data)
@@ -67,7 +67,7 @@ func (suite *MakeRequestSuite) TestMakingRequestToNotFound() {
 	}))
 
 	assert.NotNil(suite.T(), suite.server)
-	data, err := doMakeGetRequest(&HTTPRequest{URL: suite.server.URL})
+	data, err := doMakeHTTPRequest(&HTTPRequest{URL: suite.server.URL})
 
 	assert.Error(suite.T(), err)
 	assert.Empty(suite.T(), data)
@@ -88,13 +88,32 @@ func (suite *MakeRequestSuite) TestMakingRequestWithHeaders() {
 		URL:     suite.server.URL,
 		Headers: headers,
 	}
-	data, err := doMakeGetRequest(r)
+	data, err := doMakeHTTPRequest(r)
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), []byte(serverResponse), data)
 }
 
-func (suite *MakeRequestSuite) TestMakeGetRequestWithRetryFails() {
+func (suite *MakeRequestSuite) TestMakingPOSTRequest() {
+	// Start a local HTTP server
+	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(suite.T(), "POST", req.Method)
+		// Send response to be tested
+		rw.Write([]byte(serverResponse)) //nolint:errcheck
+	}))
+
+	assert.NotNil(suite.T(), suite.server)
+	r := &HTTPRequest{
+		URL:    suite.server.URL,
+		Method: "POST",
+	}
+	data, err := doMakeHTTPRequest(r)
+
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), []byte(serverResponse), data)
+}
+
+func (suite *MakeRequestSuite) TestMakeHTTPRequestWithRetryFails() {
 	calls := 0
 	// Start a local HTTP server
 	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -111,14 +130,14 @@ func (suite *MakeRequestSuite) TestMakeGetRequestWithRetryFails() {
 		Headers: headers,
 		Retry:   3,
 	}
-	res := MakeGetRequest(r)
+	res := MakeHTTPRequest(r)
 
 	assert.Error(suite.T(), res.Error)
 	assert.EqualValues(suite.T(), []byte(nil), res.Body)
 	assert.EqualValues(suite.T(), 3, calls)
 }
 
-func (suite *MakeRequestSuite) TestMakeGetRequestWithRetry() {
+func (suite *MakeRequestSuite) TestMakeHTTPRequestWithRetry() {
 	calls := 0
 	// Start a local HTTP server
 	suite.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -140,7 +159,7 @@ func (suite *MakeRequestSuite) TestMakeGetRequestWithRetry() {
 		Headers: headers,
 		Retry:   3,
 	}
-	res := MakeGetRequest(r)
+	res := MakeHTTPRequest(r)
 
 	assert.NoError(suite.T(), res.Error)
 	assert.EqualValues(suite.T(), []byte(serverResponse), res.Body)
