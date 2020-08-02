@@ -46,7 +46,7 @@ type HTTPResponse struct {
 	Error error
 }
 
-// MakeHTTPRequest makes GET HTTP request to given `url` with `headers` and in case of error
+// MakeHTTPRequest makes HTTP request to given `url` with `headers` and in case of error
 // it will retry request `retry` amount of times. And only after it (if it's still error) error will be returned.
 // Automatically timeout between requests will be calculated using `random`.
 // Note for `timeout` waiting this function uses `time.Sleep()` so it will block execution flow.
