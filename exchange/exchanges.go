@@ -53,6 +53,7 @@ var exchangeList = map[string]Handler{
 	"folgory":     &Folgory{},
 	"kraken":      &Kraken{},
 	"uniswap":     &Uniswap{},
+	"loopring":    &Loopring{},
 }
 
 // Call makes exchange call
