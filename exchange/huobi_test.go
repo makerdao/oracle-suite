@@ -123,8 +123,8 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.0, point.Volume)
-	suite.Equal(2.0, point.Price)
+	suite.Equal(1.3, point.Volume)
+	suite.Equal(2.1, point.Price)
 	suite.Equal(point.Timestamp, int64(2))
 }
 
