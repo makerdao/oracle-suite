@@ -116,15 +116,15 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 func (suite *HuobiSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("huobi", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"status":"success","vol":"1","ts":2000,"tick":{"bid":["2"]}}`),
+		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.0, point.Volume)
-	suite.Equal(2.0, point.Price)
+	suite.Equal(1.3, point.Volume)
+	suite.Equal(2.1, point.Price)
 	suite.Equal(point.Timestamp, int64(2))
 }
 
