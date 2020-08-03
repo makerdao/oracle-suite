@@ -18,7 +18,6 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/makerdao/gofer/model"
@@ -29,11 +28,11 @@ import (
 const huobiURL = "https://api.huobi.pro/market/detail/merged?symbol=%s"
 
 type huobiResponse struct {
-	Status    string `json:"status"`
-	Volume    string `json:"vol"`
-	Timestamp int64  `json:"ts"`
+	Status    string  `json:"status"`
+	Volume    float64 `json:"vol"`
+	Timestamp int64   `json:"ts"`
 	Tick      struct {
-		Bid []string
+		Bid []float64
 	}
 }
 
@@ -64,7 +63,6 @@ func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		URL: h.GetURL(pp),
 	}
 
-	// make query
 	res := pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
@@ -72,7 +70,7 @@ func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	if res.Error != nil {
 		return nil, res.Error
 	}
-	// parsing JSON
+
 	var resp huobiResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
@@ -84,22 +82,12 @@ func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	if len(resp.Tick.Bid) < 1 {
 		return nil, fmt.Errorf("wrong bid response from huobi exchange %s", res.Body)
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(resp.Tick.Bid[0], 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from huobi exchange %s", res.Body)
-	}
-	// Parsing volume from string
-	volume, err := strconv.ParseFloat(resp.Volume, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from huobi exchange %s", res.Body)
-	}
-	// building PricePoint
+
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
+		Price:     resp.Tick.Bid[0],
+		Volume:    resp.Volume,
 		Timestamp: resp.Timestamp / 1000,
 	}, nil
 }
