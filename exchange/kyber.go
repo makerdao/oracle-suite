@@ -122,12 +122,20 @@ func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.Pair.String(), result)
 	}
 
-	if result.SrcQty[0] == 0 {
-		return nil, fmt.Errorf("failed to parse price from kyber exchange %s", res.Body)
+	if result.SrcQty[0] <= 0 {
+		return nil, fmt.Errorf("failed to parse price from kyber exchange (needs to be gtreater than 0) %s", res.Body)
 	}
 
 	if result.DstQty[0] != refQty {
-		return nil, fmt.Errorf("failed to parse volume from kyber exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+	}
+
+	if result.Src != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" {
+		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
+	}
+
+	if result.Dst != k.getAddr(pp) {
+		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
 	}
 
 	// building PricePoint

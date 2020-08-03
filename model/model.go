@@ -43,7 +43,7 @@ type PricePoint struct {
 	Volume    float64   // Trade volume
 }
 
-// PotentialPricePoint represents PricePoint that shuold be fetched from Exchange
+// PotentialPricePoint represents PricePoint that should be fetched from Exchange
 type PotentialPricePoint struct {
 	Pair     *Pair
 	Exchange *Exchange
