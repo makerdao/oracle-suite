@@ -43,19 +43,14 @@ type kyberResponse struct {
 type Kyber struct{}
 
 func (k *Kyber) getAddr(pp *model.PotentialPricePoint) string {
-	addr, ok := pp.Exchange.Config["addr"]
-	if !ok || addr == "" {
-		addr = addrList[*pp.Pair]
+	var addrList = map[model.Pair]string{
+		{"DGX", "ETH"}:  "0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf",
+		{"KNC", "ETH"}:  "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+		{"LEND", "ETH"}: "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
+		{"MKR", "ETH"}:  "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+		{"WBTC", "ETH"}: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
 	}
-	return addr
-}
-
-var addrList = map[model.Pair]string{
-	{"DGX", "ETH"}:  "0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf",
-	{"KNC", "ETH"}:  "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
-	{"LEND", "ETH"}: "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
-	{"MKR", "ETH"}:  "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
-	{"WBTC", "ETH"}: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+	return addrList[*pp.Pair]
 }
 
 const refQty = 2.5
