@@ -42,7 +42,7 @@ type kyberResponse struct {
 
 type Kyber struct{}
 
-func (k *Kyber) getAddr(pp *model.PotentialPricePoint) string {
+func (k *Kyber) LocalPairName(pair *model.Pair) string {
 	var addrList = map[model.Pair]string{
 		{Base: "DGX", Quote: "ETH"}:  "0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf",
 		{Base: "KNC", Quote: "ETH"}:  "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
@@ -50,17 +50,13 @@ func (k *Kyber) getAddr(pp *model.PotentialPricePoint) string {
 		{Base: "MKR", Quote: "ETH"}:  "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
 		{Base: "WBTC", Quote: "ETH"}: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
 	}
-	return addrList[*pp.Pair]
+	return addrList[*pair]
 }
 
 const refQty = 2.5
 
-func (k *Kyber) LocalPairName(pair *model.Pair) string {
-	return pair.String()
-}
-
 func (k *Kyber) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(kyberURL, k.getAddr(pp), refQty)
+	return fmt.Sprintf(kyberURL, k.LocalPairName(pp.Pair), refQty)
 }
 
 func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
@@ -114,7 +110,7 @@ func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
 	}
 
-	if result.Dst != k.getAddr(pp) {
+	if result.Dst != k.LocalPairName(pp.Pair) {
 		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
 	}
 
