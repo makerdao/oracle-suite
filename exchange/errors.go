@@ -25,8 +25,6 @@ var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong
 //nolint:deadcode,varcheck,unused
 var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for nil exchange in given PotentialPricePoint")
 
-var errUnknownExchange = "unknown exchange name given: %s"
-
 var errNoPoolPassed = fmt.Errorf("no query worker pool passed")
 
 var errEmptyExchangeResponse = fmt.Errorf("empty exchange response received")
