@@ -100,7 +100,7 @@ func (suite *GateioSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`[{"last":"1","volume_24h_base":"abc"}]`),
+		Body: []byte(`[{"last":"1","currency_pair":"abc"}]`),
 	}
 	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.Error(err)
@@ -109,14 +109,16 @@ func (suite *GateioSuite) TestFailOnWrongInput() {
 func (suite *GateioSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("gateio", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`[{"last":"1","volume_24h_base":"3"}]`),
+		Body: []byte(`[{"currency_pair":"BTC_ETH","last":"1","lowest_ask":"2","highest_bid":"3","quote_volume":"4"}]`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(1.0, point.Price)
-	suite.Equal(3.0, point.Volume)
+	suite.Equal(2.0, point.Ask)
+	suite.Equal(3.0, point.Bid)
+	suite.Equal(4.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(2))
 }
 
