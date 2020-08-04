@@ -47,13 +47,9 @@ type loopringResponse struct {
 // Loopring exchange handler
 type Loopring struct{}
 
-func (l *Loopring) renameSymbol(symbol string) string {
-	return strings.ToUpper(symbol)
-}
-
 // LocalPairName implementation
 func (l *Loopring) LocalPairName(pair *model.Pair) string {
-	return fmt.Sprintf("%s-%s", l.renameSymbol(pair.Base), l.renameSymbol(pair.Quote))
+	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
 // GetURL implementation
