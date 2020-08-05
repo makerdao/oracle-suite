@@ -17,6 +17,8 @@ package gofer
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/makerdao/gofer/aggregator"
 	"github.com/makerdao/gofer/exchange"
 	"github.com/makerdao/gofer/model"
@@ -56,7 +58,7 @@ func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggre
 	}
 	return &model.PriceAggregate{
 		PriceModelName: fmt.Sprintf("exchange[%s]", pp.Exchange.Name),
-		PricePoint: point,
+		PricePoint:     point,
 	}, nil
 }
 
@@ -76,6 +78,7 @@ func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (agg
 		if err != nil {
 			// TODO: log exchange errors here so failures are traceable but does't fail
 			// everything because of a single bad exchange reply
+			log.Println(err)
 			continue
 		}
 		agg.Ingest(res)
