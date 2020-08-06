@@ -110,7 +110,7 @@ func Test_resolvePath(t *testing.T) {
 				t.Errorf("resolvePath() got = %f, want %f", got.Price, tt.want.Price)
 			}
 			if got.Exchange != tt.want.Exchange {
-				t.Errorf("resolvePath() got = %f, want %f", got.Exchange, tt.want.Exchange)
+				t.Errorf("resolvePath() got = %s, want %s", got.Exchange, tt.want.Exchange)
 			}
 		})
 	}
