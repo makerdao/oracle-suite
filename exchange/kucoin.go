@@ -21,7 +21,6 @@ import (
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
 	"strconv"
-	"strings"
 )
 
 // Kucoin URL
@@ -44,13 +43,9 @@ type kucoinResponse struct {
 // Kucoin exchange handler
 type Kucoin struct{}
 
-func (k *Kucoin) renameSymbol(symbol string) string {
-	return strings.ToUpper(symbol)
-}
-
 // LocalPairName implementation
 func (k *Kucoin) LocalPairName(pair *model.Pair) string {
-	return fmt.Sprintf("%s-%s", k.renameSymbol(pair.Base), k.renameSymbol(pair.Quote))
+	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
 // GetURL implementation
