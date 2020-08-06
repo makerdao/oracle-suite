@@ -16,6 +16,7 @@
 package aggregator
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -173,36 +174,75 @@ func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) ([]*
 
 // Calculate the final model.trade price of an ordered list of prices
 func resolvePath(pas []*model.PriceAggregate) (*model.PriceAggregate, error) {
+	if len(pas) < 1 {
+		return nil, errors.New("empty aggregate list")
+	}
+	if len(pas) > 2 {
+		return nil, errors.New("too many aggregates")
+	}
 	if len(pas) == 1 {
 		return pas[0], nil
 	}
 
-	var pair *model.Pair
-	var price float64
-
-	for _, pa := range pas {
-		if pair == nil {
-			pair = pa.Pair.Clone()
-			price = pa.Price
-		} else if pair.Quote == pa.Pair.Quote {
-			price = pa.Price / price
-			pair.Quote = pa.Pair.Base
-		} else if pair.Quote == pa.Pair.Base {
-			price *= pa.Price
-			pair.Quote = pa.Pair.Quote
-		} else {
-			return nil, fmt.Errorf("can't convert between %s and %s", pair, pa.Pair)
-		}
+	s, err := findMediatingSymbol(pas)
+	if err != nil {
+		return nil, err
 	}
 
-	return model.NewPriceAggregate(
-		"trade",
-		&model.PricePoint{
-			Pair:  pair,
-			Price: price,
-		},
-		pas...,
-	), nil
+	pp := convert(*pas[0], *pas[1], s)
+
+	return model.NewPriceAggregate("trade", &pp, pas...), nil
+
+}
+
+func convert(p, q model.PriceAggregate, x string) model.PricePoint {
+	if q.Pair.Quote == x {
+		if p.Pair.Base == x {
+			return model.PricePoint{
+				Pair:  &model.Pair{Base: p.Pair.Quote, Quote: q.Pair.Base},
+				Price: 1 / p.Price / q.Price,
+			}
+		}
+		return model.PricePoint{
+			Pair:  &model.Pair{Base: p.Pair.Base, Quote: q.Pair.Base},
+			Price: p.Price / q.Price,
+		}
+	}
+	if p.Pair.Base == x {
+		return model.PricePoint{
+			Pair:  &model.Pair{Base: p.Pair.Quote, Quote: q.Pair.Quote},
+			Price: q.Price / p.Price,
+		}
+	}
+	return model.PricePoint{
+		Pair:  &model.Pair{Base: p.Pair.Base, Quote: q.Pair.Quote},
+		Price: q.Price * p.Price,
+	}
+}
+
+func findMediatingSymbol(pas []*model.PriceAggregate) (string, error) {
+	ss := make(map[string]int)
+	for _, pa := range pas {
+		ss[pa.Pair.Base]++
+		ss[pa.Pair.Quote]++
+	}
+	if len(ss) != 3 {
+		return "", fmt.Errorf("path cannot be calculated - need 3 symbols, got %d", len(ss))
+	}
+	var symbolMentionedTwice string
+	for s, i := range ss {
+		if i == 2 {
+			if symbolMentionedTwice != "" {
+				return "", errors.New("more than one symbol mentioned twice")
+			}
+			symbolMentionedTwice = s
+		}
+	}
+	if symbolMentionedTwice == "" {
+		return "", errors.New("none of the symbols mentioned twice")
+	}
+
+	return symbolMentionedTwice, nil
 }
 
 func (pmm PriceModelMap) resolvePath(cache CacheGetter, prp PriceRefPath) (*model.PriceAggregate, error) {

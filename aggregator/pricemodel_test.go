@@ -62,3 +62,56 @@ func TestPriceModel_String(t *testing.T) {
 	}
 
 }
+
+func Test_resolvePath(t *testing.T) {
+	tests := []struct {
+		name    string
+		first   *model.PriceAggregate
+		second  *model.PriceAggregate
+		want    *model.PriceAggregate
+		wantErr bool
+	}{{
+		name:   "convert(MKR/ETH,USD/ETH)=>MKR/USD",
+		first:  newTestPricePointAggregate(0, "exchange1", "MKR", "ETH", 10, 1),
+		second: newTestPricePointAggregate(0, "exchange2", "USD", "ETH", 20, 1),
+		want:   newTestPricePointAggregate(0, "trade", "MKR", "USD", 0.5, 1),
+	}, {
+		name:   "convert(ETH/MKR,USD/ETH)=>MKR/USD",
+		first:  newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 10, 1),
+		second: newTestPricePointAggregate(0, "exchange2", "USD", "ETH", 20, 1),
+		want:   newTestPricePointAggregate(0, "trade", "MKR", "USD", 0.005, 1),
+	}, {
+		name:   "convert(MKR/ETH,ETH/USD)=>MKR/USD",
+		first:  newTestPricePointAggregate(0, "exchange1", "MKR", "ETH", 10, 1),
+		second: newTestPricePointAggregate(0, "exchange2", "ETH", "USD", 20, 1),
+		want:   newTestPricePointAggregate(0, "trade", "MKR", "USD", 200, 1),
+	}, {
+		name:   "convert(ETH/MKR,ETH/USD)=>MKR/USD",
+		first:  newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 10, 1),
+		second: newTestPricePointAggregate(0, "exchange2", "ETH", "USD", 20, 1),
+		want:   newTestPricePointAggregate(0, "trade", "MKR", "USD", 2, 1),
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := resolvePath([]*model.PriceAggregate{tt.first, tt.second})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("resolvePath() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				// add failing tests here
+				return
+			}
+			if got.Pair.String() != tt.want.Pair.String() {
+				t.Errorf("resolvePath() got = %s, want %s", got, tt.want)
+				return
+			}
+			if got.Price != tt.want.Price {
+				t.Errorf("resolvePath() got = %f, want %f", got.Price, tt.want.Price)
+			}
+			if got.Exchange != tt.want.Exchange {
+				t.Errorf("resolvePath() got = %f, want %f", got.Exchange, tt.want.Exchange)
+			}
+		})
+	}
+}
