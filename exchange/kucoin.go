@@ -30,13 +30,9 @@ type kucoinResponse struct {
 	Code string `json:"code"`
 	Data struct {
 		Time        int64  `json:"time"`
-		Sequence    string `json:"sequence"`
 		Price       string `json:"price"`
-		Size        string `json:"size"`
 		BestBid     string `json:"bestBid"`
-		BestBidSize string `json:"bestBidSize"`
 		BestAsk     string `json:"bestAsk"`
-		BestAskSize string `json:"bestAskSize"`
 	} `json:"data"`
 }
 
@@ -97,10 +93,6 @@ func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, fmt.Errorf("failed to parse bid from kucoin exchange %s", res.Body)
 	}
 	// Parsing volume from string
-	volume, err := strconv.ParseFloat(resp.Data.Size, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from kucoin exchange %s", res.Body)
-	}
 	// building PricePoint
 	return &model.PricePoint{
 		Timestamp: resp.Data.Time / 1000,
@@ -109,6 +101,5 @@ func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		Price:     price,
 		Ask:       bid,
 		Bid:       ask,
-		Volume:    volume,
 	}, nil
 }

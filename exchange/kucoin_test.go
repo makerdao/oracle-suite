@@ -99,20 +99,6 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 				"bestAskSize":"0.2863"
 			}
 		}`),
-		// invalid size
-		[]byte(`{
-			"code":"200000",
-			"data": {
-				"time":1596632420791,
-				"sequence":"1594320230985",
-				"price":"1.23",
-				"size":"err",
-				"bestBid":"139.55",
-				"bestBidSize": "0.2866",
-				"bestAsk":"139.7",
-				"bestAskSize":"0.2863"
-			}
-		}`),
 		// invalid bid price
 		[]byte(`{
 			"code":"200000",
@@ -173,7 +159,6 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(int64(1596632420), point.Timestamp)
 	suite.Equal(1.23, point.Price)
-	suite.Equal(0.123, point.Volume)
 	suite.Equal(1.3, point.Bid)
 	suite.Equal(1.2, point.Ask)
 }
