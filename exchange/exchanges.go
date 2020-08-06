@@ -16,6 +16,8 @@
 package exchange
 
 import (
+	"fmt"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
 )
@@ -71,7 +73,7 @@ func Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoi
 
 	handler, ok := exchangeList[pp.Exchange.Name]
 	if !ok {
-		return nil, errUnknownExchange
+		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, pp.Exchange.Name)
 	}
 	return handler.Call(pool, pp)
 }
