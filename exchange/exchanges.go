@@ -54,6 +54,7 @@ var exchangeList = map[string]Handler{
 	"upbit":       &Upbit{},
 	"folgory":     &Folgory{},
 	"kraken":      &Kraken{},
+	"kucoin":      &Kucoin{},
 	"kyber":       &Kyber{},
 	"uniswap":     &Uniswap{},
 	"loopring":    &Loopring{},
