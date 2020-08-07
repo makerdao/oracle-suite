@@ -56,6 +56,7 @@ var exchangeList = map[string]Handler{
 	"kraken":      &Kraken{},
 	"kucoin":      &Kucoin{},
 	"kyber":       &Kyber{},
+	"okex":        &Okex{},
 	"uniswap":     &Uniswap{},
 	"loopring":    &Loopring{},
 }
