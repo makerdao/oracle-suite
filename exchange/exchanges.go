@@ -16,6 +16,8 @@
 package exchange
 
 import (
+	"fmt"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
 )
@@ -31,7 +33,7 @@ type Handler interface {
 	// GetURL should generate URL to get given `PotentialPricePoint`
 	GetURL(pp *model.PotentialPricePoint) string
 
-	// Call should implement making API request to exchange URL and collecting/parsing exhcange data
+	// Call should implement making API request to exchange URL and collecting/parsing exchange data
 	Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error)
 }
 
@@ -52,8 +54,11 @@ var exchangeList = map[string]Handler{
 	"upbit":       &Upbit{},
 	"folgory":     &Folgory{},
 	"kraken":      &Kraken{},
+	"kucoin":      &Kucoin{},
+	"kyber":       &Kyber{},
 	"okex":        &Okex{},
 	"uniswap":     &Uniswap{},
+	"loopring":    &Loopring{},
 }
 
 // Call makes exchange call
@@ -71,7 +76,7 @@ func Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoi
 
 	handler, ok := exchangeList[pp.Exchange.Name]
 	if !ok {
-		return nil, errUnknownExchange
+		return nil, fmt.Errorf("unknown exchange name given: %s", pp.Exchange.Name)
 	}
 	return handler.Call(pool, pp)
 }

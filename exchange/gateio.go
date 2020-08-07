@@ -27,11 +27,18 @@ import (
 )
 
 // Gateio URL
-const gateioURL = "https://fx-api.gateio.ws/api/v4/futures/tickers?contract=%s"
+const gateioURL = "https://fx-api.gateio.ws/api/v4/spot/tickers?currency_pair=%s"
 
+// {"currency_pair":"LRC_USDT","last":"0.12176","lowest_ask":"0.12355","highest_bid":"0.12225",
+//"change_percentage":"7.87",
+//"base_volume":"2705363.321762761","quote_volume":"331862.539837944479403",
+//"high_24h":"0.13315","low_24h":"0.10868"}
 type gateioResponse struct {
-	Volume string `json:"volume_24h_base"`
+	Pair   string `json:"currency_pair"`
+	Volume string `json:"quote_volume"`
 	Price  string `json:"last"`
+	Ask    string `json:"lowest_ask"`
+	Bid    string `json:"highest_bid"`
 }
 
 // Gateio exchange handler
@@ -80,24 +87,41 @@ func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, fmt.Errorf("failed to parse gateio response: %w", err)
 	}
 	if len(resp) < 1 {
-		return nil, fmt.Errorf("wrong gateio response %s", res.Body)
+		return nil, fmt.Errorf("wrong gateio response: %s", res.Body)
+	}
+	// Check pair name
+	if resp[0].Pair != g.LocalPairName(pp.Pair) {
+		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from gateio exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from gateio exchange: %s", res.Body)
 	}
-	// Parsing price from string
+	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp[0].Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from gateio exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
 	}
+
+	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
+	}
+
+	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
+	}
+
 	// building PricePoint
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,
 		Price:     price,
 		Volume:    volume,
+		Ask:       ask,
+		Bid:       bid,
 		Timestamp: time.Now().Unix(),
 	}, nil
 }

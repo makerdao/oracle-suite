@@ -61,6 +61,9 @@ func (k *Kraken) getSymbol(symbol string) string {
 
 // LocalPairName implementation
 func (k *Kraken) LocalPairName(pair *model.Pair) string {
+	if pair.Base == "USDT" {
+		return strings.ToUpper(fmt.Sprintf("%sZ%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote)))
+	}
 	return strings.ToUpper(fmt.Sprintf("X%sZ%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote)))
 }
 
