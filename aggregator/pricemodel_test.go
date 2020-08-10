@@ -71,35 +71,39 @@ func Test_resolvePath(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "convert(MKR/ETH,USD/ETH)=>MKR/USD",
+			name: "resolvePath()=>MKR/USD",
+			pas:  []*model.PriceAggregate{},
+			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 0.5, 1),
+		}, {
+			name: "resolvePath(MKR/ETH,USD/ETH)=>MKR/USD",
 			pas: []*model.PriceAggregate{
 				newTestPricePointAggregate(0, "exchange1", "MKR", "ETH", 10, 1),
 				newTestPricePointAggregate(0, "exchange2", "USD", "ETH", 20, 1),
 			},
 			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 0.5, 1),
 		}, {
-			name: "convert(ETH/MKR,USD/ETH)=>MKR/USD",
+			name: "resolvePath(ETH/MKR,USD/ETH)=>MKR/USD",
 			pas: []*model.PriceAggregate{
 				newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 10, 1),
 				newTestPricePointAggregate(0, "exchange2", "USD", "ETH", 20, 1),
 			},
 			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 0.005, 1),
 		}, {
-			name: "convert(MKR/ETH,ETH/USD)=>MKR/USD",
+			name: "resolvePath(MKR/ETH,ETH/USD)=>MKR/USD",
 			pas: []*model.PriceAggregate{
 				newTestPricePointAggregate(0, "exchange1", "MKR", "ETH", 10, 1),
 				newTestPricePointAggregate(0, "exchange2", "ETH", "USD", 20, 1),
 			},
 			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 200, 1),
 		}, {
-			name: "convert(ETH/MKR,ETH/USD)=>MKR/USD",
+			name: "resolvePath(ETH/MKR,ETH/USD)=>MKR/USD",
 			pas: []*model.PriceAggregate{
 				newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 5, 1),
 				newTestPricePointAggregate(0, "exchange2", "ETH", "USD", 20, 1),
 			},
 			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 4, 1),
 		}, {
-			name: "convert(ETH/MKR,ETH/BTC,BTC/USD)=>MKR/USD",
+			name: "resolvePath(ETH/MKR,ETH/BTC,BTC/USD)=>MKR/USD",
 			pas: []*model.PriceAggregate{
 				newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 5, 1),
 				newTestPricePointAggregate(0, "exchange2", "ETH", "BTC", 20, 1),
