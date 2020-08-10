@@ -28,30 +28,30 @@ import (
 // Define the suite, and absorb the built-in basic suite
 // functionality from testify - including a T() method which
 // returns the current testing context
-type GateioSuite struct {
+type KucoinSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
 	exchange Handler
 }
 
 // Setup exchange
-func (suite *GateioSuite) SetupSuite() {
-	suite.exchange = &Gateio{}
+func (suite *KucoinSuite) SetupSuite() {
+	suite.exchange = &Kucoin{}
 }
 
-func (suite *GateioSuite) TearDownTest() {
+func (suite *KucoinSuite) TearDownTest() {
 	// cleanup created pool from prev test
 	if suite.pool != nil {
 		suite.pool = nil
 	}
 }
 
-func (suite *GateioSuite) TestLocalPair() {
-	suite.EqualValues("BTC_ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTC_USD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+func (suite *KucoinSuite) TestLocalPair() {
+	suite.EqualValues("BTC-ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("BTC-USDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
-func (suite *GateioSuite) TestFailOnWrongInput() {
+func (suite *KucoinSuite) TestFailOnWrongInput() {
 	// no pool
 	_, err := suite.exchange.Call(nil, nil)
 	suite.Equal(errNoPoolPassed, err)
@@ -64,7 +64,7 @@ func (suite *GateioSuite) TestFailOnWrongInput() {
 	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
 	suite.Error(err)
 
-	pp := newPotentialPricePoint("gateio", "BTC", "ETH")
+	pp := newPotentialPricePoint("kucoin", "BTC", "ETH")
 	// nil as response
 	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
 	suite.Equal(errEmptyExchangeResponse, err)
@@ -84,46 +84,87 @@ func (suite *GateioSuite) TestFailOnWrongInput() {
 	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.Error(err)
 
-	// Error unmarshal
-	resp = &query.HTTPResponse{
-		Body: []byte("[{}]"),
+	for n, r := range [][]byte{
+		// invalid price
+		[]byte(`{
+			"code":"200000",
+			"data": {
+				"time":1596632420791,
+				"sequence":"1594320230985",
+				"price":"err",
+				"size":"0.129",
+				"bestBid":"139.55",
+				"bestBidSize": "0.2866",
+				"bestAsk":"139.7",
+				"bestAskSize":"0.2863"
+			}
+		}`),
+		// invalid bid price
+		[]byte(`{
+			"code":"200000",
+			"data": {
+				"time":1596632420791,
+				"sequence":"1594320230985",
+				"price":"1.23",
+				"size":"0.129",
+				"bestBid":"err",
+				"bestBidSize": "0.2866",
+				"bestAsk":"139.7",
+				"bestAskSize":"0.2863"
+			}
+		}`),
+		// invalid ask price
+		[]byte(`{
+			"code":"200000",
+			"data": {
+				"time":1596632420791,
+				"sequence":"1594320230985",
+				"price":"1.23",
+				"size":"0.129",
+				"bestBid":"139.55",
+				"bestBidSize": "0.2866",
+				"bestAsk":"err",
+				"bestAskSize":"0.2863"
+			}
+		}`),
+	} {
+		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
+			resp = &query.HTTPResponse{Body: r}
+			_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+			suite.Error(err)
+		})
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
-	suite.Error(err)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`[{"last":"abc"}]`),
-	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
-	suite.Error(err)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`[{"last":"1","currency_pair":"abc"}]`),
-	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
-	suite.Error(err)
 }
 
-func (suite *GateioSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("gateio", "BTC", "ETH")
+func (suite *KucoinSuite) TestSuccessResponse() {
+	pp := newPotentialPricePoint("kucoin", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`[{"currency_pair":"BTC_ETH","last":"1","lowest_ask":"2","highest_bid":"3","quote_volume":"4"}]`),
+		Body: []byte(`{
+			"code":"200000",
+			"data": {
+				"time":1596632420791,
+				"sequence":"1594320230985",
+				"price":"1.23",
+				"size":"0.123",
+				"bestBid":"1.2",
+				"bestBidSize": "0.2866",
+				"bestAsk":"1.3",
+				"bestAskSize":"0.2863"
+			}
+		}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.0, point.Price)
-	suite.Equal(2.0, point.Ask)
-	suite.Equal(3.0, point.Bid)
-	suite.Equal(4.0, point.Volume)
-	suite.Greater(point.Timestamp, int64(2))
+	suite.Equal(int64(1596632420), point.Timestamp)
+	suite.Equal(1.23, point.Price)
+	suite.Equal(1.3, point.Bid)
+	suite.Equal(1.2, point.Ask)
 }
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
-func TestGateioSuite(t *testing.T) {
-	suite.Run(t, new(GateioSuite))
+func TestKucoinSuite(t *testing.T) {
+	suite.Run(t, new(KucoinSuite))
 }
