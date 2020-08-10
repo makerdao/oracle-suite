@@ -52,10 +52,10 @@ func (b *Bitfinex) GetURL(pp *model.PotentialPricePoint) string {
 	if pp.Exchange == nil {
 		pair = b.LocalPairName(pp.Pair)
 	} else {
-		pair, ok := pp.Exchange.Config["pair"]
-		if !ok || pair == "" {
-			pair = b.LocalPairName(pp.Pair)
-		}
+		pair = pp.Exchange.Config["pair"]
+	}
+	if pair == "" {
+		pair = b.LocalPairName(pp.Pair)
 	}
 	return fmt.Sprintf(bitfinexURL, pair)
 }
