@@ -15,7 +15,10 @@
 
 package exchange
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil PotentialPricePoint")
 
@@ -28,3 +31,5 @@ var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for 
 var errNoPoolPassed = fmt.Errorf("no query worker pool passed")
 
 var errEmptyExchangeResponse = fmt.Errorf("empty exchange response received")
+
+var errUnknownExchange = errors.New("unknown exchange")
