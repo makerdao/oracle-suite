@@ -71,9 +71,15 @@ func Test_resolvePath(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "resolvePath()=>MKR/USD",
-			pas:  []*model.PriceAggregate{},
-			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 0.5, 1),
+			name:    "resolvePath()=>MKR/USD",
+			pas:     []*model.PriceAggregate{},
+			wantErr: true,
+		}, {
+			name: "resolvePath(MKR/USD)=>MKR/USD",
+			pas: []*model.PriceAggregate{
+				newTestPricePointAggregate(0, "exchange1", "MKR", "USD", 123, 1),
+			},
+			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 123, 1),
 		}, {
 			name: "resolvePath(MKR/ETH,USD/ETH)=>MKR/USD",
 			pas: []*model.PriceAggregate{
