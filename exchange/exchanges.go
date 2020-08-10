@@ -76,7 +76,7 @@ func Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoi
 
 	handler, ok := exchangeList[pp.Exchange.Name]
 	if !ok {
-		return nil, fmt.Errorf("unknown exchange name given: %s", pp.Exchange.Name)
+		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, pp.Exchange.Name)
 	}
 	return handler.Call(pool, pp)
 }

@@ -16,6 +16,7 @@
 package aggregator
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -173,26 +174,53 @@ func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) ([]*
 
 // Calculate the final model.trade price of an ordered list of prices
 func resolvePath(pas []*model.PriceAggregate) (*model.PriceAggregate, error) {
-	if len(pas) == 1 {
+	if len(pas) == 0 {
+		return nil, errors.New("empty aggregate list")
+	} else if len(pas) == 1 {
 		return pas[0], nil
-	}
+	} else if len(pas) == 2 {
+		return indirectPair(pas[0], pas[1])
+	} else {
+		cpas := make([]*model.PriceAggregate, len(pas))
+		copy(cpas, pas)
 
-	var pair *model.Pair
-	var price float64
+		for len(cpas) != 1 {
+			ipa, err := indirectPair(cpas[0], cpas[1])
+			if err != nil {
+				return nil, err
+			}
 
-	for _, pa := range pas {
-		if pair == nil {
-			pair = pa.Pair.Clone()
-			price = pa.Price
-		} else if pair.Quote == pa.Pair.Quote {
-			price = pa.Price / price
-			pair.Quote = pa.Pair.Base
-		} else if pair.Quote == pa.Pair.Base {
-			price *= pa.Price
-			pair.Quote = pa.Pair.Quote
-		} else {
-			return nil, fmt.Errorf("can't convert between %s and %s", pair, pa.Pair)
+			cpas = cpas[1:]
+			cpas[0] = ipa
 		}
+
+		return cpas[0], nil
+	}
+}
+
+func indirectPair(a *model.PriceAggregate, b *model.PriceAggregate) (*model.PriceAggregate, error) {
+	pair := &model.Pair{}
+	price := float64(0)
+
+	switch true {
+	case a.Pair.Quote == b.Pair.Quote: // A/C, B/C
+		pair.Base = a.Pair.Base
+		pair.Quote = b.Pair.Base
+		price = a.Price / b.Price
+	case a.Pair.Base == b.Pair.Base: // C/A, C/B
+		pair.Base = a.Pair.Quote
+		pair.Quote = b.Pair.Quote
+		price = b.Price / a.Price
+	case a.Pair.Quote == b.Pair.Base: // A/C, C/B
+		pair.Base = a.Pair.Base
+		pair.Quote = b.Pair.Quote
+		price = a.Price * b.Price
+	case a.Pair.Base == b.Pair.Quote: // C/A, B/C
+		pair.Base = a.Pair.Quote
+		pair.Quote = b.Pair.Base
+		price = (float64(1) / b.Price) / a.Price
+	default:
+		return nil, fmt.Errorf("can't convert between %s and %s", a.Pair, b.Pair)
 	}
 
 	return model.NewPriceAggregate(
@@ -201,7 +229,7 @@ func resolvePath(pas []*model.PriceAggregate) (*model.PriceAggregate, error) {
 			Pair:  pair,
 			Price: price,
 		},
-		pas...,
+		[]*model.PriceAggregate{a, b}...,
 	), nil
 }
 

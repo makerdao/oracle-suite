@@ -143,8 +143,8 @@ func TestSetzAggregatorIntegration(t *testing.T) {
 	ppps := gofer.aggregator.GetSources([]*model.Pair{model.NewPair("B", "C")})
 
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
-		{ Exchange: &model.Exchange{ Name: "e-a" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e-b" }, Pair: model.NewPair("b", "c") },
+		{Exchange: &model.Exchange{Name: "e-a"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e-b"}, Pair: model.NewPair("b", "c")},
 	}, ppps)
 
 	for i := 0; i < 1; i++ {
@@ -159,15 +159,15 @@ func TestSetzAggregatorIntegration(t *testing.T) {
 
 		resBC := res[*model.NewPair("B", "C")]
 		assert.NotNil(t, resBC)
-		assert.Equal(t, 2.0 + (4 - 2) / 2, resBC.Price)
+		assert.Equal(t, 2.0+(4-2)/2, resBC.Price)
 
 		resAC := res[*model.NewPair("A", "C")]
 		assert.NotNil(t, resAC)
-		assert.Equal(t, 8 + (16 * 3.0 - 8) / 2, resAC.Price)
+		assert.Equal(t, 8+(16*3.0-8)/2, resAC.Price)
 
 		resDE := res[*model.NewPair("D", "E")]
 		assert.NotNil(t, resDE)
-		assert.Equal(t, 64.0 / 32, resDE.Price)
+		assert.Equal(t, 32.0/64, resDE.Price)
 
 		resXY := res[*model.NewPair("X", "Y")]
 		assert.Nil(t, resXY, "no explicit price model for X/Y even though source price exists")

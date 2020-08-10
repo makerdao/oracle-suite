@@ -47,13 +47,13 @@ func TestSetzerAggregator(t *testing.T) {
 			},
 		},
 		{*model.NewPair("a", "c")}: PriceModel{
-			Method: "median",
+			Method:     "median",
 			MinSources: 2,
 			Sources: []PriceRefPath{
 				{PriceRef{Origin: "e1", Pair: Pair{*model.NewPair("a", "c")}}},
 				{
 					PriceRef{Origin: "e1", Pair: Pair{*model.NewPair("a", "b")}},
-					PriceRef{Origin: ".",  Pair: Pair{*model.NewPair("b", "c")}},
+					PriceRef{Origin: ".", Pair: Pair{*model.NewPair("b", "c")}},
 				},
 			},
 		},
@@ -67,7 +67,7 @@ func TestSetzerAggregator(t *testing.T) {
 			},
 		},
 		{*model.NewPair("g", "h")}: PriceModel{
-			Method: "median",
+			Method:     "median",
 			MinSources: 2,
 			Sources: []PriceRefPath{
 				{PriceRef{Origin: "e1", Pair: Pair{*model.NewPair("g", "h")}}},
@@ -84,9 +84,9 @@ func TestSetzerAggregator(t *testing.T) {
 	}
 
 	exchanges := []*model.Exchange{
-		{ Name: "e1" },
-		{ Name: "e2" },
-		{ Name: "e3", Config: map[string]string{"a": "1"} },
+		{Name: "e1"},
+		{Name: "e2"},
+		{Name: "e3", Config: map[string]string{"a": "1"}},
 	}
 
 	setz := NewSetz(exchanges, pmm)
@@ -101,7 +101,7 @@ func TestSetzerAggregator(t *testing.T) {
 	assert.NotNil(t, res)
 
 	assert.Equal(t, model.NewPair("a", "c"), res.Pair)
-	assert.Equal(t, 104.0 + (102 * 105 - 104) / 2, res.Price)
+	assert.Equal(t, 104.0+(102*105-104)/2, res.Price)
 
 	res = randomReduce(setz, model.NewPair("b", "c"), pas)
 	assert.NotNil(t, res)
@@ -113,38 +113,38 @@ func TestSetzerAggregator(t *testing.T) {
 	assert.NotNil(t, res)
 
 	assert.Equal(t, model.NewPair("d", "e"), res.Pair)
-	assert.Equal(t, 109.0 / 108, res.Price)
+	assert.Equal(t, 108.0/109, res.Price)
 
 	res = randomReduce(setz, model.NewPair("g", "h"), pas)
 	assert.Nil(t, res)
 
-	ppps := setz.GetSources([]*model.Pair{ model.NewPair("b", "c") })
+	ppps := setz.GetSources([]*model.Pair{model.NewPair("b", "c")})
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e2" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e3", Config: map[string]string{"a": "1"} }, Pair: model.NewPair("b", "c") },
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e3", Config: map[string]string{"a": "1"}}, Pair: model.NewPair("b", "c")},
 	}, ppps)
 
-	ppps = setz.GetSources([]*model.Pair{ model.NewPair("a", "c") })
+	ppps = setz.GetSources([]*model.Pair{model.NewPair("a", "c")})
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e2" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e3", Config: map[string]string{"a": "1"} }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("a", "c") },
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("a", "b") },
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e3", Config: map[string]string{"a": "1"}}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("a", "c")},
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("a", "b")},
 	}, ppps)
 
 	ppps = setz.GetSources(nil)
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e2" }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e3", Config: map[string]string{"a": "1"} }, Pair: model.NewPair("b", "c") },
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("a", "c") },
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("a", "b") },
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("d", "f") },
-		{ Exchange: &model.Exchange{ Name: "e2" }, Pair: model.NewPair("e", "f") },
-		{ Exchange: &model.Exchange{ Name: "e4" }, Pair: model.NewPair("x", "y") },
-		{ Exchange: &model.Exchange{ Name: "no" }, Pair: model.NewPair("n", "o") },
-		{ Exchange: &model.Exchange{ Name: "e1" }, Pair: model.NewPair("g", "h") },
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e3", Config: map[string]string{"a": "1"}}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("a", "c")},
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("a", "b")},
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("d", "f")},
+		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("e", "f")},
+		{Exchange: &model.Exchange{Name: "e4"}, Pair: model.NewPair("x", "y")},
+		{Exchange: &model.Exchange{Name: "no"}, Pair: model.NewPair("n", "o")},
+		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("g", "h")},
 	}, ppps)
 }
