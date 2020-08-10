@@ -1,0 +1,31 @@
+{
+  "aggregator": {
+    "name": "setzer",
+    "parameters": {
+      "pricemodels": {
+        "BAT/USD": {
+          "method": "median",
+          "minSourceSuccess": 3,
+          "sources": [
+            [{ "origin": "binance", "pair": "BAT/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "bittrex", "pair": "BAT/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "coinbase", "pair": "BAT/USDC" }],
+            [{ "origin": "upbit", "pair": "BAT/KRW" },{ "origin": "fx", "pair": "KRW/USD" }]
+          ]
+        },
+        "ETH/USD": {
+          "method": "median",
+          "minSourceSuccess": 4,
+          "sources": [
+            [{ "origin": "binance", "pair": "ETH/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "bitfinex", "pair": "ETH/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
+            [{ "origin": "bitstamp", "pair": "ETH/USD" }],
+            [{ "origin": "coinbase", "pair": "ETH/USD" }],
+            [{ "origin": "gemini", "pair": "ETH/USD" }],
+            [{ "origin": "kraken", "pair": "ETH/USD" }]
+          ]
+        }
+      }
+    }
+  }
+}

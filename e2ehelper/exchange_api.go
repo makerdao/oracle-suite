@@ -41,6 +41,8 @@ func newPotentialPoint(base, quote string) *model.PotentialPricePoint {
 
 func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
 	ethUsd := newPotentialPoint("ETH", "USD")
+	ethBtc := newPotentialPoint("ETH", "BTC")
+	ethUsdt := newPotentialPoint("ETH", "USDT")
 	batUsd := newPotentialPoint("BAT", "USD")
 	batBtc := newPotentialPoint("BAT", "BTC")
 	btcUsd := newPotentialPoint("BTC", "USD")
@@ -53,6 +55,7 @@ func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
 	kraken := &exchange.Kraken{}
 	binance := &exchange.Binance{}
 	bittrex := &exchange.BitTrex{}
+	bitfinex := &exchange.Bitfinex{}
 	upbit := &exchange.Upbit{}
 	fx := &exchange.Fx{}
 
@@ -68,8 +71,10 @@ func (mwp *FakeWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
 		body = "{\"error\":[],\"result\":{\"XETHZUSD\":{\"a\":[\"239.76000\",\"4\",\"4.000\"],\"b\":[\"239.75000\",\"1\",\"1.000\"],\"c\":[\"239.74000\",\"0.19083179\"],\"v\":[\"31378.67589429\",\"106844.51178263\"],\"p\":[\"237.40044\",\"236.61147\"],\"t\":[4495,15800],\"l\":[\"233.47000\",\"218.48000\"],\"h\":[\"240.70000\",\"252.29000\"],\"o\":\"237.55000\"}}}"
 	case binance.GetURL(batBtc):
 		body = "{\"symbol\":\"BATBTC\",\"price\":\"0.00002489\"}"
-	case binance.GetURL(btcUsd):
-		body = "{\"symbol\":\"BTCUSDC\",\"price\":\"9813.38000000\"}"
+	case binance.GetURL(ethBtc):
+		body = "{\"symbol\":\"ETHBTC\",\"price\":\"0.03298700\"}"
+	case bitfinex.GetURL(ethUsdt):
+		body = "[395.35,527.27243938,395.36,1001.1600643000002,1.10541502,0.0028,395.36,79015.64811632,400.4,382.45]"
 	case bittrex.GetURL(batBtc):
 		body = "{\"success\":true,\"message\":\"\",\"result\":{\"Bid\":0.00002484,\"Ask\":0.00002493,\"Last\":0.00002488}}"
 	case bittrex.GetURL(btcUsd):
