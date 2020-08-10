@@ -16,6 +16,7 @@
 package aggregator
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -173,15 +174,15 @@ func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) ([]*
 
 // Calculate the final model.trade price of an ordered list of prices
 func resolvePath(pas []*model.PriceAggregate) (*model.PriceAggregate, error) {
-	if len(pas) == 1 {
+	if len(pas) == 0 {
+		return nil, errors.New("empty aggregate list")
+	} else if len(pas) == 1 {
 		return pas[0], nil
 	} else if len(pas) == 2 {
 		return indirectPair(pas[0], pas[1])
 	} else {
 		cpas := make([]*model.PriceAggregate, len(pas))
-		for i, pa := range pas {
-			cpas[i] = pa
-		}
+		copy(cpas, pas)
 
 		for len(cpas) != 1 {
 			ipa, err := indirectPair(cpas[0], cpas[1])

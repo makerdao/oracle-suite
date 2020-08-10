@@ -116,6 +116,21 @@ func Test_resolvePath(t *testing.T) {
 				newTestPricePointAggregate(0, "exchange2", "BTC", "USD", 3, 1),
 			},
 			want: newTestPricePointAggregate(0, "trade", "MKR", "USD", 12, 1),
+		}, {
+			name: "convert(ETH/MKR,BTC/USD)=>error",
+			pas: []*model.PriceAggregate{
+				newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 10, 1),
+				newTestPricePointAggregate(0, "exchange2", "BTC", "USD", 20, 1),
+			},
+			wantErr: true,
+		}, {
+			name: "convert(ETH/MKR,ETH/BTC,USDT/USD)=>error",
+			pas: []*model.PriceAggregate{
+				newTestPricePointAggregate(0, "exchange1", "ETH", "MKR", 5, 1),
+				newTestPricePointAggregate(0, "exchange2", "ETH", "BTC", 20, 1),
+				newTestPricePointAggregate(0, "exchange2", "USDT", "USD", 3, 1),
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
