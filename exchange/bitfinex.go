@@ -47,9 +47,15 @@ func (b *Bitfinex) LocalPairName(pair *model.Pair) string {
 
 // GetURL implementation
 func (b *Bitfinex) GetURL(pp *model.PotentialPricePoint) string {
-	pair, ok := pp.Exchange.Config["pair"]
-	if !ok || pair == "" {
+	var pair string
+
+	if pp.Exchange == nil {
 		pair = b.LocalPairName(pp.Pair)
+	} else {
+		pair, ok := pp.Exchange.Config["pair"]
+		if !ok || pair == "" {
+			pair = b.LocalPairName(pp.Pair)
+		}
 	}
 	return fmt.Sprintf(bitfinexURL, pair)
 }

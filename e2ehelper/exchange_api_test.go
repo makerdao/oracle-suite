@@ -18,27 +18,39 @@ package e2ehelper
 import (
 	"testing"
 
+	"github.com/makerdao/gofer"
+
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/exchange"
 	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 )
 
 func TestResponse(t *testing.T) {
 	wp := NewFakeWorkerPool()
-
 	assert.NotNil(t, wp)
 
-	ethUsd := &model.PotentialPricePoint{
-		Pair: &model.Pair{
-			Base:  "ETH",
-			Quote: "USD",
-		},
-	}
-	bitstamp := &exchange.Bitstamp{}
-	resp := wp.Query(&query.HTTPRequest{URL: bitstamp.GetURL(ethUsd)})
+	processor := gofer.NewProcessor(wp)
+	assert.NotNil(t, processor)
 
-	assert.NotNil(t, resp)
-	t.Log(string(resp.Body))
+	goferLib, err := gofer.ReadFile("./test.gofer.json")
+	assert.NoError(t, err)
+	assert.NotNil(t, goferLib)
+
+	goferLib.SetProcessor(processor)
+
+	ethUsd := model.NewPair("ETH", "USD")
+
+	list, err := goferLib.Prices(ethUsd)
+	assert.NoError(t, err)
+
+	res, ok := list[*ethUsd]
+	assert.True(t, ok)
+	assert.NotNil(t, res)
+
+	assert.Equal(t, "median", res.PriceModelName)
+	assert.Equal(t, 5, len(res.Prices))
+
+	assert.NotNil(t, res.PricePoint)
+	assert.Equal(t, *ethUsd, *res.PricePoint.Pair)
+	assert.Equal(t, 239.71, res.PricePoint.Price)
 }

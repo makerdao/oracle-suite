@@ -3,6 +3,28 @@
     "name": "setzer",
     "parameters": {
       "pricemodels": {
+        "BTC/USD": {
+          "method": "median",
+          "minSourceSuccess": 3,
+          "sources": [
+            [{ "origin": "bitstamp", "pair": "BTC/USD" }],
+            [{ "origin": "bittrex", "pair": "BTC/USD" }],
+            [{ "origin": "coinbase", "pair": "BTC/USD" }],
+            [{ "origin": "gemini", "pair": "BTC/USD" }],
+            [{ "origin": "kraken", "pair": "BTC/USD" }]
+          ]
+        },
+        "USDT/USD": {
+          "method": "median",
+          "minSourceSuccess": 3,
+          "sources": [
+            [{ "origin": "binance", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "huobi", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "okex", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "bitfinex", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "kraken", "pair": "USDT/USD" }]
+          ]
+        },
         "BAT/USD": {
           "method": "median",
           "minSourceSuccess": 3,

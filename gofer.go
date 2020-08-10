@@ -34,6 +34,11 @@ func NewGofer(agg aggregator.Aggregator, processor AggregateProcessor) *Gofer {
 	}
 }
 
+// SetProcessor sets new `AggregateProcessor` to gofer instance
+func (g *Gofer) SetProcessor(processor AggregateProcessor) {
+	g.processor = processor
+}
+
 // Price returns a map of aggregated prices according
 func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
 	if _, err := g.processor.Process(pairs, g.aggregator); err != nil {

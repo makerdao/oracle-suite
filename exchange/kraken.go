@@ -43,6 +43,10 @@ type krakenResponse struct {
 type Kraken struct{}
 
 func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
+	if pp.Exchange == nil {
+		return k.LocalPairName(pp.Pair)
+	}
+
 	pair, ok := pp.Exchange.Config["pair"]
 	if !ok || pair == "" {
 		pair = k.LocalPairName(pp.Pair)
