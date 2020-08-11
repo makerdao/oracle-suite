@@ -49,6 +49,7 @@ func (suite *UniswapSuite) TearDownTest() {
 func (suite *UniswapSuite) TestLocalPair() {
 	suite.EqualValues("0xcffdded873554f362ac02f8fb1f02e5ada10516f", suite.exchange.LocalPairName(model.NewPair("COMP", "ETH")))
 	suite.EqualValues("0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70", suite.exchange.LocalPairName(model.NewPair("LRC", "ETH")))
+	suite.EqualValues("0xf49c43ae0faf37217bdcb00df478cf793edd6687", suite.exchange.LocalPairName(model.NewPair("KNC", "ETH")))
 }
 
 func (suite *UniswapSuite) TestFailOnWrongInput() {
@@ -116,7 +117,19 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 func (suite *UniswapSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("uniswap", "COMP", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"data":{"pairs":[{"token1Price":"1"}]}}`),
+		Body: []byte(`{"data":{"pairs":[{"token0Price":"0", "token1Price":"1"}]}}`),
+	}
+	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.NoError(err)
+	suite.Equal(pp.Exchange, point.Exchange)
+	suite.Equal(pp.Pair, point.Pair)
+	suite.Equal(1.0, point.Price)
+}
+
+func (suite *UniswapSuite) TestSuccessResponseForToken0Price() {
+	pp := newPotentialPricePoint("uniswap", "KNC", "ETH")
+	resp := &query.HTTPResponse{
+		Body: []byte(`{"data":{"pairs":[{"token0Price":"1", "token1Price":"2"}]}}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)

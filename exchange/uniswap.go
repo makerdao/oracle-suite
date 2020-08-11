@@ -30,13 +30,21 @@ import (
 const uniswapURL = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2"
 
 type uniswapPairResponse struct {
-	Price string `json:"token1Price"`
+	Price0 string `json:"token0Price"`
+	Price  string `json:"token1Price"`
 }
 
 type uniswapResponse struct {
 	Data struct {
 		Pairs []*uniswapPairResponse
 	}
+}
+
+func getPriceByPair(pair model.Pair, res *uniswapPairResponse) string {
+	if pair == *model.NewPair("KNC", "ETH") {
+		return res.Price0
+	}
+	return res.Price
 }
 
 // Uniswap exchange handler
@@ -49,6 +57,8 @@ func (k *Uniswap) LocalPairName(pair *model.Pair) string {
 		return "0xcffdded873554f362ac02f8fb1f02e5ada10516f"
 	case *model.NewPair("LRC", "ETH"):
 		return "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70"
+	case *model.NewPair("KNC", "ETH"):
+		return "0xf49c43ae0faf37217bdcb00df478cf793edd6687"
 	default:
 		return pair.String()
 	}
@@ -70,7 +80,7 @@ func (k *Uniswap) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	}
 
 	pair := k.LocalPairName(pp.Pair)
-	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token1Price}}","variables":{"id":"%s"}}`, pair)
+	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`, pair)
 
 	req := &query.HTTPRequest{
 		URL:    k.GetURL(pp),
@@ -95,11 +105,13 @@ func (k *Uniswap) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	if len(resp.Data.Pairs) == 0 {
 		return nil, fmt.Errorf("failed to parse uniswap response: no pairs %s", res.Body)
 	}
-	if resp.Data.Pairs[0].Price == "" {
+	// Due to API for some pairs like `KNC/ETH` we have to take `token0Price` field rather than `token1Price`
+	priceStr := getPriceByPair(*pp.Pair, resp.Data.Pairs[0])
+	if priceStr == "" {
 		return nil, fmt.Errorf("failed to parse uniswap price: %s", res.Body)
 	}
 	// Parsing price from string
-	price, err := strconv.ParseFloat(resp.Data.Pairs[0].Price, 64)
+	price, err := strconv.ParseFloat(priceStr, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse price from uniswap exchange %s", res.Body)
 	}
