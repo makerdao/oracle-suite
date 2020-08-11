@@ -45,6 +45,7 @@ var exchangeList = map[string]Handler{
 	"bittrex":     &BitTrex{},
 	"coinbase":    &Coinbase{},
 	"coinbasepro": &CoinbasePro{},
+	"ddex":        &Ddex{},
 	"fx":          &Fx{},
 	"gateio":      &Gateio{},
 	"gemini":      &Gemini{},
