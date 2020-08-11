@@ -19,6 +19,10 @@ test:
 	$(GO) test -tags $(TEST_FLAGS) ./...
 .PHONY: test
 
+test-e2e:
+	$(GO) test -tags $(TEST_FLAGS) ./e2ehelper
+.PHONY: e2etest
+
 bench:
 	$(GO) test -tags $(TEST_FLAGS) -bench=. ./...
 .PHONY: bench

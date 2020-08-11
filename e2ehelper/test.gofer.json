@@ -1,0 +1,53 @@
+{
+  "aggregator": {
+    "name": "setzer",
+    "parameters": {
+      "pricemodels": {
+        "BTC/USD": {
+          "method": "median",
+          "minSourceSuccess": 3,
+          "sources": [
+            [{ "origin": "bitstamp", "pair": "BTC/USD" }],
+            [{ "origin": "bittrex", "pair": "BTC/USD" }],
+            [{ "origin": "coinbase", "pair": "BTC/USD" }],
+            [{ "origin": "gemini", "pair": "BTC/USD" }],
+            [{ "origin": "kraken", "pair": "BTC/USD" }]
+          ]
+        },
+        "USDT/USD": {
+          "method": "median",
+          "minSourceSuccess": 3,
+          "sources": [
+            [{ "origin": "binance", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "huobi", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "okex", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "bitfinex", "pair": "BTC/USDT" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "kraken", "pair": "USDT/USD" }]
+          ]
+        },
+        "BAT/USD": {
+          "method": "median",
+          "minSourceSuccess": 3,
+          "sources": [
+            [{ "origin": "binance", "pair": "BAT/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "bittrex", "pair": "BAT/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "coinbase", "pair": "BAT/USDC" }],
+            [{ "origin": "upbit", "pair": "BAT/KRW" },{ "origin": "fx", "pair": "KRW/USD" }]
+          ]
+        },
+        "ETH/USD": {
+          "method": "median",
+          "minSourceSuccess": 4,
+          "sources": [
+            [{ "origin": "binance", "pair": "ETH/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+            [{ "origin": "bitfinex", "pair": "ETH/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
+            [{ "origin": "bitstamp", "pair": "ETH/USD" }],
+            [{ "origin": "coinbase", "pair": "ETH/USD" }],
+            [{ "origin": "gemini", "pair": "ETH/USD" }],
+            [{ "origin": "kraken", "pair": "ETH/USD" }]
+          ]
+        }
+      }
+    }
+  }
+}
