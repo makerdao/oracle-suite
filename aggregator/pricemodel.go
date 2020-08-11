@@ -194,6 +194,7 @@ func resolvePath(pas []*model.PriceAggregate) (*model.PriceAggregate, error) {
 			cpas[0] = ipa
 		}
 
+		cpas[0].Prices = pas
 		return cpas[0], nil
 	}
 }
