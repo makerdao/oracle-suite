@@ -27,9 +27,6 @@ import (
 // Exchange URL
 const ftxURL = "https://ftx.com/api/markets/%s"
 
-//{"result":{"ask":0.03316,"baseCurrency":"ETH","bid":0.033145,"change1h":0.0018129626831847711,"change24h":-0.0034565674782085962,"changeBod":-0.0027071740111294933,
-//"enabled":true,"last":0.033155,"minProvideSize":0.001,"name":"ETH/BTC","postOnly":false,"price":0.033155,"priceIncrement":2.5e-06,"quoteCurrency":"BTC",
-//"quoteVolume24h":151.137537585,"restricted":false,"sizeIncrement":0.001,"type":"spot","underlying":null,"volumeUsd24h":1733822.4404133873},"success":true}
 type ftxResponse struct {
 	Result struct {
 		Ask    float64 `json:"ask"`
