@@ -60,6 +60,7 @@ var exchangeList = map[string]Handler{
 	"okex":        &Okex{},
 	"uniswap":     &Uniswap{},
 	"loopring":    &Loopring{},
+	"ftx":         &Ftx{},
 }
 
 // Call makes exchange call
