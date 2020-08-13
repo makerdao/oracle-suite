@@ -55,7 +55,7 @@ func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggrega
 
 // Exchanges returns a list of Exchange that support all pairs
 func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
-	exchanges := make(map[string]*model.Exchange, 0)
+	exchanges := make(map[string]*model.Exchange)
 
 	// Get all exchanges for aggregator
 	for _, ppp := range g.aggregator.GetSources(pairs) {
