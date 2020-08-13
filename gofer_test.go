@@ -61,13 +61,14 @@ func (suite *GoferLibSuite) TestGoferLibExchanges() {
 	lib := NewGofer(suite.aggregator, suite.processor)
 
 	exchanges := lib.Exchanges(model.NewPair("a", "b"), model.NewPair("x", "y"))
-	assert.Len(t, exchanges, 0)
+	assert.Len(t, exchanges, 1)
 
 	exchanges = lib.Exchanges(model.NewPair("a", "b"), model.NewPair("a", "z"))
 	assert.ElementsMatch(
 		t,
 		[]*model.Exchange{
 			{Name: "exchange-a"},
+			{Name: "exchange-b"},
 		},
 		exchanges,
 	)
@@ -87,6 +88,7 @@ func (suite *GoferLibSuite) TestGoferLibExchanges() {
 		t,
 		[]*model.Exchange{
 			{Name: "exchange-c"},
+			{Name: "exchange-d"},
 		},
 		exchanges,
 	)

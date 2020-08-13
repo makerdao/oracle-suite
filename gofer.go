@@ -55,31 +55,16 @@ func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggrega
 
 // Exchanges returns a list of Exchange that support all pairs
 func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
-	exchanges := make(map[string]*model.Exchange)
+	exchanges := make(map[string]*model.Exchange, 0)
 
 	// Get all exchanges for aggregator
 	for _, ppp := range g.aggregator.GetSources(pairs) {
 		exchanges[ppp.Exchange.Name] = ppp.Exchange
 	}
 
-	// Find intersection of all exchanges per pair
-	for _, p := range pairs {
-		pairExchanges := make(map[string]bool)
-		for _, ppp := range g.aggregator.GetSources([]*model.Pair{p}) {
-			if ppp.Pair.Equal(p) {
-				pairExchanges[ppp.Exchange.Name] = true
-			}
-		}
-		for name := range exchanges {
-			if _, ok := pairExchanges[name]; !ok {
-				delete(exchanges, name)
-			}
-		}
-	}
-
-	var result []*model.Exchange
-	for _, e := range exchanges {
-		result = append(result, e)
+	result := make([]*model.Exchange, 0)
+	for _, exchange := range exchanges {
+		result = append(result, exchange)
 	}
 
 	return result
