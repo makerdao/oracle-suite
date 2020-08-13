@@ -31,6 +31,10 @@ lint:
 	golangci-lint run ./...
 .PHONY: lint
 
+lint-docker:
+	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:latest golangci-lint run
+.PHONY: lint-docker
+
 cover:
 	@mkdir -p $(dir $(COVER_FILE))
 	$(GO) test -tags $(TEST_FLAGS) -coverprofile=$(COVER_FILE) ./...
