@@ -66,7 +66,10 @@ linters-settings:
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
-    local-prefixes: github.com/makerdao/gofer-cli
+    local-prefixes: github.com/makerdao/gofer
+  # TODO: replace `make test-license` with goheader
+  #goheader:
+  #  template-path: ./LICENSE_HEADER
   gomnd:
     settings:
       mnd:
@@ -149,6 +152,7 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
+    #- goheader
     - goimports
     - golint
     - gomnd
