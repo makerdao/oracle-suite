@@ -21,7 +21,7 @@ jobs: # basic units of work in a run
       - run:
           name: Install test dependencies
           command: |
-            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.25.1
+            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.30.0
 
       - run:
           name: Check that source files have license header
