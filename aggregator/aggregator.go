@@ -33,26 +33,21 @@ type Aggregator interface {
 }
 
 type AggregatorParams struct {
-	Name string `json:"name"`
-	Parameters interface{} `json:"parameters"`
+	Name       string          `json:"name"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
-type AggregatorFactory func ([]byte) (Aggregator, error)
+type Factory func([]byte) (Aggregator, error)
 
-var AggregatorMap = map[string]AggregatorFactory {}
+var AggregatorMap = map[string]Factory{}
 
 func FromConfig(ap AggregatorParams) (Aggregator, error) {
-	rawParams, err := json.Marshal(ap.Parameters)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't re-marshal aggregator parameters: %w", err)
-	}
-
 	af, ok := AggregatorMap[ap.Name]
 	if !ok {
 		return nil, fmt.Errorf("no aggregator found with name \"%s\"", ap.Name)
 	}
 
-	return af(rawParams)
+	return af(ap.Parameters)
 }
 
 // Get price estimate from price point
@@ -91,7 +86,7 @@ func median(xs []float64) float64 {
 }
 
 func init() {
-	 AggregatorMap["setzer"] = NewSetzFromJSON
-	 AggregatorMap["median"] = NewMedianFromJSON
-	 AggregatorMap["path"] = NewPathFromJSON
+	AggregatorMap["setzer"] = NewSetzFromJSON
+	AggregatorMap["median"] = NewMedianFromJSON
+	AggregatorMap["path"] = NewPathFromJSON
 }
