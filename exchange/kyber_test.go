@@ -28,7 +28,7 @@ import (
 type KyberSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Kyber
 }
 
 func (suite *KyberSuite) SetupSuite() {
