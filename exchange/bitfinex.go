@@ -18,7 +18,6 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/model"
@@ -31,18 +30,15 @@ const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 // Bitfinex exchange handler
 type Bitfinex struct{}
 
-func (b *Bitfinex) renameSymbol(symbol string) string {
-	switch strings.ToUpper(symbol) {
-	case "USDT":
-		return "USD"
-	default:
-		return strings.ToUpper(symbol)
-	}
-}
-
 // LocalPairName implementation
 func (b *Bitfinex) LocalPairName(pair *model.Pair) string {
-	return strings.ToUpper(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
+	if pair.String() == "USDT/USD" {
+		return "USTUSD"
+	}
+	if pair.Quote == "USDT" {
+		return pair.Base + "USD"
+	}
+	return pair.Base + pair.Quote
 }
 
 // GetURL implementation
@@ -82,6 +78,7 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	// parsing JSON
 	var resp []float64
 	err = json.Unmarshal(res.Body, &resp)
@@ -91,6 +88,7 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	if len(resp) < 8 {
 		return nil, fmt.Errorf("wrong bitfinex response")
 	}
+
 	// building PricePoint
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
