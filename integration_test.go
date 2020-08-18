@@ -147,6 +147,15 @@ func TestSetzAggregatorIntegration(t *testing.T) {
 		{Exchange: &model.Exchange{Name: "e-b"}, Pair: model.NewPair("b", "c")},
 	}, ppps)
 
+	ppps = gofer.aggregator.GetSources([]*model.Pair{model.NewPair("A", "C")})
+
+	assert.ElementsMatch(t, []*model.PotentialPricePoint{
+		{Exchange: &model.Exchange{Name: "e-d"}, Pair: model.NewPair("a", "b")},
+		{Exchange: &model.Exchange{Name: "e-a"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e-b"}, Pair: model.NewPair("b", "c")},
+		{Exchange: &model.Exchange{Name: "e-c", Config: map[string]string{"a": "1"}}, Pair: model.NewPair("a", "c")},
+	}, ppps)
+
 	for i := 0; i < 1; i++ {
 		res, err := gofer.Prices(
 			model.NewPair("A", "C"),
