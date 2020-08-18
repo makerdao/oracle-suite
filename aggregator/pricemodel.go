@@ -283,7 +283,10 @@ func (pmm PriceModelMap) ResolveRef(cache CacheGetter, pr PriceRef) (*model.Pric
 
 	successes := len(result.Prices)
 	if successes == 0 || successes < m.MinSources {
-		return nil, fmt.Errorf("minimum amount of sources not met for '%s' in price model", pr.Pair.String())
+		return nil, fmt.Errorf(
+			"minimum number of sources not met for '%s' in price model: %d < %d",
+			pr.Pair.String(), successes, m.MinSources,
+		)
 	}
 
 	method, ok := PriceModelMethods[m.Method]
