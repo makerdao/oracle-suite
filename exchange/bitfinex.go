@@ -32,11 +32,13 @@ type Bitfinex struct{}
 
 // LocalPairName implementation
 func (b *Bitfinex) LocalPairName(pair *model.Pair) string {
-	if pair.Base == "USDT" && pair.Quote == "USD" {
+	const USDT = "USDT"
+	const USD = "USD"
+	if pair.Base == USDT && pair.Quote == USD {
 		return "USTUSD"
 	}
-	if pair.Quote == "USDT" {
-		return pair.Base + "USD"
+	if pair.Quote == USDT {
+		return pair.Base + USD
 	}
 	return pair.Base + pair.Quote
 }
