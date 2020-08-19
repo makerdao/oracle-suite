@@ -34,6 +34,10 @@ type GeminiSuite struct {
 	exchange Handler
 }
 
+func (suite *GeminiSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *GeminiSuite) SetupSuite() {
 	suite.exchange = &Gemini{}
@@ -119,6 +123,10 @@ func (suite *GeminiSuite) TestSuccessResponse() {
 	suite.Equal(2.0, point.Ask)
 	suite.Equal(4.0, point.Bid)
 	suite.Equal(point.Timestamp, int64(2))
+}
+
+func (suite *GeminiSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

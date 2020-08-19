@@ -34,6 +34,10 @@ type PoloniexSuite struct {
 	exchange Handler
 }
 
+func (suite *PoloniexSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *PoloniexSuite) SetupSuite() {
 	suite.exchange = &Poloniex{}
@@ -149,6 +153,10 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 	suite.Equal(3.0, point.Volume)
 	suite.Equal(4.0, point.Bid)
 	suite.Greater(point.Timestamp, int64(2))
+}
+
+func (suite *PoloniexSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

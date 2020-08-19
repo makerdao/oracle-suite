@@ -34,6 +34,10 @@ type UniswapSuite struct {
 	exchange Handler
 }
 
+func (suite *UniswapSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *UniswapSuite) SetupSuite() {
 	suite.exchange = &Uniswap{}
@@ -136,6 +140,10 @@ func (suite *UniswapSuite) TestSuccessResponseForToken0Price() {
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(1.0, point.Price)
+}
+
+func (suite *UniswapSuite) TestRealAPICall() {
+	testRealAPICall(suite, "COMP", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create

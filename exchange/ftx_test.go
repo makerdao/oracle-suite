@@ -34,6 +34,10 @@ type FtxSuite struct {
 	exchange Handler
 }
 
+func (suite *FtxSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *FtxSuite) SetupSuite() {
 	suite.exchange = &Ftx{}
@@ -123,6 +127,10 @@ func (suite *FtxSuite) TestSuccessResponse() {
 	suite.Equal(3.0, point.Bid)
 	suite.Equal(4.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(0))
+}
+
+func (suite *FtxSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

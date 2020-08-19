@@ -34,6 +34,10 @@ type KucoinSuite struct {
 	exchange Handler
 }
 
+func (suite *KucoinSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *KucoinSuite) SetupSuite() {
 	suite.exchange = &Kucoin{}
@@ -161,6 +165,10 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 	suite.Equal(1.23, point.Price)
 	suite.Equal(1.3, point.Bid)
 	suite.Equal(1.2, point.Ask)
+}
+
+func (suite *KucoinSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

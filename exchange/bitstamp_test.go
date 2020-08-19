@@ -34,6 +34,10 @@ type BitstampSuite struct {
 	exchange Handler
 }
 
+func (suite *BitstampSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *BitstampSuite) SetupSuite() {
 	suite.exchange = &Bitstamp{}
@@ -127,6 +131,10 @@ func (suite *BitstampSuite) TestSuccessResponse() {
 	suite.Equal(3.0, point.Volume)
 	suite.Equal(4.0, point.Bid)
 	suite.Equal(int64(5), point.Timestamp)
+}
+
+func (suite *BitstampSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

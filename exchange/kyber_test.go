@@ -31,6 +31,10 @@ type KyberSuite struct {
 	exchange *Kyber
 }
 
+func (suite *KyberSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 func (suite *KyberSuite) SetupSuite() {
 	suite.exchange = &Kyber{}
 }
@@ -170,6 +174,10 @@ func (suite *KyberSuite) TestSuccessResponse() {
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(10.0, point.Price)
+}
+
+func (suite *KyberSuite) TestRealAPICall() {
+	testRealAPICall(suite, "WBTC", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create

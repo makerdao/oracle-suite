@@ -34,6 +34,10 @@ type GateioSuite struct {
 	exchange Handler
 }
 
+func (suite *GateioSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *GateioSuite) SetupSuite() {
 	suite.exchange = &Gateio{}
@@ -120,6 +124,10 @@ func (suite *GateioSuite) TestSuccessResponse() {
 	suite.Equal(3.0, point.Bid)
 	suite.Equal(4.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(2))
+}
+
+func (suite *GateioSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

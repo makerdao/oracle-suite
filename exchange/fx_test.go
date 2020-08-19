@@ -34,6 +34,10 @@ type FxSuite struct {
 	exchange Handler
 }
 
+func (suite *FxSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *FxSuite) SetupSuite() {
 	suite.exchange = &Fx{}
@@ -109,6 +113,10 @@ func (suite *FxSuite) TestSuccessResponse() {
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(1.0, point.Price)
 	suite.Greater(point.Timestamp, int64(0))
+}
+
+func (suite *FxSuite) TestRealAPICall() {
+	testRealAPICall(suite, "USD", "EUR")
 }
 
 // In order for 'go test' to run this suite, we need to create

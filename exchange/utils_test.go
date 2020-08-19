@@ -18,7 +18,17 @@ package exchange
 import (
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"os"
 )
+
+type Suite interface {
+	suite.TestingSuite
+
+	Assert() *assert.Assertions
+	Exchange() Handler
+}
 
 // mockWorkerPool mock worker pool implementation for tests
 type mockWorkerPool struct {
@@ -56,4 +66,19 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 		},
 		Pair: p,
 	}
+}
+
+func testRealAPICall(suite Suite, base, quote string)  {
+	if "" == os.Getenv("GOFER_TEST_API_CALLS") {
+		suite.T().SkipNow()
+	}
+
+	wp := query.NewHTTPWorkerPool(1)
+	wp.Start()
+	ppp := newPotentialPricePoint("exchange", base, quote)
+	pp, err := suite.Exchange().Call(wp, ppp)
+	wp.Stop()
+
+	suite.Assert().NoError(err)
+	suite.Assert().Greater(pp.Price, float64(0))
 }

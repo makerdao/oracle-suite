@@ -33,6 +33,10 @@ type HitbtcSuite struct {
 	exchange Handler
 }
 
+func (suite *HitbtcSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *HitbtcSuite) SetupSuite() {
 	suite.exchange = &Hitbtc{}
@@ -126,6 +130,10 @@ func (suite *HitbtcSuite) TestSuccessResponse() {
 	suite.Equal(3.0, point.Volume)
 	suite.Equal(4.0, point.Bid)
 	suite.Greater(point.Timestamp, int64(2))
+}
+
+func (suite *HitbtcSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

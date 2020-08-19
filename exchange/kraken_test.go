@@ -34,6 +34,10 @@ type KrakenSuite struct {
 	exchange Handler
 }
 
+func (suite *KrakenSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *KrakenSuite) SetupSuite() {
 	suite.exchange = &Kraken{}
@@ -118,6 +122,10 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 	suite.Equal(1.0, point.Price)
 	suite.Equal(2.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(0))
+}
+
+func (suite *KrakenSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

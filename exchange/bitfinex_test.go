@@ -34,6 +34,10 @@ type BitfinexSuite struct {
 	exchange Handler
 }
 
+func (suite *BitfinexSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *BitfinexSuite) SetupSuite() {
 	suite.exchange = &Bitfinex{}
@@ -104,6 +108,10 @@ func (suite *BitfinexSuite) TestSuccessResponse() {
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(1.0, point.Price)
 	suite.Greater(point.Timestamp, int64(0))
+}
+
+func (suite *BitfinexSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create
