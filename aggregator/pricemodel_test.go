@@ -60,7 +60,6 @@ func TestPriceModel_String(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func Test_resolvePath(t *testing.T) {
@@ -153,4 +152,192 @@ func Test_resolvePath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_ResolveRef(t *testing.T) {
+	tests := []struct {
+		name    string
+		pmm     PriceModelMap
+		cache   PriceCache
+		pair    Pair
+		want    *model.PriceAggregate
+		wantErr bool
+	}{
+		{
+			name: "1 successful direct source, no limit",
+			pmm: PriceModelMap{
+				pair("A", "B"): PriceModel{
+					Method:     "median",
+					MinSources: 0,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("A", "B")}},
+					},
+				},
+			},
+			cache: PriceCache{
+				{pair: pair("A", "B"), exchangeName: "E-1"}: newTestPriceAggregate("", "A", "B", 12.0),
+			},
+			pair:    pair("A", "B"),
+			want:    newTestPriceAggregate("median", "A", "B", 12.0, newTestPriceAggregate("", "A", "B", 12.0)),
+			wantErr: false,
+		},
+		{
+			name: "1 failed direct source, no limit",
+			pmm: PriceModelMap{
+				pair("A", "B"): PriceModel{
+					Method:     "median",
+					MinSources: 0,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("A", "B")}},
+					},
+				},
+			},
+			cache:   PriceCache{},
+			pair:    pair("A", "B"),
+			wantErr: true,
+		},
+		{
+			name: "2 successful direct sources, limit 2",
+			pmm: PriceModelMap{
+				pair("A", "B"): PriceModel{
+					Method:     "median",
+					MinSources: 2,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("A", "B")}},
+						{PriceRef{Origin: "E-2", Pair: pair("A", "B")}},
+					},
+				},
+			},
+			cache: PriceCache{
+				{pair: pair("A", "B"), exchangeName: "E-1"}: newTestPriceAggregate("", "A", "B", 12.0),
+				{pair: pair("A", "B"), exchangeName: "E-2"}: newTestPriceAggregate("", "A", "B", 14.0),
+			},
+			pair: pair("A", "B"),
+			want: newTestPriceAggregate(
+				"median",
+				"A",
+				"B",
+				13.0,
+				newTestPriceAggregate("", "A", "B", 12.0),
+				newTestPriceAggregate("", "A", "B", 14.0),
+			),
+			wantErr: false,
+		},
+		{
+			name: "2 direct sources, 1 successful, limit 2",
+			pmm: PriceModelMap{
+				pair("A", "B"): PriceModel{
+					Method:     "median",
+					MinSources: 2,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("A", "B")}},
+						{PriceRef{Origin: "E-2", Pair: pair("A", "B")}},
+					},
+				},
+			},
+			cache: PriceCache{
+				{pair: pair("A", "B"), exchangeName: "E-1"}: newTestPriceAggregate("", "A", "B", 12.0),
+			},
+			pair:    pair("A", "B"),
+			wantErr: true,
+		},
+		{
+			name: "1 successful direct + 1 failing indirect source, limit 1",
+			pmm: PriceModelMap{
+				pair("A", "C"): PriceModel{
+					Method:     "median",
+					MinSources: 1,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("A", "B")}, PriceRef{Origin: ".", Pair: pair("B", "C")}},
+						{PriceRef{Origin: "E-1", Pair: pair("A", "C")}},
+					},
+				},
+				pair("B", "C"): PriceModel{
+					Method:     "median",
+					MinSources: 2,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("B", "C")}},
+						{PriceRef{Origin: "E-2", Pair: pair("B", "C")}},
+					},
+				},
+			},
+			cache: PriceCache{
+				{pair: pair("A", "B"), exchangeName: "E-1"}: newTestPriceAggregate("", "A", "B", 12.0),
+				{pair: pair("A", "C"), exchangeName: "E-1"}: newTestPriceAggregate("", "A", "C", 14.0),
+				{pair: pair("B", "C"), exchangeName: "E-1"}: newTestPriceAggregate("", "B", "C", 16.0),
+			},
+			pair:    pair("A", "C"),
+			want:    newTestPriceAggregate("median", "A", "C", 14.0, newTestPriceAggregate("", "A", "C", 14.0)),
+			wantErr: false,
+		},
+		{
+			name: "1 failing direct + 1 successful indirect source, limit 1",
+			pmm: PriceModelMap{
+				pair("A", "C"): PriceModel{
+					Method:     "median",
+					MinSources: 1,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("A", "B")}, PriceRef{Origin: ".", Pair: pair("B", "C")}},
+						{PriceRef{Origin: "E-1", Pair: pair("A", "C")}},
+					},
+				},
+				pair("B", "C"): PriceModel{
+					Method:     "median",
+					MinSources: 2,
+					Sources: []PriceRefPath{
+						{PriceRef{Origin: "E-1", Pair: pair("B", "C")}},
+						{PriceRef{Origin: "E-2", Pair: pair("B", "C")}},
+					},
+				},
+			},
+			cache: PriceCache{
+				{pair: pair("A", "B"), exchangeName: "E-1"}: newTestPriceAggregate("", "A", "B", 12.0),
+				{pair: pair("B", "C"), exchangeName: "E-1"}: newTestPriceAggregate("", "B", "C", 16.0),
+				{pair: pair("B", "C"), exchangeName: "E-2"}: newTestPriceAggregate("", "B", "C", 18.0),
+			},
+			pair: pair("A", "C"),
+			want: newTestPriceAggregate(
+				"median",
+				"A",
+				"C",
+				12.0*17.0,
+				newTestPriceAggregate(
+					"trade",
+					"A",
+					"C",
+					12.0*17.0,
+					newTestPriceAggregate("", "A", "B", 12.0),
+					newTestPriceAggregate(
+						"median",
+						"B",
+						"C",
+						17.0,
+						newTestPriceAggregate("", "B", "C", 16.0),
+						newTestPriceAggregate("", "B", "C", 18.0),
+					),
+				),
+			),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.pmm.ResolveRef(tt.cache, PriceRef{Origin: ".", Pair: tt.pair})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("PriceModelMap.ResolveRef() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if (tt.want == nil && got != tt.want) || got.String() != tt.want.String() {
+				t.Errorf("PriceModelMap.ResolveRef() got = %s, want %s", got, tt.want)
+				return
+			}
+		})
+	}
+}
+
+func pair(base string, quote string) Pair {
+	return Pair{Pair: model.Pair{Base: base, Quote: quote}}
 }
