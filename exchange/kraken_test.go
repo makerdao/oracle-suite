@@ -51,7 +51,7 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("XXBTZETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("XXBTXETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
 	suite.EqualValues("XXBTZUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
@@ -113,7 +113,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 func (suite *KrakenSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("kraken", "DAI", "USD")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"error":[],"result":{"XDAIZUSD":{"c":["1"],"v":["2"]}}}`),
+		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)

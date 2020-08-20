@@ -69,7 +69,7 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 }
 
 func testRealAPICall(suite Suite, base, quote string)  {
-	if "" == os.Getenv("GOFER_TEST_API_CALLS") {
+	if os.Getenv("GOFER_TEST_API_CALLS") == "" {
 		suite.T().SkipNow()
 	}
 
@@ -77,7 +77,7 @@ func testRealAPICall(suite Suite, base, quote string)  {
 	wp.Start()
 	ppp := newPotentialPricePoint("exchange", base, quote)
 	pp, err := suite.Exchange().Call(wp, ppp)
-	wp.Stop()
+	suite.Assert().NoError(wp.Stop())
 
 	suite.Assert().NoError(err)
 	suite.Assert().Greater(pp.Price, float64(0))
