@@ -16,11 +16,13 @@
 package exchange
 
 import (
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"os"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 type Suite interface {
@@ -68,7 +70,7 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 	}
 }
 
-func testRealAPICall(suite Suite, base, quote string)  {
+func testRealAPICall(suite Suite, base, quote string) {
 	if os.Getenv("GOFER_TEST_API_CALLS") == "" {
 		suite.T().SkipNow()
 	}
