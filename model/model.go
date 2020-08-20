@@ -117,7 +117,7 @@ func (pa *PriceAggregate) Clone() *PriceAggregate {
 }
 
 // ValidateExchange checks if exchange has some error.
-// If it's valid no error will be returned, othervise some error.
+// If it's valid no error will be returned, otherwise some error.
 func ValidateExchange(ex *Exchange) error {
 	if ex == nil {
 		return fmt.Errorf("exchange is nil")
@@ -128,9 +128,29 @@ func ValidateExchange(ex *Exchange) error {
 	return nil
 }
 
-// NewPair creates a new instance of `Pair`
+// NewPair creates a new instance of Pair
 func NewPair(base string, quote string) *Pair {
 	return &Pair{Base: strings.ToUpper(base), Quote: strings.ToUpper(quote)}
+}
+
+// NewPair creates a new instance of Pair from string formatted as pair
+// separated by "/" character.
+func NewPairFromString(s string) (*Pair, error) {
+	ss := strings.Split(s, "/")
+	// Pair should split into 2 parts, base and quote
+	if len(ss) != 2 { //nolint:gomnd
+		return nil, fmt.Errorf("couldn't parse pair \"%s\"", s)
+	}
+
+	if len(ss[0]) == 0 {
+		return nil, fmt.Errorf("base asset name is empty")
+	}
+
+	if len(ss[1]) == 0 {
+		return nil, fmt.Errorf("quote asset name is empty")
+	}
+
+	return &Pair{Base: strings.ToUpper(ss[0]), Quote: strings.ToUpper(ss[1])}, nil
 }
 
 // Equal check if `Pair` is equal to given one
