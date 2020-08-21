@@ -65,7 +65,7 @@ jobs:
       - run:
           name: Run unit tests
           command: |
-            GOFER_TEST_API_CALLS=1 gotestsum --junitfile /tmp/test-results/gotestsum-report.xml -- ./exchange/... -testify.m TestRealAPICall
+            gotestsum --junitfile /tmp/test-results/gotestsum-report.xml -- ./exchange/... -testify.m TestRealAPICall gofer.test-api-calls=1
 
       - store_artifacts:
           path: /tmp/test-results

@@ -16,7 +16,7 @@
 package exchange
 
 import (
-	"os"
+	"flag"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -24,6 +24,8 @@ import (
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
 )
+
+var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real exchanges API")
 
 type Suite interface {
 	suite.TestingSuite
@@ -71,7 +73,7 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 }
 
 func testRealAPICall(suite Suite, base, quote string) {
-	if os.Getenv("GOFER_TEST_API_CALLS") == "" {
+	if !*testAPICalls {
 		suite.T().SkipNow()
 	}
 
