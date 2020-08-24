@@ -34,6 +34,10 @@ type FolgorySuite struct {
 	exchange Handler
 }
 
+func (suite *FolgorySuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *FolgorySuite) SetupSuite() {
 	suite.exchange = &Folgory{}
@@ -118,6 +122,10 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 	suite.Equal(1.0, point.Price)
 	suite.Equal(2.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(2))
+}
+
+func (suite *FolgorySuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

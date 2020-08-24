@@ -34,6 +34,10 @@ type CryptoCompareSuite struct {
 	exchange Handler
 }
 
+func (suite *CryptoCompareSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *CryptoCompareSuite) SetupSuite() {
 	suite.exchange = &CryptoCompare{}
@@ -101,6 +105,10 @@ func (suite *CryptoCompareSuite) TestSuccessResponse() {
 	suite.Equal(pp.Pair, point.Pair)
 	suite.Equal(1.1, point.Price)
 	suite.Greater(point.Timestamp, int64(0))
+}
+
+func (suite *CryptoCompareSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

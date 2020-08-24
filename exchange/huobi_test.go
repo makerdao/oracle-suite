@@ -34,6 +34,10 @@ type HuobiSuite struct {
 	exchange Handler
 }
 
+func (suite *HuobiSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *HuobiSuite) SetupSuite() {
 	suite.exchange = &Huobi{}
@@ -126,6 +130,10 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 	suite.Equal(1.3, point.Volume)
 	suite.Equal(2.1, point.Price)
 	suite.Equal(point.Timestamp, int64(2))
+}
+
+func (suite *HuobiSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

@@ -65,6 +65,10 @@ type LoopringSuite struct {
 	exchange Handler
 }
 
+func (suite *LoopringSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *LoopringSuite) SetupSuite() {
 	suite.exchange = &Loopring{}
@@ -164,6 +168,10 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 	suite.Equal(0.1221, point.Ask)
 	suite.Equal(0.1215, point.Bid)
 	suite.Greater(point.Timestamp, int64(2))
+}
+
+func (suite *LoopringSuite) TestRealAPICall() {
+	testRealAPICall(suite, "LRC", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create

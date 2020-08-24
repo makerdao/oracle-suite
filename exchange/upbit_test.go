@@ -34,6 +34,10 @@ type UpbitSuite struct {
 	exchange Handler
 }
 
+func (suite *UpbitSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *UpbitSuite) SetupSuite() {
 	suite.exchange = &Upbit{}
@@ -118,6 +122,10 @@ func (suite *UpbitSuite) TestSuccessResponse() {
 	suite.Equal(1.0, point.Price)
 	suite.Equal(3.0, point.Volume)
 	suite.Equal(point.Timestamp, int64(2))
+}
+
+func (suite *UpbitSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

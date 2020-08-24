@@ -34,6 +34,10 @@ type CoinbaseSuite struct {
 	exchange Handler
 }
 
+func (suite *CoinbaseSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *CoinbaseSuite) SetupSuite() {
 	suite.exchange = &Coinbase{}
@@ -127,6 +131,10 @@ func (suite *CoinbaseSuite) TestSuccessResponse() {
 	suite.Equal(3.0, point.Volume)
 	suite.Equal(4.0, point.Bid)
 	suite.Greater(point.Timestamp, int64(2))
+}
+
+func (suite *CoinbaseSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

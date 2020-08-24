@@ -55,20 +55,47 @@ func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
 }
 
 func (k *Kraken) getSymbol(symbol string) string {
-	switch strings.ToUpper(symbol) {
+	symbol = strings.ToUpper(symbol)
+
+	// https://support.kraken.com/hc/en-us/articles/360001185506-How-to-interpret-asset-codes
+	switch symbol {
 	case "BTC":
-		return "XBT"
+		return "XXBT"
+	case "DOGE":
+		return "XXDG"
 	default:
-		return strings.ToUpper(symbol)
+		prefixedSymbols := []string{
+			"XETC",
+			"XETH",
+			"XLTC",
+			"XMLN",
+			"XREP",
+			"XREPV2",
+			"XXLM",
+			"XXMR",
+			"XXRP",
+			"XXTZ",
+			"XZEC",
+			"ZCAD",
+			"ZEUR",
+			"ZGBP",
+			"ZJPY",
+			"ZUSD",
+		}
+
+		for _, s := range prefixedSymbols {
+			if s == "X"+symbol || s == "Z"+symbol {
+				return s
+			}
+		}
+
+		return symbol
 	}
 }
 
 // LocalPairName implementation
 func (k *Kraken) LocalPairName(pair *model.Pair) string {
-	if pair.Base == "USDT" {
-		return strings.ToUpper(fmt.Sprintf("%sZ%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote)))
-	}
-	return strings.ToUpper(fmt.Sprintf("X%sZ%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote)))
+	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
 }
 
 // GetURL implementation

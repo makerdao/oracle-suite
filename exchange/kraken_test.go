@@ -34,6 +34,10 @@ type KrakenSuite struct {
 	exchange Handler
 }
 
+func (suite *KrakenSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *KrakenSuite) SetupSuite() {
 	suite.exchange = &Kraken{}
@@ -47,7 +51,7 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("XXBTZETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("XXBTXETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
 	suite.EqualValues("XXBTZUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
 }
 
@@ -109,7 +113,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 func (suite *KrakenSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("kraken", "DAI", "USD")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"error":[],"result":{"XDAIZUSD":{"c":["1"],"v":["2"]}}}`),
+		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
 	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
 	suite.NoError(err)
@@ -118,6 +122,10 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 	suite.Equal(1.0, point.Price)
 	suite.Equal(2.0, point.Volume)
 	suite.Greater(point.Timestamp, int64(0))
+}
+
+func (suite *KrakenSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

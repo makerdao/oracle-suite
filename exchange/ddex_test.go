@@ -34,6 +34,10 @@ type DdexSuite struct {
 	exchange Handler
 }
 
+func (suite *DdexSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *DdexSuite) SetupSuite() {
 	suite.exchange = &Ddex{}
@@ -219,6 +223,10 @@ func (suite *DdexSuite) TestSuccessResponse() {
 	suite.Equal(101.6, point.Ask)
 	suite.Equal(100.5, point.Bid)
 	suite.Equal(100.5, point.Price)
+}
+
+func (suite *DdexSuite) TestRealAPICall() {
+	testRealAPICall(suite, "WBTC", "USDT")
 }
 
 // In order for 'go test' to run this suite, we need to create

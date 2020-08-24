@@ -34,6 +34,10 @@ type OkexSuite struct {
 	exchange Handler
 }
 
+func (suite *OkexSuite) Exchange() Handler {
+	return suite.exchange
+}
+
 // Setup exchange
 func (suite *OkexSuite) SetupSuite() {
 	suite.exchange = &Okex{}
@@ -201,6 +205,10 @@ func (suite *OkexSuite) TestSuccessResponse() {
 	suite.Equal(50000.1234, point.Volume)
 	suite.Equal(10000.4, point.Bid)
 	suite.Equal(10000.5, point.Ask)
+}
+
+func (suite *OkexSuite) TestRealAPICall() {
+	testRealAPICall(suite, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create
