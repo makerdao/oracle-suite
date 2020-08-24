@@ -51,8 +51,8 @@ func (suite *UpbitSuite) TearDownTest() {
 }
 
 func (suite *UpbitSuite) TestLocalPair() {
-	suite.EqualValues("ETH-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("USDC-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("ETH-BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("USDC-BTC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *UpbitSuite) TestFailOnWrongInput() {

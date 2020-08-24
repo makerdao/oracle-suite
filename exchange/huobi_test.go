@@ -51,8 +51,8 @@ func (suite *HuobiSuite) TearDownTest() {
 }
 
 func (suite *HuobiSuite) TestLocalPair() {
-	suite.EqualValues("btceth", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("btcusd", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("btceth", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("btcusd", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *HuobiSuite) TestFailOnWrongInput() {

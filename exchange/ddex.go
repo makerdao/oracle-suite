@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Ddex URL
@@ -46,14 +47,12 @@ type ddexResponse struct {
 // Ddex exchange handler
 type Ddex struct{}
 
-// LocalPairName implementation
-func (c *Ddex) LocalPairName(pair *model.Pair) string {
+func (c *Ddex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
-func (c *Ddex) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(ddexURL, c.LocalPairName(pp.Pair))
+func (c *Ddex) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(ddexURL, c.localPairName(pp.Pair))
 }
 
 // Call implementation
@@ -67,7 +66,7 @@ func (c *Ddex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mode
 	}
 
 	req := &query.HTTPRequest{
-		URL: c.GetURL(pp),
+		URL: c.getURL(pp),
 	}
 
 	// make query

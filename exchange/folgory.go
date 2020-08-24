@@ -42,14 +42,8 @@ func (f *Folgory) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
-func (f *Folgory) LocalPairName(pair *model.Pair) string {
+func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
-}
-
-// GetURL implementation
-func (f *Folgory) GetURL(pp *model.PotentialPricePoint) string {
-	return folgoryURL
 }
 
 // Call implementation
@@ -66,7 +60,7 @@ func (f *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		URL: folgoryURL,
 	}
 
-	pair := f.LocalPairName(pp.Pair)
+	pair := f.localPairName(pp.Pair)
 
 	// make query
 	res := pool.Query(req)

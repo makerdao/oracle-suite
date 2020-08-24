@@ -51,8 +51,8 @@ func (suite *GateioSuite) TearDownTest() {
 }
 
 func (suite *GateioSuite) TestLocalPair() {
-	suite.EqualValues("BTC_ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTC_USD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTC_ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTC_USD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *GateioSuite) TestFailOnWrongInput() {

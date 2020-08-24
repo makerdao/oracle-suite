@@ -40,14 +40,12 @@ func (b *Binance) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
-func (b *Binance) LocalPairName(pair *model.Pair) string {
+func (b *Binance) localPairName(pair *model.Pair) string {
 	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
 }
 
-// GetURL implementation
-func (b *Binance) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(binanceURL, b.LocalPairName(pp.Pair))
+func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
 // Call implementation
@@ -61,7 +59,7 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: b.getURL(pp),
 	}
 
 	// make query

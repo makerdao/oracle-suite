@@ -32,13 +32,7 @@ type cryptoCompareResponse map[string]float64
 // Exchange handler
 type CryptoCompare struct{}
 
-// LocalPairName implementation
-func (b *CryptoCompare) LocalPairName(pair *model.Pair) string {
-	return ""
-}
-
-// GetURL implementation
-func (b *CryptoCompare) GetURL(pp *model.PotentialPricePoint) string {
+func (b *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
@@ -53,7 +47,7 @@ func (b *CryptoCompare) Call(pool query.WorkerPool, pp *model.PotentialPricePoin
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: b.getURL(pp),
 	}
 
 	// make query

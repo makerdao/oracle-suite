@@ -51,8 +51,8 @@ func (suite *BitTrexSuite) TearDownTest() {
 }
 
 func (suite *BitTrexSuite) TestLocalPair() {
-	suite.EqualValues("ETH-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("USD-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("ETH-BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("USD-BTC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *BitTrexSuite) TestFailOnWrongInput() {

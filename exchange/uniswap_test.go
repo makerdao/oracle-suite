@@ -51,9 +51,9 @@ func (suite *UniswapSuite) TearDownTest() {
 }
 
 func (suite *UniswapSuite) TestLocalPair() {
-	suite.EqualValues("0xcffdded873554f362ac02f8fb1f02e5ada10516f", suite.exchange.LocalPairName(model.NewPair("COMP", "ETH")))
-	suite.EqualValues("0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70", suite.exchange.LocalPairName(model.NewPair("LRC", "ETH")))
-	suite.EqualValues("0xf49c43ae0faf37217bdcb00df478cf793edd6687", suite.exchange.LocalPairName(model.NewPair("KNC", "ETH")))
+	suite.EqualValues("0xcffdded873554f362ac02f8fb1f02e5ada10516f", suite.exchange.localPairName(model.NewPair("COMP", "ETH")))
+	suite.EqualValues("0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70", suite.exchange.localPairName(model.NewPair("LRC", "ETH")))
+	suite.EqualValues("0xf49c43ae0faf37217bdcb00df478cf793edd6687", suite.exchange.localPairName(model.NewPair("KNC", "ETH")))
 }
 
 func (suite *UniswapSuite) TestFailOnWrongInput() {

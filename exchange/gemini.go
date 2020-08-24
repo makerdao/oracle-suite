@@ -40,14 +40,12 @@ type geminiResponse struct {
 // Gemini exchange handler
 type Gemini struct{}
 
-// LocalPairName implementation
-func (g *Gemini) LocalPairName(pair *model.Pair) string {
+func (g *Gemini) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-// GetURL implementation
-func (g *Gemini) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(geminiURL, g.LocalPairName(pp.Pair))
+func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
 // Call implementation
@@ -61,7 +59,7 @@ func (g *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	req := &query.HTTPRequest{
-		URL: g.GetURL(pp),
+		URL: g.getURL(pp),
 	}
 
 	// make query
