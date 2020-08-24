@@ -28,8 +28,6 @@ type Handler interface {
 	Call(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 }
 
-var DefaultExchangesSet *ExchangesSet
-
 type ExchangesSet struct {
 	list map[string]Handler
 }
@@ -55,10 +53,10 @@ func (e *ExchangesSet) Call(pp *model.PotentialPricePoint) (*model.PricePoint, e
 	return handler.Call(pp)
 }
 
-func init() {
+func DefaultExchangesSet() *ExchangesSet {
 	httpWorkerPool := query.NewHTTPWorkerPool(5)
 
-	DefaultExchangesSet = NewExchangesSet(map[string]Handler{
+	return NewExchangesSet(map[string]Handler{
 		"binance":       &Binance{Pool: httpWorkerPool},
 		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
 		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},

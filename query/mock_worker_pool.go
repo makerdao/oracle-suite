@@ -24,16 +24,6 @@ func NewMockWorkerPool() *MockWorkerPool {
 	return &MockWorkerPool{}
 }
 
-func (mwp *MockWorkerPool) Ready() bool {
-	return true
-}
-
-func (mwp *MockWorkerPool) Start() {}
-
-func (mwp *MockWorkerPool) Stop() error {
-	return nil
-}
-
 func (mwp *MockWorkerPool) MockResp(resp *HTTPResponse) {
 	mwp.resp = resp
 }

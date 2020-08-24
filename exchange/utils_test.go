@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 )
 
 var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real exchanges API")
@@ -52,11 +51,8 @@ func testRealAPICall(suite Suite, base, quote string) {
 		suite.T().SkipNow()
 	}
 
-	wp := query.NewHTTPWorkerPool(1)
-	wp.Start()
 	ppp := newPotentialPricePoint("exchange", base, quote)
 	pp, err := suite.Exchange().Call(ppp)
-	suite.Assert().NoError(wp.Stop())
 
 	suite.Assert().NoError(err)
 	suite.Assert().Greater(pp.Price, float64(0))

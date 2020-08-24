@@ -47,7 +47,7 @@ func FromJSON(b []byte) (*Gofer, error) {
 		return nil, fmt.Errorf("failed to create aggregator when parsing config: %w", err)
 	}
 
-	return NewGofer(agg, NewProcessor(exchange.DefaultExchangesSet)), nil
+	return NewGofer(agg, NewProcessor(exchange.DefaultExchangesSet())), nil
 }
 
 func ReadFile(path string) (*Gofer, error) {
