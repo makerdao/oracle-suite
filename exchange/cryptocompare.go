@@ -34,11 +34,6 @@ type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
-func (c *CryptoCompare) localPairName(pair *model.Pair) string {
-	return ""
-}
-
 // GetURL implementation
 func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)

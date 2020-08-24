@@ -43,7 +43,7 @@ func NewHTTPWorkerPool(workerCount int) *HTTPWorkerPool {
 	}
 
 	for w := 0; w < wp.workerCount; w++ {
-		go wp.worker(w, wp.input)
+		go wp.worker()
 	}
 
 	return wp
@@ -66,7 +66,7 @@ func (wp *HTTPWorkerPool) Query(req *HTTPRequest) *HTTPResponse {
 	return res
 }
 
-func (wp *HTTPWorkerPool) worker(id int, jobs <-chan *asyncHTTPRequest) {
+func (wp *HTTPWorkerPool) worker() {
 	for req := range wp.input {
 		req.response <- MakeHTTPRequest(req.request)
 	}
