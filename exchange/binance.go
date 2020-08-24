@@ -48,7 +48,6 @@ func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

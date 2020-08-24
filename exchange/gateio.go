@@ -56,7 +56,6 @@ func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

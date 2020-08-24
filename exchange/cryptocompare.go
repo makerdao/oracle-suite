@@ -36,7 +36,6 @@ func (b *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
-// Call implementation
 func (b *CryptoCompare) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

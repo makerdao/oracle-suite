@@ -55,7 +55,6 @@ func (c *Ddex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(ddexURL, c.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (c *Ddex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

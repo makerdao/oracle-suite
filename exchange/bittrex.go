@@ -48,7 +48,6 @@ func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

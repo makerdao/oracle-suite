@@ -48,7 +48,6 @@ func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (g *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

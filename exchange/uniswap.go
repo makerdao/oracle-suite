@@ -67,7 +67,6 @@ func (k *Uniswap) getURL(_ *model.PotentialPricePoint) string {
 	return uniswapURL
 }
 
-// Call implementation
 func (k *Uniswap) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

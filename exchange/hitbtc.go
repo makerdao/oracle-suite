@@ -48,7 +48,6 @@ func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (h *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

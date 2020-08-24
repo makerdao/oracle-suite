@@ -47,7 +47,6 @@ func (b *Poloniex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", b.renameSymbol(pair.Quote), b.renameSymbol(pair.Base))
 }
 
-// Call implementation
 func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

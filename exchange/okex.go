@@ -55,7 +55,6 @@ func (o *Okex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(okexURL, o.getPair(pp))
 }
 
-// Call implementation
 func (o *Okex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

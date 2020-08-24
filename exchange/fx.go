@@ -47,7 +47,6 @@ func (fx *Fx) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(fxURL, fx.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

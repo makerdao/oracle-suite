@@ -48,7 +48,6 @@ func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

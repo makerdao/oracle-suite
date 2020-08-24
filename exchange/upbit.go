@@ -48,7 +48,6 @@ func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (u *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

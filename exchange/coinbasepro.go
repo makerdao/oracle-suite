@@ -47,7 +47,6 @@ func (c *CoinbasePro) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (c *CoinbasePro) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

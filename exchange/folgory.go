@@ -46,7 +46,6 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-// Call implementation
 func (f *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

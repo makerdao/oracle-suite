@@ -51,7 +51,6 @@ func (b *Bitstamp) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitstampURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

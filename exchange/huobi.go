@@ -47,7 +47,6 @@ func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed

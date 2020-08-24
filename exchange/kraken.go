@@ -101,7 +101,6 @@ func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
-// Call implementation
 func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
