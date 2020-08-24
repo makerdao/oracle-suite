@@ -37,7 +37,8 @@ func NewSet(list map[string]Handler) *Set {
 }
 
 func DefaultSet() *Set {
-	httpWorkerPool := query.NewHTTPWorkerPool(5)
+	const defaultWorkerCount = 5
+	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
 	return NewSet(map[string]Handler{
 		"binance":       &Binance{Pool: httpWorkerPool},
@@ -82,4 +83,3 @@ func (e *Set) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	}
 	return handler.Call(pp)
 }
-

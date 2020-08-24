@@ -49,11 +49,6 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-// GetURL implementation
-func (f *Folgory) getURL(pp *model.PotentialPricePoint) string {
-	return folgoryURL
-}
-
 // Call implementation
 func (f *Folgory) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)

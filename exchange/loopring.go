@@ -65,11 +65,9 @@ func (l *Loopring) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error
 	if err != nil {
 		return nil, err
 	}
-
 	req := &query.HTTPRequest{
 		URL: l.getURL(pp),
 	}
-
 	// make query
 	res := l.Pool.Query(req)
 	if res == nil {
@@ -90,7 +88,6 @@ func (l *Loopring) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error
 	if resp.Data == nil {
 		return nil, fmt.Errorf("empty `data` field for loopring response: %s", res.Body)
 	}
-
 	pair := l.localPairName(pp.Pair)
 	pairRes, ok := resp.Data[pair]
 	if !ok {

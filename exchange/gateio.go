@@ -102,12 +102,10 @@ func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
 	}
-
 	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
 	}
-
 	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
