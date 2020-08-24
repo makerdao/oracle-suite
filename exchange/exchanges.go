@@ -28,35 +28,18 @@ type Handler interface {
 	Call(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 }
 
-type ExchangesSet struct {
+type Set struct {
 	list map[string]Handler
 }
 
-func NewExchangesSet(list map[string]Handler) *ExchangesSet {
-	return &ExchangesSet{list: list}
+func NewSet(list map[string]Handler) *Set {
+	return &Set{list: list}
 }
 
-// Call makes exchange call
-func (e *ExchangesSet) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pp == nil {
-		return nil, errNoPotentialPricePoint
-	}
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
-	handler, ok := e.list[pp.Exchange.Name]
-	if !ok {
-		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, pp.Exchange.Name)
-	}
-	return handler.Call(pp)
-}
-
-func DefaultExchangesSet() *ExchangesSet {
+func DefaultSet() *Set {
 	httpWorkerPool := query.NewHTTPWorkerPool(5)
 
-	return NewExchangesSet(map[string]Handler{
+	return NewSet(map[string]Handler{
 		"binance":       &Binance{Pool: httpWorkerPool},
 		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
 		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},
@@ -82,3 +65,21 @@ func DefaultExchangesSet() *ExchangesSet {
 		"upbit":         &Upbit{Pool: httpWorkerPool},
 	})
 }
+
+// Call makes exchange call
+func (e *Set) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+	if pp == nil {
+		return nil, errNoPotentialPricePoint
+	}
+	err := model.ValidatePotentialPricePoint(pp)
+	if err != nil {
+		return nil, err
+	}
+
+	handler, ok := e.list[pp.Exchange.Name]
+	if !ok {
+		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, pp.Exchange.Name)
+	}
+	return handler.Call(pp)
+}
+

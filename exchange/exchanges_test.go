@@ -32,7 +32,7 @@ import (
 type ExchangesSuite struct {
 	suite.Suite
 	pool *query.MockWorkerPool
-	set  *ExchangesSet
+	set  *Set
 }
 
 // Setup exchange
@@ -40,7 +40,7 @@ func (suite *ExchangesSuite) SetupSuite() {
 	pool := query.NewMockWorkerPool()
 
 	suite.pool = pool
-	suite.set = NewExchangesSet(map[string]Handler{
+	suite.set = NewSet(map[string]Handler{
 		"binance": &Binance{pool},
 	})
 }

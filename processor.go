@@ -25,11 +25,11 @@ import (
 )
 
 type Processor struct {
-	exchangeSet *exchange.ExchangesSet
+	exchangeSet *exchange.Set
 }
 
 // NewProcessor instantiate new `Processor` instance with custom `query.WorkerPool`
-func NewProcessor(set *exchange.ExchangesSet) *Processor {
+func NewProcessor(set *exchange.Set) *Processor {
 	return &Processor{
 		exchangeSet: set,
 	}

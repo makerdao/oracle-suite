@@ -45,7 +45,7 @@ type ProcessorSuite struct {
 // All methods that begin with "Test" are run as tests within a
 // suite.
 func (suite *ProcessorSuite) TestNegativeProcessOne() {
-	set := exchange.NewExchangesSet(map[string]exchange.Handler{})
+	set := exchange.NewSet(map[string]exchange.Handler{})
 
 	pair := &model.Pair{
 		Base:  "BTC",
@@ -66,7 +66,7 @@ func (suite *ProcessorSuite) TestNegativeProcessOne() {
 
 func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 	wp := query.NewMockWorkerPool()
-	set := exchange.NewExchangesSet(map[string]exchange.Handler{
+	set := exchange.NewSet(map[string]exchange.Handler{
 		"binance": &exchange.Binance{Pool: wp},
 	})
 
@@ -89,7 +89,7 @@ func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 
 func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	wp := query.NewMockWorkerPool()
-	set := exchange.NewExchangesSet(map[string]exchange.Handler{
+	set := exchange.NewSet(map[string]exchange.Handler{
 		"binance": &exchange.Binance{Pool: wp},
 	})
 

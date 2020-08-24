@@ -22,11 +22,11 @@ import (
 
 // PriceCollector will collect prices for you
 type PriceCollector struct {
-	exchangeSet *exchange.ExchangesSet
+	exchangeSet *exchange.Set
 }
 
 // NewPriceCollector create new ready to work `PriceCollector`
-func NewPriceCollector(set *exchange.ExchangesSet) *PriceCollector {
+func NewPriceCollector(set *exchange.Set) *PriceCollector {
 	return &PriceCollector{
 		exchangeSet: set,
 	}
