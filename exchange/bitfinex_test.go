@@ -113,7 +113,7 @@ func (suite *BitfinexSuite) TestSuccessResponse() {
 }
 
 func (suite *BitfinexSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &Bitfinex{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

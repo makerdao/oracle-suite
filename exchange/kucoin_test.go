@@ -170,7 +170,7 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 }
 
 func (suite *KucoinSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &Kucoin{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

@@ -189,7 +189,7 @@ func (suite *KyberSuite) TestSuccessResponse() {
 }
 
 func (suite *KyberSuite) TestRealAPICall() {
-	testRealAPICall(suite, "WBTC", "ETH")
+	testRealAPICall(suite, &Kyber{Pool: query.NewHTTPWorkerPool(1)}, "WBTC", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create

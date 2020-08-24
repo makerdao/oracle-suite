@@ -228,7 +228,7 @@ func (suite *DdexSuite) TestSuccessResponse() {
 }
 
 func (suite *DdexSuite) TestRealAPICall() {
-	testRealAPICall(suite, "WBTC", "USDT")
+	testRealAPICall(suite, &Ddex{Pool: query.NewHTTPWorkerPool(1)}, "WBTC", "USDT")
 }
 
 // In order for 'go test' to run this suite, we need to create

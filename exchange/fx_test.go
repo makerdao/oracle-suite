@@ -119,7 +119,7 @@ func (suite *FxSuite) TestSuccessResponse() {
 }
 
 func (suite *FxSuite) TestRealAPICall() {
-	testRealAPICall(suite, "USD", "EUR")
+	testRealAPICall(suite, &Fx{Pool: query.NewHTTPWorkerPool(1)}, "USD", "EUR")
 }
 
 // In order for 'go test' to run this suite, we need to create

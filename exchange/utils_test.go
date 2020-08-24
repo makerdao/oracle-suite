@@ -46,13 +46,15 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 	}
 }
 
-func testRealAPICall(suite Suite, base, quote string) {
+func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
 	if !*testAPICalls {
 		suite.T().SkipNow()
 	}
 
+	suite.Assert().IsType(suite.Exchange(), exchange)
+
 	ppp := newPotentialPricePoint("exchange", base, quote)
-	pp, err := suite.Exchange().Call(ppp)
+	pp, err := exchange.Call(ppp)
 
 	suite.Assert().NoError(err)
 	suite.Assert().Greater(pp.Price, float64(0))

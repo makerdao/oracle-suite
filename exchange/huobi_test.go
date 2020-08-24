@@ -138,7 +138,7 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 }
 
 func (suite *HuobiSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &Huobi{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

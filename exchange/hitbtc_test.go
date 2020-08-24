@@ -139,7 +139,7 @@ func (suite *HitbtcSuite) TestSuccessResponse() {
 }
 
 func (suite *HitbtcSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &Hitbtc{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

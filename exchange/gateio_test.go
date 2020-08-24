@@ -131,7 +131,7 @@ func (suite *GateioSuite) TestSuccessResponse() {
 }
 
 func (suite *GateioSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &Gateio{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

@@ -109,7 +109,7 @@ func (suite *CryptoCompareSuite) TestSuccessResponse() {
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

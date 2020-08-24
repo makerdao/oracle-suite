@@ -149,7 +149,7 @@ func (suite *UniswapSuite) TestSuccessResponseForToken0Price() {
 }
 
 func (suite *UniswapSuite) TestRealAPICall() {
-	testRealAPICall(suite, "COMP", "ETH")
+	testRealAPICall(suite, &Uniswap{Pool: query.NewHTTPWorkerPool(1)}, "COMP", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create
