@@ -31,7 +31,7 @@ import (
 type GeminiSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Gemini
 }
 
 func (suite *GeminiSuite) Exchange() Handler {

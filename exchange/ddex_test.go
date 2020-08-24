@@ -31,7 +31,7 @@ import (
 type DdexSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Ddex
 }
 
 func (suite *DdexSuite) Exchange() Handler {

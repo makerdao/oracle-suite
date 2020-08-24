@@ -31,7 +31,7 @@ import (
 type FolgorySuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Folgory
 }
 
 func (suite *FolgorySuite) Exchange() Handler {

@@ -31,7 +31,7 @@ import (
 type UpbitSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Upbit
 }
 
 func (suite *UpbitSuite) Exchange() Handler {

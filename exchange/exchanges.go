@@ -28,10 +28,6 @@ type Handler interface {
 	// In case of some pairs exchanges might need to rename it for itself.
 	// Example: for `BTCUSD` on binance we should as for `BTCUSDC`
 	// and this is correct place to rename/build pair name
-	LocalPairName(pair *model.Pair) string
-
-	// GetURL should generate URL to get given `PotentialPricePoint`
-	GetURL(pp *model.PotentialPricePoint) string
 
 	// Call should implement making API request to exchange URL and collecting/parsing exchange data
 	Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error)

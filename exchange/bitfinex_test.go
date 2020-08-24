@@ -31,7 +31,7 @@ import (
 type BitfinexSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Bitfinex
 }
 
 func (suite *BitfinexSuite) Exchange() Handler {

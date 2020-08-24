@@ -31,7 +31,7 @@ import (
 type KrakenSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Kraken
 }
 
 func (suite *KrakenSuite) Exchange() Handler {

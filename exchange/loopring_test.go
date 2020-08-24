@@ -62,7 +62,7 @@ const successResponse = `{
 type LoopringSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Loopring
 }
 
 func (suite *LoopringSuite) Exchange() Handler {

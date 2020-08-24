@@ -31,7 +31,7 @@ import (
 type OkexSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Okex
 }
 
 func (suite *OkexSuite) Exchange() Handler {

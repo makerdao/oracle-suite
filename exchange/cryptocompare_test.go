@@ -31,7 +31,7 @@ import (
 type CryptoCompareSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *CryptoCompare
 }
 
 func (suite *CryptoCompareSuite) Exchange() Handler {

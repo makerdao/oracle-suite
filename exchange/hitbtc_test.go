@@ -19,9 +19,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"github.com/stretchr/testify/suite"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -30,7 +31,7 @@ import (
 type HitbtcSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Hitbtc
 }
 
 func (suite *HitbtcSuite) Exchange() Handler {

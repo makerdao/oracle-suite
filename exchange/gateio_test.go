@@ -31,7 +31,7 @@ import (
 type GateioSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Gateio
 }
 
 func (suite *GateioSuite) Exchange() Handler {

@@ -31,7 +31,7 @@ import (
 type BitstampSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Bitstamp
 }
 
 func (suite *BitstampSuite) Exchange() Handler {

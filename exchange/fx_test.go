@@ -31,7 +31,7 @@ import (
 type FxSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Fx
 }
 
 func (suite *FxSuite) Exchange() Handler {

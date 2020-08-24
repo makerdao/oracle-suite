@@ -31,7 +31,7 @@ import (
 type FtxSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Ftx
 }
 
 func (suite *FtxSuite) Exchange() Handler {

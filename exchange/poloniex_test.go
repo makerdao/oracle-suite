@@ -31,7 +31,7 @@ import (
 type PoloniexSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Poloniex
 }
 
 func (suite *PoloniexSuite) Exchange() Handler {

@@ -31,7 +31,7 @@ import (
 type BitTrexSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *BitTrex
 }
 
 func (suite *BitTrexSuite) Exchange() Handler {

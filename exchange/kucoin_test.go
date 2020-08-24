@@ -31,7 +31,7 @@ import (
 type KucoinSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Kucoin
 }
 
 func (suite *KucoinSuite) Exchange() Handler {

@@ -31,7 +31,7 @@ import (
 type CoinbaseSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Coinbase
 }
 
 func (suite *CoinbaseSuite) Exchange() Handler {

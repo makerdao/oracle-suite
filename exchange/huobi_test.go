@@ -31,7 +31,7 @@ import (
 type HuobiSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Huobi
 }
 
 func (suite *HuobiSuite) Exchange() Handler {

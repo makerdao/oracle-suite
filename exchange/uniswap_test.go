@@ -31,7 +31,7 @@ import (
 type UniswapSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Uniswap
 }
 
 func (suite *UniswapSuite) Exchange() Handler {
