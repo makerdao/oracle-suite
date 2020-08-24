@@ -30,34 +30,33 @@ const cryptoCompareURL = "https://min-api.cryptocompare.com/data/price?fsym=%s&t
 type cryptoCompareResponse map[string]float64
 
 // Exchange handler
-type CryptoCompare struct{}
+type CryptoCompare struct {
+	Pool query.WorkerPool
+}
 
 // LocalPairName implementation
-func (b *CryptoCompare) LocalPairName(pair *model.Pair) string {
+func (c *CryptoCompare) localPairName(pair *model.Pair) string {
 	return ""
 }
 
 // GetURL implementation
-func (b *CryptoCompare) GetURL(pp *model.PotentialPricePoint) string {
+func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
 // Call implementation
-func (b *CryptoCompare) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (c *CryptoCompare) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: c.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := c.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

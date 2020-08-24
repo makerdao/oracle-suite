@@ -31,7 +31,7 @@ import (
 type HuobiSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Huobi
 }
 
 func (suite *HuobiSuite) Exchange() Handler {
@@ -40,7 +40,7 @@ func (suite *HuobiSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *HuobiSuite) SetupSuite() {
-	suite.exchange = &Huobi{}
+	suite.exchange = &Huobi{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *HuobiSuite) TearDownTest() {
@@ -51,26 +51,24 @@ func (suite *HuobiSuite) TearDownTest() {
 }
 
 func (suite *HuobiSuite) TestLocalPair() {
-	suite.EqualValues("btceth", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("btcusd", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("btceth", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("btcusd", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *HuobiSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("huobi", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,42 +76,48 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"error"}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"abc"}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"1","ts":"abc"}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"1","ts":2,"tick":{"bid":["abc"]}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -122,7 +126,8 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)

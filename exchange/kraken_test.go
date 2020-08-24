@@ -31,7 +31,7 @@ import (
 type KrakenSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Kraken
 }
 
 func (suite *KrakenSuite) Exchange() Handler {
@@ -40,7 +40,7 @@ func (suite *KrakenSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *KrakenSuite) SetupSuite() {
-	suite.exchange = &Kraken{}
+	suite.exchange = &Kraken{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *KrakenSuite) TearDownTest() {
@@ -51,26 +51,24 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("XXBTXETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("XXBTZUSD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("XXBTXETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("XXBTZUSD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("kraken", "DAI", "USD")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,35 +76,40 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":["abcd"]}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -115,7 +118,8 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

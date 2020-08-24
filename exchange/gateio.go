@@ -42,38 +42,37 @@ type gateioResponse struct {
 }
 
 // Gateio exchange handler
-type Gateio struct{}
+type Gateio struct {
+	Pool query.WorkerPool
+}
 
 func (g *Gateio) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
 // LocalPairName implementation
-func (g *Gateio) LocalPairName(pair *model.Pair) string {
+func (g *Gateio) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
 // GetURL implementation
-func (g *Gateio) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(gateioURL, g.LocalPairName(pp.Pair))
+func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
 // Call implementation
-func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: g.GetURL(pp),
+		URL: g.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := g.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
@@ -90,7 +89,7 @@ func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 		return nil, fmt.Errorf("wrong gateio response: %s", res.Body)
 	}
 	// Check pair name
-	if resp[0].Pair != g.LocalPairName(pp.Pair) {
+	if resp[0].Pair != g.localPairName(pp.Pair) {
 		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
 	}
 	// Parsing price from string

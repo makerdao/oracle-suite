@@ -31,7 +31,7 @@ import (
 type UpbitSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Upbit
 }
 
 func (suite *UpbitSuite) Exchange() Handler {
@@ -40,7 +40,7 @@ func (suite *UpbitSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *UpbitSuite) SetupSuite() {
-	suite.exchange = &Upbit{}
+	suite.exchange = &Upbit{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *UpbitSuite) TearDownTest() {
@@ -51,26 +51,24 @@ func (suite *UpbitSuite) TearDownTest() {
 }
 
 func (suite *UpbitSuite) TestLocalPair() {
-	suite.EqualValues("ETH-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("USDC-BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("ETH-BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("USDC-BTC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *UpbitSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("upbit", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,35 +76,40 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte("[]"),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"trade_price":"abc"}]`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"trade_price":1,"acc_trade_volume":"abc"}]`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -115,7 +118,8 @@ func (suite *UpbitSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`[{"trade_price":1,"acc_trade_volume":3,"timestamp":2000}]`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

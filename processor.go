@@ -22,37 +22,25 @@ import (
 	"github.com/makerdao/gofer/aggregator"
 	"github.com/makerdao/gofer/exchange"
 	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 )
 
 type Processor struct {
-	wp query.WorkerPool
+	exchangeSet *exchange.ExchangesSet
 }
 
 // NewProcessor instantiate new `Processor` instance with custom `query.WorkerPool`
-func NewProcessor(wp query.WorkerPool) *Processor {
+func NewProcessor(set *exchange.ExchangesSet) *Processor {
 	return &Processor{
-		wp: wp,
+		exchangeSet: set,
 	}
-}
-
-// NewProcessorWithHTTPWorkerPool creates new `Processor` with default worker pool
-func NewProcessorWithHTTPWorkerPool() *Processor {
-	wp := query.NewHTTPWorkerPool(5)
-	wp.Start()
-
-	return NewProcessor(wp)
 }
 
 // ProcessOne processes `PotentialPricePoint` and fetches new price for it
 func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
-	if p.wp == nil || !p.wp.Ready() {
-		return nil, fmt.Errorf("worker pool is not ready for querying prices")
-	}
 	if err := model.ValidatePotentialPricePoint(pp); err != nil {
 		return nil, err
 	}
-	point, err := exchange.Call(p.wp, pp)
+	point, err := p.exchangeSet.Call(pp)
 	if err != nil {
 		return nil, err
 	}
@@ -67,9 +55,6 @@ func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggre
 // Technically you don't even need to get passed `aggregator` back, because you can use pointer to passed one.
 // and here it returns just for clearer API.
 func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
-	if p.wp == nil || !p.wp.Ready() {
-		return nil, fmt.Errorf("worker pool is not ready for querying prices")
-	}
 	if agg == nil {
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}

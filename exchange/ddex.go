@@ -18,10 +18,11 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 	"strconv"
 	"time"
+
+	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/query"
 )
 
 // Ddex URL
@@ -44,34 +45,33 @@ type ddexResponse struct {
 }
 
 // Ddex exchange handler
-type Ddex struct{}
+type Ddex struct {
+	Pool query.WorkerPool
+}
 
 // LocalPairName implementation
-func (c *Ddex) LocalPairName(pair *model.Pair) string {
+func (d *Ddex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
 // GetURL implementation
-func (c *Ddex) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(ddexURL, c.LocalPairName(pp.Pair))
+func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
 }
 
 // Call implementation
-func (c *Ddex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (d *Ddex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: c.GetURL(pp),
+		URL: d.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := d.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

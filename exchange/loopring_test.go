@@ -62,7 +62,7 @@ const successResponse = `{
 type LoopringSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Loopring
 }
 
 func (suite *LoopringSuite) Exchange() Handler {
@@ -71,7 +71,7 @@ func (suite *LoopringSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *LoopringSuite) SetupSuite() {
-	suite.exchange = &Loopring{}
+	suite.exchange = &Loopring{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *LoopringSuite) TearDownTest() {
@@ -82,26 +82,24 @@ func (suite *LoopringSuite) TearDownTest() {
 }
 
 func (suite *LoopringSuite) TestLocalPair() {
-	suite.EqualValues("USDT-DAI", suite.exchange.LocalPairName(model.NewPair("USDT", "DAI")))
-	suite.EqualValues("ETH-DAI", suite.exchange.LocalPairName(model.NewPair("ETH", "DAI")))
+	suite.EqualValues("USDT-DAI", suite.exchange.localPairName(model.NewPair("USDT", "DAI")))
+	suite.EqualValues("ETH-DAI", suite.exchange.localPairName(model.NewPair("ETH", "DAI")))
 }
 
 func (suite *LoopringSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("loopring", "LRC", "USDT")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -109,48 +107,55 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte("{}"),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error wrong code
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":1,"message":"SUCCESS"}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error wrong message
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"Wrong"}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error no data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 	// Error no pair in data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"},"data":{}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -159,7 +164,8 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

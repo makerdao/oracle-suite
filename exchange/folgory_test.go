@@ -31,7 +31,7 @@ import (
 type FolgorySuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Folgory
 }
 
 func (suite *FolgorySuite) Exchange() Handler {
@@ -40,7 +40,7 @@ func (suite *FolgorySuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *FolgorySuite) SetupSuite() {
-	suite.exchange = &Folgory{}
+	suite.exchange = &Folgory{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *FolgorySuite) TearDownTest() {
@@ -51,26 +51,24 @@ func (suite *FolgorySuite) TearDownTest() {
 }
 
 func (suite *FolgorySuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("BTC/USDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTC/ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("BTC/USDC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *FolgorySuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("folgory", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,35 +76,40 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[]`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"symbol":"BTC/ETH","last":"abc"}]`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"symbol":"BTC/ETH","last":"1","volume":"abc"}]`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -115,7 +118,8 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`[{"symbol":"BTC/ETH","last":"1","volume":"2"}]`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

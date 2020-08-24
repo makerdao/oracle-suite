@@ -36,7 +36,7 @@ func (suite *KyberSuite) Exchange() Handler {
 }
 
 func (suite *KyberSuite) SetupSuite() {
-	suite.exchange = &Kyber{}
+	suite.exchange = &Kyber{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *KyberSuite) TearDownTest() {
@@ -46,29 +46,27 @@ func (suite *KyberSuite) TearDownTest() {
 }
 
 func (suite *KyberSuite) TestGetUrl() {
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "DGX", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0xdd974d5c2e2928dea5f71b9825b8b646686bd200&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "KNC", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x80fB784B7eD66730e8b1DBd9820aFD29931aab03&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "LEND", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "MKR", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x2260fac5e5542a773aa44fbcfedf7c193bc2c599&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "WBTC", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "DGX", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0xdd974d5c2e2928dea5f71b9825b8b646686bd200&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "KNC", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x80fB784B7eD66730e8b1DBd9820aFD29931aab03&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "LEND", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "MKR", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x2260fac5e5542a773aa44fbcfedf7c193bc2c599&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "WBTC", "ETH")))
 }
 
 func (suite *KyberSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("kyber", "WBTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -76,91 +74,104 @@ func (suite *KyberSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte("{}"),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":{}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[]`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[],"error":true,"reason":"yes","additional_data":"sir"}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[],"dst_qty":[2.5]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[1]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[0],"dst_qty":[2.5]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[-1.5],"dst_qty":[2.5]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xe","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[2.5]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0xe","src_qty":[25.0],"dst_qty":[2.5]}],"error":false}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -169,7 +180,8 @@ func (suite *KyberSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[2.5]}],"error":false}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

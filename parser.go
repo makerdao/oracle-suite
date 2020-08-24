@@ -22,7 +22,8 @@ import (
 	"os"
 
 	"github.com/makerdao/gofer/aggregator"
-  "github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/exchange"
+	"github.com/makerdao/gofer/model"
 )
 
 type AggregateProcessor interface {
@@ -46,7 +47,7 @@ func FromJSON(b []byte) (*Gofer, error) {
 		return nil, fmt.Errorf("failed to create aggregator when parsing config: %w", err)
 	}
 
-	return NewGofer(agg, NewProcessorWithHTTPWorkerPool()), nil
+	return NewGofer(agg, NewProcessor(exchange.DefaultExchangesSet)), nil
 }
 
 func ReadFile(path string) (*Gofer, error) {

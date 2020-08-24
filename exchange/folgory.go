@@ -36,27 +36,26 @@ type folgoryResponse struct {
 }
 
 // Folgory exchange handler
-type Folgory struct{}
+type Folgory struct {
+	Pool query.WorkerPool
+}
 
 func (f *Folgory) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
 // LocalPairName implementation
-func (f *Folgory) LocalPairName(pair *model.Pair) string {
+func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
 // GetURL implementation
-func (f *Folgory) GetURL(pp *model.PotentialPricePoint) string {
+func (f *Folgory) getURL(pp *model.PotentialPricePoint) string {
 	return folgoryURL
 }
 
 // Call implementation
-func (f *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (f *Folgory) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -66,10 +65,10 @@ func (f *Folgory) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		URL: folgoryURL,
 	}
 
-	pair := f.LocalPairName(pp.Pair)
+	pair := f.localPairName(pp.Pair)
 
 	// make query
-	res := pool.Query(req)
+	res := f.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

@@ -31,7 +31,7 @@ import (
 type BinanceSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Binance
 }
 
 func (suite *BinanceSuite) Exchange() Handler {
@@ -40,7 +40,7 @@ func (suite *BinanceSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *BinanceSuite) SetupSuite() {
-	suite.exchange = &Binance{}
+	suite.exchange = &Binance{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *BinanceSuite) TearDownTest() {
@@ -51,26 +51,24 @@ func (suite *BinanceSuite) TearDownTest() {
 }
 
 func (suite *BinanceSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("BTCUSDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTCETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("BTCUSDC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *BinanceSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("binance", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,21 +76,25 @@ func (suite *BinanceSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error convert price to number
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"abcd"}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -101,7 +103,8 @@ func (suite *BinanceSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

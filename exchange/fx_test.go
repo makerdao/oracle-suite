@@ -31,7 +31,7 @@ import (
 type FxSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Fx
 }
 
 func (suite *FxSuite) Exchange() Handler {
@@ -40,7 +40,7 @@ func (suite *FxSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *FxSuite) SetupSuite() {
-	suite.exchange = &Fx{}
+	suite.exchange = &Fx{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *FxSuite) TearDownTest() {
@@ -51,25 +51,23 @@ func (suite *FxSuite) TearDownTest() {
 }
 
 func (suite *FxSuite) TestLocalPair() {
-	suite.EqualValues("BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
 }
 
 func (suite *FxSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("fx", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,28 +75,32 @@ func (suite *FxSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error convert price to number
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	// Error convert price to number
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{"ETH":"abcd"}}`),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 }
 
@@ -107,7 +109,8 @@ func (suite *FxSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"rates":{"ETH":1}}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)

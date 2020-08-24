@@ -40,9 +40,11 @@ type kyberResponse struct {
 	Result         []*kyberDataResponse `json:"data"`
 }
 
-type Kyber struct{}
+type Kyber struct {
+	Pool query.WorkerPool
+}
 
-func (k *Kyber) LocalPairName(pair *model.Pair) string {
+func (k *Kyber) localPairName(pair *model.Pair) string {
 	var addrList = map[model.Pair]string{
 		{Base: "DGX", Quote: "ETH"}:  "0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf",
 		{Base: "KNC", Quote: "ETH"}:  "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
@@ -55,25 +57,22 @@ func (k *Kyber) LocalPairName(pair *model.Pair) string {
 
 const refQty = 2.5
 
-func (k *Kyber) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(kyberURL, k.LocalPairName(pp.Pair), refQty)
+func (k *Kyber) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(kyberURL, k.localPairName(pp.Pair), refQty)
 }
 
-func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (k *Kyber) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: k.GetURL(pp),
+		URL: k.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := k.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
@@ -110,7 +109,7 @@ func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
 	}
 
-	if result.Dst != k.LocalPairName(pp.Pair) {
+	if result.Dst != k.localPairName(pp.Pair) {
 		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
 	}
 

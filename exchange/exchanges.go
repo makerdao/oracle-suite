@@ -24,51 +24,22 @@ import (
 
 // Handler is interface that all Exchange API handlers should implement
 type Handler interface {
-	// LocalPairName should build symbol/pair name for exchange.
-	// In case of some pairs exchanges might need to rename it for itself.
-	// Example: for `BTCUSD` on binance we should as for `BTCUSDC`
-	// and this is correct place to rename/build pair name
-	LocalPairName(pair *model.Pair) string
-
-	// GetURL should generate URL to get given `PotentialPricePoint`
-	GetURL(pp *model.PotentialPricePoint) string
-
 	// Call should implement making API request to exchange URL and collecting/parsing exchange data
-	Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error)
+	Call(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 }
 
-// List of implemented exchanges
-var exchangeList = map[string]Handler{
-	"binance":       &Binance{},
-	"bitfinex":      &Bitfinex{},
-	"bitstamp":      &Bitstamp{},
-	"bittrex":       &BitTrex{},
-	"coinbase":      &Coinbase{},
-	"coinbasepro":   &CoinbasePro{},
-	"cryptocompare": &CryptoCompare{},
-	"ddex":          &Ddex{},
-	"folgory":       &Folgory{},
-	"ftx":           &Ftx{},
-	"fx":            &Fx{},
-	"gateio":        &Gateio{},
-	"gemini":        &Gemini{},
-	"hitbtc":        &Hitbtc{},
-	"huobi":         &Huobi{},
-	"kraken":        &Kraken{},
-	"kucoin":        &Kucoin{},
-	"kyber":         &Kyber{},
-	"loopring":      &Loopring{},
-	"okex":          &Okex{},
-	"poloniex":      &Poloniex{},
-	"uniswap":       &Uniswap{},
-	"upbit":         &Upbit{},
+var DefaultExchangesSet *ExchangesSet
+
+type ExchangesSet struct {
+	list map[string]Handler
+}
+
+func NewExchangesSet(list map[string]Handler) *ExchangesSet {
+	return &ExchangesSet{list: list}
 }
 
 // Call makes exchange call
-func Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (e *ExchangesSet) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pp == nil {
 		return nil, errNoPotentialPricePoint
 	}
@@ -77,9 +48,39 @@ func Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoi
 		return nil, err
 	}
 
-	handler, ok := exchangeList[pp.Exchange.Name]
+	handler, ok := e.list[pp.Exchange.Name]
 	if !ok {
 		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, pp.Exchange.Name)
 	}
-	return handler.Call(pool, pp)
+	return handler.Call(pp)
+}
+
+func init() {
+	httpWorkerPool := query.NewHTTPWorkerPool(5)
+
+	DefaultExchangesSet = NewExchangesSet(map[string]Handler{
+		"binance":       &Binance{Pool: httpWorkerPool},
+		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
+		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},
+		"bittrex":       &BitTrex{Pool: httpWorkerPool},
+		"coinbase":      &Coinbase{Pool: httpWorkerPool},
+		"coinbasepro":   &CoinbasePro{Pool: httpWorkerPool},
+		"cryptocompare": &CryptoCompare{Pool: httpWorkerPool},
+		"ddex":          &Ddex{Pool: httpWorkerPool},
+		"folgory":       &Folgory{Pool: httpWorkerPool},
+		"ftx":           &Ftx{Pool: httpWorkerPool},
+		"fx":            &Fx{Pool: httpWorkerPool},
+		"gateio":        &Gateio{Pool: httpWorkerPool},
+		"gemini":        &Gemini{Pool: httpWorkerPool},
+		"hitbtc":        &Hitbtc{Pool: httpWorkerPool},
+		"huobi":         &Huobi{Pool: httpWorkerPool},
+		"kraken":        &Kraken{Pool: httpWorkerPool},
+		"kucoin":        &Kucoin{Pool: httpWorkerPool},
+		"kyber":         &Kyber{Pool: httpWorkerPool},
+		"loopring":      &Loopring{Pool: httpWorkerPool},
+		"okex":          &Okex{Pool: httpWorkerPool},
+		"poloniex":      &Poloniex{Pool: httpWorkerPool},
+		"uniswap":       &Uniswap{Pool: httpWorkerPool},
+		"upbit":         &Upbit{Pool: httpWorkerPool},
+	})
 }

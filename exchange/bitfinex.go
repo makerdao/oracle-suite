@@ -28,10 +28,12 @@ import (
 const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
 // Bitfinex exchange handler
-type Bitfinex struct{}
+type Bitfinex struct {
+	Pool query.WorkerPool
+}
 
 // LocalPairName implementation
-func (b *Bitfinex) LocalPairName(pair *model.Pair) string {
+func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	const USDT = "USDT"
 	const USD = "USD"
 	if pair.Base == USDT && pair.Quote == USD {
@@ -44,36 +46,33 @@ func (b *Bitfinex) LocalPairName(pair *model.Pair) string {
 }
 
 // GetURL implementation
-func (b *Bitfinex) GetURL(pp *model.PotentialPricePoint) string {
+func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
 	var pair string
 
 	if pp.Exchange == nil {
-		pair = b.LocalPairName(pp.Pair)
+		pair = b.localPairName(pp.Pair)
 	} else {
 		pair = pp.Exchange.Config["pair"]
 	}
 	if pair == "" {
-		pair = b.LocalPairName(pp.Pair)
+		pair = b.localPairName(pp.Pair)
 	}
 	return fmt.Sprintf(bitfinexURL, pair)
 }
 
 // Call implementation
-func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (b *Bitfinex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: b.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := b.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

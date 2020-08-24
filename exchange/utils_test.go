@@ -34,31 +34,6 @@ type Suite interface {
 	Exchange() Handler
 }
 
-// mockWorkerPool mock worker pool implementation for tests
-type mockWorkerPool struct {
-	resp *query.HTTPResponse
-}
-
-func newMockWorkerPool(resp *query.HTTPResponse) *mockWorkerPool {
-	return &mockWorkerPool{
-		resp: resp,
-	}
-}
-
-func (mwp *mockWorkerPool) Ready() bool {
-	return true
-}
-
-func (mwp *mockWorkerPool) Start() {}
-
-func (mwp *mockWorkerPool) Stop() error {
-	return nil
-}
-
-func (mwp *mockWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
-	return mwp.resp
-}
-
 func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPricePoint {
 	p := &model.Pair{
 		Base:  base,
@@ -80,7 +55,7 @@ func testRealAPICall(suite Suite, base, quote string) {
 	wp := query.NewHTTPWorkerPool(1)
 	wp.Start()
 	ppp := newPotentialPricePoint("exchange", base, quote)
-	pp, err := suite.Exchange().Call(wp, ppp)
+	pp, err := suite.Exchange().Call(ppp)
 	suite.Assert().NoError(wp.Stop())
 
 	suite.Assert().NoError(err)

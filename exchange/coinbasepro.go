@@ -37,34 +37,33 @@ type coinbaseProResponse struct {
 }
 
 // Coinbase exchange handler
-type CoinbasePro struct{}
+type CoinbasePro struct {
+	Pool query.WorkerPool
+}
 
 // LocalPairName implementation
-func (c *CoinbasePro) LocalPairName(pair *model.Pair) string {
+func (c *CoinbasePro) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
 // GetURL implementation
-func (c *CoinbasePro) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(coinbaseProURL, c.LocalPairName(pp.Pair))
+func (c *CoinbasePro) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp.Pair))
 }
 
 // Call implementation
-func (c *CoinbasePro) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (c *CoinbasePro) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: c.GetURL(pp),
+		URL: c.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := c.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

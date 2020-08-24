@@ -37,42 +37,41 @@ type okexResponse struct {
 }
 
 // Okex exchange handler
-type Okex struct{}
+type Okex struct {
+	Pool query.WorkerPool
+}
 
 func (o *Okex) getPair(pp *model.PotentialPricePoint) string {
 	pair, ok := pp.Exchange.Config["pair"]
 	if !ok || pair == "" {
-		pair = o.LocalPairName(pp.Pair)
+		pair = o.localPairName(pp.Pair)
 	}
 	return pair
 }
 
 // LocalPairName implementation
-func (o *Okex) LocalPairName(pair *model.Pair) string {
+func (o *Okex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
 // GetURL implementation
-func (o *Okex) GetURL(pp *model.PotentialPricePoint) string {
+func (o *Okex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(okexURL, o.getPair(pp))
 }
 
 // Call implementation
-func (o *Okex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (o *Okex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: o.GetURL(pp),
+		URL: o.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := o.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
