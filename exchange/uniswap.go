@@ -50,8 +50,7 @@ func getPriceByPair(pair model.Pair, res *uniswapPairResponse) string {
 // Uniswap exchange handler
 type Uniswap struct{}
 
-// LocalPairName implementation
-func (k *Uniswap) LocalPairName(pair *model.Pair) string {
+func (k *Uniswap) localPairName(pair *model.Pair) string {
 	switch *pair {
 	case *model.NewPair("COMP", "ETH"):
 		return "0xcffdded873554f362ac02f8fb1f02e5ada10516f"
@@ -64,12 +63,10 @@ func (k *Uniswap) LocalPairName(pair *model.Pair) string {
 	}
 }
 
-// GetURL implementation
-func (k *Uniswap) GetURL(_ *model.PotentialPricePoint) string {
+func (k *Uniswap) getURL(_ *model.PotentialPricePoint) string {
 	return uniswapURL
 }
 
-// Call implementation
 func (k *Uniswap) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -79,11 +76,11 @@ func (k *Uniswap) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 		return nil, err
 	}
 
-	pair := k.LocalPairName(pp.Pair)
+	pair := k.localPairName(pp.Pair)
 	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`, pair)
 
 	req := &query.HTTPRequest{
-		URL:    k.GetURL(pp),
+		URL:    k.getURL(pp),
 		Method: "POST",
 		Body:   bytes.NewBuffer([]byte(body)),
 	}

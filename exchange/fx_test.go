@@ -31,7 +31,7 @@ import (
 type FxSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Fx
 }
 
 func (suite *FxSuite) Exchange() Handler {
@@ -51,7 +51,7 @@ func (suite *FxSuite) TearDownTest() {
 }
 
 func (suite *FxSuite) TestLocalPair() {
-	suite.EqualValues("BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
 }
 
 func (suite *FxSuite) TestFailOnWrongInput() {

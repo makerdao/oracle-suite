@@ -31,7 +31,7 @@ import (
 type BinanceSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Binance
 }
 
 func (suite *BinanceSuite) Exchange() Handler {
@@ -51,8 +51,8 @@ func (suite *BinanceSuite) TearDownTest() {
 }
 
 func (suite *BinanceSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("BTCUSDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTCETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("BTCUSDC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *BinanceSuite) TestFailOnWrongInput() {

@@ -62,7 +62,7 @@ const successResponse = `{
 type LoopringSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Loopring
 }
 
 func (suite *LoopringSuite) Exchange() Handler {
@@ -82,8 +82,8 @@ func (suite *LoopringSuite) TearDownTest() {
 }
 
 func (suite *LoopringSuite) TestLocalPair() {
-	suite.EqualValues("USDT-DAI", suite.exchange.LocalPairName(model.NewPair("USDT", "DAI")))
-	suite.EqualValues("ETH-DAI", suite.exchange.LocalPairName(model.NewPair("ETH", "DAI")))
+	suite.EqualValues("USDT-DAI", suite.exchange.localPairName(model.NewPair("USDT", "DAI")))
+	suite.EqualValues("ETH-DAI", suite.exchange.localPairName(model.NewPair("ETH", "DAI")))
 }
 
 func (suite *LoopringSuite) TestFailOnWrongInput() {

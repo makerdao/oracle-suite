@@ -44,12 +44,12 @@ type Kraken struct{}
 
 func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
 	if pp.Exchange == nil {
-		return k.LocalPairName(pp.Pair)
+		return k.localPairName(pp.Pair)
 	}
 
 	pair, ok := pp.Exchange.Config["pair"]
 	if !ok || pair == "" {
-		pair = k.LocalPairName(pp.Pair)
+		pair = k.localPairName(pp.Pair)
 	}
 	return pair
 }
@@ -93,17 +93,14 @@ func (k *Kraken) getSymbol(symbol string) string {
 	}
 }
 
-// LocalPairName implementation
-func (k *Kraken) LocalPairName(pair *model.Pair) string {
+func (k *Kraken) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
 }
 
-// GetURL implementation
-func (k *Kraken) GetURL(pp *model.PotentialPricePoint) string {
+func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
-// Call implementation
 func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -114,7 +111,7 @@ func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	req := &query.HTTPRequest{
-		URL: k.GetURL(pp),
+		URL: k.getURL(pp),
 	}
 	pair := k.getPair(pp)
 

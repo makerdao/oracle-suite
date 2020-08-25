@@ -39,17 +39,14 @@ type huobiResponse struct {
 // Huobi exchange handler
 type Huobi struct{}
 
-// LocalPairName implementation
-func (h *Huobi) LocalPairName(pair *model.Pair) string {
+func (h *Huobi) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-// GetURL implementation
-func (h *Huobi) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(huobiURL, h.LocalPairName(pp.Pair))
+func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -60,7 +57,7 @@ func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	}
 
 	req := &query.HTTPRequest{
-		URL: h.GetURL(pp),
+		URL: h.getURL(pp),
 	}
 
 	res := pool.Query(req)

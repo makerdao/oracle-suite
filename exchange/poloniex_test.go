@@ -31,7 +31,7 @@ import (
 type PoloniexSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Poloniex
 }
 
 func (suite *PoloniexSuite) Exchange() Handler {
@@ -51,8 +51,8 @@ func (suite *PoloniexSuite) TearDownTest() {
 }
 
 func (suite *PoloniexSuite) TestLocalPair() {
-	suite.EqualValues("ETH_BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("USDC_BTC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("ETH_BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("USDC_BTC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *PoloniexSuite) TestFailOnWrongInput() {

@@ -1,5 +1,5 @@
 PACKAGE ?= gofer
-GOFILES := $(shell { git ls-files; } | grep ".go$$") # git ls-files -o --exclude-standard;
+GO_FILES := $(shell { git ls-files; } | grep ".go$$") # git ls-files -o --exclude-standard;
 
 OUT_DIR := workdir
 COVER_FILE := $(OUT_DIR)/cover.out
@@ -37,11 +37,11 @@ cover:
 	go tool cover -func=$(COVER_FILE)
 .PHONY: cover
 
-add-license: $(GOFILES)
+add-license: $(GO_FILES)
 	for x in $^; do tmp=$$(cat LICENSE_HEADER; sed -n '/^package \|^\/\/ *+build /,$$p' $$x); echo "$$tmp" > $$x; done
 .PHONY: add-license
 
-test-license: $(GOFILES)
+test-license: $(GO_FILES)
 	@grep -vlz "$$(tr '\n' . < LICENSE_HEADER)" $^ && exit 1 || exit 0
 .PHONY: test-license
 

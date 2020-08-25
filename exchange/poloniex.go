@@ -43,17 +43,10 @@ func (b *Poloniex) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
-func (b *Poloniex) LocalPairName(pair *model.Pair) string {
+func (b *Poloniex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", b.renameSymbol(pair.Quote), b.renameSymbol(pair.Base))
 }
 
-// GetURL implementation
-func (b *Poloniex) GetURL(pp *model.PotentialPricePoint) string {
-	return poloniexURL
-}
-
-// Call implementation
 func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -64,10 +57,10 @@ func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: poloniexURL,
 	}
 
-	pair := b.LocalPairName(pp.Pair)
+	pair := b.localPairName(pp.Pair)
 
 	// make query
 	res := pool.Query(req)

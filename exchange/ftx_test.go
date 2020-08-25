@@ -31,7 +31,7 @@ import (
 type FtxSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Ftx
 }
 
 func (suite *FtxSuite) Exchange() Handler {
@@ -51,8 +51,8 @@ func (suite *FtxSuite) TearDownTest() {
 }
 
 func (suite *FtxSuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTC/USDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USDC")))
+	suite.EqualValues("BTC/ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTC/USDC", suite.exchange.localPairName(model.NewPair("BTC", "USDC")))
 }
 
 func (suite *FtxSuite) TestFailOnWrongInput() {

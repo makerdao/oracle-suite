@@ -41,17 +41,14 @@ type ftxResponse struct {
 // Exchange handler
 type Ftx struct{}
 
-// LocalPairName implementation
-func (b *Ftx) LocalPairName(pair *model.Pair) string {
+func (b *Ftx) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
-func (b *Ftx) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(ftxURL, b.LocalPairName(pp.Pair))
+func (b *Ftx) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(ftxURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *Ftx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -62,7 +59,7 @@ func (b *Ftx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: b.getURL(pp),
 	}
 
 	// make query
@@ -80,7 +77,7 @@ func (b *Ftx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model
 		return nil, fmt.Errorf("failed to parse ftx response: %w", err)
 	}
 
-	if !resp.Success || resp.Result.Name != b.LocalPairName(pp.Pair) {
+	if !resp.Success || resp.Result.Name != b.localPairName(pp.Pair) {
 		return nil, fmt.Errorf("failed to get correct response from ftx: %s", res.Body)
 	}
 

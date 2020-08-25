@@ -40,17 +40,14 @@ func (u *Upbit) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
-func (u *Upbit) LocalPairName(pair *model.Pair) string {
+func (u *Upbit) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
 }
 
-// GetURL implementation
-func (u *Upbit) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(upbitURL, u.LocalPairName(pp.Pair))
+func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (u *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -61,7 +58,7 @@ func (u *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	}
 
 	req := &query.HTTPRequest{
-		URL: u.GetURL(pp),
+		URL: u.getURL(pp),
 	}
 
 	// make query

@@ -39,17 +39,14 @@ func (fx *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
-func (fx *Fx) LocalPairName(pair *model.Pair) string {
+func (fx *Fx) localPairName(pair *model.Pair) string {
 	return fx.renameSymbol(pair.Base)
 }
 
-// GetURL implementation
-func (fx *Fx) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(fxURL, fx.LocalPairName(pp.Pair))
+func (fx *Fx) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(fxURL, fx.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -60,7 +57,7 @@ func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model
 	}
 
 	req := &query.HTTPRequest{
-		URL: fx.GetURL(pp),
+		URL: fx.getURL(pp),
 	}
 
 	// make query

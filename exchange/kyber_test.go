@@ -46,11 +46,11 @@ func (suite *KyberSuite) TearDownTest() {
 }
 
 func (suite *KyberSuite) TestGetUrl() {
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "DGX", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0xdd974d5c2e2928dea5f71b9825b8b646686bd200&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "KNC", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x80fB784B7eD66730e8b1DBd9820aFD29931aab03&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "LEND", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "MKR", "ETH")))
-	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x2260fac5e5542a773aa44fbcfedf7c193bc2c599&qty=2.5", suite.exchange.GetURL(newPotentialPricePoint("kyber", "WBTC", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "DGX", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0xdd974d5c2e2928dea5f71b9825b8b646686bd200&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "KNC", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x80fB784B7eD66730e8b1DBd9820aFD29931aab03&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "LEND", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "MKR", "ETH")))
+	suite.EqualValues("https://api.kyber.network/buy_rate?id=0x2260fac5e5542a773aa44fbcfedf7c193bc2c599&qty=2.5", suite.exchange.getURL(newPotentialPricePoint("kyber", "WBTC", "ETH")))
 }
 
 func (suite *KyberSuite) TestFailOnWrongInput() {

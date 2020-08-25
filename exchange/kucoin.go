@@ -18,9 +18,10 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"strconv"
 )
 
 // Kucoin URL
@@ -29,27 +30,24 @@ const kucoinURL = "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=
 type kucoinResponse struct {
 	Code string `json:"code"`
 	Data struct {
-		Time        int64  `json:"time"`
-		Price       string `json:"price"`
-		BestBid     string `json:"bestBid"`
-		BestAsk     string `json:"bestAsk"`
+		Time    int64  `json:"time"`
+		Price   string `json:"price"`
+		BestBid string `json:"bestBid"`
+		BestAsk string `json:"bestAsk"`
 	} `json:"data"`
 }
 
 // Kucoin exchange handler
 type Kucoin struct{}
 
-// LocalPairName implementation
-func (k *Kucoin) LocalPairName(pair *model.Pair) string {
+func (k *Kucoin) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
-func (k *Kucoin) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(kucoinURL, k.LocalPairName(pp.Pair))
+func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -60,7 +58,7 @@ func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	req := &query.HTTPRequest{
-		URL: k.GetURL(pp),
+		URL: k.getURL(pp),
 	}
 
 	// make query

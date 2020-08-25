@@ -31,7 +31,7 @@ import (
 type CoinbaseProSuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *CoinbasePro
 }
 
 func (suite *CoinbaseProSuite) Exchange() Handler {
@@ -51,8 +51,8 @@ func (suite *CoinbaseProSuite) TearDownTest() {
 }
 
 func (suite *CoinbaseProSuite) TestLocalPair() {
-	suite.EqualValues("BTC-ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTC-USD", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTC-ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTC-USD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *CoinbaseProSuite) TestFailOnWrongInput() {

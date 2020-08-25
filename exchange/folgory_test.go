@@ -31,7 +31,7 @@ import (
 type FolgorySuite struct {
 	suite.Suite
 	pool     query.WorkerPool
-	exchange Handler
+	exchange *Folgory
 }
 
 func (suite *FolgorySuite) Exchange() Handler {
@@ -51,8 +51,8 @@ func (suite *FolgorySuite) TearDownTest() {
 }
 
 func (suite *FolgorySuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.exchange.LocalPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("BTC/USDC", suite.exchange.LocalPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTC/ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.NotEqual("BTC/USDC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *FolgorySuite) TestFailOnWrongInput() {

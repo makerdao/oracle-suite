@@ -43,17 +43,14 @@ func (b *Bitstamp) renameSymbol(symbol string) string {
 	return symbol
 }
 
-// LocalPairName implementation
-func (b *Bitstamp) LocalPairName(pair *model.Pair) string {
+func (b *Bitstamp) localPairName(pair *model.Pair) string {
 	return strings.ToLower(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
 }
 
-// GetURL implementation
-func (b *Bitstamp) GetURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(bitstampURL, b.LocalPairName(pp.Pair))
+func (b *Bitstamp) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(bitstampURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if pool == nil {
 		return nil, errNoPoolPassed
@@ -64,7 +61,7 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	}
 
 	req := &query.HTTPRequest{
-		URL: b.GetURL(pp),
+		URL: b.getURL(pp),
 	}
 
 	// make query
