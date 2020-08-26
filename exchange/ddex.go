@@ -49,17 +49,14 @@ type Ddex struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (d *Ddex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
 func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (d *Ddex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

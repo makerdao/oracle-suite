@@ -50,17 +50,14 @@ func (g *Gateio) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
 func (g *Gateio) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
-// GetURL implementation
 func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
@@ -102,10 +99,12 @@ func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
 	}
+
 	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
 	}
+
 	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)

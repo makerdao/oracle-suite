@@ -42,17 +42,14 @@ func (u *Upbit) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
 func (u *Upbit) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
 }
 
-// GetURL implementation
 func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (u *Upbit) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

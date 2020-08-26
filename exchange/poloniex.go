@@ -45,17 +45,14 @@ func (p *Poloniex) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
 func (p *Poloniex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", p.renameSymbol(pair.Quote), p.renameSymbol(pair.Base))
 }
 
-// GetURL implementation
 func (p *Poloniex) getURL(pp *model.PotentialPricePoint) string {
 	return poloniexURL
 }
 
-// Call implementation
 func (p *Poloniex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

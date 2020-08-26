@@ -42,17 +42,14 @@ type Gemini struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (g *Gemini) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-// GetURL implementation
 func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (g *Gemini) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

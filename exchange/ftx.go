@@ -43,17 +43,14 @@ type Ftx struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (f *Ftx) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
 func (f *Ftx) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(ftxURL, f.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (f *Ftx) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

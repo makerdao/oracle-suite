@@ -41,17 +41,14 @@ type Huobi struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (h *Huobi) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-// GetURL implementation
 func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (h *Huobi) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

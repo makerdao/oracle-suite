@@ -41,17 +41,14 @@ func (f *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
 func (f *Fx) localPairName(pair *model.Pair) string {
 	return f.renameSymbol(pair.Base)
 }
 
-// GetURL implementation
 func (f *Fx) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(fxURL, f.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (f *Fx) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

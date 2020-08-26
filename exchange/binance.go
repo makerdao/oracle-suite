@@ -42,17 +42,14 @@ func (b *Binance) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-// LocalPairName implementation
 func (b *Binance) localPairName(pair *model.Pair) string {
 	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
 }
 
-// GetURL implementation
 func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *Binance) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

@@ -52,7 +52,6 @@ type Uniswap struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (u *Uniswap) localPairName(pair *model.Pair) string {
 	switch *pair {
 	case *model.NewPair("COMP", "ETH"):
@@ -66,12 +65,10 @@ func (u *Uniswap) localPairName(pair *model.Pair) string {
 	}
 }
 
-// GetURL implementation
 func (u *Uniswap) getURL(_ *model.PotentialPricePoint) string {
 	return uniswapURL
 }
 
-// Call implementation
 func (u *Uniswap) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

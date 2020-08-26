@@ -45,17 +45,14 @@ func (b *Bitstamp) renameSymbol(symbol string) string {
 	return symbol
 }
 
-// LocalPairName implementation
 func (b *Bitstamp) localPairName(pair *model.Pair) string {
 	return strings.ToLower(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
 }
 
-// GetURL implementation
 func (b *Bitstamp) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitstampURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *Bitstamp) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

@@ -42,17 +42,14 @@ type BitTrex struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (b *BitTrex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
 }
 
-// GetURL implementation
 func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (b *BitTrex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

@@ -41,17 +41,14 @@ type Coinbase struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (c *Coinbase) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-// GetURL implementation
 func (c *Coinbase) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(coinbaseURL, c.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (c *Coinbase) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

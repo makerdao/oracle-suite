@@ -34,12 +34,10 @@ type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-// GetURL implementation
 func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
-// Call implementation
 func (c *CryptoCompare) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

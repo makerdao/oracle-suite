@@ -49,17 +49,14 @@ func (o *Okex) getPair(pp *model.PotentialPricePoint) string {
 	return pair
 }
 
-// LocalPairName implementation
 func (o *Okex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
 func (o *Okex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(okexURL, o.getPair(pp))
 }
 
-// Call implementation
 func (o *Okex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

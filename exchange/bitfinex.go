@@ -32,7 +32,6 @@ type Bitfinex struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	const USDT = "USDT"
 	const USD = "USD"
@@ -45,7 +44,6 @@ func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	return pair.Base + pair.Quote
 }
 
-// GetURL implementation
 func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
 	var pair string
 
@@ -60,7 +58,6 @@ func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitfinexURL, pair)
 }
 
-// Call implementation
 func (b *Bitfinex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

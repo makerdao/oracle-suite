@@ -42,17 +42,14 @@ type Kucoin struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (k *Kucoin) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-// GetURL implementation
 func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (k *Kucoin) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

@@ -42,17 +42,14 @@ type Hitbtc struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (h *Hitbtc) localPairName(pair *model.Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
 }
 
-// GetURL implementation
 func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
 }
 
-// Call implementation
 func (h *Hitbtc) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

@@ -95,17 +95,14 @@ func (k *Kraken) getSymbol(symbol string) string {
 	}
 }
 
-// LocalPairName implementation
 func (k *Kraken) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
 }
 
-// GetURL implementation
 func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
-// Call implementation
 func (k *Kraken) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {

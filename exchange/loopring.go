@@ -49,17 +49,14 @@ type Loopring struct {
 	Pool query.WorkerPool
 }
 
-// LocalPairName implementation
 func (l *Loopring) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-// GetURL implementation
 func (l *Loopring) getURL(pp *model.PotentialPricePoint) string {
 	return loopringURL
 }
 
-// Call implementation
 func (l *Loopring) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
