@@ -57,7 +57,7 @@ List all supported asset pairs.`,
 				return err
 			}
 
-			fmt.Printf(string(b))
+			fmt.Print(string(b))
 
 			return nil
 		},

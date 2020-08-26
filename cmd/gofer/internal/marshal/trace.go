@@ -43,11 +43,11 @@ func newTrace() *trace {
 
 		switch i := item.(type) {
 		case *model.PriceAggregate:
-			err = traceHandlePriceAggregate(&ret, i, ierr)
+			traceHandlePriceAggregate(&ret, i, ierr)
 		case *model.Exchange:
-			err = traceHandleExchange(&ret, i, ierr)
+			traceHandleExchange(&ret, i)
 		case aggregator.PriceModelMap:
-			err = traceHandlePriceModelMap(&ret, i, ierr)
+			traceHandlePriceModelMap(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -71,19 +71,16 @@ func (j *trace) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func traceHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) error {
+func traceHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) {
 	*ret = append(*ret, []byte(newPriceAggregate(aggregate, err).toString(0)))
-	return nil
 }
 
-func traceHandleExchange(ret *[]marshalledItem, exchange *model.Exchange, err error) error {
+func traceHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) {
 	*ret = append(*ret, []byte(fmt.Sprintf("exchange[%s]", exchange.Name)))
-	return nil
 }
 
-func traceHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap, err error) error {
+func traceHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) {
 	for pr, pm := range priceModelMap {
 		*ret = append(*ret, []byte(fmt.Sprintf("%s:%s", pr.String(), pm.String())))
 	}
-	return nil
 }

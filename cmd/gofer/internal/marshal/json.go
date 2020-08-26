@@ -42,9 +42,9 @@ func newJSON(ndjson bool) *json {
 		case *model.PriceAggregate:
 			err = jsonHandlePriceAggregate(&ret, i, ierr)
 		case *model.Exchange:
-			err = jsonHandleExchange(&ret, i, ierr)
+			err = jsonHandleExchange(&ret, i)
 		case aggregator.PriceModelMap:
-			err = jsonHandlePriceModelMap(&ret, i, ierr)
+			err = jsonHandlePriceModelMap(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -79,7 +79,7 @@ func jsonHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggre
 	return nil
 }
 
-func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange, err error) error {
+func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) error {
 	b, err := encodingJson.Marshal(exchange.Name)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange, err err
 	return nil
 }
 
-func jsonHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap, err error) error {
+func jsonHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) error {
 	for pr, pm := range priceModelMap {
 		b, err := encodingJson.Marshal(struct {
 			Pair  aggregator.Pair

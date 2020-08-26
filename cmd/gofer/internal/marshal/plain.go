@@ -43,11 +43,11 @@ func newPlain() *plain {
 
 		switch i := item.(type) {
 		case *model.PriceAggregate:
-			err = plainHandlePriceAggregate(&ret, i, ierr)
+			plainHandlePriceAggregate(&ret, i)
 		case *model.Exchange:
-			err = plainHandleExchange(&ret, i, ierr)
+			plainHandleExchange(&ret, i)
 		case aggregator.PriceModelMap:
-			err = plainHandlePriceModelMap(&ret, i, ierr)
+			plainHandlePriceModelMap(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -71,19 +71,16 @@ func (j *plain) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func plainHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) error {
+func plainHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate) {
 	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", aggregate.Pair.String(), aggregate.Price)))
-	return nil
 }
 
-func plainHandleExchange(ret *[]marshalledItem, exchange *model.Exchange, err error) error {
+func plainHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) {
 	*ret = append(*ret, []byte(exchange.Name))
-	return nil
 }
 
-func plainHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap, err error) error {
+func plainHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) {
 	for pr := range priceModelMap {
 		*ret = append(*ret, []byte(pr.String()))
 	}
-	return nil
 }

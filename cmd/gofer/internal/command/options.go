@@ -41,7 +41,8 @@ type FormatTypeValue struct {
 	Format marshal.FormatType
 }
 
-// Will return the default value if none is set and will fail if the `format` is set to an unsupported value for some reason.
+// Will return the default value if none is set
+// and will fail if the `format` is set to an unsupported value for some reason.
 func (v *FormatTypeValue) String() string {
 	if v != nil {
 		return formatMap[v.Format]

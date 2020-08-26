@@ -98,9 +98,11 @@ func (m marshalledItem) MarshalJSON() ([]byte, error) {
 	return m, nil
 }
 
+type marshallerFunc func(interface{}, error) ([]marshalledItem, error)
+
 // bufferedMarshaller helps to implement Marshaller interface.
 type bufferedMarshaller struct {
-	marshaller func(interface{}, error) ([]marshalledItem, error)
+	marshaller marshallerFunc
 	live       bool
 	items      []marshalledItem
 	buffer     bytes.Buffer
@@ -118,7 +120,7 @@ type bufferedMarshaller struct {
 // will be called one more time to marshall slice of all previously marshalled
 // objects. This last call can be detected by asserting passed argument to
 // []marshalledItem.
-func newBufferedMarshaller(live bool, marshaller func(interface{}, error) ([]marshalledItem, error)) *bufferedMarshaller {
+func newBufferedMarshaller(live bool, marshaller marshallerFunc) *bufferedMarshaller {
 	return &bufferedMarshaller{
 		marshaller: marshaller,
 		live:       live,
@@ -181,10 +183,8 @@ func (b *bufferedMarshaller) Read(p []byte) (int, error) {
 
 				b.cond.L.Unlock()
 				return b.buffer.Read(p)
-			} else {
-				b.cond.Wait()
 			}
-
+			b.cond.Wait()
 			b.cond.L.Unlock()
 		}
 	}
@@ -207,9 +207,7 @@ func (b *bufferedMarshaller) Write(item interface{}, err error) error {
 		return err
 	}
 
-	for _, bt := range bs {
-		b.items = append(b.items, bt)
-	}
+	b.items = append(b.items, bs...)
 
 	return nil
 }

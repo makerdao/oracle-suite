@@ -62,7 +62,7 @@ Print the price of given PAIRs`,
 				return err
 			}
 
-			lib, err := newLib(opts.ConfigFilePath)
+			l, err := newLib(opts.ConfigFilePath)
 			if err != nil {
 				return err
 			}
@@ -76,7 +76,7 @@ Print the price of given PAIRs`,
 				pairs = append(pairs, model.NewPair(p.Base, p.Quote))
 			}
 
-			err = prices(lib, m, pairs)
+			err = prices(l, m, pairs)
 			if err != nil {
 				return err
 			}
@@ -92,23 +92,20 @@ Print the price of given PAIRs`,
 }
 
 func prices(g lib, m *marshal.Marshal, pairs []*model.Pair) error {
-	var err error
-
 	prices, err := g.Prices(pairs...)
-
 	if err != nil {
 		return err
 	}
 
 	for _, p := range sortPrices(prices) {
-		var err error
+		var e error
 		if prices[p] == nil {
-			err = fmt.Errorf("no price aggregate available for %s available", p.String())
+			e = fmt.Errorf("no price aggregate available for %s available", p.String())
 		} else if prices[p].Price == 0 {
-			err = fmt.Errorf("invalid price for %s", p.String())
+			e = fmt.Errorf("invalid price for %s", p.String())
 		}
 
-		err = m.Write(prices[p], err)
+		err = m.Write(prices[p], e)
 		if err != nil {
 			return err
 		}

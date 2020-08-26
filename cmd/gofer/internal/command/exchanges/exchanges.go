@@ -61,7 +61,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			lib, err := newLib(opts.ConfigFilePath)
+			l, err := newLib(opts.ConfigFilePath)
 			if err != nil {
 				return err
 			}
@@ -75,7 +75,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				pairs = append(pairs, model.NewPair(p.Base, p.Quote))
 			}
 
-			err = exchanges(lib, m, pairs)
+			err = exchanges(l, m, pairs)
 			if err != nil {
 				return err
 			}
@@ -85,7 +85,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			fmt.Printf(string(b))
+			fmt.Print(string(b))
 
 			return nil
 		},
@@ -93,22 +93,21 @@ or a subset of those, if at least one PAIR is provided.`,
 }
 
 func exchanges(g lib, m *marshal.Marshal, pairs []*model.Pair) error {
-	var err error
-
 	exchanges := g.Exchanges(pairs...)
 
 	sort.SliceStable(exchanges, func(i, j int) bool {
 		return exchanges[i].Name < exchanges[j].Name
 	})
 
+	var er error
 	for _, e := range exchanges {
-		err := m.Write(e, err)
+		err := m.Write(e, er)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = m.Close()
+	err := m.Close()
 	if err != nil {
 		return err
 	}
