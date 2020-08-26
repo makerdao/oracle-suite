@@ -40,7 +40,7 @@ func (suite *FtxSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *FtxSuite) SetupSuite() {
-	suite.exchange = &Ftx{}
+	suite.exchange = &Ftx{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *FtxSuite) TearDownTest() {
@@ -56,21 +56,19 @@ func (suite *FtxSuite) TestLocalPair() {
 }
 
 func (suite *FtxSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("ftx", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,7 +76,8 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	for n, r := range [][]byte{
@@ -107,7 +106,8 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+			_, err = suite.exchange.Call(pp)
 			suite.Error(err)
 		})
 	}
@@ -118,7 +118,8 @@ func (suite *FtxSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":4}}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
@@ -130,7 +131,7 @@ func (suite *FtxSuite) TestSuccessResponse() {
 }
 
 func (suite *FtxSuite) TestRealAPICall() {
-	testRealAPICall(suite, "ETH", "BTC")
+	testRealAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
 // In order for 'go test' to run this suite, we need to create

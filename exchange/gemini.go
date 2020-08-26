@@ -38,7 +38,9 @@ type geminiResponse struct {
 }
 
 // Gemini exchange handler
-type Gemini struct{}
+type Gemini struct {
+	Pool query.WorkerPool
+}
 
 func (g *Gemini) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
@@ -48,10 +50,7 @@ func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (g *Gemini) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (g *Gemini) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := g.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

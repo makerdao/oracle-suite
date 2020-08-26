@@ -13,35 +13,21 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package gofer
+package query
 
-import (
-	"github.com/stretchr/testify/assert"
-	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
-	"testing"
-)
+// MockWorkerPool mock worker pool implementation for tests
+type MockWorkerPool struct {
+	resp *HTTPResponse
+}
 
-func TestPriceCollectorFailsWithoutWorkingPool(t *testing.T) {
-	p := &model.Pair{
-		Base:  "BTC",
-		Quote: "ETH",
-	}
-	pp := &model.PotentialPricePoint{
-		Exchange: &model.Exchange{
-			Name: "binance",
-		},
-		Pair: p,
-	}
+func NewMockWorkerPool() *MockWorkerPool {
+	return &MockWorkerPool{}
+}
 
-	pc := &PriceCollector{}
-	_, err := pc.CollectPricePoint(pp)
-	assert.Error(t, err)
+func (mwp *MockWorkerPool) MockResp(resp *HTTPResponse) {
+	mwp.resp = resp
+}
 
-	// Check not started
-	pc = &PriceCollector{
-		wp: &query.HTTPWorkerPool{},
-	}
-	_, err = pc.CollectPricePoint(pp)
-	assert.Error(t, err)
+func (mwp *MockWorkerPool) Query(req *HTTPRequest) *HTTPResponse {
+	return mwp.resp
 }

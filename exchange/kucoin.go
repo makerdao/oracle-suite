@@ -38,7 +38,9 @@ type kucoinResponse struct {
 }
 
 // Kucoin exchange handler
-type Kucoin struct{}
+type Kucoin struct {
+	Pool query.WorkerPool
+}
 
 func (k *Kucoin) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
@@ -48,10 +50,7 @@ func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (k *Kucoin) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (k *Kucoin) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := k.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

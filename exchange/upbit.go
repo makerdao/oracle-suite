@@ -34,7 +34,9 @@ type upbitResponse struct {
 }
 
 // Upbit exchange handler
-type Upbit struct{}
+type Upbit struct {
+	Pool query.WorkerPool
+}
 
 func (u *Upbit) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
@@ -48,10 +50,7 @@ func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-func (u *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (u *Upbit) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (u *Upbit) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := u.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

@@ -33,35 +33,34 @@ type fxResponse struct {
 }
 
 // Fx exchange handler
-type Fx struct{}
+type Fx struct {
+	Pool query.WorkerPool
+}
 
-func (fx *Fx) renameSymbol(symbol string) string {
+func (f *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (fx *Fx) localPairName(pair *model.Pair) string {
-	return fx.renameSymbol(pair.Base)
+func (f *Fx) localPairName(pair *model.Pair) string {
+	return f.renameSymbol(pair.Base)
 }
 
-func (fx *Fx) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(fxURL, fx.localPairName(pp.Pair))
+func (f *Fx) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(fxURL, f.localPairName(pp.Pair))
 }
 
-func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (f *Fx) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: fx.getURL(pp),
+		URL: f.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := f.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
@@ -77,7 +76,7 @@ func (fx *Fx) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model
 	if resp.Rates == nil {
 		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
 	}
-	price, ok := resp.Rates[fx.renameSymbol(pp.Pair.Quote)]
+	price, ok := resp.Rates[f.renameSymbol(pp.Pair.Quote)]
 	if !ok {
 		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
 	}

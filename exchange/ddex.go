@@ -45,31 +45,30 @@ type ddexResponse struct {
 }
 
 // Ddex exchange handler
-type Ddex struct{}
+type Ddex struct {
+	Pool query.WorkerPool
+}
 
-func (c *Ddex) localPairName(pair *model.Pair) string {
+func (d *Ddex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (c *Ddex) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(ddexURL, c.localPairName(pp.Pair))
+func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
+	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
 }
 
-func (c *Ddex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (d *Ddex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: c.getURL(pp),
+		URL: d.getURL(pp),
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := d.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 )
 
 var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real exchanges API")
@@ -32,31 +31,6 @@ type Suite interface {
 
 	Assert() *assert.Assertions
 	Exchange() Handler
-}
-
-// mockWorkerPool mock worker pool implementation for tests
-type mockWorkerPool struct {
-	resp *query.HTTPResponse
-}
-
-func newMockWorkerPool(resp *query.HTTPResponse) *mockWorkerPool {
-	return &mockWorkerPool{
-		resp: resp,
-	}
-}
-
-func (mwp *mockWorkerPool) Ready() bool {
-	return true
-}
-
-func (mwp *mockWorkerPool) Start() {}
-
-func (mwp *mockWorkerPool) Stop() error {
-	return nil
-}
-
-func (mwp *mockWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
-	return mwp.resp
 }
 
 func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPricePoint {
@@ -72,16 +46,15 @@ func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPr
 	}
 }
 
-func testRealAPICall(suite Suite, base, quote string) {
+func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
 	if !*testAPICalls {
 		suite.T().SkipNow()
 	}
 
-	wp := query.NewHTTPWorkerPool(1)
-	wp.Start()
+	suite.Assert().IsType(suite.Exchange(), exchange)
+
 	ppp := newPotentialPricePoint("exchange", base, quote)
-	pp, err := suite.Exchange().Call(wp, ppp)
-	suite.Assert().NoError(wp.Stop())
+	pp, err := exchange.Call(ppp)
 
 	suite.Assert().NoError(err)
 	suite.Assert().Greater(pp.Price, float64(0))

@@ -37,7 +37,9 @@ type bitstampResponse struct {
 }
 
 // Bitstamp exchange handler
-type Bitstamp struct{}
+type Bitstamp struct {
+	Pool query.WorkerPool
+}
 
 func (b *Bitstamp) renameSymbol(symbol string) string {
 	return symbol
@@ -51,10 +53,7 @@ func (b *Bitstamp) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitstampURL, b.localPairName(pp.Pair))
 }
 
-func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (b *Bitstamp) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -65,7 +64,7 @@ func (b *Bitstamp) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := b.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

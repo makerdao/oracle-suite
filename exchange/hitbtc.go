@@ -38,7 +38,9 @@ type hitbtcResponse struct {
 }
 
 // Hitbtc exchange handler
-type Hitbtc struct{}
+type Hitbtc struct {
+	Pool query.WorkerPool
+}
 
 func (h *Hitbtc) localPairName(pair *model.Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
@@ -48,10 +50,7 @@ func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
 }
 
-func (h *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (h *Hitbtc) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (h *Hitbtc) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := h.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

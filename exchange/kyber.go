@@ -40,7 +40,9 @@ type kyberResponse struct {
 	Result         []*kyberDataResponse `json:"data"`
 }
 
-type Kyber struct{}
+type Kyber struct {
+	Pool query.WorkerPool
+}
 
 func (k *Kyber) localPairName(pair *model.Pair) string {
 	var addrList = map[model.Pair]string{
@@ -59,10 +61,7 @@ func (k *Kyber) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(kyberURL, k.localPairName(pp.Pair), refQty)
 }
 
-func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (k *Kyber) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -73,7 +72,7 @@ func (k *Kyber) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := k.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

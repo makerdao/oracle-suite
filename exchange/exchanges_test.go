@@ -17,9 +17,10 @@ package exchange
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -30,28 +31,26 @@ import (
 // returns the current testing context
 type ExchangesSuite struct {
 	suite.Suite
-	pool query.WorkerPool
+	pool *query.MockWorkerPool
+	set  *Set
 }
 
-func (suite *ExchangesSuite) TearDownTest() {
-	// cleanup created pool from prev test
-	if suite.pool != nil {
-		suite.pool = nil
-	}
+// Setup exchange
+func (suite *ExchangesSuite) SetupSuite() {
+	pool := query.NewMockWorkerPool()
+
+	suite.pool = pool
+	suite.set = NewSet(map[string]Handler{
+		"binance": &Binance{pool},
+	})
 }
 
 func (suite *ExchangesSuite) TestCallErrorNegative() {
-	pool := newMockWorkerPool(nil)
-
-	res, err := Call(nil, nil)
+	res, err := suite.set.Call(nil)
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 
-	res, err = Call(pool, nil)
-	assert.Nil(suite.T(), res)
-	assert.Error(suite.T(), err)
-
-	res, err = Call(pool, &model.PotentialPricePoint{})
+	res, err = suite.set.Call(&model.PotentialPricePoint{})
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 
@@ -60,13 +59,12 @@ func (suite *ExchangesSuite) TestCallErrorNegative() {
 			Name: "unknown",
 		},
 	}
-	res, err = Call(pool, pp)
+	res, err = suite.set.Call(pp)
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
-	pool := newMockWorkerPool(nil)
 	pp := &model.PotentialPricePoint{
 		Exchange: &model.Exchange{
 			Name: "binance",
@@ -77,7 +75,7 @@ func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 		},
 	}
 
-	res, err := Call(pool, pp)
+	res, err := suite.set.Call(pp)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), res)
@@ -94,7 +92,7 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 		Base:  "BTC",
 		Quote: "ETH",
 	}
-	pool := newMockWorkerPool(resp)
+	suite.pool.MockResp(resp)
 	pp := &model.PotentialPricePoint{
 		Exchange: &model.Exchange{
 			Name: "binance",
@@ -102,7 +100,7 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 		Pair: p,
 	}
 
-	res, err := Call(pool, pp)
+	res, err := suite.set.Call(pp)
 
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), p, res.Pair)

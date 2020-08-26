@@ -34,7 +34,9 @@ type binanceResponse struct {
 }
 
 // Binance exchange handler
-type Binance struct{}
+type Binance struct {
+	Pool query.WorkerPool
+}
 
 func (b *Binance) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
@@ -48,10 +50,7 @@ func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
-func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (b *Binance) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (b *Binance) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := b.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

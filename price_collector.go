@@ -16,33 +16,23 @@
 package gofer
 
 import (
-	"fmt"
 	"github.com/makerdao/gofer/exchange"
 	"github.com/makerdao/gofer/model"
-	"github.com/makerdao/gofer/query"
 )
 
 // PriceCollector will collect prices for you
 type PriceCollector struct {
-	wp query.WorkerPool
+	exchangeSet *exchange.Set
 }
 
 // NewPriceCollector create new ready to work `PriceCollector`
-func NewPriceCollector() *PriceCollector {
-	workerPool := query.NewHTTPWorkerPool(10)
-	workerPool.Start()
-
+func NewPriceCollector(set *exchange.Set) *PriceCollector {
 	return &PriceCollector{
-		wp: workerPool,
+		exchangeSet: set,
 	}
 }
 
 // CollectPricePoint makes request to exchange and fetching a price point
 func (pc *PriceCollector) CollectPricePoint(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pc.wp == nil || !pc.wp.Ready() {
-		return nil, fmt.Errorf("wrong worker pool defined for PriceCollector")
-	}
-
-	// Making a call
-	return exchange.Call(pc.wp, pp)
+	return pc.exchangeSet.Call(pp)
 }

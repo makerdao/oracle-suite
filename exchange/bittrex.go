@@ -38,7 +38,9 @@ type bittrexResponse struct {
 }
 
 // BitTrex exchange handler
-type BitTrex struct{}
+type BitTrex struct {
+	Pool query.WorkerPool
+}
 
 func (b *BitTrex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
@@ -48,10 +50,7 @@ func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
 }
 
-func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (b *BitTrex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (b *BitTrex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*m
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := b.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

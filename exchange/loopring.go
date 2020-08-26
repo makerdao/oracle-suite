@@ -45,27 +45,28 @@ type loopringResponse struct {
 }
 
 // Loopring exchange handler
-type Loopring struct{}
+type Loopring struct {
+	Pool query.WorkerPool
+}
 
 func (l *Loopring) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-func (l *Loopring) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (l *Loopring) getURL(pp *model.PotentialPricePoint) string {
+	return loopringURL
+}
+
+func (l *Loopring) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
-
 	req := &query.HTTPRequest{
-		URL: loopringURL,
+		URL: l.getURL(pp),
 	}
-
 	// make query
-	res := pool.Query(req)
+	res := l.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
@@ -84,7 +85,6 @@ func (l *Loopring) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	if resp.Data == nil {
 		return nil, fmt.Errorf("empty `data` field for loopring response: %s", res.Body)
 	}
-
 	pair := l.localPairName(pp.Pair)
 	pairRes, ok := resp.Data[pair]
 	if !ok {

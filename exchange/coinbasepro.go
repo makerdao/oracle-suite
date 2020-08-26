@@ -37,7 +37,9 @@ type coinbaseProResponse struct {
 }
 
 // Coinbase exchange handler
-type CoinbasePro struct{}
+type CoinbasePro struct {
+	Pool query.WorkerPool
+}
 
 func (c *CoinbasePro) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
@@ -47,10 +49,7 @@ func (c *CoinbasePro) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp.Pair))
 }
 
-func (c *CoinbasePro) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (c *CoinbasePro) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func (c *CoinbasePro) Call(pool query.WorkerPool, pp *model.PotentialPricePoint)
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := c.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

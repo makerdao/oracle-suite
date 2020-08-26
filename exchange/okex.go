@@ -37,7 +37,9 @@ type okexResponse struct {
 }
 
 // Okex exchange handler
-type Okex struct{}
+type Okex struct {
+	Pool query.WorkerPool
+}
 
 func (o *Okex) getPair(pp *model.PotentialPricePoint) string {
 	pair, ok := pp.Exchange.Config["pair"]
@@ -55,10 +57,7 @@ func (o *Okex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(okexURL, o.getPair(pp))
 }
 
-func (o *Okex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (o *Okex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -69,7 +68,7 @@ func (o *Okex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mode
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := o.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

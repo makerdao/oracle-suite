@@ -37,33 +37,36 @@ type poloniexResponse struct {
 }
 
 // Poloniex exchange handler
-type Poloniex struct{}
+type Poloniex struct {
+	Pool query.WorkerPool
+}
 
-func (b *Poloniex) renameSymbol(symbol string) string {
+func (p *Poloniex) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (b *Poloniex) localPairName(pair *model.Pair) string {
-	return fmt.Sprintf("%s_%s", b.renameSymbol(pair.Quote), b.renameSymbol(pair.Base))
+func (p *Poloniex) localPairName(pair *model.Pair) string {
+	return fmt.Sprintf("%s_%s", p.renameSymbol(pair.Quote), p.renameSymbol(pair.Base))
 }
 
-func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (p *Poloniex) getURL(pp *model.PotentialPricePoint) string {
+	return poloniexURL
+}
+
+func (p *Poloniex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
 	}
 
 	req := &query.HTTPRequest{
-		URL: poloniexURL,
+		URL: p.getURL(pp),
 	}
 
-	pair := b.localPairName(pp.Pair)
+	pair := p.localPairName(pp.Pair)
 
 	// make query
-	res := pool.Query(req)
+	res := p.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
@@ -76,27 +79,27 @@ func (b *Poloniex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse poloniex response: %w", err)
 	}
-	p, ok := resp[pair]
+	pairResp, ok := resp[pair]
 	if !ok {
 		return nil, fmt.Errorf("failed to get correct response from exchange (no %s exist) %s", pair, res.Body)
 	}
 	// Parsing price from string
-	price, err := strconv.ParseFloat(p.Price, 64)
+	price, err := strconv.ParseFloat(pairResp.Price, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse price from bitstamp exchange %s", res.Body)
 	}
 	// Parsing ask from string
-	ask, err := strconv.ParseFloat(p.Ask, 64)
+	ask, err := strconv.ParseFloat(pairResp.Ask, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ask from bitstamp exchange %s", res.Body)
 	}
 	// Parsing volume from string
-	volume, err := strconv.ParseFloat(p.Volume, 64)
+	volume, err := strconv.ParseFloat(pairResp.Volume, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from bitstamp exchange %s", res.Body)
 	}
 	// Parsing bid from string
-	bid, err := strconv.ParseFloat(p.Bid, 64)
+	bid, err := strconv.ParseFloat(pairResp.Bid, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from bitstamp exchange %s", res.Body)
 	}

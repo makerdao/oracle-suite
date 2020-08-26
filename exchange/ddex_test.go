@@ -40,7 +40,7 @@ func (suite *DdexSuite) Exchange() Handler {
 
 // Setup exchange
 func (suite *DdexSuite) SetupSuite() {
-	suite.exchange = &Ddex{}
+	suite.exchange = &Ddex{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *DdexSuite) TearDownTest() {
@@ -56,21 +56,19 @@ func (suite *DdexSuite) TestLocalPair() {
 }
 
 func (suite *DdexSuite) TestFailOnWrongInput() {
-	// no pool
-	_, err := suite.exchange.Call(nil, nil)
-	suite.Equal(errNoPoolPassed, err)
+	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), nil)
+	_, err = suite.exchange.Call(nil)
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), &model.PotentialPricePoint{})
+	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("ddex", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(newMockWorkerPool(nil), pp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -78,14 +76,16 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	_, err = suite.exchange.Call(pp)
 	suite.Error(err)
 
 	for n, r := range [][]byte{
@@ -182,7 +182,8 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			_, err = suite.exchange.Call(newMockWorkerPool(resp), pp)
+			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+			_, err = suite.exchange.Call(pp)
 			suite.Error(err)
 		})
 	}
@@ -216,7 +217,8 @@ func (suite *DdexSuite) TestSuccessResponse() {
 		   }
 		}`),
 	}
-	point, err := suite.exchange.Call(newMockWorkerPool(resp), pp)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	point, err := suite.exchange.Call(pp)
 	suite.NoError(err)
 	suite.Equal(pp.Exchange, point.Exchange)
 	suite.Equal(pp.Pair, point.Pair)
@@ -226,7 +228,7 @@ func (suite *DdexSuite) TestSuccessResponse() {
 }
 
 func (suite *DdexSuite) TestRealAPICall() {
-	testRealAPICall(suite, "WBTC", "USDT")
+	testRealAPICall(suite, &Ddex{Pool: query.NewHTTPWorkerPool(1)}, "WBTC", "USDT")
 }
 
 // In order for 'go test' to run this suite, we need to create

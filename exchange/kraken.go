@@ -40,7 +40,9 @@ type krakenResponse struct {
 }
 
 // Kraken exchange handler
-type Kraken struct{}
+type Kraken struct {
+	Pool query.WorkerPool
+}
 
 func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
 	if pp.Exchange == nil {
@@ -101,10 +103,7 @@ func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
-func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (k *Kraken) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -116,7 +115,7 @@ func (k *Kraken) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	pair := k.getPair(pp)
 
 	// make query
-	res := pool.Query(req)
+	res := k.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

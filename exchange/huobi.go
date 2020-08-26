@@ -37,7 +37,9 @@ type huobiResponse struct {
 }
 
 // Huobi exchange handler
-type Huobi struct{}
+type Huobi struct {
+	Pool query.WorkerPool
+}
 
 func (h *Huobi) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
@@ -47,10 +49,7 @@ func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (h *Huobi) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -60,7 +59,7 @@ func (h *Huobi) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mod
 		URL: h.getURL(pp),
 	}
 
-	res := pool.Query(req)
+	res := h.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

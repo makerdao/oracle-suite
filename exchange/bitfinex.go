@@ -28,7 +28,9 @@ import (
 const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
 // Bitfinex exchange handler
-type Bitfinex struct{}
+type Bitfinex struct {
+	Pool query.WorkerPool
+}
 
 func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	const USDT = "USDT"
@@ -56,10 +58,7 @@ func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitfinexURL, pair)
 }
 
-func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (b *Bitfinex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -70,7 +69,7 @@ func (b *Bitfinex) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := b.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}

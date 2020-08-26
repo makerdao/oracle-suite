@@ -16,38 +16,15 @@
 package gofer
 
 import (
+	"testing"
+
 	"github.com/makerdao/gofer/aggregator"
+	"github.com/makerdao/gofer/exchange"
 	"github.com/makerdao/gofer/model"
 	"github.com/makerdao/gofer/query"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
-
-// mockWorkerPool mock worker pool implementation for tests
-type mockWorkerPool struct {
-	resp *query.HTTPResponse
-}
-
-func newMockWorkerPool(resp *query.HTTPResponse) *mockWorkerPool {
-	return &mockWorkerPool{
-		resp: resp,
-	}
-}
-
-func (mwp *mockWorkerPool) Ready() bool {
-	return true
-}
-
-func (mwp *mockWorkerPool) Start() {}
-
-func (mwp *mockWorkerPool) Stop() error {
-	return nil
-}
-
-func (mwp *mockWorkerPool) Query(req *query.HTTPRequest) *query.HTTPResponse {
-	return mwp.resp
-}
 
 func newPotentialPricePoint(exchangeName string, pair *model.Pair) *model.PotentialPricePoint {
 	return &model.PotentialPricePoint{
@@ -68,30 +45,31 @@ type ProcessorSuite struct {
 // All methods that begin with "Test" are run as tests within a
 // suite.
 func (suite *ProcessorSuite) TestNegativeProcessOne() {
+	set := exchange.NewSet(map[string]exchange.Handler{})
+
 	pair := &model.Pair{
 		Base:  "BTC",
 		Quote: "ETH",
 	}
-	pp := newPotentialPricePoint("coinbase", pair)
-	// Wrong worker pool
-	p := NewProcessor(nil)
-	resp, err := p.ProcessOne(pp)
-	suite.Nil(resp)
-	suite.Error(err)
 
-	p = NewProcessor(newMockWorkerPool(nil))
-	resp, err = p.ProcessOne(&model.PotentialPricePoint{})
+	p := NewProcessor(set)
+	resp, err := p.ProcessOne(&model.PotentialPricePoint{})
 	suite.Nil(resp)
 	suite.Error(err)
 
 	wrongPp := newPotentialPricePoint("nonexisting", pair)
-	p = NewProcessor(newMockWorkerPool(nil))
+	p = NewProcessor(set)
 	resp, err = p.ProcessOne(wrongPp)
 	suite.Nil(resp)
 	suite.Error(err)
 }
 
 func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
+	wp := query.NewMockWorkerPool()
+	set := exchange.NewSet(map[string]exchange.Handler{
+		"binance": &exchange.Binance{Pool: wp},
+	})
+
 	pair := &model.Pair{
 		Base:  "BTC",
 		Quote: "ETH",
@@ -100,8 +78,8 @@ func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
-	wp := newMockWorkerPool(resp)
-	p := NewProcessor(wp)
+	wp.MockResp(resp)
+	p := NewProcessor(set)
 	point, err := p.ProcessOne(pp)
 
 	suite.NoError(err)
@@ -110,6 +88,11 @@ func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 }
 
 func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
+	wp := query.NewMockWorkerPool()
+	set := exchange.NewSet(map[string]exchange.Handler{
+		"binance": &exchange.Binance{Pool: wp},
+	})
+
 	pair := &model.Pair{
 		Base:  "BTC",
 		Quote: "ETH",
@@ -121,8 +104,8 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1"}`),
 	}
-	wp := newMockWorkerPool(resp)
-	p := NewProcessor(wp)
+	wp.MockResp(resp)
+	p := NewProcessor(set)
 	aggr, err := p.Process([]*model.Pair{pair, pair}, agg)
 
 	suite.NoError(err)

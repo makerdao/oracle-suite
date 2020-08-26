@@ -42,7 +42,9 @@ type gateioResponse struct {
 }
 
 // Gateio exchange handler
-type Gateio struct{}
+type Gateio struct {
+	Pool query.WorkerPool
+}
 
 func (g *Gateio) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
@@ -56,10 +58,7 @@ func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pool == nil {
-		return nil, errNoPoolPassed
-	}
+func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
@@ -70,7 +69,7 @@ func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	}
 
 	// make query
-	res := pool.Query(req)
+	res := g.Pool.Query(req)
 	if res == nil {
 		return nil, errEmptyExchangeResponse
 	}
@@ -90,6 +89,7 @@ func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	if resp[0].Pair != g.localPairName(pp.Pair) {
 		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
 	}
+
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp[0].Price, 64)
 	if err != nil {
@@ -100,12 +100,10 @@ func (g *Gateio) Call(pool query.WorkerPool, pp *model.PotentialPricePoint) (*mo
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
 	}
-
 	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
 	}
-
 	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
