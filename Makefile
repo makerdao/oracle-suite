@@ -13,8 +13,8 @@ TEST_FLAGS ?= all
 
 GO := go
 
-all: $(BUILD_TARGET)
-.PHONY: all
+build: $(BUILD_TARGET)
+.PHONY: build
 
 $(BUILD_TARGET): export GOOS ?= linux
 $(BUILD_TARGET): export GOARCH ?= amd64
@@ -55,4 +55,24 @@ bench:
 add-license: $(LICENSED_FILES)
 	for x in $^; do tmp=$$(cat LICENSE_HEADER; sed -n '/^package \|^\/\/ *+build /,$$p' $$x); echo "$$tmp" > $$x; done
 .PHONY: add-license
+
+TEST_BUILD_TARGET := $(BUILD_DIR)/gofer-exchange.test
+TEST_BUILD_PACKAGE := ./exchange
+TEST_BUILD_PACKAGE_FILES := $(shell { git ls-files exchange; } | grep ".go$$")
+
+build-test: $(TEST_BUILD_TARGET)
+.PHONY: build-test
+
+clean-test:
+	rm $(TEST_BUILD_TARGET)
+.PHONY: clean-test
+
+$(TEST_BUILD_TARGET): clean-test $(TEST_BUILD_PACKAGE_FILES)
+	mkdir -p $(@D)
+	$(GO) test -tags $(TEST_FLAGS) -c -o $@ $(TEST_BUILD_PACKAGE)
+.PHONY: build-test
+
+run-test: $(TEST_BUILD_TARGET)
+	$(TEST_BUILD_TARGET) -test.v -gofer.test-api-calls
+.PHONY: run-test
 
