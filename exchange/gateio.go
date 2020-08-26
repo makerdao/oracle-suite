@@ -89,6 +89,7 @@ func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) 
 	if resp[0].Pair != g.localPairName(pp.Pair) {
 		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
 	}
+
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp[0].Price, 64)
 	if err != nil {
@@ -99,12 +100,10 @@ func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
 	}
-
 	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
 	}
-
 	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
