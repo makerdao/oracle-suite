@@ -21,8 +21,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/model"
 	"github.com/makerdao/gofer/internal/pkg/query"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Okex URL

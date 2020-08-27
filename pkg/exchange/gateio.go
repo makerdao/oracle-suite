@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/model"
 	"github.com/makerdao/gofer/internal/pkg/query"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Gateio URL

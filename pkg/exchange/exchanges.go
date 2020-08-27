@@ -18,8 +18,8 @@ package exchange
 import (
 	"fmt"
 
-	"github.com/makerdao/gofer/pkg/model"
 	"github.com/makerdao/gofer/internal/pkg/query"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Handler is interface that all Exchange API handlers should implement

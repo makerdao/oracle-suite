@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/makerdao/gofer/pkg/model"
 	"github.com/makerdao/gofer/internal/pkg/query"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Kucoin URL
