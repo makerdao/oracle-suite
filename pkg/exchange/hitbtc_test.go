@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/makerdao/gofer/internal/pkg/query"
+	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/model"
 )
 

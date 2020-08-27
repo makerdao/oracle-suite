@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	mock "github.com/makerdao/gofer/internal/pkg/mock/aggregator"
+	mock "github.com/makerdao/gofer/internal/mock/aggregator"
 	"github.com/makerdao/gofer/pkg/model"
 )
 

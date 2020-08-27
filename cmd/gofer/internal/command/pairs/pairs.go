@@ -13,69 +13,41 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package exchanges
+package pairs
 
 import (
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"sort"
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/aggregator"
 
-	"github.com/makerdao/gofer/internal/app/gofer/command"
-	"github.com/makerdao/gofer/internal/app/gofer/marshal"
+	"github.com/makerdao/gofer/cmd/gofer/internal/command"
+	"github.com/makerdao/gofer/cmd/gofer/internal/config"
+	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
 )
-
-type lib interface {
-	Exchanges(pairs ...*model.Pair) []*model.Exchange
-}
-
-func newLib(path string) (lib, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	lib, err := gofer.ReadFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return lib, nil
-}
 
 func New(opts *command.Options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "exchanges [PAIR...]",
-		Short: "List supported exchanges",
+		Use:   "pairs",
+		Args:  cobra.NoArgs,
+		Short: "List all supported pairs",
 		Long: `
-Lists exchanges that will be queried for all of the supported pairs
-or a subset of those, if at least one PAIR is provided.`,
+List all supported asset pairs.`,
 		RunE: func(c *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(opts.OutputFormat.Format)
 			if err != nil {
 				return err
 			}
 
-			l, err := newLib(opts.ConfigFilePath)
+			conf, err := config.ReadConfig(opts.ConfigFilePath)
 			if err != nil {
 				return err
 			}
 
-			var pairs []*model.Pair
-			for _, pair := range args {
-				var p *model.Pair
-				if p, err = model.NewPairFromString(pair); err != nil {
-					return err
-				}
-				pairs = append(pairs, model.NewPair(p.Base, p.Quote))
-			}
-
-			err = exchanges(l, m, pairs)
+			err = pairs(conf.Aggregator.Parameters.PriceModels, m)
 			if err != nil {
 				return err
 			}
@@ -92,25 +64,33 @@ or a subset of those, if at least one PAIR is provided.`,
 	}
 }
 
-func exchanges(g lib, m *marshal.Marshal, pairs []*model.Pair) error {
-	exchanges := g.Exchanges(pairs...)
+func pairs(s aggregator.PriceModelMap, m *marshal.Marshal) error {
+	var err error
 
-	sort.SliceStable(exchanges, func(i, j int) bool {
-		return exchanges[i].Name < exchanges[j].Name
-	})
-
-	var er error
-	for _, e := range exchanges {
-		err := m.Write(e, er)
+	for _, p := range sortPriceModels(s) {
+		err = m.Write(aggregator.PriceModelMap{p: s[p]}, nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := m.Close()
+	err = m.Close()
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func sortPriceModels(models aggregator.PriceModelMap) []aggregator.Pair {
+	pairs := make([]aggregator.Pair, 0)
+	for k := range models {
+		pairs = append(pairs, k)
+	}
+
+	sort.SliceStable(pairs, func(i, j int) bool {
+		return pairs[i].String() < pairs[j].String()
+	})
+
+	return pairs
 }

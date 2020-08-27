@@ -18,10 +18,10 @@ package main
 import (
 	"log"
 
-	"github.com/makerdao/gofer/internal/app/gofer/command"
-	"github.com/makerdao/gofer/internal/app/gofer/command/exchanges"
-	"github.com/makerdao/gofer/internal/app/gofer/command/pairs"
-	"github.com/makerdao/gofer/internal/app/gofer/command/price"
+	"github.com/makerdao/gofer/cmd/gofer/internal/command"
+	"github.com/makerdao/gofer/cmd/gofer/internal/command/exchanges"
+	"github.com/makerdao/gofer/cmd/gofer/internal/command/pairs"
+	"github.com/makerdao/gofer/cmd/gofer/internal/command/price"
 )
 
 func main() {

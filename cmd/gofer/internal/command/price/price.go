@@ -27,8 +27,8 @@ import (
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/model"
 
-	"github.com/makerdao/gofer/internal/app/gofer/command"
-	"github.com/makerdao/gofer/internal/app/gofer/marshal"
+	"github.com/makerdao/gofer/cmd/gofer/internal/command"
+	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
 )
 
 type lib interface {

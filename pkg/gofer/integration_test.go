@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	prcessorMock "github.com/makerdao/gofer/internal/pkg/mock/prcessor"
+	prcessorMock "github.com/makerdao/gofer/internal/mock/prcessor"
 	"github.com/makerdao/gofer/pkg/aggregator"
 	"github.com/makerdao/gofer/pkg/model"
 )

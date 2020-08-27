@@ -18,7 +18,7 @@ package gofer
 import (
 	"testing"
 
-	"github.com/makerdao/gofer/internal/pkg/query"
+	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/aggregator"
 	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/model"

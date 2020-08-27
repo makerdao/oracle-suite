@@ -22,8 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	aggregatorMock "github.com/makerdao/gofer/internal/pkg/mock/aggregator"
-	processorMock "github.com/makerdao/gofer/internal/pkg/mock/prcessor"
+	aggregatorMock "github.com/makerdao/gofer/internal/mock/aggregator"
+	processorMock "github.com/makerdao/gofer/internal/mock/prcessor"
 	"github.com/makerdao/gofer/pkg/model"
 )
 

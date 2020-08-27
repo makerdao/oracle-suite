@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/internal/app/gofer/marshal"
+	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
 )
 
 // These are the command options that can be set by CLI flags.
