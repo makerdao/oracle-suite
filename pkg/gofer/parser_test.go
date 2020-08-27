@@ -13,23 +13,30 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package gofer
 
 import (
-	"log"
+	"testing"
 
-	"github.com/makerdao/gofer/internal/app/gofer/command"
-	"github.com/makerdao/gofer/internal/app/gofer/command/exchanges"
-	"github.com/makerdao/gofer/internal/app/gofer/command/pairs"
-	"github.com/makerdao/gofer/internal/app/gofer/command/price"
+	"github.com/stretchr/testify/suite"
 )
 
-func main() {
-	var opts command.Options
-	rootCmd := command.New(&opts)
-	rootCmd.AddCommand(exchanges.New(&opts), pairs.New(&opts), price.New(&opts))
+type ConfigParserSuite struct {
+	suite.Suite
+}
 
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
-	}
+func (suite *ConfigParserSuite) TestGoferLibPrices() {
+	cfg, err := ReadFile("non-existing.json")
+	suite.Error(err)
+	suite.Nil(cfg)
+
+	cfg, err = ReadFile("../../testdata/config.sample.json")
+	suite.NoError(err)
+	suite.NotNil(cfg)
+}
+
+// In order for 'go test' to run this suite, we need to create
+// a normal test function and pass our suite to suite.Run
+func TestConfigParserSuite(t *testing.T) {
+	suite.Run(t, &ConfigParserSuite{})
 }
