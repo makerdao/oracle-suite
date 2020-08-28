@@ -22,7 +22,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/makerdao/gofer/aggregator"
+	"github.com/makerdao/gofer/pkg/aggregator"
 )
 
 // Config holds CLI's config options for immediate parsing

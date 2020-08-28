@@ -19,8 +19,8 @@ import (
 	encodingJson "encoding/json"
 	"fmt"
 
-	"github.com/makerdao/gofer/aggregator"
-	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/pkg/aggregator"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 type json struct {

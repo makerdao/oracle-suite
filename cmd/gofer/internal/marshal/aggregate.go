@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 // priceAggregate is the CLI JSON output format representation for

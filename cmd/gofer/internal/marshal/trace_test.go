@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/aggregator"
-	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/pkg/aggregator"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 func TestTraceForPriceAggregate(t *testing.T) {

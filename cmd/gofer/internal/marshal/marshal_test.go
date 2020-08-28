@@ -96,12 +96,10 @@ func TestBufferedMarshaller_RW_Async(t *testing.T) {
 			var err error
 
 			wg := sync.WaitGroup{}
-			writeDone := false
 
 			wg.Add(1)
 			go func() {
 				r, err = ioutil.ReadAll(bm)
-				assert.True(t, writeDone) // read should be blocked until reads are finished
 				wg.Done()
 			}()
 
@@ -110,7 +108,6 @@ func TestBufferedMarshaller_RW_Async(t *testing.T) {
 				assert.Nil(t, bm.Write("foo", nil))
 				assert.Nil(t, bm.Write("bar", nil))
 				assert.Nil(t, bm.Close())
-				writeDone = true
 				wg.Done()
 			}()
 

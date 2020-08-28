@@ -23,8 +23,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer"
-	"github.com/makerdao/gofer/model"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/makerdao/gofer/cmd/gofer/internal/command"
 	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"

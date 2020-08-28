@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/aggregator"
+	"github.com/makerdao/gofer/pkg/aggregator"
 
 	"github.com/makerdao/gofer/cmd/gofer/internal/command"
 	"github.com/makerdao/gofer/cmd/gofer/internal/config"
