@@ -28,7 +28,6 @@ func main() {
 	var opts command.Options
 	rootCmd := command.New(&opts)
 	rootCmd.AddCommand(exchanges.New(&opts), pairs.New(&opts), price.New(&opts))
-
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalln(err)
 	}
