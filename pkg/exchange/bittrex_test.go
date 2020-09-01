@@ -59,16 +59,16 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(nil)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("bittrex", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,7 +77,7 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
@@ -85,7 +85,7 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -93,7 +93,7 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"success":false}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -101,7 +101,7 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"success":true,"result":{Last":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -109,7 +109,7 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"success":true,"result":{"Last":1,"Ask":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -117,7 +117,7 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"success":true,"result":{"Last":1,"Ask":1,"Bid":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 }
 
@@ -127,12 +127,12 @@ func (suite *BitTrexSuite) TestSuccessResponse() {
 		Body: []byte(`{"success":true,"result":{"Last":1,"Ask":1,"Bid":1}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call(pp)
+	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(err)
-	suite.Equal(pp.Exchange, point.Exchange)
-	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.0, point.Price)
-	suite.Greater(point.Timestamp, int64(0))
+	suite.Equal(pp.Exchange, point[0].Exchange)
+	suite.Equal(pp.Pair, point[0].Pair)
+	suite.Equal(1.0, point[0].Price)
+	suite.Greater(point[0].Timestamp, int64(0))
 }
 
 func (suite *BitTrexSuite) TestRealAPICall() {

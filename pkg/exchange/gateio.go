@@ -58,7 +58,21 @@ func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gateio) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (g *Gateio) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := g.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (g *Gateio) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

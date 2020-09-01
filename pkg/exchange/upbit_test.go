@@ -59,16 +59,16 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(nil)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("upbit", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,7 +77,7 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
@@ -85,7 +85,7 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error unmarshal
@@ -93,7 +93,7 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 		Body: []byte("[]"),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -101,7 +101,7 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 		Body: []byte(`[{"trade_price":"abc"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -109,7 +109,7 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 		Body: []byte(`[{"trade_price":1,"acc_trade_volume":"abc"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 }
 
@@ -119,13 +119,13 @@ func (suite *UpbitSuite) TestSuccessResponse() {
 		Body: []byte(`[{"trade_price":1,"acc_trade_volume":3,"timestamp":2000}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call(pp)
+	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(err)
-	suite.Equal(pp.Exchange, point.Exchange)
-	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.0, point.Price)
-	suite.Equal(3.0, point.Volume)
-	suite.Equal(point.Timestamp, int64(2))
+	suite.Equal(pp.Exchange, point[0].Exchange)
+	suite.Equal(pp.Pair, point[0].Pair)
+	suite.Equal(1.0, point[0].Price)
+	suite.Equal(3.0, point[0].Volume)
+	suite.Equal(point[0].Timestamp, int64(2))
 }
 
 func (suite *UpbitSuite) TestRealAPICall() {

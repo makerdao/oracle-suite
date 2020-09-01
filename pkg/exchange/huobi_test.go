@@ -59,16 +59,16 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(nil)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("huobi", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,7 +77,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
@@ -85,7 +85,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -93,7 +93,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"error"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -101,7 +101,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -109,7 +109,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"1","ts":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -117,7 +117,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"1","ts":2,"tick":{"bid":["abc"]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 }
 
@@ -127,14 +127,14 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call(pp)
+	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 
 	suite.NoError(err)
-	suite.Equal(pp.Exchange, point.Exchange)
-	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.3, point.Volume)
-	suite.Equal(2.1, point.Price)
-	suite.Equal(point.Timestamp, int64(2))
+	suite.Equal(pp.Exchange, point[0].Exchange)
+	suite.Equal(pp.Pair, point[0].Pair)
+	suite.Equal(1.3, point[0].Volume)
+	suite.Equal(2.1, point[0].Price)
+	suite.Equal(point[0].Timestamp, int64(2))
 }
 
 func (suite *HuobiSuite) TestRealAPICall() {

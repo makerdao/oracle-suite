@@ -59,16 +59,16 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(nil)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("ddex", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,7 +77,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
@@ -85,7 +85,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	for n, r := range [][]byte{
@@ -183,7 +183,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			_, err = suite.exchange.Call(pp)
+			_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 			suite.Error(err)
 		})
 	}
@@ -218,13 +218,13 @@ func (suite *DdexSuite) TestSuccessResponse() {
 		}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call(pp)
+	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(err)
-	suite.Equal(pp.Exchange, point.Exchange)
-	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(101.6, point.Ask)
-	suite.Equal(100.5, point.Bid)
-	suite.Equal(100.5, point.Price)
+	suite.Equal(pp.Exchange, point[0].Exchange)
+	suite.Equal(pp.Pair, point[0].Pair)
+	suite.Equal(101.6, point[0].Ask)
+	suite.Equal(100.5, point[0].Bid)
+	suite.Equal(100.5, point[0].Price)
 }
 
 func (suite *DdexSuite) TestRealAPICall() {

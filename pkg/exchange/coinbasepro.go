@@ -49,7 +49,21 @@ func (c *CoinbasePro) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp.Pair))
 }
 
-func (c *CoinbasePro) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (c *CoinbasePro) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := c.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (c *CoinbasePro) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

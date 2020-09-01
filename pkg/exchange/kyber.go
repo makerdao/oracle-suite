@@ -61,7 +61,21 @@ func (k *Kyber) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(kyberURL, k.localPairName(pp.Pair), refQty)
 }
 
-func (k *Kyber) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (k *Kyber) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := k.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (k *Kyber) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

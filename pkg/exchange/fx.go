@@ -49,7 +49,21 @@ func (f *Fx) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(fxURL, f.localPairName(pp.Pair))
 }
 
-func (f *Fx) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (f *Fx) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := f.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (f *Fx) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

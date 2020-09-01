@@ -59,16 +59,16 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(nil)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("kucoin", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,7 +77,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
@@ -85,7 +85,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	for n, r := range [][]byte{
@@ -135,7 +135,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			_, err = suite.exchange.Call(pp)
+			_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 			suite.Error(err)
 		})
 	}
@@ -159,14 +159,14 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 		}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call(pp)
+	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(err)
-	suite.Equal(pp.Exchange, point.Exchange)
-	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(int64(1596632420), point.Timestamp)
-	suite.Equal(1.23, point.Price)
-	suite.Equal(1.3, point.Bid)
-	suite.Equal(1.2, point.Ask)
+	suite.Equal(pp.Exchange, point[0].Exchange)
+	suite.Equal(pp.Pair, point[0].Pair)
+	suite.Equal(int64(1596632420), point[0].Timestamp)
+	suite.Equal(1.23, point[0].Price)
+	suite.Equal(1.3, point[0].Bid)
+	suite.Equal(1.2, point[0].Ask)
 }
 
 func (suite *KucoinSuite) TestRealAPICall() {

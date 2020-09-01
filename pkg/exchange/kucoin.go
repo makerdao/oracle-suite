@@ -50,7 +50,21 @@ func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-func (k *Kucoin) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (k *Kucoin) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := k.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (k *Kucoin) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

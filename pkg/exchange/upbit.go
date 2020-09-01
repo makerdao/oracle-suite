@@ -50,7 +50,21 @@ func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-func (u *Upbit) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (u *Upbit) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := u.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (u *Upbit) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

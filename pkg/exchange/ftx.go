@@ -51,7 +51,21 @@ func (f *Ftx) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(ftxURL, f.localPairName(pp.Pair))
 }
 
-func (f *Ftx) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (f *Ftx) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := f.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (f *Ftx) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

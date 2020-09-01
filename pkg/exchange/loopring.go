@@ -57,7 +57,21 @@ func (l *Loopring) getURL(pp *model.PotentialPricePoint) string {
 	return loopringURL
 }
 
-func (l *Loopring) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (l *Loopring) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := l.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (l *Loopring) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

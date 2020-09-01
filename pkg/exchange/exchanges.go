@@ -25,7 +25,7 @@ import (
 // Handler is interface that all Exchange API handlers should implement
 type Handler interface {
 	// Call should implement making API request to exchange URL and collecting/parsing exchange data
-	Call(pp *model.PotentialPricePoint) (*model.PricePoint, error)
+	Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error)
 }
 
 type Set struct {
@@ -68,18 +68,24 @@ func DefaultSet() *Set {
 }
 
 // Call makes exchange call
-func (e *Set) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if pp == nil {
+func (e *Set) Call(ppp *model.PotentialPricePoint) (*model.PricePoint, error) {
+	if ppp == nil {
 		return nil, errNoPotentialPricePoint
 	}
-	err := model.ValidatePotentialPricePoint(pp)
+	err := model.ValidatePotentialPricePoint(ppp)
 	if err != nil {
 		return nil, err
 	}
 
-	handler, ok := e.list[pp.Exchange.Name]
+	handler, ok := e.list[ppp.Exchange.Name]
 	if !ok {
-		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, pp.Exchange.Name)
+		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, ppp.Exchange.Name)
 	}
-	return handler.Call(pp)
+
+	pp, err := handler.Call([]*model.PotentialPricePoint{ppp})
+	if err != nil {
+		return nil, err
+	}
+
+	return pp[0], nil
 }

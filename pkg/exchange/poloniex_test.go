@@ -59,16 +59,16 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 	var err error
 
 	// empty pp
-	_, err = suite.exchange.Call(nil)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
 	suite.Error(err)
 
 	// wrong pp
-	_, err = suite.exchange.Call(&model.PotentialPricePoint{})
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
 	suite.Error(err)
 
 	pp := newPotentialPricePoint("poloniex", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, err)
 
 	// error in response
@@ -77,7 +77,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(ourErr, err)
 
 	// Error unmarshal
@@ -85,7 +85,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error unmarshal
@@ -93,7 +93,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte("{}"),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error unmarshal
@@ -101,7 +101,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"BBB_EEE":{}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -109,7 +109,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"ETH_BTC":{"last":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -117,7 +117,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -125,7 +125,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"1","baseVolume":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -133,7 +133,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"1","baseVolume":"1","highestBid":"abc"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 
 	// Error parsing
@@ -141,7 +141,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"BBB_ETT":{"last":"1","lowestAsk":"1","baseVolume":"1","highestBid":"1"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call(pp)
+	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(err)
 }
 
@@ -151,16 +151,16 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"2","baseVolume":"3","highestBid":"4"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call(pp)
+	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 
 	suite.NoError(err)
-	suite.Equal(pp.Exchange, point.Exchange)
-	suite.Equal(pp.Pair, point.Pair)
-	suite.Equal(1.0, point.Price)
-	suite.Equal(2.0, point.Ask)
-	suite.Equal(3.0, point.Volume)
-	suite.Equal(4.0, point.Bid)
-	suite.Greater(point.Timestamp, int64(2))
+	suite.Equal(pp.Exchange, point[0].Exchange)
+	suite.Equal(pp.Pair, point[0].Pair)
+	suite.Equal(1.0, point[0].Price)
+	suite.Equal(2.0, point[0].Ask)
+	suite.Equal(3.0, point[0].Volume)
+	suite.Equal(4.0, point[0].Bid)
+	suite.Greater(point[0].Timestamp, int64(2))
 }
 
 func (suite *PoloniexSuite) TestRealAPICall() {

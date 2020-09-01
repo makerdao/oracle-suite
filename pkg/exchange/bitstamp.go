@@ -53,7 +53,21 @@ func (b *Bitstamp) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitstampURL, b.localPairName(pp.Pair))
 }
 
-func (b *Bitstamp) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (b *Bitstamp) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := b.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (b *Bitstamp) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

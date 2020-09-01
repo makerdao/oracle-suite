@@ -50,7 +50,21 @@ func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
 }
 
-func (b *BitTrex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (b *BitTrex) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	pps := make([]*model.PricePoint, 0)
+	for _, ppp := range ppps {
+		pp, err := b.call(ppp)
+		if err != nil {
+			return nil, err
+		}
+
+		pps = append(pps, pp)
+	}
+
+	return pps, nil
+}
+
+func (b *BitTrex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
