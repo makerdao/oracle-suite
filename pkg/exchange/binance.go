@@ -50,18 +50,15 @@ func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
-func (b *Binance) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	pps := make([]*model.PricePoint, 0)
+func (b *Binance) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := b.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (b *Binance) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

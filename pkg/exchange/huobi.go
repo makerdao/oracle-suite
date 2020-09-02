@@ -49,18 +49,15 @@ func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-func (h *Huobi) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	pps := make([]*model.PricePoint, 0)
+func (h *Huobi) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := h.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (h *Huobi) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

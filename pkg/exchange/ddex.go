@@ -57,18 +57,15 @@ func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
 }
 
-func (d *Ddex) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	pps := make([]*model.PricePoint, 0)
+func (d *Ddex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := d.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (d *Ddex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

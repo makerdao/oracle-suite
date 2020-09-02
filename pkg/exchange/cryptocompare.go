@@ -38,18 +38,15 @@ func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
-func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	pps := make([]*model.PricePoint, 0)
+func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := c.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (c *CryptoCompare) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

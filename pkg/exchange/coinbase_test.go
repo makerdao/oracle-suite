@@ -56,20 +56,20 @@ func (suite *CoinbaseSuite) TestLocalPair() {
 }
 
 func (suite *CoinbaseSuite) TestFailOnWrongInput() {
-	var err error
-
 	// empty pp
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Error(err)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
+	suite.Len(cr, 1)
+	suite.Nil(cr[0].PricePoint)
+	suite.Error(cr[0].Error)
 
 	// wrong pp
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	suite.Error(cr[0].Error)
 
 	pp := newPotentialPricePoint("coinbase", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,48 +77,48 @@ func (suite *CoinbaseSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"1","volume":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"1","volume":"1","bid":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 }
 
 func (suite *CoinbaseSuite) TestSuccessResponse() {
@@ -127,15 +127,15 @@ func (suite *CoinbaseSuite) TestSuccessResponse() {
 		Body: []byte(`{"price":"1","ask":"2","volume":"3","bid":"4"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.NoError(err)
-	suite.Equal(pp.Exchange, point[0].Exchange)
-	suite.Equal(pp.Pair, point[0].Pair)
-	suite.Equal(1.0, point[0].Price)
-	suite.Equal(2.0, point[0].Ask)
-	suite.Equal(3.0, point[0].Volume)
-	suite.Equal(4.0, point[0].Bid)
-	suite.Greater(point[0].Timestamp, int64(2))
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.NoError(cr[0].Error)
+	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
+	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
+	suite.Equal(1.0, cr[0].PricePoint.Price)
+	suite.Equal(2.0, cr[0].PricePoint.Ask)
+	suite.Equal(3.0, cr[0].PricePoint.Volume)
+	suite.Equal(4.0, cr[0].PricePoint.Bid)
+	suite.Greater(cr[0].PricePoint.Timestamp, int64(2))
 }
 
 func (suite *CoinbaseSuite) TestRealAPICall() {

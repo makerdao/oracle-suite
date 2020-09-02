@@ -69,18 +69,15 @@ func (u *Uniswap) getURL(_ *model.PotentialPricePoint) string {
 	return uniswapURL
 }
 
-func (u *Uniswap) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	pps := make([]*model.PricePoint, 0)
+func (u *Uniswap) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := u.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (u *Uniswap) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

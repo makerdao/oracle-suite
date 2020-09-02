@@ -14,7 +14,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 package exchange
-/*
+
 import (
 	"fmt"
 	"testing"
@@ -57,20 +57,20 @@ func (suite *BitfinexSuite) TestLocalPair() {
 }
 
 func (suite *BitfinexSuite) TestFailOnWrongInput() {
-	var err error
-
 	// empty pp
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Error(err)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
+	suite.Len(cr, 1)
+	suite.Nil(cr[0].PricePoint)
+	suite.Error(cr[0].Error)
 
 	// wrong pp
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	suite.Error(cr[0].Error)
 
 	pp := newPotentialPricePoint("bitfinex", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -78,24 +78,24 @@ func (suite *BitfinexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[0,0]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 }
 
 func (suite *BitfinexSuite) TestSuccessResponse() {
@@ -104,12 +104,12 @@ func (suite *BitfinexSuite) TestSuccessResponse() {
 		Body: []byte(`[1,1,1,1,1,1,1,1]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.NoError(err)
-	suite.Equal(pp.Exchange, point[0].Exchange)
-	suite.Equal(pp.Pair, point[0].Pair)
-	suite.Equal(1.0, point[0].Price)
-	suite.Greater(point[0].Timestamp, int64(0))
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.NoError(cr[0].Error)
+	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
+	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
+	suite.Equal(1.0, cr[0].PricePoint.Price)
+	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
 }
 
 func (suite *BitfinexSuite) TestRealAPICall() {
@@ -121,4 +121,3 @@ func (suite *BitfinexSuite) TestRealAPICall() {
 func TestBitfinexSuite(t *testing.T) {
 	suite.Run(t, new(BitfinexSuite))
 }
-*/

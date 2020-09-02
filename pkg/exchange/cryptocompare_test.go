@@ -51,20 +51,20 @@ func (suite *CryptoCompareSuite) TearDownTest() {
 }
 
 func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
-	var err error
-
 	// empty pp
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Error(err)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
+	suite.Len(cr, 1)
+	suite.Nil(cr[0].PricePoint)
+	suite.Error(cr[0].Error)
 
 	// wrong pp
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	suite.Error(cr[0].Error)
 
 	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
 	// nil as response
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -72,8 +72,8 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, err)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	for n, r := range [][]byte{
 		// invalid response
@@ -88,8 +88,8 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			_, err = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-			suite.Error(err)
+			cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
 		})
 	}
 }
@@ -100,12 +100,12 @@ func (suite *CryptoCompareSuite) TestSuccessResponse() {
 		Body: []byte(`{"ETH":1.1}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	point, err := suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.NoError(err)
-	suite.Equal(pp.Exchange, point[0].Exchange)
-	suite.Equal(pp.Pair, point[0].Pair)
-	suite.Equal(1.1, point[0].Price)
-	suite.Greater(point[0].Timestamp, int64(0))
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.NoError(cr[0].Error)
+	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
+	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
+	suite.Equal(1.1, cr[0].PricePoint.Price)
+	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {

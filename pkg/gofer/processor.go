@@ -44,19 +44,17 @@ func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (agg
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}
 
-	ppps := agg.GetSources(pairs)
-	pps, err := p.exchangeSet.Call(ppps)
-	if err != nil {
-		// TODO: log exchange errors here so failures are traceable but does't fail
-		// everything because of a single bad exchange reply
-		log.Println(err)
-		return agg, nil
-	}
+	for _, cr := range p.exchangeSet.Call(agg.GetSources(pairs)) {
+		if cr.Error != nil {
+			// TODO: log exchange errors here so failures are traceable but does't fail
+			// everything because of a single bad exchange reply
+			log.Println(cr.Error)
+			continue
+		}
 
-	for _, pp := range pps {
 		pa := &model.PriceAggregate{
-			PriceModelName: fmt.Sprintf("exchange[%s]", pp.Exchange.Name),
-			PricePoint:     pp,
+			PriceModelName: fmt.Sprintf("exchange[%s]", cr.PricePoint.Exchange.Name),
+			PricePoint:     cr.PricePoint,
 		}
 
 		agg.Ingest(pa)

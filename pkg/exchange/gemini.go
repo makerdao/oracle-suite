@@ -50,18 +50,15 @@ func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gemini) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	pps := make([]*model.PricePoint, 0)
+func (g *Gemini) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := g.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (g *Gemini) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

@@ -17,6 +17,7 @@ package exchange
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/model"
@@ -25,7 +26,24 @@ import (
 // Handler is interface that all Exchange API handlers should implement
 type Handler interface {
 	// Call should implement making API request to exchange URL and collecting/parsing exchange data
-	Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error)
+	Call(ppps []*model.PotentialPricePoint) []CallResult
+}
+
+type CallResult struct {
+	PricePoint *model.PricePoint
+	Error      error
+}
+
+func newCallResultWithError(ppp *model.PotentialPricePoint, err error) CallResult {
+	pp := &model.PricePoint{
+		Exchange:  ppp.Exchange,
+		Pair:      ppp.Pair,
+		Price:     0,
+		Volume:    0,
+		Timestamp: time.Now().Unix(),
+	}
+
+	return CallResult{PricePoint: pp, Error: err}
 }
 
 type Set struct {
@@ -68,40 +86,35 @@ func DefaultSet() *Set {
 }
 
 // Call makes exchange call
-func (e *Set) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	// validate potential price points:
+func (e *Set) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
+
+	// Validate and group potential price points by exchanges:
+	pppMap := map[*model.Exchange][]*model.PotentialPricePoint{}
 	for _, ppp := range ppps {
 		err := model.ValidatePotentialPricePoint(ppp)
 		if err != nil {
-			return nil, err
+			cr = append(cr, newCallResultWithError(ppp, err))
+		} else {
+			if _, ok := pppMap[ppp.Exchange]; !ok {
+				pppMap[ppp.Exchange] = []*model.PotentialPricePoint{}
+			}
+			pppMap[ppp.Exchange] = append(pppMap[ppp.Exchange], ppp)
 		}
 	}
 
-	// group potential price points by exchange:
-	pppMap := map[*model.Exchange][]*model.PotentialPricePoint{}
-	for _, ppp := range ppps {
-		if _, ok := pppMap[ppp.Exchange]; !ok {
-			pppMap[ppp.Exchange] = []*model.PotentialPricePoint{}
-		}
-
-		pppMap[ppp.Exchange] = append(pppMap[ppp.Exchange], ppp)
-	}
-
-	// fetch data from exchanges:
-	var retPP []*model.PricePoint
+	// Fetch data from exchanges:
 	for exchange, exPPPs := range pppMap {
 		handler, ok := e.list[exchange.Name]
 		if !ok {
-			return nil, fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
+			for _, ppp := range exPPPs {
+				err := fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
+				cr = append(cr, newCallResultWithError(ppp, err))
+			}
+		} else {
+			cr = append(cr, handler.Call(exPPPs)...)
 		}
-
-		pp, err := handler.Call(exPPPs)
-		if err != nil {
-			return nil, err
-		}
-
-		retPP = append(retPP, pp...)
 	}
 
-	return retPP, nil
+	return cr
 }

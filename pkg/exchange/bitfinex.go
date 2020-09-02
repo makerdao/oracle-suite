@@ -16,88 +16,57 @@
 package exchange
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Bitfinex URL
-const bitfinexURL = "https://api-pub.bitfinex.com/v2/tickers/t%s"
+const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
 // Bitfinex exchange handler
 type Bitfinex struct {
 	Pool query.WorkerPool
 }
 
-func (b *Bitfinex) localPairName(ppp *model.PotentialPricePoint) string {
-	if ppp.Exchange != nil {
-		if pn, ok := ppp.Exchange.Config["pair"]; ok {
-			return pn
-		}
-	}
-
+func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	const USDT = "USDT"
 	const USD = "USD"
-	if ppp.Pair.Base == USDT && ppp.Pair.Quote == USD {
+	if pair.Base == USDT && pair.Quote == USD {
 		return "USTUSD"
 	}
-	if ppp.Pair.Quote == USDT {
-		return ppp.Pair.Base + USD
+	if pair.Quote == USDT {
+		return pair.Base + USD
 	}
-
-	return ppp.Pair.Base + ppp.Pair.Quote
+	return pair.Base + pair.Quote
 }
 
-func (b *Bitfinex) getURL(ppps []*model.PotentialPricePoint) string {
-	var pairs []string
-	for _, pp := range ppps {
-		pairs = append(pairs, b.localPairName(pp))
-	}
+func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
+	var pair string
 
-	return fmt.Sprintf(bitfinexURL, strings.Join(pairs, ","))
+	if pp.Exchange == nil {
+		pair = b.localPairName(pp.Pair)
+	} else {
+		pair = pp.Exchange.Config["pair"]
+	}
+	if pair == "" {
+		pair = b.localPairName(pp.Pair)
+	}
+	return fmt.Sprintf(bitfinexURL, pair)
 }
 
-func (b *Bitfinex) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
-	return nil, nil
-	/*
-	var err error
-
-	// make query
-	req := &query.HTTPRequest{URL: b.getURL(ppps)}
-	res := b.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyExchangeResponse
-	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	// parsing JSON
-	var resp [][]interface{}
-	err = json.Unmarshal(res.Body, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse bitfinex response: %w", err)
-	}
-	if len(resp) < 8 {
-		return nil, fmt.Errorf("wrong bitfinex response")
-	}
-
-
-
-
-	pps := make([]*model.PricePoint, 0)
+func (b *Bitfinex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
 		pp, err := b.call(ppp)
-		if err != nil {
-			return nil, err
-		}
 
-		pps = append(pps, pp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
 
-	return pps, nil
+	return cr
 }
 
 func (b *Bitfinex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
@@ -120,7 +89,7 @@ func (b *Bitfinex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error
 	}
 
 	// parsing JSON
-	var resp [][]float64
+	var resp []float64
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bitfinex response: %w", err)
@@ -137,6 +106,4 @@ func (b *Bitfinex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error
 		Volume:    resp[7],
 		Timestamp: time.Now().Unix(),
 	}, nil
-
-	 */
 }
