@@ -41,7 +41,7 @@ func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
 func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := c.call(ppp)
+		pp, err := c.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -49,7 +49,7 @@ func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (c *CryptoCompare) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (c *CryptoCompare) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

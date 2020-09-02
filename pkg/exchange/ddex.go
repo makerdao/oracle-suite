@@ -60,7 +60,7 @@ func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
 func (d *Ddex) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := d.call(ppp)
+		pp, err := d.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -68,7 +68,7 @@ func (d *Ddex) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (d *Ddex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (d *Ddex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

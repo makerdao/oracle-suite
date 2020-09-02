@@ -53,7 +53,7 @@ func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
 func (u *Upbit) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := u.call(ppp)
+		pp, err := u.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -61,7 +61,7 @@ func (u *Upbit) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (u *Upbit) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (u *Upbit) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

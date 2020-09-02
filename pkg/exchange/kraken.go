@@ -106,7 +106,7 @@ func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
 func (k *Kraken) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := k.call(ppp)
+		pp, err := k.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -114,7 +114,7 @@ func (k *Kraken) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (k *Kraken) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (k *Kraken) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

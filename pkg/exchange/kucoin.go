@@ -53,7 +53,7 @@ func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
 func (k *Kucoin) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := k.call(ppp)
+		pp, err := k.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -61,7 +61,7 @@ func (k *Kucoin) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (k *Kucoin) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (k *Kucoin) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

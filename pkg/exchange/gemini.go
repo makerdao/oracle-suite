@@ -53,7 +53,7 @@ func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
 func (g *Gemini) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := g.call(ppp)
+		pp, err := g.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -61,7 +61,7 @@ func (g *Gemini) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (g *Gemini) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (g *Gemini) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

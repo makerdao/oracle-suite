@@ -56,7 +56,7 @@ func (b *Bitstamp) getURL(pp *model.PotentialPricePoint) string {
 func (b *Bitstamp) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := b.call(ppp)
+		pp, err := b.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -64,7 +64,7 @@ func (b *Bitstamp) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (b *Bitstamp) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (b *Bitstamp) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

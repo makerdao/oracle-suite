@@ -53,7 +53,7 @@ func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
 func (b *BitTrex) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	cr := make([]CallResult, 0)
 	for _, ppp := range ppps {
-		pp, err := b.call(ppp)
+		pp, err := b.callOne(ppp)
 
 		cr = append(cr, CallResult{PricePoint: pp, Error: err})
 	}
@@ -61,7 +61,7 @@ func (b *BitTrex) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return cr
 }
 
-func (b *BitTrex) call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (b *BitTrex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
