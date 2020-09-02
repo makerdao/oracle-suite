@@ -46,11 +46,7 @@ func (suite *ExchangesSuite) SetupSuite() {
 }
 
 func (suite *ExchangesSuite) TestCallErrorNegative() {
-	res, err := suite.set.Call(nil)
-	assert.Nil(suite.T(), res)
-	assert.Error(suite.T(), err)
-
-	res, err = suite.set.Call(&model.PotentialPricePoint{})
+	res, err := suite.set.Call([]*model.PotentialPricePoint{{}})
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 
@@ -59,7 +55,7 @@ func (suite *ExchangesSuite) TestCallErrorNegative() {
 			Name: "unknown",
 		},
 	}
-	res, err = suite.set.Call(pp)
+	res, err = suite.set.Call([]*model.PotentialPricePoint{pp})
 	assert.Nil(suite.T(), res)
 	assert.Error(suite.T(), err)
 }
@@ -75,7 +71,7 @@ func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 		},
 	}
 
-	res, err := suite.set.Call(pp)
+	res, err := suite.set.Call([]*model.PotentialPricePoint{pp})
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), res)
@@ -100,11 +96,11 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 		Pair: p,
 	}
 
-	res, err := suite.set.Call(pp)
+	res, err := suite.set.Call([]*model.PotentialPricePoint{pp})
 
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), p, res.Pair)
-	assert.EqualValues(suite.T(), price, res.Price)
+	assert.EqualValues(suite.T(), p, res[0].Pair)
+	assert.EqualValues(suite.T(), price, res[0].Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

@@ -68,24 +68,40 @@ func DefaultSet() *Set {
 }
 
 // Call makes exchange call
-func (e *Set) Call(ppp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	if ppp == nil {
-		return nil, errNoPotentialPricePoint
-	}
-	err := model.ValidatePotentialPricePoint(ppp)
-	if err != nil {
-		return nil, err
-	}
-
-	handler, ok := e.list[ppp.Exchange.Name]
-	if !ok {
-		return nil, fmt.Errorf("%w (%s)", errUnknownExchange, ppp.Exchange.Name)
+func (e *Set) Call(ppps []*model.PotentialPricePoint) ([]*model.PricePoint, error) {
+	// validate potential price points:
+	for _, ppp := range ppps {
+		err := model.ValidatePotentialPricePoint(ppp)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	pp, err := handler.Call([]*model.PotentialPricePoint{ppp})
-	if err != nil {
-		return nil, err
+	// group potential price points by exchange:
+	pppMap := map[*model.Exchange][]*model.PotentialPricePoint{}
+	for _, ppp := range ppps {
+		if _, ok := pppMap[ppp.Exchange]; !ok {
+			pppMap[ppp.Exchange] = []*model.PotentialPricePoint{}
+		}
+
+		pppMap[ppp.Exchange] = append(pppMap[ppp.Exchange], ppp)
 	}
 
-	return pp[0], nil
+	// fetch data from exchanges:
+	var retPP []*model.PricePoint
+	for exchange, exPPPs := range pppMap {
+		handler, ok := e.list[exchange.Name]
+		if !ok {
+			return nil, fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
+		}
+
+		pp, err := handler.Call(exPPPs)
+		if err != nil {
+			return nil, err
+		}
+
+		retPP = append(retPP, pp...)
+	}
+
+	return retPP, nil
 }

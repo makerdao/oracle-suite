@@ -14,7 +14,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 package exchange
-
+/*
 import (
 	"fmt"
 	"testing"
@@ -121,3 +121,4 @@ func (suite *BitfinexSuite) TestRealAPICall() {
 func TestBitfinexSuite(t *testing.T) {
 	suite.Run(t, new(BitfinexSuite))
 }
+*/

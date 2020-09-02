@@ -35,21 +35,6 @@ func NewProcessor(set *exchange.Set) *Processor {
 	}
 }
 
-// ProcessOne processes `PotentialPricePoint` and fetches new price for it
-func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
-	if err := model.ValidatePotentialPricePoint(pp); err != nil {
-		return nil, err
-	}
-	point, err := p.exchangeSet.Call(pp)
-	if err != nil {
-		return nil, err
-	}
-	return &model.PriceAggregate{
-		PriceModelName: fmt.Sprintf("exchange[%s]", pp.Exchange.Name),
-		PricePoint:     point,
-	}, nil
-}
-
 // Process takes `PotentialPricePoint` as an input fetches all required info using `query`
 // system, passes everything to given `aggregator` and returns it.
 // Technically you don't even need to get passed `aggregator` back, because you can use pointer to passed one.
@@ -58,15 +43,24 @@ func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (agg
 	if agg == nil {
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}
-	for _, pp := range agg.GetSources(pairs) {
-		res, err := p.ProcessOne(pp)
-		if err != nil {
-			// TODO: log exchange errors here so failures are traceable but does't fail
-			// everything because of a single bad exchange reply
-			log.Println(err)
-			continue
-		}
-		agg.Ingest(res)
+
+	ppps := agg.GetSources(pairs)
+	pps, err := p.exchangeSet.Call(ppps)
+	if err != nil {
+		// TODO: log exchange errors here so failures are traceable but does't fail
+		// everything because of a single bad exchange reply
+		log.Println(err)
+		return agg, nil
 	}
+
+	for _, pp := range pps {
+		pa := &model.PriceAggregate{
+			PriceModelName: fmt.Sprintf("exchange[%s]", pp.Exchange.Name),
+			PricePoint:     pp,
+		}
+
+		agg.Ingest(pa)
+	}
+
 	return agg, nil
 }
