@@ -89,7 +89,7 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 			cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(cr[0].Error)
+			suite.Error(cr[0].Error)
 		})
 	}
 }
