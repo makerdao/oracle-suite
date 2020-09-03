@@ -42,51 +42,6 @@ type ProcessorSuite struct {
 	suite.Suite
 }
 
-// All methods that begin with "Test" are run as tests within a
-// suite.
-func (suite *ProcessorSuite) TestNegativeProcessOne() {
-	set := exchange.NewSet(map[string]exchange.Handler{})
-
-	pair := &model.Pair{
-		Base:  "BTC",
-		Quote: "ETH",
-	}
-
-	p := NewProcessor(set)
-	resp, err := p.processOne(&model.PotentialPricePoint{})
-	suite.Nil(resp)
-	suite.Error(err)
-
-	wrongPp := newPotentialPricePoint("nonexisting", pair)
-	p = NewProcessor(set)
-	resp, err = p.processOne(wrongPp)
-	suite.Nil(resp)
-	suite.Error(err)
-}
-
-func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
-	wp := query.NewMockWorkerPool()
-	set := exchange.NewSet(map[string]exchange.Handler{
-		"binance": &exchange.Binance{Pool: wp},
-	})
-
-	pair := &model.Pair{
-		Base:  "BTC",
-		Quote: "ETH",
-	}
-	pp := newPotentialPricePoint("binance", pair)
-	resp := &query.HTTPResponse{
-		Body: []byte(`{"price":"1"}`),
-	}
-	wp.MockResp(resp)
-	p := NewProcessor(set)
-	point, err := p.processOne(pp)
-
-	suite.NoError(err)
-	suite.EqualValues(pp.Pair, point.Pair)
-	suite.EqualValues(1.0, point.Price)
-}
-
 func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	wp := query.NewMockWorkerPool()
 	set := exchange.NewSet(map[string]exchange.Handler{

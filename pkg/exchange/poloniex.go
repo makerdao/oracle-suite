@@ -53,7 +53,18 @@ func (p *Poloniex) getURL(pp *model.PotentialPricePoint) string {
 	return poloniexURL
 }
 
-func (p *Poloniex) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (p *Poloniex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
+	for _, ppp := range ppps {
+		pp, err := p.callOne(ppp)
+
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+	}
+
+	return cr
+}
+
+func (p *Poloniex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

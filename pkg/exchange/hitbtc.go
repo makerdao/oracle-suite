@@ -50,7 +50,18 @@ func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
 }
 
-func (h *Hitbtc) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (h *Hitbtc) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
+	for _, ppp := range ppps {
+		pp, err := h.callOne(ppp)
+
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+	}
+
+	return cr
+}
+
+func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

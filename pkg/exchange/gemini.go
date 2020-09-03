@@ -50,7 +50,18 @@ func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gemini) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (g *Gemini) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
+	for _, ppp := range ppps {
+		pp, err := g.callOne(ppp)
+
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+	}
+
+	return cr
+}
+
+func (g *Gemini) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err
