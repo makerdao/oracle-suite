@@ -61,7 +61,7 @@ func (suite *ProcessorSuite) TestProcessorProcessSuccess() {
 	}
 	wp.MockResp(resp)
 	p := NewProcessor(set)
-	aggr, err := p.Process([]*model.Pair{pair, pair}, agg)
+	err := p.Process(agg, []*model.Pair{pair, pair}, agg)
 
 	suite.NoError(err)
 	suite.Equal(agg, aggr)

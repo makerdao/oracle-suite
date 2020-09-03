@@ -28,9 +28,9 @@ type Processor struct {
 	Pairs      []*model.Pair
 }
 
-func (mp *Processor) Process(pairs []*model.Pair, agg gofer.Aggregator) (gofer.Aggregator, error) {
+func (mp *Processor) Process(agg gofer.Aggregator, pairs ...*model.Pair) error {
 	RandomReduce(agg, mp.Pairs, mp.Returns)
-	return agg, mp.ReturnsErr
+	return mp.ReturnsErr
 }
 
 func RandomReduce(r gofer.Aggregator, pairs []*model.Pair, prices []*model.PriceAggregate) {

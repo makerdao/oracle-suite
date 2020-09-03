@@ -35,7 +35,7 @@ type AggregateProcessor interface {
 	// system, passes everything to given `aggregator` and returns it.
 	// Technically you don't even need to get passed `aggregator` back, because you can use pointer to passed one.
 	// and here it returns just for clearer API.
-	Process(pairs []*model.Pair, agg Aggregator) (Aggregator, error)
+	Process(agg Aggregator, pairs ...*model.Pair) error
 }
 
 // NewGofer creates a new instance of the Gofer library API given a config
@@ -46,7 +46,6 @@ func NewGofer(agg Aggregator, processor AggregateProcessor) *Gofer {
 	}
 }
 
-// Gofer library API
 type Gofer struct {
 	aggregator Aggregator
 	processor  AggregateProcessor
@@ -54,7 +53,7 @@ type Gofer struct {
 
 // Price returns a map of aggregated prices according
 func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
-	if _, err := g.processor.Process(pairs, g.aggregator); err != nil {
+	if err := g.processor.Process(g.aggregator, pairs...); err != nil {
 		return nil, err
 	}
 

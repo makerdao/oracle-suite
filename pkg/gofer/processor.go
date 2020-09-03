@@ -33,9 +33,9 @@ func NewProcessor(set *exchange.Set) *Processor {
 	}
 }
 
-func (p *Processor) Process(pairs []*model.Pair, agg Aggregator) (Aggregator, error) {
+func (p *Processor) Process(agg Aggregator, pairs ...*model.Pair) error {
 	if agg == nil {
-		return nil, fmt.Errorf("no working agregator passed to processor")
+		return fmt.Errorf("no working agregator passed to processor")
 	}
 
 	for _, cr := range p.exchangeSet.Call(agg.GetSources(pairs)) {
@@ -52,5 +52,5 @@ func (p *Processor) Process(pairs []*model.Pair, agg Aggregator) (Aggregator, er
 		agg.Ingest(pa)
 	}
 
-	return agg, nil
+	return nil
 }
