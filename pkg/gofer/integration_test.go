@@ -20,10 +20,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	prcessorMock "github.com/makerdao/gofer/internal/mock/prcessor"
 	"github.com/makerdao/gofer/pkg/aggregator"
+	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/model"
 )
+
+type FetcherMock []*model.PriceAggregate
+
+func (f FetcherMock) Call([]*model.PotentialPricePoint) []exchange.CallResult {
+	var r []exchange.CallResult
+	for _, p := range f {
+		r = append(r, exchange.CallResult{
+			PricePoint: p.PricePoint,
+		})
+	}
+	return r
+}
 
 func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 	pairs := []*model.Pair{
@@ -66,12 +78,7 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 
 	agg := aggregator.NewPath(aggregator.NewSetzer(), sources, aggregator.NewMedian(nil, 1000))
 
-	processor := &prcessorMock.Processor{
-		Returns: pas,
-		Pairs:   append(pairs, nil),
-	}
-
-	gofer := NewGofer(agg, processor)
+	gofer := NewGofer(agg, FetcherMock(pas))
 
 	for i := 0; i < 100; i++ {
 		res, err := gofer.Prices(pairs...)
@@ -119,11 +126,6 @@ func TestSetzAggregatorIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, gofer)
 
-	pairs := []*model.Pair{
-		model.NewPair("B", "C"),
-		model.NewPair("N", "O"),
-	}
-
 	pas := []*model.PriceAggregate{
 		newTestPricePointAggregate(1, "e-a", "B", "C", 2, 1),
 		newTestPricePointAggregate(2, "e-b", "B", "C", 4, 1),
@@ -135,19 +137,15 @@ func TestSetzAggregatorIntegration(t *testing.T) {
 		newTestPricePointAggregate(6, "e-x", "X", "Y", 1, 1),
 	}
 
-	gofer.processor = &prcessorMock.Processor{
-		Returns: pas,
-		Pairs:   append(pairs, nil),
-	}
-
-	ppps := gofer.aggregator.GetSources([]*model.Pair{model.NewPair("B", "C")})
+	gofer.fetcher = FetcherMock(pas)
+	ppps := gofer.aggregator.GetSources([]*model.Pair{model.NewPair("B", "C")}...)
 
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
 		{Exchange: &model.Exchange{Name: "e-a"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e-b"}, Pair: model.NewPair("b", "c")},
 	}, ppps)
 
-	ppps = gofer.aggregator.GetSources([]*model.Pair{model.NewPair("A", "C")})
+	ppps = gofer.aggregator.GetSources([]*model.Pair{model.NewPair("A", "C")}...)
 
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
 		{Exchange: &model.Exchange{Name: "e-d"}, Pair: model.NewPair("a", "b")},
