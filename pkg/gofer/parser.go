@@ -26,9 +26,7 @@ import (
 )
 
 type Config struct {
-	//Exchanges  []model.Exchange            `json:"exchanges"`
 	Aggregator aggregator.AggregatorParams `json:"aggregator"`
-	// TODO: add Processor params
 }
 
 func FromJSON(b []byte) (*Gofer, error) {

@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
 	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/model"
 )
@@ -28,26 +27,19 @@ type Processor struct {
 	exchangeSet *exchange.Set
 }
 
-// NewProcessor instantiate new `Processor` instance with custom `query.WorkerPool`
 func NewProcessor(set *exchange.Set) *Processor {
 	return &Processor{
 		exchangeSet: set,
 	}
 }
 
-// Process takes `PotentialPricePoint` as an input fetches all required info using `query`
-// system, passes everything to given `aggregator` and returns it.
-// Technically you don't even need to get passed `aggregator` back, because you can use pointer to passed one.
-// and here it returns just for clearer API.
-func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
+func (p *Processor) Process(pairs []*model.Pair, agg Aggregator) (Aggregator, error) {
 	if agg == nil {
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}
 
 	for _, cr := range p.exchangeSet.Call(agg.GetSources(pairs)) {
 		if cr.Error != nil {
-			// TODO: log exchange errors here so failures are traceable but does't fail
-			// everything because of a single bad exchange reply
 			log.Println(cr.Error)
 			continue
 		}
