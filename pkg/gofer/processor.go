@@ -35,8 +35,7 @@ func NewProcessor(set *exchange.Set) *Processor {
 	}
 }
 
-// ProcessOne processes `PotentialPricePoint` and fetches new price for it
-func (p *Processor) ProcessOne(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
+func (p *Processor) processOne(pp *model.PotentialPricePoint) (*model.PriceAggregate, error) {
 	if err := model.ValidatePotentialPricePoint(pp); err != nil {
 		return nil, err
 	}
@@ -59,7 +58,7 @@ func (p *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (agg
 		return nil, fmt.Errorf("no working agregator passed to processor")
 	}
 	for _, pp := range agg.GetSources(pairs) {
-		res, err := p.ProcessOne(pp)
+		res, err := p.processOne(pp)
 		if err != nil {
 			// TODO: log exchange errors here so failures are traceable but does't fail
 			// everything because of a single bad exchange reply

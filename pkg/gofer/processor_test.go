@@ -53,13 +53,13 @@ func (suite *ProcessorSuite) TestNegativeProcessOne() {
 	}
 
 	p := NewProcessor(set)
-	resp, err := p.ProcessOne(&model.PotentialPricePoint{})
+	resp, err := p.processOne(&model.PotentialPricePoint{})
 	suite.Nil(resp)
 	suite.Error(err)
 
 	wrongPp := newPotentialPricePoint("nonexisting", pair)
 	p = NewProcessor(set)
-	resp, err = p.ProcessOne(wrongPp)
+	resp, err = p.processOne(wrongPp)
 	suite.Nil(resp)
 	suite.Error(err)
 }
@@ -80,7 +80,7 @@ func (suite *ProcessorSuite) TestProcessorProcessOneSuccess() {
 	}
 	wp.MockResp(resp)
 	p := NewProcessor(set)
-	point, err := p.ProcessOne(pp)
+	point, err := p.processOne(pp)
 
 	suite.NoError(err)
 	suite.EqualValues(pp.Pair, point.Pair)
