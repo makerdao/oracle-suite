@@ -23,12 +23,7 @@ import (
 
 	"github.com/makerdao/gofer/pkg/aggregator"
 	"github.com/makerdao/gofer/pkg/exchange"
-	"github.com/makerdao/gofer/pkg/model"
 )
-
-type AggregateProcessor interface {
-	Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error)
-}
 
 type Config struct {
 	//Exchanges  []model.Exchange            `json:"exchanges"`

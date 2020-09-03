@@ -16,22 +16,40 @@
 package gofer
 
 import (
-	"github.com/makerdao/gofer/pkg/aggregator"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
-// Gofer library API
-type Gofer struct {
-	aggregator aggregator.Aggregator
-	processor  AggregateProcessor
+// An Aggregator is a service that, when fed the required data points,
+// is able to return aggregated information derived from them in a way specific to the aggregation model.
+type Aggregator interface {
+	// Informs clients of the required data points
+	GetSources([]*model.Pair) []*model.PotentialPricePoint
+	// Allows for feeding data points to the Aggregator
+	Ingest(*model.PriceAggregate)
+	// Return aggregated asset pair returning nil if pair not available
+	Aggregate(*model.Pair) *model.PriceAggregate
+}
+
+type AggregateProcessor interface {
+	// Process takes model.PotentialPricePoint as an input fetches all required info using `query`
+	// system, passes everything to given `aggregator` and returns it.
+	// Technically you don't even need to get passed `aggregator` back, because you can use pointer to passed one.
+	// and here it returns just for clearer API.
+	Process(pairs []*model.Pair, agg Aggregator) (Aggregator, error)
 }
 
 // NewGofer creates a new instance of the Gofer library API given a config
-func NewGofer(agg aggregator.Aggregator, processor AggregateProcessor) *Gofer {
+func NewGofer(agg Aggregator, processor AggregateProcessor) *Gofer {
 	return &Gofer{
 		aggregator: agg,
 		processor:  processor,
 	}
+}
+
+// Gofer library API
+type Gofer struct {
+	aggregator Aggregator
+	processor  AggregateProcessor
 }
 
 // Price returns a map of aggregated prices according

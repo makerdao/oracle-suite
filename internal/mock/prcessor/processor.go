@@ -18,7 +18,7 @@ package prcessor
 import (
 	"math/rand"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
+	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
@@ -28,12 +28,12 @@ type Processor struct {
 	Pairs      []*model.Pair
 }
 
-func (mp *Processor) Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error) {
+func (mp *Processor) Process(pairs []*model.Pair, agg gofer.Aggregator) (gofer.Aggregator, error) {
 	RandomReduce(agg, mp.Pairs, mp.Returns)
 	return agg, mp.ReturnsErr
 }
 
-func RandomReduce(r aggregator.Aggregator, pairs []*model.Pair, prices []*model.PriceAggregate) {
+func RandomReduce(r gofer.Aggregator, pairs []*model.Pair, prices []*model.PriceAggregate) {
 	for _, i := range rand.Perm(len(prices)) {
 		r.Ingest(prices[i])
 		if rand.Intn(2) == 1 {
@@ -44,9 +44,9 @@ func RandomReduce(r aggregator.Aggregator, pairs []*model.Pair, prices []*model.
 }
 
 func RandPair(pairs []*model.Pair) *model.Pair {
-  pairsCount := len(pairs)
-  if pairsCount == 0 {
-    return nil
-  }
-  return pairs[rand.Intn(pairsCount)]
+	pairsCount := len(pairs)
+	if pairsCount == 0 {
+		return nil
+	}
+	return pairs[rand.Intn(pairsCount)]
 }
