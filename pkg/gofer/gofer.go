@@ -35,15 +35,16 @@ type Ingestor interface {
 	Ingest(*model.PriceAggregate)
 }
 
+type Fetcher interface {
+	Call([]*model.PotentialPricePoint) []exchange.CallResult
+}
+
 // An IngestingAggregator is a service that, when fed the required data points,
-// is able to return aggregated information derived from them in a way specific to the aggregation model.
+// is able to return aggregated information derived from them in a way specific
+// to the embedded aggregation model.
 type IngestingAggregator interface {
 	Aggregator
 	Ingestor
-}
-
-type Fetcher interface {
-	Call([]*model.PotentialPricePoint) []exchange.CallResult
 }
 
 func NewGofer(a IngestingAggregator, f Fetcher) *Gofer {

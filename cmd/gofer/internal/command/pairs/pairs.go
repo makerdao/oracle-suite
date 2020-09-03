@@ -34,8 +34,7 @@ func New(opts *command.Options) *cobra.Command {
 		Use:   "pairs",
 		Args:  cobra.NoArgs,
 		Short: "List all supported pairs",
-		Long: `
-List all supported asset pairs.`,
+		Long:  `List all supported asset pairs.`,
 		RunE: func(c *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(opts.OutputFormat.Format)
 			if err != nil {
