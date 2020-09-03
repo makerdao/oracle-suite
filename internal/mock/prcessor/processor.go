@@ -28,12 +28,12 @@ type Processor struct {
 	Pairs      []*model.Pair
 }
 
-func (mp *Processor) Process(agg gofer.Aggregator, pairs ...*model.Pair) error {
+func (mp *Processor) Process(agg gofer.IngestingAggregator, pairs ...*model.Pair) error {
 	RandomReduce(agg, mp.Pairs, mp.Returns)
 	return mp.ReturnsErr
 }
 
-func RandomReduce(r gofer.Aggregator, pairs []*model.Pair, prices []*model.PriceAggregate) {
+func RandomReduce(r gofer.IngestingAggregator, pairs []*model.Pair, prices []*model.PriceAggregate) {
 	for _, i := range rand.Perm(len(prices)) {
 		r.Ingest(prices[i])
 		if rand.Intn(2) == 1 {

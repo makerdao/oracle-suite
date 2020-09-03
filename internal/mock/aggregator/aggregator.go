@@ -34,12 +34,12 @@ func (mr *Aggregator) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return mr.Returns[*pair]
 }
 
-func (mr *Aggregator) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
-  if pairs == nil {
+func (mr *Aggregator) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
+	if pairs == nil {
 		for p := range mr.Sources {
-  		pairs = append(pairs, p.Clone())
+			pairs = append(pairs, p.Clone())
 		}
-  }
+	}
 	ppps := make(map[string]*model.PotentialPricePoint)
 	for _, p := range pairs {
 		for _, ppp := range mr.Sources[*p] {

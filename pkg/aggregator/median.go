@@ -163,7 +163,7 @@ func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return trace.Clone()
 }
 
-func (a *Median) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
+func (a *Median) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
 	pairMap := make(map[model.Pair]bool)
 	for _, pair := range pairs {
 		pairMap[*pair] = true
