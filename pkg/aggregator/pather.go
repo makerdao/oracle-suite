@@ -30,12 +30,12 @@ type Pather interface {
 // FilterPricePoints returns the PricePoints that are required
 // to complete the PricePaths given and nil if no paths are possible to complete
 // with the given PricePoints
-func FilterPricePoints(ppaths []*model.PricePath, ppps []*model.PricePoint) ([]*model.PricePath, []*model.PricePoint) {
+func FilterPricePoints(ppaths []*model.PricePath, pps []*model.PricePoint) ([]*model.PricePath, []*model.PricePoint) {
 	// Group all PricePoints by pair
-	pppIndex := make(map[model.Pair][]*model.PricePoint)
-	for _, ppp := range ppps {
-		pair := *ppp.Pair
-		pppIndex[pair] = append(pppIndex[pair], ppp)
+	ppIndex := make(map[model.Pair][]*model.PricePoint)
+	for _, pp := range pps {
+		pair := *pp.Pair
+		ppIndex[pair] = append(ppIndex[pair], pp)
 	}
 
 	var resPricePaths []*model.PricePath
@@ -44,7 +44,7 @@ outer:
 	for _, ppath := range ppaths {
 		// Check that each PricePath has all of its Pairs in PricePoints
 		for _, pair := range *ppath {
-			if _, ok := pppIndex[*pair]; !ok {
+			if _, ok := ppIndex[*pair]; !ok {
 				// Continue with next PricePath and don't add pairs to list
 				continue outer
 			}
@@ -59,7 +59,7 @@ outer:
 	// Add each uniqe PricePoint by completed PricePath Pair
 	var resPPP []*model.PricePoint
 	for pair := range pairs {
-		resPPP = append(resPPP, pppIndex[pair]...)
+		resPPP = append(resPPP, ppIndex[pair]...)
 	}
 
 	return resPricePaths, resPPP

@@ -40,15 +40,15 @@ func (mr *Aggregator) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 			pairs = append(pairs, p.Clone())
 		}
 	}
-	ppps := make(map[string]*model.PricePoint)
+	pps := make(map[string]*model.PricePoint)
 	for _, p := range pairs {
-		for _, ppp := range mr.Sources[*p] {
-			ppps[ppp.String()] = ppp
+		for _, pp := range mr.Sources[*p] {
+			pps[pp.String()] = pp
 		}
 	}
 	var sources []*model.PricePoint
-	for _, ppp := range ppps {
-		sources = append(sources, ppp)
+	for _, pp := range pps {
+		sources = append(sources, pp)
 	}
 	return sources
 }

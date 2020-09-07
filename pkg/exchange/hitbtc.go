@@ -50,9 +50,9 @@ func (h *Hitbtc) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
 }
 
-func (h *Hitbtc) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		h.callOne(ppp)
+func (h *Hitbtc) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		h.callOne(pp)
 	}
 }
 

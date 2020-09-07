@@ -53,8 +53,8 @@ func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
 
 	suite.Assert().IsType(suite.Exchange(), exchange)
 
-	ppp := newPricePoint("exchange", base, quote)
-	pps := []*model.PricePoint{ppp}
+	pp := newPricePoint("exchange", base, quote)
+	pps := []*model.PricePoint{pp}
 	exchange.Fetch(pps)
 
 	suite.Assert().NoError(pps[0].Error)

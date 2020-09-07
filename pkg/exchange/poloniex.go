@@ -53,9 +53,9 @@ func (p *Poloniex) getURL(pp *model.PricePoint) string {
 	return poloniexURL
 }
 
-func (p *Poloniex) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		p.callOne(ppp)
+func (p *Poloniex) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		p.callOne(pp)
 	}
 }
 

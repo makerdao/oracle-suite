@@ -57,9 +57,9 @@ func (o *Okex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(okexURL, o.getPair(pp))
 }
 
-func (o *Okex) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		o.callOne(ppp)
+func (o *Okex) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		o.callOne(pp)
 	}
 }
 

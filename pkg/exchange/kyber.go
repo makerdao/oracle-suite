@@ -61,9 +61,9 @@ func (k *Kyber) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(kyberURL, k.localPairName(pp.Pair), refQty)
 }
 
-func (k *Kyber) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		k.callOne(ppp)
+func (k *Kyber) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		k.callOne(pp)
 	}
 }
 

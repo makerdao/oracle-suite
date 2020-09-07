@@ -38,9 +38,9 @@ func (c *CryptoCompare) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
-func (c *CryptoCompare) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		c.callOne(ppp)
+func (c *CryptoCompare) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		c.callOne(pp)
 	}
 }
 

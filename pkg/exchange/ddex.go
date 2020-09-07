@@ -57,9 +57,9 @@ func (d *Ddex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
 }
 
-func (d *Ddex) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		d.callOne(ppp)
+func (d *Ddex) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		d.callOne(pp)
 	}
 }
 

@@ -69,9 +69,9 @@ func (u *Uniswap) getURL(_ *model.PricePoint) string {
 	return uniswapURL
 }
 
-func (u *Uniswap) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		u.callOne(ppp)
+func (u *Uniswap) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		u.callOne(pp)
 	}
 }
 

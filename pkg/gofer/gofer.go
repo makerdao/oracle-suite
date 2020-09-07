@@ -99,8 +99,8 @@ func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggrega
 func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
 	exchanges := make(map[string]*model.Exchange)
 
-	for _, ppp := range g.aggregator.GetSources(pairs...) {
-		exchanges[ppp.Exchange.Name] = ppp.Exchange
+	for _, pp := range g.aggregator.GetSources(pairs...) {
+		exchanges[pp.Exchange.Name] = pp.Exchange
 	}
 
 	result := make([]*model.Exchange, 0)
@@ -114,8 +114,8 @@ func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
 func (g *Gofer) Pairs() []*model.Pair {
 	pairs := make(map[string]*model.Pair)
 
-	for _, ppp := range g.aggregator.GetSources() {
-		pairs[ppp.Pair.String()] = ppp.Pair
+	for _, pp := range g.aggregator.GetSources() {
+		pairs[pp.Pair.String()] = pp.Pair
 	}
 
 	result := make([]*model.Pair, 0)

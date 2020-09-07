@@ -50,9 +50,9 @@ func (k *Kucoin) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-func (k *Kucoin) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		k.callOne(ppp)
+func (k *Kucoin) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		k.callOne(pp)
 	}
 }
 

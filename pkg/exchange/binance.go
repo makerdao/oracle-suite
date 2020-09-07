@@ -50,9 +50,9 @@ func (b *Binance) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
-func (b *Binance) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		b.callOne(ppp)
+func (b *Binance) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		b.callOne(pp)
 	}
 }
 

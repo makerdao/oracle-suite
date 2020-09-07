@@ -26,24 +26,24 @@ import (
 type Handler interface {
 	// Call should implement making API request to exchange URL and
 	// collecting/parsing exchange data.
-	Fetch(ppps []*model.PricePoint)
+	Fetch(pps []*model.PricePoint)
 }
 
-type pppList []*model.PricePoint
+type ppList []*model.PricePoint
 
 // groupByHandler groups Price Points by handler. Grouped PPPs are returned
 // as a map where the key is the handler and value is the list of all PPs
 // assigned to that handler.
-func (p pppList) groupByHandler() map[*model.Exchange]pppList {
-	pppMap := map[*model.Exchange]pppList{}
-	for _, ppp := range p {
-		if _, ok := pppMap[ppp.Exchange]; !ok {
-			pppMap[ppp.Exchange] = []*model.PricePoint{}
+func (p ppList) groupByHandler() map[*model.Exchange]ppList {
+	ppMap := map[*model.Exchange]ppList{}
+	for _, pp := range p {
+		if _, ok := ppMap[pp.Exchange]; !ok {
+			ppMap[pp.Exchange] = []*model.PricePoint{}
 		}
-		pppMap[ppp.Exchange] = append(pppMap[ppp.Exchange], ppp)
+		ppMap[pp.Exchange] = append(ppMap[pp.Exchange], pp)
 	}
 
-	return pppMap
+	return ppMap
 }
 
 type Set struct {
@@ -86,27 +86,27 @@ func DefaultSet() *Set {
 }
 
 // Call makes handler call using handlers from the Set structure.
-func (e *Set) Fetch(ppps []*model.PricePoint) {
+func (e *Set) Fetch(pps []*model.PricePoint) {
 	var err error
 
-	// The loop below uses pppList.groupByHandler method to group all PPPs.
+	// The loop below uses ppList.groupByHandler method to group all PPPs.
 	// Grouping allows to pass multiple PPPs to one handler which helps
 	// to reduce the number of API calls.
-	for exchange, ppps := range pppList(ppps).groupByHandler() {
+	for exchange, pps := range ppList(pps).groupByHandler() {
 		err = model.ValidateExchange(exchange)
 		if err != nil {
-			for _, ppp := range ppps {
-				ppp.Error = err
+			for _, pp := range pps {
+				pp.Error = err
 			}
 		} else {
 			handler, ok := e.list[exchange.Name]
 			if !ok {
 				err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
-				for _, ppp := range ppps {
-					ppp.Error = err
+				for _, pp := range pps {
+					pp.Error = err
 				}
 			} else {
-				handler.Fetch(ppps)
+				handler.Fetch(pps)
 			}
 		}
 	}

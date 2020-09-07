@@ -49,9 +49,9 @@ func (h *Huobi) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-func (h *Huobi) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		h.callOne(ppp)
+func (h *Huobi) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		h.callOne(pp)
 	}
 }
 

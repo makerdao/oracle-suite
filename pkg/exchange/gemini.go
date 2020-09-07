@@ -50,9 +50,9 @@ func (g *Gemini) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gemini) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		g.callOne(ppp)
+func (g *Gemini) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		g.callOne(pp)
 	}
 }
 

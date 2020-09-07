@@ -51,9 +51,9 @@ func (f *Ftx) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(ftxURL, f.localPairName(pp.Pair))
 }
 
-func (f *Ftx) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		f.callOne(ppp)
+func (f *Ftx) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		f.callOne(pp)
 	}
 }
 

@@ -95,12 +95,12 @@ func (a *Setz) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 	for _, p := range pairs {
 		refs = append(refs, PriceRef{Origin: ".", Pair: Pair{*p}})
 	}
-	ppps, err := a.pairMap.GetRefSources(a.exchangeMap, refs...)
+	pps, err := a.pairMap.GetRefSources(a.exchangeMap, refs...)
 	if err != nil {
 		// TODO: refactor Aggregator to return error not just nil
 		log.Println(err)
 		return nil
 	}
 
-	return ppps
+	return pps
 }

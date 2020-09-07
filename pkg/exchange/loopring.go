@@ -57,9 +57,9 @@ func (l *Loopring) getURL(pp *model.PricePoint) string {
 	return loopringURL
 }
 
-func (l *Loopring) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		l.callOne(ppp)
+func (l *Loopring) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		l.callOne(pp)
 	}
 }
 

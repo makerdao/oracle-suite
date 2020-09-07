@@ -112,9 +112,9 @@ func NewPathFromJSON(raw []byte) (Aggregator, error) {
 		return nil, err
 	}
 
-	ppps := ToPricePoints(params.Sources)
+	pps := ToPricePoints(params.Sources)
 
-	return NewPathWithPathMap(ToModelPricePaths(params.PricePaths), ppps, subAgg), nil
+	return NewPathWithPathMap(ToModelPricePaths(params.PricePaths), pps, subAgg), nil
 }
 
 // Calculate the final model.trade price of an ordered list of prices
@@ -194,6 +194,6 @@ func (r *Path) Aggregate(pair *model.Pair) *model.PriceAggregate {
 
 func (r *Path) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 	ppaths := paths(r.pather, pairs)
-	_, ppps := FilterPricePoints(ppaths, r.sources)
-	return ppps
+	_, pps := FilterPricePoints(ppaths, r.sources)
+	return pps
 }

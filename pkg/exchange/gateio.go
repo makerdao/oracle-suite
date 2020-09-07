@@ -58,9 +58,9 @@ func (g *Gateio) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gateio) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		g.callOne(ppp)
+func (g *Gateio) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		g.callOne(pp)
 	}
 }
 

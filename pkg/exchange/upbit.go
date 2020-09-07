@@ -50,9 +50,9 @@ func (u *Upbit) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-func (u *Upbit) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		u.callOne(ppp)
+func (u *Upbit) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		u.callOne(pp)
 	}
 }
 

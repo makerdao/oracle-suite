@@ -50,9 +50,9 @@ func (b *BitTrex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
 }
 
-func (b *BitTrex) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		b.callOne(ppp)
+func (b *BitTrex) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		b.callOne(pp)
 	}
 }
 

@@ -52,14 +52,14 @@ type Source struct {
 }
 
 func ToPricePoints(sources []Source) []*model.PricePoint {
-	var ppps []*model.PricePoint
+	var pps []*model.PricePoint
 	for _, s := range sources {
-		ppps = append(ppps, &model.PricePoint{
+		pps = append(pps, &model.PricePoint{
 			Pair:     model.NewPair(s.Base, s.Quote),
 			Exchange: &model.Exchange{Name: s.Exchange, Config: s.Parameters},
 		})
 	}
-	return ppps
+	return pps
 }
 
 type MedianParams struct {
@@ -169,11 +169,11 @@ func (r *Median) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 		pairMap[*pair] = true
 	}
 
-	var ppps []*model.PricePoint
-	for _, ppp := range r.sources {
-		if _, ok := pairMap[*ppp.Pair]; ok {
-			ppps = append(ppps, ppp)
+	var pps []*model.PricePoint
+	for _, pp := range r.sources {
+		if _, ok := pairMap[*pp.Pair]; ok {
+			pps = append(pps, pp)
 		}
 	}
-	return ppps
+	return pps
 }

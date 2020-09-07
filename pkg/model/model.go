@@ -272,14 +272,14 @@ func ValidatePricePathMap(ppaths PricePathMap) error {
 }
 
 // String returns a string representation of PricePoint e.g. source[exchange](BTC/USD)
-func (ppp *PricePoint) String() string {
+func (pp *PricePoint) String() string {
 	var pair string
 	var exchange string
-	if ppp.Exchange != nil {
-		exchange = ppp.Exchange.Name
+	if pp.Exchange != nil {
+		exchange = pp.Exchange.Name
 	}
-	if ppp.Pair != nil {
-		pair = ppp.Pair.String()
+	if pp.Pair != nil {
+		pair = pp.Pair.String()
 	}
 	return fmt.Sprintf("source[%s](%s)", exchange, pair)
 }

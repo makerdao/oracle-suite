@@ -53,9 +53,9 @@ func (b *Bitstamp) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(bitstampURL, b.localPairName(pp.Pair))
 }
 
-func (b *Bitstamp) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		b.callOne(ppp)
+func (b *Bitstamp) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		b.callOne(pp)
 	}
 }
 

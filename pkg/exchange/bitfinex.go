@@ -58,9 +58,9 @@ func (b *Bitfinex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(bitfinexURL, pair)
 }
 
-func (b *Bitfinex) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		b.callOne(ppp)
+func (b *Bitfinex) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		b.callOne(pp)
 	}
 }
 

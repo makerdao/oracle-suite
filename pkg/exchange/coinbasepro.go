@@ -49,9 +49,9 @@ func (c *CoinbasePro) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp.Pair))
 }
 
-func (c *CoinbasePro) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		c.callOne(ppp)
+func (c *CoinbasePro) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		c.callOne(pp)
 	}
 }
 

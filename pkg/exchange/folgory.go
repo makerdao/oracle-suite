@@ -48,9 +48,9 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-func (f *Folgory) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		f.callOne(ppp)
+func (f *Folgory) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		f.callOne(pp)
 	}
 }
 

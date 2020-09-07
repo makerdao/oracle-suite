@@ -103,9 +103,9 @@ func (k *Kraken) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
-func (k *Kraken) Fetch(ppps []*model.PricePoint) {
-	for _, ppp := range ppps {
-		k.callOne(ppp)
+func (k *Kraken) Fetch(pps []*model.PricePoint) {
+	for _, pp := range pps {
+		k.callOne(pp)
 	}
 }
 
