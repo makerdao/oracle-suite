@@ -59,11 +59,11 @@ func (d *Ddex) getURL(pp *model.PricePoint) string {
 
 func (d *Ddex) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		d.callOne(pp)
+		d.fetchOne(pp)
 	}
 }
 
-func (d *Ddex) callOne(pp *model.PricePoint) {
+func (d *Ddex) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

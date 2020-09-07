@@ -40,11 +40,11 @@ func (c *CryptoCompare) getURL(pp *model.PricePoint) string {
 
 func (c *CryptoCompare) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		c.callOne(pp)
+		c.fetchOne(pp)
 	}
 }
 
-func (c *CryptoCompare) callOne(pp *model.PricePoint) {
+func (c *CryptoCompare) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

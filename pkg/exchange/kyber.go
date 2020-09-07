@@ -63,11 +63,11 @@ func (k *Kyber) getURL(pp *model.PricePoint) string {
 
 func (k *Kyber) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		k.callOne(pp)
+		k.fetchOne(pp)
 	}
 }
 
-func (k *Kyber) callOne(pp *model.PricePoint) {
+func (k *Kyber) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

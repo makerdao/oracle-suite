@@ -52,11 +52,11 @@ func (k *Kucoin) getURL(pp *model.PricePoint) string {
 
 func (k *Kucoin) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		k.callOne(pp)
+		k.fetchOne(pp)
 	}
 }
 
-func (k *Kucoin) callOne(pp *model.PricePoint) {
+func (k *Kucoin) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

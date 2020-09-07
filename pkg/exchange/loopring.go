@@ -59,11 +59,11 @@ func (l *Loopring) getURL(pp *model.PricePoint) string {
 
 func (l *Loopring) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		l.callOne(pp)
+		l.fetchOne(pp)
 	}
 }
 
-func (l *Loopring) callOne(pp *model.PricePoint) {
+func (l *Loopring) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

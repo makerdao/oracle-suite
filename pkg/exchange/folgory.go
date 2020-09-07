@@ -50,11 +50,11 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 
 func (f *Folgory) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		f.callOne(pp)
+		f.fetchOne(pp)
 	}
 }
 
-func (f *Folgory) callOne(pp *model.PricePoint) {
+func (f *Folgory) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

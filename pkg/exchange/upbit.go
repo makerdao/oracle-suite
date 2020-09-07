@@ -52,11 +52,11 @@ func (u *Upbit) getURL(pp *model.PricePoint) string {
 
 func (u *Upbit) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		u.callOne(pp)
+		u.fetchOne(pp)
 	}
 }
 
-func (u *Upbit) callOne(pp *model.PricePoint) {
+func (u *Upbit) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

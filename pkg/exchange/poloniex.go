@@ -55,11 +55,11 @@ func (p *Poloniex) getURL(pp *model.PricePoint) string {
 
 func (p *Poloniex) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		p.callOne(pp)
+		p.fetchOne(pp)
 	}
 }
 
-func (p *Poloniex) callOne(pp *model.PricePoint) {
+func (p *Poloniex) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

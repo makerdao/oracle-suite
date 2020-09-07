@@ -105,11 +105,11 @@ func (k *Kraken) getURL(pp *model.PricePoint) string {
 
 func (k *Kraken) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		k.callOne(pp)
+		k.fetchOne(pp)
 	}
 }
 
-func (k *Kraken) callOne(pp *model.PricePoint) {
+func (k *Kraken) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

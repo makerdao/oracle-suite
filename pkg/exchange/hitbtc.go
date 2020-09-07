@@ -52,11 +52,11 @@ func (h *Hitbtc) getURL(pp *model.PricePoint) string {
 
 func (h *Hitbtc) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		h.callOne(pp)
+		h.fetchOne(pp)
 	}
 }
 
-func (h *Hitbtc) callOne(pp *model.PricePoint) {
+func (h *Hitbtc) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

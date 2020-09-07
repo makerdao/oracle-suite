@@ -51,11 +51,11 @@ func (c *CoinbasePro) getURL(pp *model.PricePoint) string {
 
 func (c *CoinbasePro) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		c.callOne(pp)
+		c.fetchOne(pp)
 	}
 }
 
-func (c *CoinbasePro) callOne(pp *model.PricePoint) {
+func (c *CoinbasePro) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

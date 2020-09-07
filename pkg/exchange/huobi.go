@@ -51,11 +51,11 @@ func (h *Huobi) getURL(pp *model.PricePoint) string {
 
 func (h *Huobi) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		h.callOne(pp)
+		h.fetchOne(pp)
 	}
 }
 
-func (h *Huobi) callOne(pp *model.PricePoint) {
+func (h *Huobi) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

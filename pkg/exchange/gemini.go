@@ -52,11 +52,11 @@ func (g *Gemini) getURL(pp *model.PricePoint) string {
 
 func (g *Gemini) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		g.callOne(pp)
+		g.fetchOne(pp)
 	}
 }
 
-func (g *Gemini) callOne(pp *model.PricePoint) {
+func (g *Gemini) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

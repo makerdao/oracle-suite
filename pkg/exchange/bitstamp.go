@@ -55,11 +55,11 @@ func (b *Bitstamp) getURL(pp *model.PricePoint) string {
 
 func (b *Bitstamp) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		b.callOne(pp)
+		b.fetchOne(pp)
 	}
 }
 
-func (b *Bitstamp) callOne(pp *model.PricePoint) {
+func (b *Bitstamp) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err

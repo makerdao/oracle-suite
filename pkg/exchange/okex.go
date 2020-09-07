@@ -59,11 +59,11 @@ func (o *Okex) getURL(pp *model.PricePoint) string {
 
 func (o *Okex) Fetch(pps []*model.PricePoint) {
 	for _, pp := range pps {
-		o.callOne(pp)
+		o.fetchOne(pp)
 	}
 }
 
-func (o *Okex) callOne(pp *model.PricePoint) {
+func (o *Okex) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
 		pp.Error = err
