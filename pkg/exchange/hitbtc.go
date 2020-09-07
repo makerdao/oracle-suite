@@ -56,6 +56,7 @@ func (h *Hitbtc) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (h *Hitbtc) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

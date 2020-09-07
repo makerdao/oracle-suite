@@ -109,6 +109,7 @@ func (k *Kraken) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (k *Kraken) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

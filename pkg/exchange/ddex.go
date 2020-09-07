@@ -63,6 +63,7 @@ func (d *Ddex) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (d *Ddex) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

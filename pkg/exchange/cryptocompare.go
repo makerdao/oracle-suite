@@ -44,6 +44,7 @@ func (c *CryptoCompare) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (c *CryptoCompare) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

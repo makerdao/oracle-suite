@@ -54,6 +54,7 @@ func (f *Folgory) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (f *Folgory) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

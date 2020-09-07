@@ -59,6 +59,7 @@ func (p *Poloniex) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (p *Poloniex) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

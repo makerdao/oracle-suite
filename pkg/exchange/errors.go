@@ -20,14 +20,5 @@ import (
 	"fmt"
 )
 
-var errNoPricePoint = fmt.Errorf("failed to make request to nil PricePoint")
-
-//nolint:deadcode,varcheck,unused
-var errWrongPricePoint = fmt.Errorf("failed to make request using wrong PricePoint")
-
-//nolint:deadcode,varcheck,unused
-var errNoExchangeInPricePoint = fmt.Errorf("failed to make request for nil exchange in given PricePoint")
-
 var errEmptyExchangeResponse = fmt.Errorf("empty exchange response received")
-
 var errUnknownExchange = errors.New("unknown exchange")

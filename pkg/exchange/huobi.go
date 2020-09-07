@@ -55,6 +55,7 @@ func (h *Huobi) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (h *Huobi) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
@@ -91,7 +92,9 @@ func (h *Huobi) fetchOne(pp *model.PricePoint) {
 		return
 	}
 
+	const nanoseconds = 1000
+
 	pp.Price = resp.Tick.Bid[0]
 	pp.Volume = resp.Volume
-	pp.Timestamp = resp.Timestamp / 1000
+	pp.Timestamp = resp.Timestamp / nanoseconds
 }

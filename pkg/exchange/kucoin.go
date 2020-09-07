@@ -56,6 +56,7 @@ func (k *Kucoin) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (k *Kucoin) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
@@ -102,11 +103,11 @@ func (k *Kucoin) fetchOne(pp *model.PricePoint) {
 		pp.Error = fmt.Errorf("failed to parse bid from kucoin exchange %s", res.Body)
 		return
 	}
-	// Parsing volume from string
 
-	pp.Timestamp = resp.Data.Time / 1000
+	const nanoseconds = 1000
 
 	pp.Price = price
 	pp.Ask = bid
 	pp.Bid = ask
+	pp.Timestamp = resp.Data.Time / nanoseconds
 }

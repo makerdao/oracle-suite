@@ -56,6 +56,7 @@ func (g *Gemini) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (g *Gemini) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
@@ -103,8 +104,10 @@ func (g *Gemini) fetchOne(pp *model.PricePoint) {
 		return
 	}
 
+	const nanoseconds = 1000
+
 	pp.Price = price
 	pp.Ask = ask
 	pp.Bid = bid
-	pp.Timestamp = resp.Volume.Timestamp / 1000
+	pp.Timestamp = resp.Volume.Timestamp / nanoseconds
 }

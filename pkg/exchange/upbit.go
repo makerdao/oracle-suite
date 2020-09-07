@@ -56,6 +56,7 @@ func (u *Upbit) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (u *Upbit) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
@@ -88,9 +89,11 @@ func (u *Upbit) fetchOne(pp *model.PricePoint) {
 		pp.Error = fmt.Errorf("wrong upbit response: %s", res.Body)
 		return
 	}
-	data := resp[0]
 
+	const nanoseconds = 1000
+
+	data := resp[0]
 	pp.Price = data.Price
 	pp.Volume = data.Volume
-	pp.Timestamp = data.Timestamp / 1000
+	pp.Timestamp = data.Timestamp / nanoseconds
 }

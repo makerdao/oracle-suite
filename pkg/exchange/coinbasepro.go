@@ -55,6 +55,7 @@ func (c *CoinbasePro) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (c *CoinbasePro) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

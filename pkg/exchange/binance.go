@@ -56,6 +56,7 @@ func (b *Binance) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (b *Binance) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

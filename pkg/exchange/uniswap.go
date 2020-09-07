@@ -75,6 +75,7 @@ func (u *Uniswap) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (u *Uniswap) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {

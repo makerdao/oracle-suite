@@ -136,7 +136,10 @@ func (pmm PriceModelMap) getRefSources(pr PriceRef) ([]cacheID, error) {
 	return result, nil
 }
 
-func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, refs ...PriceRef) ([]*model.PricePoint, error) {
+func (pmm PriceModelMap) GetRefSources(
+	exchangeMap map[string]*model.Exchange,
+	refs ...PriceRef,
+) ([]*model.PricePoint, error) {
 	cis := make(map[cacheID]bool)
 	for _, ref := range refs {
 		cs, err := pmm.getRefSources(ref)

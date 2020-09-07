@@ -67,6 +67,7 @@ func (k *Kyber) Fetch(pps []*model.PricePoint) {
 	}
 }
 
+//nolint:funlen
 func (k *Kyber) fetchOne(pp *model.PricePoint) {
 	err := model.ValidatePricePoint(pp)
 	if err != nil {
@@ -106,27 +107,45 @@ func (k *Kyber) fetchOne(pp *model.PricePoint) {
 	result := resp.Result[0]
 
 	if len(result.SrcQty) == 0 || len(result.DstQty) == 0 {
-		pp.Error = fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.Pair.String(), result)
+		pp.Error = fmt.Errorf(
+			"wrong kyber exchange response. No resulting pair %s data %+v",
+			pp.Pair.String(),
+			result,
+		)
 		return
 	}
 
 	if result.SrcQty[0] <= 0 {
-		pp.Error = fmt.Errorf("failed to parse price from kyber exchange (needs to be gtreater than 0) %s", res.Body)
+		pp.Error = fmt.Errorf(
+			"failed to parse price from kyber exchange (needs to be gtreater than 0) %s",
+			res.Body,
+		)
 		return
 	}
 
 	if result.DstQty[0] != refQty {
-		pp.Error = fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		pp.Error = fmt.Errorf(
+			"failed to parse volume from kyber exchange (it needs to be %f) %s",
+			refQty,
+			res.Body,
+		)
 		return
 	}
 
 	if result.Src != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" {
-		pp.Error = fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
+		pp.Error = fmt.Errorf(
+			"failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s",
+			res.Body,
+		)
 		return
 	}
 
 	if result.Dst != k.localPairName(pp.Pair) {
-		pp.Error = fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		pp.Error = fmt.Errorf(
+			"failed to parse volume from kyber exchange (it needs to be %f) %s",
+			refQty,
+			res.Body,
+		)
 		return
 	}
 

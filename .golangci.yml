@@ -133,7 +133,7 @@ linters-settings:
     check-exported: false
   whitespace:
     multi-if: true   # Enforces newlines (or comments) after every multi-line if statement
-    multi-func: true # Enforces newlines (or comments) after every multi-line function signature
+    multi-func: false # Enforces newlines (or comments) after every multi-line function signature
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
