@@ -204,6 +204,9 @@ issues:
     - path: exchange/
       linters:
         - dupl
+    - path: /mock/
+      linters:
+        - gosec
 
   # Show only new issues: if there are unstaged changes or untracked files,
   # only those changes are analyzed, else only changes in HEAD~ are analyzed.
@@ -214,3 +217,4 @@ issues:
   new: true
   # Show only new issues created after git revision `REV`
   new-from-rev: 8575515511b98d47c5d7368c50a699c873216b42
+

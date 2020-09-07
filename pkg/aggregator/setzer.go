@@ -83,7 +83,7 @@ func (a *Setz) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return pa
 }
 
-func (a *Setz) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
+func (a *Setz) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
 	// If given list of pairs is empty use all keys in PriceModelMap as pair list
 	if pairs == nil {
 		for p := range a.pairMap {
