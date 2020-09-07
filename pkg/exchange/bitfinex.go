@@ -44,7 +44,7 @@ func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	return pair.Base + pair.Quote
 }
 
-func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
+func (b *Bitfinex) getURL(pp *model.PricePoint) string {
 	var pair string
 
 	if pp.Exchange == nil {
@@ -58,21 +58,17 @@ func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
 	return fmt.Sprintf(bitfinexURL, pair)
 }
 
-func (b *Bitfinex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (b *Bitfinex) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := b.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		b.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (b *Bitfinex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (b *Bitfinex) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -82,28 +78,27 @@ func (b *Bitfinex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 
 	// parsing JSON
 	var resp []float64
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bitfinex response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse bitfinex response: %w", err)
+		return
 	}
 	if len(resp) < 8 {
-		return nil, fmt.Errorf("wrong bitfinex response")
+		pp.Error = fmt.Errorf("wrong bitfinex response")
+		return
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     resp[6],
-		Volume:    resp[7],
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Timestamp = time.Now().Unix()
+	pp.Price = resp[6]
+	pp.Volume = resp[7]
 }

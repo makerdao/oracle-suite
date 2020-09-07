@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
@@ -30,13 +29,13 @@ type Aggregator interface {
 
 type Ingestor interface {
 	// Informs clients of the required data points
-	GetSources(...*model.Pair) []*model.PotentialPricePoint
+	GetSources(...*model.Pair) []*model.PricePoint
 	// Allows for feeding data points to the IngestingAggregator
 	Ingest(*model.PriceAggregate)
 }
 
 type Fetcher interface {
-	Call([]*model.PotentialPricePoint) []exchange.CallResult
+	Fetch([]*model.PricePoint)
 }
 
 // An IngestingAggregator is a service that, when fed the required data points,
@@ -65,15 +64,18 @@ func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggrega
 			return fmt.Errorf("no working agregator passed to processor")
 		}
 
-		for _, cr := range g.fetcher.Call(agg.GetSources(pairs...)) {
-			if cr.Error != nil {
-				log.Println(cr.Error)
+		sources := agg.GetSources(pairs...)
+		g.fetcher.Fetch(sources)
+
+		for _, pp := range sources {
+			if pp.Error != nil {
+				log.Println(pp.Error)
 				continue
 			}
 
 			pa := &model.PriceAggregate{
-				PriceModelName: fmt.Sprintf("exchange[%s]", cr.PricePoint.Exchange.Name),
-				PricePoint:     cr.PricePoint,
+				PriceModelName: fmt.Sprintf("exchange[%s]", pp.Exchange.Name),
+				PricePoint:     pp,
 			}
 
 			agg.Ingest(pa)

@@ -94,13 +94,13 @@ func TestPathAggregator(t *testing.T) {
 		assert.Equal(t, model.NewPair("a", "d"), res.Pair)
 		assert.Equal(t, "path", res.PriceModelName)
 		// Median of trade abd, acd and bad is 1001 * 1002
-		assert.Equal(t, 1001.0 * 1002.0, res.Price)
+		assert.Equal(t, 1001.0*1002.0, res.Price)
 
 		resTradeABD := res.Prices[0]
 		assert.NotNil(t, resTradeABD)
 		assert.Equal(t, model.NewPair("a", "d"), resTradeABD.Pair)
 		assert.Equal(t, "trade", resTradeABD.PriceModelName)
-		assert.Equal(t, 1001.0 * 1002.0, resTradeABD.Price)
+		assert.Equal(t, 1001.0*1002.0, resTradeABD.Price)
 
 		resMedinaAB := resTradeABD.Prices[0]
 		assert.NotNil(t, resMedinaAB)
@@ -120,7 +120,7 @@ func TestPathAggregator(t *testing.T) {
 		assert.NotNil(t, resTradeACD)
 		assert.Equal(t, model.NewPair("a", "d"), resTradeACD.Pair)
 		assert.Equal(t, "trade", resTradeACD.PriceModelName)
-		assert.Equal(t, 1003.0 * 1004.0, resTradeACD.Price)
+		assert.Equal(t, 1003.0*1004.0, resTradeACD.Price)
 
 		resMedinaAC := resTradeACD.Prices[0]
 		assert.NotNil(t, resMedinaAC)
@@ -140,7 +140,7 @@ func TestPathAggregator(t *testing.T) {
 		assert.NotNil(t, resTradeBAD)
 		assert.Equal(t, model.NewPair("a", "d"), resTradeBAD.Pair)
 		assert.Equal(t, "trade", resTradeBAD.PriceModelName)
-		assert.Equal(t, 1002.0 / 2, resTradeBAD.Price)
+		assert.Equal(t, 1002.0/2, resTradeBAD.Price)
 
 		resMedinaBA := resTradeBAD.Prices[0]
 		assert.NotNil(t, resMedinaBA)
@@ -170,12 +170,12 @@ func TestTrade(t *testing.T) {
 	resAE := trade(pasAE)
 	assert.NotNil(t, resAE)
 	assert.Equal(t, model.NewPair("a", "e"), resAE.Pair)
-	assert.Equal(t, 10.0 * 20.0 * 200.0 * 40.0, resAE.Price)
+	assert.Equal(t, 10.0*20.0*200.0*40.0, resAE.Price)
 
 	resCE := trade(pasCE)
 	assert.NotNil(t, resCE)
 	assert.Equal(t, model.NewPair("c", "e"), resCE.Pair)
-	assert.Equal(t, 200.0 / (10.0 * 20.0) * 40.0, resCE.Price)
+	assert.Equal(t, 200.0/(10.0*20.0)*40.0, resCE.Price)
 }
 
 func TestPathResolveMissingPair(t *testing.T) {
@@ -198,7 +198,7 @@ func TestPathResolveMissingPair(t *testing.T) {
 
 	var res *model.PriceAggregate
 
-	res = pathAggregator.resolve(model.PricePath{ model.NewPair("a", "b") })
+	res = pathAggregator.resolve(model.PricePath{model.NewPair("a", "b")})
 	assert.NotNil(t, res)
 	assert.Equal(t, 100.0, res.Price)
 

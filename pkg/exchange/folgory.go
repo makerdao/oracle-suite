@@ -48,20 +48,17 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-func (f *Folgory) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (f *Folgory) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := f.callOne(ppp)
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		f.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (f *Folgory) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -73,10 +70,12 @@ func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	// make query
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp []folgoryResponse
@@ -84,7 +83,8 @@ func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 
 	err = json.Unmarshal([]byte(body), &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse folgory response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse folgory response: %w", err)
+		return
 	}
 
 	var data *folgoryResponse
@@ -95,24 +95,23 @@ func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 		}
 	}
 	if data == nil {
-		return nil, fmt.Errorf("wrong response from folgory. no %s pair exist", pair)
+		pp.Error = fmt.Errorf("wrong response from folgory. no %s pair exist", pair)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(data.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from folgory exchange %v", data)
+		pp.Error = fmt.Errorf("failed to parse price from folgory exchange %v", data)
+		return
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(data.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from folgory exchange %v", data)
+		pp.Error = fmt.Errorf("failed to parse volume from folgory exchange %v", data)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
-		Timestamp: time.Now().Unix(),
-	}, nil
+
+	pp.Price = price
+	pp.Volume = volume
+	pp.Timestamp = time.Now().Unix()
 }

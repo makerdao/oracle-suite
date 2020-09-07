@@ -46,25 +46,21 @@ func (b *Binance) localPairName(pair *model.Pair) string {
 	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
 }
 
-func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
+func (b *Binance) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
 }
 
-func (b *Binance) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (b *Binance) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := b.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		b.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (b *Binance) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (b *Binance) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,27 +70,27 @@ func (b *Binance) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp binanceResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse binance response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse binance response: %w", err)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
+		return
 	}
 	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Timestamp = time.Now().Unix()
+	pp.Price = price
 }

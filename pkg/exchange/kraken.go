@@ -44,7 +44,7 @@ type Kraken struct {
 	Pool query.WorkerPool
 }
 
-func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
+func (k *Kraken) getPair(pp *model.PricePoint) string {
 	if pp.Exchange == nil {
 		return k.localPairName(pp.Pair)
 	}
@@ -99,25 +99,21 @@ func (k *Kraken) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
 }
 
-func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
+func (k *Kraken) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(krakenURL, k.getPair(pp))
 }
 
-func (k *Kraken) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (k *Kraken) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := k.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		k.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (k *Kraken) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (k *Kraken) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -128,43 +124,47 @@ func (k *Kraken) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	// make query
 	res := k.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp krakenResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse kraken response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse kraken response: %w", err)
+		return
 	}
 	if len(resp.Errors) > 0 {
-		return nil, fmt.Errorf("kraken API error: %s", strings.Join(resp.Errors, " "))
+		pp.Error = fmt.Errorf("kraken API error: %s", strings.Join(resp.Errors, " "))
+		return
 	}
 	result, ok := resp.Result[pair]
 	if !ok || result == nil {
-		return nil, fmt.Errorf("wrong kraken exchange response. No resulting data %+v", resp)
+		pp.Error = fmt.Errorf("wrong kraken exchange response. No resulting data %+v", resp)
+		return
 	}
 	if len(result.Price) == 0 || len(result.Volume) == 0 {
-		return nil, fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pair, result)
+		pp.Error = fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pair, result)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(result.Price[0], 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from kraken exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from kraken exchange %s", res.Body)
+		return
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(result.Volume[0], 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from kraken exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from kraken exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
-		Timestamp: time.Now().Unix(),
-	}, nil
+
+	pp.Price = price
+	pp.Volume = volume
+	pp.Timestamp = time.Now().Unix()
 }

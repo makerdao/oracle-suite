@@ -47,24 +47,21 @@ func (f *Ftx) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }
 
-func (f *Ftx) getURL(pp *model.PotentialPricePoint) string {
+func (f *Ftx) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(ftxURL, f.localPairName(pp.Pair))
 }
 
-func (f *Ftx) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (f *Ftx) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := f.callOne(ppp)
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		f.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (f *Ftx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (f *Ftx) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,30 +71,29 @@ func (f *Ftx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) 
 	// make query
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp ftxResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ftx response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse ftx response: %w", err)
+		return
 	}
 
 	if !resp.Success || resp.Result.Name != f.localPairName(pp.Pair) {
-		return nil, fmt.Errorf("failed to get correct response from ftx: %s", res.Body)
+		pp.Error = fmt.Errorf("failed to get correct response from ftx: %s", res.Body)
+		return
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     resp.Result.Price,
-		Ask:       resp.Result.Ask,
-		Bid:       resp.Result.Bid,
-		Volume:    resp.Result.Volume,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Price = resp.Result.Price
+	pp.Ask = resp.Result.Ask
+	pp.Bid = resp.Result.Bid
+	pp.Volume = resp.Result.Volume
+	pp.Timestamp = time.Now().Unix()
 }

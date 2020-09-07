@@ -46,20 +46,22 @@ func (suite *ExchangesSuite) SetupSuite() {
 }
 
 func (suite *ExchangesSuite) TestCallErrorNegative() {
-	cr := suite.set.Call([]*model.PotentialPricePoint{{}})
-	assert.Error(suite.T(), cr[0].Error)
+	pps := []*model.PricePoint{{}}
+	suite.set.Fetch(pps)
+	assert.Error(suite.T(), pps[0].Error)
 
 	ex := &model.Exchange{Name: "unknown"}
-	pp := &model.PotentialPricePoint{
+	pp := &model.PricePoint{
 		Exchange: ex,
 	}
-	cr = suite.set.Call([]*model.PotentialPricePoint{pp})
-	assert.Same(suite.T(), ex, cr[0].PricePoint.Exchange)
-	assert.Error(suite.T(), cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.set.Fetch(pps)
+	assert.Same(suite.T(), ex, pps[0].Exchange)
+	assert.Error(suite.T(), pps[0].Error)
 }
 
 func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
-	pp := &model.PotentialPricePoint{
+	pp := &model.PricePoint{
 		Exchange: &model.Exchange{
 			Name: "binance",
 		},
@@ -69,10 +71,11 @@ func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 		},
 	}
 
-	cr := suite.set.Call([]*model.PotentialPricePoint{pp})
+	pps := []*model.PricePoint{pp}
+	suite.set.Fetch(pps)
 
-	assert.Error(suite.T(), cr[0].Error)
-	assert.Nil(suite.T(), cr[0].PricePoint)
+	assert.Error(suite.T(), pps[0].Error)
+	assert.NotNil(suite.T(), pps[0])
 }
 
 func (suite *ExchangesSuite) TestSuccessBinance() {
@@ -87,18 +90,19 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 		Quote: "ETH",
 	}
 	suite.pool.MockResp(resp)
-	pp := &model.PotentialPricePoint{
+	pp := &model.PricePoint{
 		Exchange: &model.Exchange{
 			Name: "binance",
 		},
 		Pair: p,
 	}
 
-	cr := suite.set.Call([]*model.PotentialPricePoint{pp})
+	pps := []*model.PricePoint{pp}
+	suite.set.Fetch(pps)
 
-	assert.NoError(suite.T(), cr[0].Error)
-	assert.EqualValues(suite.T(), p, cr[0].PricePoint.Pair)
-	assert.EqualValues(suite.T(), price, cr[0].PricePoint.Price)
+	assert.NoError(suite.T(), pps[0].Error)
+	assert.EqualValues(suite.T(), p, pps[0].Pair)
+	assert.EqualValues(suite.T(), price, pps[0].Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

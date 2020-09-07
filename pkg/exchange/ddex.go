@@ -53,25 +53,21 @@ func (d *Ddex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
+func (d *Ddex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
 }
 
-func (d *Ddex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (d *Ddex) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := d.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		d.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (d *Ddex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (d *Ddex) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -81,38 +77,40 @@ func (d *Ddex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 	// make query
 	res := d.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp ddexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ddex response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse ddex response: %w", err)
+		return
 	}
 	// Check if response is successful
 	if resp.Desc != "success" || len(resp.Data.Orderbook.Asks) != 1 || 1 != len(resp.Data.Orderbook.Bids) {
-		return nil, fmt.Errorf("response returned from ddex exchange is invalid %s", res.Body)
+		pp.Error = fmt.Errorf("response returned from ddex exchange is invalid %s", res.Body)
+		return
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Data.Orderbook.Asks[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from ddex exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from ddex exchange %s", res.Body)
+		return
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Data.Orderbook.Bids[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from ddex exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from ddex exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Ask:       ask,
-		Bid:       bid,
-		Price:     bid,
-		Timestamp: time.Now().Unix(),
-	}, nil
+
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Price = bid
+	pp.Timestamp = time.Now().Unix()
 }

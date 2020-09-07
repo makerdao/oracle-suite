@@ -27,12 +27,12 @@ type Pather interface {
 	Path(*model.Pair) []*model.PricePath
 }
 
-// FilterPotentialPricePoints returns the PotentialPricePoints that are required
+// FilterPricePoints returns the PricePoints that are required
 // to complete the PricePaths given and nil if no paths are possible to complete
-// with the given PotentialPricePoints
-func FilterPotentialPricePoints(ppaths []*model.PricePath, ppps []*model.PotentialPricePoint) ([]*model.PricePath, []*model.PotentialPricePoint) {
-	// Group all PotentialPricePoints by pair
-	pppIndex := make(map[model.Pair][]*model.PotentialPricePoint)
+// with the given PricePoints
+func FilterPricePoints(ppaths []*model.PricePath, ppps []*model.PricePoint) ([]*model.PricePath, []*model.PricePoint) {
+	// Group all PricePoints by pair
+	pppIndex := make(map[model.Pair][]*model.PricePoint)
 	for _, ppp := range ppps {
 		pair := *ppp.Pair
 		pppIndex[pair] = append(pppIndex[pair], ppp)
@@ -40,9 +40,9 @@ func FilterPotentialPricePoints(ppaths []*model.PricePath, ppps []*model.Potenti
 
 	var resPricePaths []*model.PricePath
 	pairs := make(map[model.Pair]bool)
-	outer:
+outer:
 	for _, ppath := range ppaths {
-		// Check that each PricePath has all of its Pairs in PotentialPricePoints
+		// Check that each PricePath has all of its Pairs in PricePoints
 		for _, pair := range *ppath {
 			if _, ok := pppIndex[*pair]; !ok {
 				// Continue with next PricePath and don't add pairs to list
@@ -56,8 +56,8 @@ func FilterPotentialPricePoints(ppaths []*model.PricePath, ppps []*model.Potenti
 		resPricePaths = append(resPricePaths, ppath)
 	}
 
-	// Add each uniqe PotentialPricePoint by completed PricePath Pair
-	var resPPP []*model.PotentialPricePoint
+	// Add each uniqe PricePoint by completed PricePath Pair
+	var resPPP []*model.PricePoint
 	for pair := range pairs {
 		resPPP = append(resPPP, pppIndex[pair]...)
 	}

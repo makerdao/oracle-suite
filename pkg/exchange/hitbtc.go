@@ -46,25 +46,21 @@ func (h *Hitbtc) localPairName(pair *model.Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
 }
 
-func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
+func (h *Hitbtc) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
 }
 
-func (h *Hitbtc) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (h *Hitbtc) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := h.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		h.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (h *Hitbtc) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,45 +70,48 @@ func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	// make query
 	res := h.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp hitbtcResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse hitbtc response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse hitbtc response: %w", err)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from hitbtc exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from hitbtc exchange %s", res.Body)
+		return
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from hitbtc exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from hitbtc exchange %s", res.Body)
+		return
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from hitbtc exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from hitbtc exchange %s", res.Body)
+		return
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from hitbtc exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from hitbtc exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
-		Ask:       ask,
-		Bid:       bid,
-		Timestamp: resp.Timestamp.Unix(),
-	}, nil
+
+	pp.Price = price
+	pp.Volume = volume
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Timestamp = resp.Timestamp.Unix()
 }

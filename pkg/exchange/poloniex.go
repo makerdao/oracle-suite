@@ -49,25 +49,21 @@ func (p *Poloniex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", p.renameSymbol(pair.Quote), p.renameSymbol(pair.Base))
 }
 
-func (p *Poloniex) getURL(pp *model.PotentialPricePoint) string {
+func (p *Poloniex) getURL(pp *model.PricePoint) string {
 	return poloniexURL
 }
 
-func (p *Poloniex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (p *Poloniex) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := p.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		p.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (p *Poloniex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (p *Poloniex) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -79,49 +75,53 @@ func (p *Poloniex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 	// make query
 	res := p.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp map[string]poloniexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse poloniex response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse poloniex response: %w", err)
+		return
 	}
 	pairResp, ok := resp[pair]
 	if !ok {
-		return nil, fmt.Errorf("failed to get correct response from exchange (no %s exist) %s", pair, res.Body)
+		pp.Error = fmt.Errorf("failed to get correct response from exchange (no %s exist) %s", pair, res.Body)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(pairResp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from bitstamp exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from bitstamp exchange %s", res.Body)
+		return
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(pairResp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from bitstamp exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from bitstamp exchange %s", res.Body)
+		return
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(pairResp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from bitstamp exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from bitstamp exchange %s", res.Body)
+		return
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(pairResp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from bitstamp exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from bitstamp exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
-		Ask:       ask,
-		Bid:       bid,
-		Timestamp: time.Now().Unix(),
-	}, nil
+
+	pp.Price = price
+	pp.Volume = volume
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Timestamp = time.Now().Unix()
 }

@@ -41,7 +41,7 @@ type Okex struct {
 	Pool query.WorkerPool
 }
 
-func (o *Okex) getPair(pp *model.PotentialPricePoint) string {
+func (o *Okex) getPair(pp *model.PricePoint) string {
 	pair, ok := pp.Exchange.Config["pair"]
 	if !ok || pair == "" {
 		pair = o.localPairName(pp.Pair)
@@ -53,25 +53,21 @@ func (o *Okex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (o *Okex) getURL(pp *model.PotentialPricePoint) string {
+func (o *Okex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(okexURL, o.getPair(pp))
 }
 
-func (o *Okex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (o *Okex) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := o.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		o.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (o *Okex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (o *Okex) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -81,45 +77,49 @@ func (o *Okex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 	// make query
 	res := o.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp okexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse okex response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse okex response: %w", err)
+		return
 	}
 	// parsing price from string
 	price, err := strconv.ParseFloat(resp.Last, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from okex exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from okex exchange %s", res.Body)
+		return
 	}
 	// parsing ask price from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from okex exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from okex exchange %s", res.Body)
+		return
 	}
 	// parsing bid price from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from okex exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from okex exchange %s", res.Body)
+		return
 	}
 	// parsing volume from string
 	volume, err := strconv.ParseFloat(resp.BaseVolume24H, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from okex exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from okex exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Timestamp: resp.Timestamp.Unix(),
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Ask:       ask,
-		Bid:       bid,
-		Volume:    volume,
-	}, nil
+
+	pp.Timestamp = resp.Timestamp.Unix()
+
+	pp.Price = price
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Volume = volume
 }

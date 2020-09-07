@@ -65,25 +65,21 @@ func (u *Uniswap) localPairName(pair *model.Pair) string {
 	}
 }
 
-func (u *Uniswap) getURL(_ *model.PotentialPricePoint) string {
+func (u *Uniswap) getURL(_ *model.PricePoint) string {
 	return uniswapURL
 }
 
-func (u *Uniswap) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (u *Uniswap) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := u.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		u.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (u *Uniswap) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (u *Uniswap) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	pair := u.localPairName(pp.Pair)
@@ -98,35 +94,37 @@ func (u *Uniswap) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	// make query
 	res := u.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp uniswapResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse uniswap response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse uniswap response: %w", err)
+		return
 	}
 	if len(resp.Data.Pairs) == 0 {
-		return nil, fmt.Errorf("failed to parse uniswap response: no pairs %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse uniswap response: no pairs %s", res.Body)
+		return
 	}
 	// Due to API for some pairs like `KNC/ETH` we have to take `token0Price` field rather than `token1Price`
 	priceStr := getPriceByPair(*pp.Pair, resp.Data.Pairs[0])
 	if priceStr == "" {
-		return nil, fmt.Errorf("failed to parse uniswap price: %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse uniswap price: %s", res.Body)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(priceStr, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from uniswap exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from uniswap exchange %s", res.Body)
+		return
 	}
 	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Timestamp = time.Now().Unix()
+	pp.Price = price
 }

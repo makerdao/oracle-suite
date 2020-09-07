@@ -28,8 +28,8 @@ type Aggregator interface {
 	Ingest(*model.PriceAggregate)
 	// Calculate asset pair aggregate returning nil if pair not available
 	Aggregate(*model.Pair) *model.PriceAggregate
-	// GetSources returns PotentialPricePoints
-	GetSources(...*model.Pair) []*model.PotentialPricePoint
+	// GetSources returns PricePoints
+	GetSources(...*model.Pair) []*model.PricePoint
 }
 
 type AggregatorParams struct {

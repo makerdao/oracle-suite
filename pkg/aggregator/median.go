@@ -32,11 +32,11 @@ type traceAggregate struct {
 type Median struct {
 	timeWindow int64
 	aggregates map[model.Pair]*traceAggregate
-	sources    []*model.PotentialPricePoint
+	sources    []*model.PricePoint
 }
 
 // NewMedian returns a new instance of Medain with a time window in milliseconds
-func NewMedian(sources []*model.PotentialPricePoint, timeWindow int64) *Median {
+func NewMedian(sources []*model.PricePoint, timeWindow int64) *Median {
 	return &Median{
 		timeWindow: timeWindow,
 		aggregates: make(map[model.Pair]*traceAggregate),
@@ -51,10 +51,10 @@ type Source struct {
 	Parameters map[string]string `json:"parameters"`
 }
 
-func ToPotentialPricePoints(sources []Source) []*model.PotentialPricePoint {
-	var ppps []*model.PotentialPricePoint
+func ToPricePoints(sources []Source) []*model.PricePoint {
+	var ppps []*model.PricePoint
 	for _, s := range sources {
-		ppps = append(ppps, &model.PotentialPricePoint{
+		ppps = append(ppps, &model.PricePoint{
 			Pair:     model.NewPair(s.Base, s.Quote),
 			Exchange: &model.Exchange{Name: s.Exchange, Config: s.Parameters},
 		})
@@ -75,7 +75,7 @@ func NewMedianFromJSON(raw []byte) (Aggregator, error) {
 		return nil, fmt.Errorf("couldn't parse median aggregator parameters: %w", err)
 	}
 
-	return NewMedian(ToPotentialPricePoints(params.Sources), params.TimeWindow), nil
+	return NewMedian(ToPricePoints(params.Sources), params.TimeWindow), nil
 }
 
 func newTraceAggregate(pair *model.Pair) *traceAggregate {
@@ -163,13 +163,13 @@ func (r *Median) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return trace.Clone()
 }
 
-func (r *Median) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
+func (r *Median) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 	pairMap := make(map[model.Pair]bool)
 	for _, pair := range pairs {
 		pairMap[*pair] = true
 	}
 
-	var ppps []*model.PotentialPricePoint
+	var ppps []*model.PricePoint
 	for _, ppp := range r.sources {
 		if _, ok := pairMap[*ppp.Pair]; ok {
 			ppps = append(ppps, ppp)

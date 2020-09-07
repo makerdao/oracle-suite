@@ -21,20 +21,25 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/makerdao/gofer/pkg/aggregator"
-	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
 type FetcherMock []*model.PriceAggregate
 
-func (f FetcherMock) Call([]*model.PotentialPricePoint) []exchange.CallResult {
-	var r []exchange.CallResult
-	for _, p := range f {
-		r = append(r, exchange.CallResult{
-			PricePoint: p.PricePoint,
-		})
+func (f FetcherMock) Fetch(pps []*model.PricePoint) {
+	for _, pp1 := range pps {
+		for _, pp2 := range f {
+			if pp1.Pair.Equal(pp2.Pair) && pp1.Exchange.Name == pp2.Exchange.Name {
+				pp1.Timestamp = pp2.Timestamp
+				pp1.Exchange = pp2.Exchange
+				pp1.Price = pp2.Price
+				pp1.Ask = pp2.Ask
+				pp1.Bid = pp2.Bid
+				pp1.Volume = pp2.Volume
+				pp1.Error = pp2.Error
+			}
+		}
 	}
-	return r
 }
 
 func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
@@ -74,7 +79,10 @@ func TestPathWithSetzerPatherAndMedianIntegration(t *testing.T) {
 	// path( trade(..)=>ETH/USD$9, trade(..)=>ETH/USD$30 )=>ETH/USD$19
 	// path( trade(..)=>USDC/USD$5 )=>USDC/USD$5
 
-	sources := []*model.PotentialPricePoint{}
+	sources := []*model.PricePoint{}
+	for _, pa := range pas {
+		sources = append(sources, pa.PricePoint)
+	}
 
 	agg := aggregator.NewPath(aggregator.NewSetzer(), sources, aggregator.NewMedian(nil, 1000))
 
@@ -140,14 +148,14 @@ func TestSetzAggregatorIntegration(t *testing.T) {
 	gofer.fetcher = FetcherMock(pas)
 	ppps := gofer.aggregator.GetSources([]*model.Pair{model.NewPair("B", "C")}...)
 
-	assert.ElementsMatch(t, []*model.PotentialPricePoint{
+	assert.ElementsMatch(t, []*model.PricePoint{
 		{Exchange: &model.Exchange{Name: "e-a"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e-b"}, Pair: model.NewPair("b", "c")},
 	}, ppps)
 
 	ppps = gofer.aggregator.GetSources([]*model.Pair{model.NewPair("A", "C")}...)
 
-	assert.ElementsMatch(t, []*model.PotentialPricePoint{
+	assert.ElementsMatch(t, []*model.PricePoint{
 		{Exchange: &model.Exchange{Name: "e-d"}, Pair: model.NewPair("a", "b")},
 		{Exchange: &model.Exchange{Name: "e-a"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e-b"}, Pair: model.NewPair("b", "c")},

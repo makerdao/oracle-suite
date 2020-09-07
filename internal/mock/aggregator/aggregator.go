@@ -21,7 +21,7 @@ import (
 
 type Aggregator struct {
 	Returns map[model.Pair]*model.PriceAggregate
-	Sources map[model.Pair][]*model.PotentialPricePoint
+	Sources map[model.Pair][]*model.PricePoint
 }
 
 func (mr *Aggregator) Ingest(pa *model.PriceAggregate) {
@@ -34,19 +34,19 @@ func (mr *Aggregator) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	return mr.Returns[*pair]
 }
 
-func (mr *Aggregator) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
+func (mr *Aggregator) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 	if pairs == nil {
 		for p := range mr.Sources {
 			pairs = append(pairs, p.Clone())
 		}
 	}
-	ppps := make(map[string]*model.PotentialPricePoint)
+	ppps := make(map[string]*model.PricePoint)
 	for _, p := range pairs {
 		for _, ppp := range mr.Sources[*p] {
 			ppps[ppp.String()] = ppp
 		}
 	}
-	var sources []*model.PotentialPricePoint
+	var sources []*model.PricePoint
 	for _, ppp := range ppps {
 		sources = append(sources, ppp)
 	}

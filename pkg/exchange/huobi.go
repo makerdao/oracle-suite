@@ -45,25 +45,21 @@ func (h *Huobi) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
+func (h *Huobi) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
 }
 
-func (h *Huobi) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (h *Huobi) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := h.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		h.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (h *Huobi) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (h *Huobi) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -72,29 +68,30 @@ func (h *Huobi) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 
 	res := h.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 
 	var resp huobiResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse huobi response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse huobi response: %w", err)
+		return
 	}
 	if resp.Status == "error" {
-		return nil, fmt.Errorf("wrong response from huobi exchange %s", res.Body)
+		pp.Error = fmt.Errorf("wrong response from huobi exchange %s", res.Body)
+		return
 	}
 	if len(resp.Tick.Bid) < 1 {
-		return nil, fmt.Errorf("wrong bid response from huobi exchange %s", res.Body)
+		pp.Error = fmt.Errorf("wrong bid response from huobi exchange %s", res.Body)
+		return
 	}
 
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     resp.Tick.Bid[0],
-		Volume:    resp.Volume,
-		Timestamp: resp.Timestamp / 1000,
-	}, nil
+	pp.Price = resp.Tick.Bid[0]
+	pp.Volume = resp.Volume
+	pp.Timestamp = resp.Timestamp / 1000
 }

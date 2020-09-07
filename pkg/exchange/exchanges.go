@@ -17,7 +17,6 @@ package exchange
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/model"
@@ -27,47 +26,24 @@ import (
 type Handler interface {
 	// Call should implement making API request to exchange URL and
 	// collecting/parsing exchange data.
-	Call(ppps []*model.PotentialPricePoint) []CallResult
+	Fetch(ppps []*model.PricePoint)
 }
 
-// CallResult is returned by Handler.Call method. It contains model.PricePoint
-// and optional error.
-type CallResult struct {
-	PricePoint *model.PricePoint
-	Error      error
-}
+type pppList []*model.PricePoint
 
-type pppList []*model.PotentialPricePoint
-
-// groupByHandler groups Potential Price Points by handler. Grouped PPPs are
-// returned as a map where the key is the handler and value is the list of
-// all PPPs assigned to that handler.
+// groupByHandler groups Price Points by handler. Grouped PPPs are returned
+// as a map where the key is the handler and value is the list of all PPs
+// assigned to that handler.
 func (p pppList) groupByHandler() map[*model.Exchange]pppList {
 	pppMap := map[*model.Exchange]pppList{}
 	for _, ppp := range p {
 		if _, ok := pppMap[ppp.Exchange]; !ok {
-			pppMap[ppp.Exchange] = []*model.PotentialPricePoint{}
+			pppMap[ppp.Exchange] = []*model.PricePoint{}
 		}
 		pppMap[ppp.Exchange] = append(pppMap[ppp.Exchange], ppp)
 	}
 
 	return pppMap
-}
-
-// newCallResultWithError creates new CallResult instance with assigned error.
-//
-// The model.PricePoint is always assigned to the CallResult to track
-// information about a pair and an exchange for which an error was generated.
-func newCallResultWithError(ppp *model.PotentialPricePoint, err error) CallResult {
-	pp := &model.PricePoint{
-		Exchange:  ppp.Exchange,
-		Pair:      ppp.Pair,
-		Price:     0,
-		Volume:    0,
-		Timestamp: time.Now().Unix(),
-	}
-
-	return CallResult{PricePoint: pp, Error: err}
 }
 
 type Set struct {
@@ -110,31 +86,28 @@ func DefaultSet() *Set {
 }
 
 // Call makes handler call using handlers from the Set structure.
-func (e *Set) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (e *Set) Fetch(ppps []*model.PricePoint) {
 	var err error
 
 	// The loop below uses pppList.groupByHandler method to group all PPPs.
 	// Grouping allows to pass multiple PPPs to one handler which helps
 	// to reduce the number of API calls.
-	cr := make([]CallResult, 0)
 	for exchange, ppps := range pppList(ppps).groupByHandler() {
 		err = model.ValidateExchange(exchange)
 		if err != nil {
 			for _, ppp := range ppps {
-				cr = append(cr, newCallResultWithError(ppp, err))
+				ppp.Error = err
 			}
 		} else {
 			handler, ok := e.list[exchange.Name]
 			if !ok {
 				err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
 				for _, ppp := range ppps {
-					cr = append(cr, newCallResultWithError(ppp, err))
+					ppp.Error = err
 				}
 			} else {
-				cr = append(cr, handler.Call(ppps)...)
+				handler.Fetch(ppps)
 			}
 		}
 	}
-
-	return cr
 }

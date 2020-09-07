@@ -31,7 +31,7 @@ import (
 type GoferLibSuite struct {
 	suite.Suite
 	aggregator *aggregatorMock.Aggregator
-	sources    []*model.PotentialPricePoint
+	sources    []*model.PricePoint
 }
 
 func (suite *GoferLibSuite) TestGoferLibExchanges() {
@@ -79,8 +79,8 @@ func (suite *GoferLibSuite) TestGoferLibExchanges() {
 	assert.Len(t, exchanges, 0)
 }
 
-func newPotentialPricePoint(exchangeName string, pair *model.Pair) *model.PotentialPricePoint {
-	return &model.PotentialPricePoint{
+func newPricePoint(exchangeName string, pair *model.Pair) *model.PricePoint {
+	return &model.PricePoint{
 		Exchange: &model.Exchange{
 			Name: exchangeName,
 		},
@@ -90,11 +90,11 @@ func newPotentialPricePoint(exchangeName string, pair *model.Pair) *model.Potent
 
 // Runs before each test
 func (suite *GoferLibSuite) SetupTest() {
-	sources := []*model.PotentialPricePoint{
-		newPotentialPricePoint("exchange-a", model.NewPair("a", "b")),
-		newPotentialPricePoint("exchange-a", model.NewPair("a", "z")),
-		newPotentialPricePoint("exchange-b", model.NewPair("a", "z")),
-		newPotentialPricePoint("exchange-c", model.NewPair("b", "d")),
+	sources := []*model.PricePoint{
+		newPricePoint("exchange-a", model.NewPair("a", "b")),
+		newPricePoint("exchange-a", model.NewPair("a", "z")),
+		newPricePoint("exchange-b", model.NewPair("a", "z")),
+		newPricePoint("exchange-c", model.NewPair("b", "d")),
 	}
 	agg := &aggregatorMock.Aggregator{
 		Returns: map[model.Pair]*model.PriceAggregate{
@@ -109,18 +109,18 @@ func (suite *GoferLibSuite) SetupTest() {
 				},
 			},
 		},
-		Sources: map[model.Pair][]*model.PotentialPricePoint{
+		Sources: map[model.Pair][]*model.PricePoint{
 			*model.NewPair("a", "b"): {
-				newPotentialPricePoint("exchange-a", model.NewPair("a", "b")),
+				newPricePoint("exchange-a", model.NewPair("a", "b")),
 			},
 			*model.NewPair("a", "z"): {
-				newPotentialPricePoint("exchange-a", model.NewPair("a", "z")),
-				newPotentialPricePoint("exchange-b", model.NewPair("a", "z")),
+				newPricePoint("exchange-a", model.NewPair("a", "z")),
+				newPricePoint("exchange-b", model.NewPair("a", "z")),
 			},
 			*model.NewPair("b", "d"): {
-				newPotentialPricePoint("exchange-c", model.NewPair("b", "d")),
-				newPotentialPricePoint("exchange-d", model.NewPair("b", "c")),
-				newPotentialPricePoint("exchange-d", model.NewPair("d", "c")),
+				newPricePoint("exchange-c", model.NewPair("b", "d")),
+				newPricePoint("exchange-d", model.NewPair("b", "c")),
+				newPricePoint("exchange-d", model.NewPair("d", "c")),
 			},
 		},
 	}

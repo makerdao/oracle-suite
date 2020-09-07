@@ -33,12 +33,12 @@ type Suite interface {
 	Exchange() Handler
 }
 
-func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPricePoint {
+func newPricePoint(exchangeName, base, quote string) *model.PricePoint {
 	p := &model.Pair{
 		Base:  base,
 		Quote: quote,
 	}
-	return &model.PotentialPricePoint{
+	return &model.PricePoint{
 		Exchange: &model.Exchange{
 			Name: exchangeName,
 		},
@@ -53,9 +53,10 @@ func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
 
 	suite.Assert().IsType(suite.Exchange(), exchange)
 
-	ppp := newPotentialPricePoint("exchange", base, quote)
-	cr := exchange.Call([]*model.PotentialPricePoint{ppp})
+	ppp := newPricePoint("exchange", base, quote)
+	pps := []*model.PricePoint{ppp}
+	exchange.Fetch(pps)
 
-	suite.Assert().NoError(cr[0].Error)
-	suite.Assert().Greater(cr[0].PricePoint.Price, float64(0))
+	suite.Assert().NoError(pps[0].Error)
+	suite.Assert().Greater(pps[0].Price, float64(0))
 }

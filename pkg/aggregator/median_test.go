@@ -104,9 +104,9 @@ func TestMedian(t *testing.T) {
 	res = median([]float64{})
 	assert.Equal(t, 0.0, res)
 
-	res = median([]float64{4,2,3,4,5})
+	res = median([]float64{4, 2, 3, 4, 5})
 	assert.Equal(t, 4.0, res)
 
-	res = median([]float64{5,2,10,19})
+	res = median([]float64{5, 2, 10, 19})
 	assert.Equal(t, 7.5, res)
 }

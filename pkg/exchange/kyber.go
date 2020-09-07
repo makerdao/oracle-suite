@@ -57,25 +57,21 @@ func (k *Kyber) localPairName(pair *model.Pair) string {
 
 const refQty = 2.5
 
-func (k *Kyber) getURL(pp *model.PotentialPricePoint) string {
+func (k *Kyber) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(kyberURL, k.localPairName(pp.Pair), refQty)
 }
 
-func (k *Kyber) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (k *Kyber) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := k.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		k.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (k *Kyber) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (k *Kyber) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -85,51 +81,56 @@ func (k *Kyber) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 	// make query
 	res := k.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp kyberResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse kyber response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse kyber response: %w", err)
+		return
 	}
 	if resp.Error {
-		return nil, fmt.Errorf("kyber API error: %s (%s)", resp.Reason, resp.AdditionalData)
+		pp.Error = fmt.Errorf("kyber API error: %s (%s)", resp.Reason, resp.AdditionalData)
+		return
 	}
 	if len(resp.Result) == 0 {
-		return nil, fmt.Errorf("wrong kyber exchange response. No resulting data %+v", resp)
+		pp.Error = fmt.Errorf("wrong kyber exchange response. No resulting data %+v", resp)
+		return
 	}
 	result := resp.Result[0]
 
 	if len(result.SrcQty) == 0 || len(result.DstQty) == 0 {
-		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.Pair.String(), result)
+		pp.Error = fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.Pair.String(), result)
+		return
 	}
 
 	if result.SrcQty[0] <= 0 {
-		return nil, fmt.Errorf("failed to parse price from kyber exchange (needs to be gtreater than 0) %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from kyber exchange (needs to be gtreater than 0) %s", res.Body)
+		return
 	}
 
 	if result.DstQty[0] != refQty {
-		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		return
 	}
 
 	if result.Src != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" {
-		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
+		return
 	}
 
 	if result.Dst != k.localPairName(pp.Pair) {
-		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		return
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     result.SrcQty[0] / result.DstQty[0],
-		Volume:    result.DstQty[0],
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Price = result.SrcQty[0] / result.DstQty[0]
+	pp.Volume = result.DstQty[0]
+	pp.Timestamp = time.Now().Unix()
 }

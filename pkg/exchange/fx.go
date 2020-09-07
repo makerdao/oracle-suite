@@ -45,24 +45,21 @@ func (f *Fx) localPairName(pair *model.Pair) string {
 	return f.renameSymbol(pair.Base)
 }
 
-func (f *Fx) getURL(pp *model.PotentialPricePoint) string {
+func (f *Fx) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(fxURL, f.localPairName(pp.Pair))
 }
 
-func (f *Fx) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (f *Fx) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := f.callOne(ppp)
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		f.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (f *Fx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (f *Fx) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -72,29 +69,30 @@ func (f *Fx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	// make query
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp fxResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse fx response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse fx response: %w", err)
+		return
 	}
 	if resp.Rates == nil {
-		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
+		pp.Error = fmt.Errorf("failed to parse FX response %+v", resp)
+		return
 	}
 	price, ok := resp.Rates[f.renameSymbol(pp.Pair.Quote)]
 	if !ok {
-		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
+		pp.Error = fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
+		return
 	}
 	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Timestamp = time.Now().Unix()
+	pp.Price = price
 }

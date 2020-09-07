@@ -136,26 +136,26 @@ func (pmm PriceModelMap) getRefSources(pr PriceRef) ([]cacheID, error) {
 	return result, nil
 }
 
-func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, refs ...PriceRef) ([]*model.PotentialPricePoint, error) {
+func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, refs ...PriceRef) ([]*model.PricePoint, error) {
 	cis := make(map[cacheID]bool)
 	for _, ref := range refs {
 		cs, err := pmm.getRefSources(ref)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		for _, ci := range cs {
 			cis[ci] = true
 		}
 	}
 
-	var result []*model.PotentialPricePoint
+	var result []*model.PricePoint
 
 	for ci := range cis {
 		exchange := exchangeMap[ci.exchangeName]
 		if exchange == nil {
 			exchange = &model.Exchange{Name: ci.exchangeName}
 		}
-		result = append(result, &model.PotentialPricePoint{
+		result = append(result, &model.PricePoint{
 			Pair:     ci.pair.Clone(),
 			Exchange: exchange,
 		})
@@ -163,8 +163,8 @@ func (pmm PriceModelMap) GetRefSources(exchangeMap map[string]*model.Exchange, r
 	return result, nil
 }
 
-// GetSources returns PotentialPricePoints
-func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) ([]*model.PotentialPricePoint, error) {
+// GetSources returns PricePoints
+func (pmm PriceModelMap) GetSources(exchangeMap map[string]*model.Exchange) ([]*model.PricePoint, error) {
 	var refs []PriceRef
 	for pair := range pmm {
 		refs = append(refs, PriceRef{Origin: ".", Pair: pair})

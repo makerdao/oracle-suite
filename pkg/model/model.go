@@ -41,25 +41,7 @@ type PricePoint struct {
 	Ask       float64   // Best ask price
 	Bid       float64   // Best bid price
 	Volume    float64   // Trade volume
-}
-
-// PotentialPricePoint represents PricePoint that should be fetched from Exchange
-type PotentialPricePoint struct {
-	Pair     *Pair
-	Exchange *Exchange
-}
-
-// String returns a string representation of `PotentialPricePoint` e.g. source[exchange](BTC/USD)
-func (ppp *PotentialPricePoint) String() string {
-	var pair string
-	var exchange string
-	if ppp.Exchange != nil {
-		exchange = ppp.Exchange.Name
-	}
-	if ppp.Pair != nil {
-		pair = ppp.Pair.String()
-	}
-	return fmt.Sprintf("source[%s](%s)", exchange, pair)
+	Error     error     // Optional error
 }
 
 // PriceAggregate price aggregation
@@ -186,15 +168,15 @@ func ValidatePair(p *Pair) error {
 	return nil
 }
 
-// ValidatePotentialPricePoint checks if given `PotentialPricePoint` is valid.
-// If it's valid no error will be returned, othervise some error.
-func ValidatePotentialPricePoint(pp *PotentialPricePoint) error {
+// ValidatePricePoint checks if given PricePoint is valid.
+// If it's valid no error will be returned, otherwise some error.
+func ValidatePricePoint(pp *PricePoint) error {
 	if pp == nil {
-		return fmt.Errorf("given PotentialPricePoint is nil")
+		return fmt.Errorf("given PricePoint is nil")
 	}
 	err := ValidateExchange(pp.Exchange)
 	if err != nil {
-		return fmt.Errorf("given PotentialPricePoint has wrong exchange: %w", err)
+		return fmt.Errorf("given PricePoint has wrong exchange: %w", err)
 	}
 	return ValidatePair(pp.Pair)
 }
@@ -287,6 +269,19 @@ func ValidatePricePathMap(ppaths PricePathMap) error {
 		}
 	}
 	return nil
+}
+
+// String returns a string representation of PricePoint e.g. source[exchange](BTC/USD)
+func (ppp *PricePoint) String() string {
+	var pair string
+	var exchange string
+	if ppp.Exchange != nil {
+		exchange = ppp.Exchange.Name
+	}
+	if ppp.Pair != nil {
+		pair = ppp.Pair.String()
+	}
+	return fmt.Sprintf("source[%s](%s)", exchange, pair)
 }
 
 // String returns PricePath string representation

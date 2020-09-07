@@ -54,25 +54,21 @@ func (g *Gateio) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
-func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
+func (g *Gateio) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gateio) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (g *Gateio) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := g.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		g.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (g *Gateio) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -82,52 +78,56 @@ func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	// make query
 	res := g.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp []gateioResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse gateio response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse gateio response: %w", err)
+		return
 	}
 	if len(resp) < 1 {
-		return nil, fmt.Errorf("wrong gateio response: %s", res.Body)
+		pp.Error = fmt.Errorf("wrong gateio response: %s", res.Body)
+		return
 	}
 	// Check pair name
 	if resp[0].Pair != g.localPairName(pp.Pair) {
-		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
+		pp.Error = fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
+		return
 	}
 
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from gateio exchange: %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from gateio exchange: %s", res.Body)
+		return
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp[0].Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
+		return
 	}
 	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
+		return
 	}
 	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
+		return
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
-		Ask:       ask,
-		Bid:       bid,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Price = price
+	pp.Volume = volume
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Timestamp = time.Now().Unix()
 }

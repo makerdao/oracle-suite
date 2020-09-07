@@ -56,20 +56,16 @@ func (suite *KrakenSuite) TestLocalPair() {
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(cr[0].Error)
+	pps := []*model.PricePoint{{}}
+	suite.exchange.Fetch(pps)
+	suite.Error(pps[0].Error)
 
-	pp := newPotentialPricePoint("kraken", "DAI", "USD")
+	pp := newPricePoint("kraken", "DAI", "USD")
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Equal(errEmptyExchangeResponse, pps[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,55 +73,61 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Equal(ourErr, pps[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Error(pps[0].Error)
 
 	// Error
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":["abcd"]}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Error(pps[0].Error)
 
 	// Error
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Error(pps[0].Error)
 
 	// Error
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Error(cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Error(pps[0].Error)
 }
 
 func (suite *KrakenSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("kraken", "DAI", "USD")
+	pp := newPricePoint("kraken", "DAI", "USD")
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Equal(2.0, cr[0].PricePoint.Volume)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
+	pps := []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.NoError(pps[0].Error)
+	suite.Equal(pp.Exchange, pps[0].Exchange)
+	suite.Equal(pp.Pair, pps[0].Pair)
+	suite.Equal(1.0, pps[0].Price)
+	suite.Equal(2.0, pps[0].Volume)
+	suite.Greater(pps[0].Timestamp, int64(0))
 }
 
 func (suite *KrakenSuite) TestRealAPICall() {

@@ -60,10 +60,10 @@ func newTestPricePointAggregatePriceOnly(timestamp int64, exchange string, base 
 func newTestPriceAggregate(name string, base string, quote string, price float64, prices ...*model.PriceAggregate) *model.PriceAggregate {
 	return &model.PriceAggregate{
 		PricePoint: &model.PricePoint{
-			Pair:      model.NewPair(base, quote),
-			Price:     price,
+			Pair:  model.NewPair(base, quote),
+			Price: price,
 		},
 		PriceModelName: name,
-		Prices: prices,
+		Prices:         prices,
 	}
 }

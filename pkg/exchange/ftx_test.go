@@ -56,20 +56,16 @@ func (suite *FtxSuite) TestLocalPair() {
 }
 
 func (suite *FtxSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(cr[0].Error)
+	pps := []*model.PricePoint{{}}
+	suite.exchange.Fetch(pps)
+	suite.Error(pps[0].Error)
 
-	pp := newPotentialPricePoint("ftx", "BTC", "ETH")
+	pp := newPricePoint("ftx", "BTC", "ETH")
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Equal(errEmptyExchangeResponse, pps[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,8 +73,9 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error)
+	pps = []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.Equal(ourErr, pps[0].Error)
 
 	for n, r := range [][]byte{
 		// invalid response
@@ -107,27 +104,29 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-			suite.Error(cr[0].Error)
+			pps = []*model.PricePoint{pp}
+			suite.exchange.Fetch(pps)
+			suite.Error(pps[0].Error)
 		})
 	}
 }
 
 func (suite *FtxSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("ftx", "BTC", "ETH")
+	pp := newPricePoint("ftx", "BTC", "ETH")
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":4}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Equal(2.0, cr[0].PricePoint.Ask)
-	suite.Equal(3.0, cr[0].PricePoint.Bid)
-	suite.Equal(4.0, cr[0].PricePoint.Volume)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
+	pps := []*model.PricePoint{pp}
+	suite.exchange.Fetch(pps)
+	suite.NoError(pps[0].Error)
+	suite.Equal(pp.Exchange, pps[0].Exchange)
+	suite.Equal(pp.Pair, pps[0].Pair)
+	suite.Equal(1.0, pps[0].Price)
+	suite.Equal(2.0, pps[0].Ask)
+	suite.Equal(3.0, pps[0].Bid)
+	suite.Equal(4.0, pps[0].Volume)
+	suite.Greater(pps[0].Timestamp, int64(0))
 }
 
 func (suite *FtxSuite) TestRealAPICall() {

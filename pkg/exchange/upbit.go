@@ -46,25 +46,21 @@ func (u *Upbit) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
 }
 
-func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
+func (u *Upbit) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
 }
 
-func (u *Upbit) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (u *Upbit) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := u.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		u.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (u *Upbit) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (u *Upbit) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,27 +70,27 @@ func (u *Upbit) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 	// make query
 	res := u.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp []upbitResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse upbit response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse upbit response: %w", err)
+		return
 	}
 	if len(resp) < 1 {
-		return nil, fmt.Errorf("wrong upbit response: %s", res.Body)
+		pp.Error = fmt.Errorf("wrong upbit response: %s", res.Body)
+		return
 	}
 	data := resp[0]
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     data.Price,
-		Volume:    data.Volume,
-		Timestamp: data.Timestamp / 1000,
-	}, nil
+
+	pp.Price = data.Price
+	pp.Volume = data.Volume
+	pp.Timestamp = data.Timestamp / 1000
 }

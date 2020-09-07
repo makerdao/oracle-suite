@@ -46,25 +46,21 @@ func (b *BitTrex) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
 }
 
-func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
+func (b *BitTrex) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
 }
 
-func (b *BitTrex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (b *BitTrex) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := b.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		b.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (b *BitTrex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (b *BitTrex) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,27 +70,27 @@ func (b *BitTrex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp bittrexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bittrex response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse bittrex response: %w", err)
+		return
 	}
 	if !resp.Success {
-		return nil, fmt.Errorf("wrong response from bittrex %v", resp)
+		pp.Error = fmt.Errorf("wrong response from bittrex %v", resp)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     resp.Result.Last,
-		Ask:       resp.Result.Ask,
-		Bid:       resp.Result.Bid,
-		Timestamp: time.Now().Unix(),
-	}, nil
+
+	pp.Price = resp.Result.Last
+	pp.Ask = resp.Result.Ask
+	pp.Bid = resp.Result.Bid
+	pp.Timestamp = time.Now().Unix()
 }

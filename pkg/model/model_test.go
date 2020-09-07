@@ -65,23 +65,23 @@ func (suite *ModelSuite) TestValidatePair() {
 	assert.NoError(suite.T(), ValidatePair(&Pair{Base: "ETH", Quote: "BTC"}))
 }
 
-func (suite *ModelSuite) TestValidatePotentialPricePoint() {
+func (suite *ModelSuite) TestValidatePricePoint() {
 	p := &Pair{Base: "BTC", Quote: "ETH"}
 	ex := &Exchange{Name: "test"}
-	pp := &PotentialPricePoint{Pair: p, Exchange: ex}
+	pp := &PricePoint{Pair: p, Exchange: ex}
 
-	assert.Error(suite.T(), ValidatePotentialPricePoint(nil))
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{}))
+	assert.Error(suite.T(), ValidatePricePoint(nil))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{}))
 
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Pair: p}))
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Pair: &Pair{}}))
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Pair: &Pair{Base: "BTC"}}))
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Pair: &Pair{Quote: "BTC"}}))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{Pair: p}))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{Pair: &Pair{}}))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{Pair: &Pair{Base: "BTC"}}))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{Pair: &Pair{Quote: "BTC"}}))
 
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Exchange: ex}))
-	assert.Error(suite.T(), ValidatePotentialPricePoint(&PotentialPricePoint{Pair: p, Exchange: &Exchange{}}))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{Exchange: ex}))
+	assert.Error(suite.T(), ValidatePricePoint(&PricePoint{Pair: p, Exchange: &Exchange{}}))
 
-	assert.NoError(suite.T(), ValidatePotentialPricePoint(pp))
+	assert.NoError(suite.T(), ValidatePricePoint(pp))
 }
 
 func (suite *ModelSuite) TestPricePathTarget() {

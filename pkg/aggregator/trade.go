@@ -20,7 +20,7 @@ import (
 )
 
 type Trade struct {
-	ppath model.PricePath
+	ppath     model.PricePath
 	aggregate *model.PriceAggregate
 }
 

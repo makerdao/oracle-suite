@@ -34,25 +34,21 @@ type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
+func (c *CryptoCompare) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
 }
 
-func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (c *CryptoCompare) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := c.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		c.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (c *CryptoCompare) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (c *CryptoCompare) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -62,28 +58,28 @@ func (c *CryptoCompare) callOne(pp *model.PotentialPricePoint) (*model.PricePoin
 	// make query
 	res := c.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp cryptoCompareResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse CryptoCompare response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse CryptoCompare response: %w", err)
+		return
 	}
 
 	price, ok := resp[pp.Pair.Quote]
 	if !ok {
-		return nil, fmt.Errorf("failed to get price for %s: %s", pp.Pair.Quote, res.Body)
+		pp.Error = fmt.Errorf("failed to get price for %s: %s", pp.Pair.Quote, res.Body)
+		return
 	}
 
 	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	pp.Timestamp = time.Now().Unix()
+	pp.Price = price
 }

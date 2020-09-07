@@ -45,25 +45,21 @@ func (c *Coinbase) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-func (c *Coinbase) getURL(pp *model.PotentialPricePoint) string {
+func (c *Coinbase) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(coinbaseURL, c.localPairName(pp.Pair))
 }
 
-func (c *Coinbase) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (c *Coinbase) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := c.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		c.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (c *Coinbase) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (c *Coinbase) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -73,45 +69,48 @@ func (c *Coinbase) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 	// make query
 	res := c.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp coinbaseResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse coinbase response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse coinbase response: %w", err)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from coinbase exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from coinbase exchange %s", res.Body)
+		return
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from coinbase exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from coinbase exchange %s", res.Body)
+		return
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from coinbase exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse volume from coinbase exchange %s", res.Body)
+		return
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from coinbase exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from coinbase exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Volume:    volume,
-		Ask:       ask,
-		Bid:       bid,
-		Timestamp: time.Now().Unix(),
-	}, nil
+
+	pp.Price = price
+	pp.Volume = volume
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Timestamp = time.Now().Unix()
 }

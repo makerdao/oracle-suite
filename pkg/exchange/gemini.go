@@ -46,25 +46,21 @@ func (g *Gemini) localPairName(pair *model.Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
+func (g *Gemini) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
 }
 
-func (g *Gemini) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (g *Gemini) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := g.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		g.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (g *Gemini) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (g *Gemini) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,39 +70,41 @@ func (g *Gemini) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	// make query
 	res := g.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp geminiResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse gemini response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse gemini response: %w", err)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from gemini exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from gemini exchange %s", res.Body)
+		return
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from gemini exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from gemini exchange %s", res.Body)
+		return
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from gemini exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from gemini exchange %s", res.Body)
+		return
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Ask:       ask,
-		Bid:       bid,
-		Timestamp: resp.Volume.Timestamp / 1000,
-	}, nil
+
+	pp.Price = price
+	pp.Ask = ask
+	pp.Bid = bid
+	pp.Timestamp = resp.Volume.Timestamp / 1000
 }

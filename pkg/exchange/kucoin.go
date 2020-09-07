@@ -46,25 +46,21 @@ func (k *Kucoin) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
+func (k *Kucoin) getURL(pp *model.PricePoint) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
 }
 
-func (k *Kucoin) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
+func (k *Kucoin) Fetch(ppps []*model.PricePoint) {
 	for _, ppp := range ppps {
-		pp, err := k.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+		k.callOne(ppp)
 	}
-
-	return cr
 }
 
-func (k *Kucoin) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
+func (k *Kucoin) callOne(pp *model.PricePoint) {
+	err := model.ValidatePricePoint(pp)
 	if err != nil {
-		return nil, err
+		pp.Error = err
+		return
 	}
 
 	req := &query.HTTPRequest{
@@ -74,40 +70,43 @@ func (k *Kucoin) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	// make query
 	res := k.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		pp.Error = errEmptyExchangeResponse
+		return
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		pp.Error = res.Error
+		return
 	}
 	// parsing JSON
 	var resp kucoinResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse kucoin response: %w", err)
+		pp.Error = fmt.Errorf("failed to parse kucoin response: %w", err)
+		return
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Data.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from kucoin exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse price from kucoin exchange %s", res.Body)
+		return
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Data.BestAsk, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from kucoin exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse ask from kucoin exchange %s", res.Body)
+		return
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Data.BestBid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from kucoin exchange %s", res.Body)
+		pp.Error = fmt.Errorf("failed to parse bid from kucoin exchange %s", res.Body)
+		return
 	}
 	// Parsing volume from string
-	// building PricePoint
-	return &model.PricePoint{
-		Timestamp: resp.Data.Time / 1000,
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Ask:       bid,
-		Bid:       ask,
-	}, nil
+
+	pp.Timestamp = resp.Data.Time / 1000
+
+	pp.Price = price
+	pp.Ask = bid
+	pp.Bid = ask
 }

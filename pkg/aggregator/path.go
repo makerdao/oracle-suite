@@ -43,7 +43,7 @@ func (ip *IdentityPather) Path(target *model.Pair) []*model.PricePath {
 type Path struct {
 	pather           Pather
 	directAggregator Aggregator
-	sources          []*model.PotentialPricePoint
+	sources          []*model.PricePoint
 }
 
 func paths(pather Pather, pairs []*model.Pair) []*model.PricePath {
@@ -63,7 +63,7 @@ func paths(pather Pather, pairs []*model.Pair) []*model.PricePath {
 
 // NewPath returns a new instance of `Path` that uses the given price paths to
 // aggregate indirect pairs and an aggregator to merge direct pairs.
-func NewPath(pather Pather, sources []*model.PotentialPricePoint, directAggregator Aggregator) *Path {
+func NewPath(pather Pather, sources []*model.PricePoint, directAggregator Aggregator) *Path {
 	return &Path{
 		pather:           pather, // *model.NewPricePathMap(ppaths),
 		directAggregator: directAggregator,
@@ -71,7 +71,7 @@ func NewPath(pather Pather, sources []*model.PotentialPricePoint, directAggregat
 	}
 }
 
-func NewPathWithPathMap(ppaths []*model.PricePath, sources []*model.PotentialPricePoint, directAggregator Aggregator) *Path {
+func NewPathWithPathMap(ppaths []*model.PricePath, sources []*model.PricePoint, directAggregator Aggregator) *Path {
 	pather := &IdentityPather{PricePathMap: model.NewPricePathMap(ppaths)}
 	return NewPath(
 		pather,
@@ -112,7 +112,7 @@ func NewPathFromJSON(raw []byte) (Aggregator, error) {
 		return nil, err
 	}
 
-	ppps := ToPotentialPricePoints(params.Sources)
+	ppps := ToPricePoints(params.Sources)
 
 	return NewPathWithPathMap(ToModelPricePaths(params.PricePaths), ppps, subAgg), nil
 }
@@ -192,8 +192,8 @@ func (r *Path) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	)
 }
 
-func (r *Path) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
+func (r *Path) GetSources(pairs ...*model.Pair) []*model.PricePoint {
 	ppaths := paths(r.pather, pairs)
-	_, ppps := FilterPotentialPricePoints(ppaths, r.sources)
+	_, ppps := FilterPricePoints(ppaths, r.sources)
 	return ppps
 }
