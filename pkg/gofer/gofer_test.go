@@ -16,14 +16,12 @@
 package gofer
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	aggregatorMock "github.com/makerdao/gofer/internal/mock/aggregator"
-	processorMock "github.com/makerdao/gofer/internal/mock/prcessor"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
@@ -34,33 +32,12 @@ type GoferLibSuite struct {
 	suite.Suite
 	aggregator *aggregatorMock.Aggregator
 	sources    []*model.PotentialPricePoint
-	processor  *processorMock.Processor
-}
-
-func (suite *GoferLibSuite) TestGoferLibPrices() {
-	t := suite.T()
-
-	lib := NewGofer(suite.aggregator, suite.processor)
-
-	pair := model.NewPair("a", "b")
-	prices, err := lib.Prices(pair)
-	assert.NoError(t, err)
-	assert.Nil(t, prices[*pair])
-
-	pair = model.NewPair("a", "d")
-	prices, err = lib.Prices(pair)
-	assert.NoError(t, err)
-	assert.Equal(t, 0.123, prices[*pair].Price)
-
-	suite.processor.ReturnsErr = fmt.Errorf("processor error")
-	_, err = lib.Prices(pair)
-	assert.Error(t, err)
 }
 
 func (suite *GoferLibSuite) TestGoferLibExchanges() {
 	t := suite.T()
 
-	lib := NewGofer(suite.aggregator, suite.processor)
+	lib := NewGofer(suite.aggregator, nil)
 
 	exchanges := lib.Exchanges(model.NewPair("a", "b"), model.NewPair("x", "y"))
 	assert.Len(t, exchanges, 1)
@@ -102,6 +79,15 @@ func (suite *GoferLibSuite) TestGoferLibExchanges() {
 	assert.Len(t, exchanges, 0)
 }
 
+func newPotentialPricePoint(exchangeName string, pair *model.Pair) *model.PotentialPricePoint {
+	return &model.PotentialPricePoint{
+		Exchange: &model.Exchange{
+			Name: exchangeName,
+		},
+		Pair: pair,
+	}
+}
+
 // Runs before each test
 func (suite *GoferLibSuite) SetupTest() {
 	sources := []*model.PotentialPricePoint{
@@ -124,14 +110,14 @@ func (suite *GoferLibSuite) SetupTest() {
 			},
 		},
 		Sources: map[model.Pair][]*model.PotentialPricePoint{
-			*model.NewPair("a", "b"): []*model.PotentialPricePoint{
+			*model.NewPair("a", "b"): {
 				newPotentialPricePoint("exchange-a", model.NewPair("a", "b")),
 			},
-			*model.NewPair("a", "z"): []*model.PotentialPricePoint{
+			*model.NewPair("a", "z"): {
 				newPotentialPricePoint("exchange-a", model.NewPair("a", "z")),
 				newPotentialPricePoint("exchange-b", model.NewPair("a", "z")),
 			},
-			*model.NewPair("b", "d"): []*model.PotentialPricePoint{
+			*model.NewPair("b", "d"): {
 				newPotentialPricePoint("exchange-c", model.NewPair("b", "d")),
 				newPotentialPricePoint("exchange-d", model.NewPair("b", "c")),
 				newPotentialPricePoint("exchange-d", model.NewPair("d", "c")),
@@ -139,11 +125,8 @@ func (suite *GoferLibSuite) SetupTest() {
 		},
 	}
 
-	processor := &processorMock.Processor{}
-
 	suite.sources = sources
 	suite.aggregator = agg
-	suite.processor = processor
 }
 
 // In order for 'go test' to run this suite, we need to create

@@ -54,8 +54,7 @@ func New(opts *command.Options) *cobra.Command {
 		Use:   "price PAIR [PAIR...]",
 		Args:  cobra.MinimumNArgs(1),
 		Short: "Return price for given PAIRs",
-		Long: `
-Print the price of given PAIRs`,
+		Long:  `Print the price of given PAIRs`,
 		RunE: func(c *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(opts.OutputFormat.Format)
 			if err != nil {

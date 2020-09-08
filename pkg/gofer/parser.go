@@ -23,17 +23,10 @@ import (
 
 	"github.com/makerdao/gofer/pkg/aggregator"
 	"github.com/makerdao/gofer/pkg/exchange"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
-type AggregateProcessor interface {
-	Process(pairs []*model.Pair, agg aggregator.Aggregator) (aggregator.Aggregator, error)
-}
-
 type Config struct {
-	//Exchanges  []model.Exchange            `json:"exchanges"`
 	Aggregator aggregator.AggregatorParams `json:"aggregator"`
-	// TODO: add Processor params
 }
 
 func FromJSON(b []byte) (*Gofer, error) {
@@ -47,7 +40,7 @@ func FromJSON(b []byte) (*Gofer, error) {
 		return nil, fmt.Errorf("failed to create aggregator when parsing config: %w", err)
 	}
 
-	return NewGofer(agg, NewProcessor(exchange.DefaultSet())), nil
+	return NewGofer(agg, exchange.DefaultSet()), nil
 }
 
 func ReadFile(path string) (*Gofer, error) {

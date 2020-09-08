@@ -52,8 +52,7 @@ func New(opts *command.Options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "exchanges [PAIR...]",
 		Short: "List supported exchanges",
-		Long: `
-Lists exchanges that will be queried for all of the supported pairs
+		Long: `Lists exchanges that will be queried for all of the supported pairs
 or a subset of those, if at least one PAIR is provided.`,
 		RunE: func(c *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(opts.OutputFormat.Format)

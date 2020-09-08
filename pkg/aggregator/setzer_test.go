@@ -118,14 +118,14 @@ func TestSetzerAggregator(t *testing.T) {
 	res = randomReduce(setz, model.NewPair("g", "h"), pas)
 	assert.Nil(t, res)
 
-	ppps := setz.GetSources([]*model.Pair{model.NewPair("b", "c")})
+	ppps := setz.GetSources([]*model.Pair{model.NewPair("b", "c")}...)
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
 		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e3", Config: map[string]string{"a": "1"}}, Pair: model.NewPair("b", "c")},
 	}, ppps)
 
-	ppps = setz.GetSources([]*model.Pair{model.NewPair("a", "c")})
+	ppps = setz.GetSources([]*model.Pair{model.NewPair("a", "c")}...)
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
 		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("b", "c")},
@@ -134,7 +134,7 @@ func TestSetzerAggregator(t *testing.T) {
 		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("a", "b")},
 	}, ppps)
 
-	ppps = setz.GetSources(nil)
+	ppps = setz.GetSources()
 	assert.ElementsMatch(t, []*model.PotentialPricePoint{
 		{Exchange: &model.Exchange{Name: "e1"}, Pair: model.NewPair("b", "c")},
 		{Exchange: &model.Exchange{Name: "e2"}, Pair: model.NewPair("b", "c")},

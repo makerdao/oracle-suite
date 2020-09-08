@@ -48,7 +48,17 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-func (f *Folgory) Call(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+func (f *Folgory) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
+	for _, ppp := range ppps {
+		pp, err := f.callOne(ppp)
+		cr = append(cr, CallResult{PricePoint: pp, Error: err})
+	}
+
+	return cr
+}
+
+func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	err := model.ValidatePotentialPricePoint(pp)
 	if err != nil {
 		return nil, err

@@ -192,7 +192,7 @@ func (r *Path) Aggregate(pair *model.Pair) *model.PriceAggregate {
 	)
 }
 
-func (r *Path) GetSources(pairs []*model.Pair) []*model.PotentialPricePoint {
+func (r *Path) GetSources(pairs ...*model.Pair) []*model.PotentialPricePoint {
 	ppaths := paths(r.pather, pairs)
 	_, ppps := FilterPotentialPricePoints(ppaths, r.sources)
 	return ppps
