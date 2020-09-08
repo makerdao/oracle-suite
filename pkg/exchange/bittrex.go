@@ -51,14 +51,7 @@ func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
 }
 
 func (b *BitTrex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := b.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(b, ppps)
 }
 
 func (b *BitTrex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

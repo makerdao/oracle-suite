@@ -49,13 +49,7 @@ func (f *Folgory) localPairName(pair *model.Pair) string {
 }
 
 func (f *Folgory) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := f.callOne(ppp)
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(f, ppps)
 }
 
 func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
