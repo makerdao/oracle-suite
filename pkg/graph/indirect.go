@@ -5,11 +5,11 @@ import "fmt"
 // IndirectAggregatorNode merges Ticks for different pairs and returns one,
 // merged pair.
 //
-//                             -- [Pair A/B]
+//                             -- [Exchange A/B]
 //                            /
-//  [IndirectAggregatorNode] ---- [Pair B/C]
+//  [IndirectAggregatorNode] ---- [Exchange B/C]
 //                            \
-//                             -- [Pair C/D]
+//                             -- [Aggregator C/D]
 //
 // For above node, price for pair A/D will be calculated.
 type IndirectAggregatorNode struct {

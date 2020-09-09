@@ -11,7 +11,13 @@ import (
 // MedianAggregatorNode gets Ticks from all of its children and calculates
 // median price.
 //
-// All children of this node must return the same pair.
+//                           -- [Exchange A/B]
+//                          /
+//  [MedianAggregatorNode] ---- [Exchange A/B]
+//                          \
+//                           -- [Aggregator A/B]
+//
+// All children of this node must return tick for the same pair.
 type MedianAggregatorNode struct {
 	minSources int
 	children   []Node

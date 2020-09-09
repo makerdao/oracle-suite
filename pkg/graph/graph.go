@@ -4,8 +4,21 @@ import (
 	"sync"
 )
 
+// Node represents generics node in a graph.
 type Node interface {
 	Children() []Node
+}
+
+// Aggregator represents a node which can aggregate ticks from its children.
+type Aggregator interface {
+	Node
+	Tick() IndirectTick
+}
+
+// Exchange represents a node which provides tick directly from an exchange.
+type Exchange interface {
+	Node
+	Tick() ExchangeTick
 }
 
 func Walk(node Node, fn func(Node)) {

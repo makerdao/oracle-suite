@@ -12,7 +12,7 @@ type Ingestable interface {
 	SetTick(tick ExchangeTick)
 }
 
-// Ingestor sets data to the Ticker nodes.
+// Ingestor sets data to the Ingestable nodes.
 type Ingestor struct {
 	set *exchange.Set
 }
@@ -24,13 +24,21 @@ func NewIngestor(set *exchange.Set) *Ingestor {
 func (i *Ingestor) Ingest(node Node) {
 	AsyncWalk(node, func(node Node) {
 		if ingestableNode, ok := node.(Ingestable); ok {
-			ingestableNode.SetTick(i.Fetch(ingestableNode.ExchangePair()))
+			ingestableNode.SetTick(i.fetch(ingestableNode.ExchangePair()))
+		}
+	})
+}
+
+func (i *Ingestor) Clear(node Node) {
+	AsyncWalk(node, func(node Node) {
+		if ingestableNode, ok := node.(Ingestable); ok {
+			ingestableNode.SetTick(ExchangeTick{})
 		}
 	})
 }
 
 // TODO: Temp function, to remove
-func (i *Ingestor) Fetch(ep ExchangePair) ExchangeTick {
+func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
 	p, _ := model.NewPairFromString(ep.Pair.Base + "/" + ep.Pair.Quote)
 	ppp := &model.PotentialPricePoint{
 		Pair: p,

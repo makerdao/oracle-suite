@@ -5,16 +5,6 @@ import (
 	"time"
 )
 
-type Aggregator interface {
-	Node
-	Tick() IndirectTick
-}
-
-type Exchange interface {
-	Node
-	Tick() ExchangeTick
-}
-
 type Pair struct {
 	Quote string
 	Base  string
