@@ -18,16 +18,21 @@ func Walk(node Node, fn func(Node)) {
 
 func AsyncWalk(node Node, fn func(Node)) {
 	wg := sync.WaitGroup{}
-	for _, n := range node.Children() {
-		n := n
 
+	nodes := map[Node]struct{}{}
+	Walk(node, func(node Node) {
+		nodes[node] = struct{}{}
+	})
+
+	for n, _ := range nodes {
+		n := n
 		wg.Add(1)
 		go func() {
-			AsyncWalk(n, fn)
+			fn(n)
 			wg.Done()
 		}()
 	}
 
-	wg.Wait()
 	fn(node)
+	wg.Wait()
 }

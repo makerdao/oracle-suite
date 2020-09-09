@@ -22,7 +22,7 @@ func NewIngestor(set *exchange.Set) *Ingestor {
 }
 
 func (i *Ingestor) Ingest(node Node) {
-	Walk(node, func(node Node) {
+	AsyncWalk(node, func(node Node) {
 		if ingestableNode, ok := node.(Ingestable); ok {
 			ingestableNode.SetTick(i.Fetch(ingestableNode.ExchangePair()))
 		}
