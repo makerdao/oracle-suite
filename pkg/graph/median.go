@@ -82,7 +82,7 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 		asks = append(asks, tick.Ask)
 	}
 
-	if (len(exchangeTicks) + len(indirectTicks)) < n.minSources {
+	if len(prices) < n.minSources {
 		err = multierror.Append(err, errors.New("not enough sources to calculate median"))
 	}
 
