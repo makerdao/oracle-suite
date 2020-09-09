@@ -13,21 +13,55 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package pather
+package cli
 
 import (
+	"fmt"
+	"io/ioutil"
+	"sort"
+
 	"github.com/makerdao/gofer/pkg/model"
 )
 
-type Pather struct {
-	Ppaths      map[model.Pair][]*model.PricePath
-	ReturnPairs []*model.Pair
+type exchangeLister interface {
+	Exchanges(pairs ...*model.Pair) []*model.Exchange
 }
 
-func (mp *Pather) Pairs() []*model.Pair {
-	return mp.ReturnPairs
-}
+func Exchanges(args []string, l exchangeLister, m ReadWriteCloser) error {
+	var pairs []*model.Pair
+	for _, pair := range args {
+		p, err := model.NewPairFromString(pair)
+		if err != nil {
+			return err
+		}
+		pairs = append(pairs, model.NewPair(p.Base, p.Quote))
+	}
 
-func (mp *Pather) Path(pair *model.Pair) []*model.PricePath {
-	return mp.Ppaths[*pair]
+	exchanges := l.Exchanges(pairs...)
+
+	sort.SliceStable(exchanges, func(i, j int) bool {
+		return exchanges[i].Name < exchanges[j].Name
+	})
+
+	var er error
+	for _, e := range exchanges {
+		err := m.Write(e, er)
+		if err != nil {
+			return err
+		}
+	}
+
+	err := m.Close()
+	if err != nil {
+		return err
+	}
+
+	b, err := ioutil.ReadAll(m)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(string(b))
+
+	return nil
 }

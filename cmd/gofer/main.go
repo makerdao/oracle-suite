@@ -17,17 +17,17 @@ package main
 
 import (
 	"log"
-
-	"github.com/makerdao/gofer/cmd/gofer/internal/command"
-	"github.com/makerdao/gofer/cmd/gofer/internal/command/exchanges"
-	"github.com/makerdao/gofer/cmd/gofer/internal/command/pairs"
-	"github.com/makerdao/gofer/cmd/gofer/internal/command/price"
 )
 
 func main() {
-	var opts command.Options
-	rootCmd := command.New(&opts)
-	rootCmd.AddCommand(exchanges.New(&opts), pairs.New(&opts), price.New(&opts))
+	var opts options
+	rootCmd := NewRootCommand(&opts)
+
+	rootCmd.AddCommand(
+		NewExchangesCmd(&opts),
+		NewPairsCmd(&opts),
+		NewPriceCmd(&opts),
+	)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalln(err)

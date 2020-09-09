@@ -116,10 +116,10 @@ func (g *Gofer) Pairs() []*model.Pair {
 		pairs[ppp.Pair.String()] = ppp.Pair
 	}
 
-	result := make([]*model.Pair, 0)
+	results := make([]*model.Pair, 0)
 	for _, p := range pairs {
-		result = append(result, p)
+		results = append(results, p)
 	}
 
-	return result
+	return results
 }

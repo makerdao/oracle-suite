@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package config
+package cli
 
 import (
 	"encoding/json"
@@ -21,12 +21,49 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
 
 	"github.com/makerdao/gofer/pkg/aggregator"
 )
 
-// Config holds CLI's config options for immediate parsing
-type Config struct {
+func Pairs(configFilePath string, m ReadWriteCloser) error {
+	conf, err := readConfig(configFilePath)
+	if err != nil {
+		return err
+	}
+
+	pairs := make([]aggregator.Pair, 0)
+	for k := range conf.Aggregator.Parameters.PriceModels {
+		pairs = append(pairs, k)
+	}
+
+	sort.SliceStable(pairs, func(i, j int) bool {
+		return pairs[i].String() < pairs[j].String()
+	})
+
+	for _, p := range pairs {
+		err = m.Write(aggregator.PriceModelMap{p: conf.Aggregator.Parameters.PriceModels[p]}, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = m.Close()
+	if err != nil {
+		return err
+	}
+
+	b, err := ioutil.ReadAll(m)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(string(b))
+
+	return nil
+}
+
+type config struct {
 	Aggregator struct {
 		Name       string
 		Parameters struct {
@@ -35,7 +72,7 @@ type Config struct {
 	}
 }
 
-func ReadConfig(path string) (*Config, error) {
+func readConfig(path string) (*config, error) {
 	cf, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config file: %s %w", path, err)
@@ -51,7 +88,7 @@ func ReadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %s %w", path, err)
 	}
 
-	var c Config
+	var c config
 	if err := json.Unmarshal(b, &c); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON config file: %s %w", path, err)
 	}
