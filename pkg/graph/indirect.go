@@ -1,6 +1,10 @@
 package graph
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/go-multierror"
+)
 
 // IndirectAggregatorNode merges Ticks for different pairs and returns one,
 // merged pair.
@@ -32,15 +36,22 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 	var ticks []Tick
 	var exchangeTicks []ExchangeTick
 	var indirectTicks []IndirectTick
+	var err error
 
 	for _, c := range n.children {
 		switch typedNode := c.(type) {
 		case Exchange:
-			ticks = append(ticks, typedNode.Tick().Tick)
 			exchangeTicks = append(exchangeTicks, typedNode.Tick())
-		case Aggregator:
 			ticks = append(ticks, typedNode.Tick().Tick)
+			if typedNode.Tick().Error != nil {
+				err = multierror.Append(err, typedNode.Tick().Error)
+			}
+		case Aggregator:
 			indirectTicks = append(indirectTicks, typedNode.Tick())
+			ticks = append(ticks, typedNode.Tick().Tick)
+			if typedNode.Tick().Error != nil {
+				err = multierror.Append(err, typedNode.Tick().Error)
+			}
 		}
 	}
 
@@ -55,6 +66,10 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 }
 
 func calcIndirectTick(t []Tick) (Tick, error) {
+	if len(t) == 0 {
+		return Tick{}, nil
+	}
+
 	for i := 0; i < len(t)-1; i++ {
 		a := t[i]
 		b := t[i+1]
@@ -114,9 +129,24 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 		case a.Pair.Base == b.Pair.Quote: // C/A, B/C
 			pair.Base = a.Pair.Quote
 			pair.Quote = b.Pair.Base
-			price = (float64(1) / b.Price) / a.Price
-			bid = (float64(1) / b.Bid) / a.Bid
-			ask = (float64(1) / b.Ask) / a.Ask
+
+			if b.Price > 0 {
+				price = (float64(1) / b.Price) / a.Price
+			} else {
+				price = 0
+			}
+
+			if b.Bid > 0 {
+				bid = (float64(1) / b.Bid) / a.Bid
+			} else {
+				bid = 0
+			}
+
+			if b.Ask > 0 {
+				ask = (float64(1) / b.Ask) / a.Ask
+			} else {
+				ask = 0
+			}
 		default:
 			return a, fmt.Errorf("unable to merge %s and %s pairs, becuase they don't have any common part", a.Pair, b.Pair)
 		}

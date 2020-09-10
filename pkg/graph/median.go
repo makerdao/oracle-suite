@@ -51,18 +51,14 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			exchangeTick := typedNode.Tick()
 			exchangeTicks = append(exchangeTicks, exchangeTick)
 			tick = exchangeTick.Tick
-
 			if exchangeTick.Error != nil {
-				err = multierror.Append(err, exchangeTick.Error)
 				continue
 			}
 		case Aggregator:
 			indirectTick := typedNode.Tick()
 			indirectTicks = append(indirectTicks, indirectTick)
 			tick = indirectTick.Tick
-
 			if indirectTick.Error != nil {
-				err = multierror.Append(err, indirectTick.Error)
 				continue
 			}
 		}
@@ -72,7 +68,11 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 		} else if !pair.Equal(tick.Pair) {
 			err = multierror.Append(
 				err,
-				fmt.Errorf("unable to calculate median for different pairs, %s and %s given", pair, tick.Pair),
+				fmt.Errorf(
+					"unable to calculate median for different pairs, %s and %s given",
+					pair,
+					tick.Pair,
+				),
 			)
 			continue
 		}

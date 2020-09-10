@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/makerdao/gofer/pkg/exchange"
@@ -30,7 +31,7 @@ func (i *Ingestor) Ingest(node Node) {
 }
 
 func (i *Ingestor) Clear(node Node) {
-	AsyncWalk(node, func(node Node) {
+	Walk(node, func(node Node) {
 		if ingestableNode, ok := node.(Ingestable); ok {
 			ingestableNode.SetTick(ExchangeTick{})
 		}
@@ -49,6 +50,26 @@ func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
 	}
 
 	cr := i.set.Call([]*model.PotentialPricePoint{ppp})
+
+	if len(cr) != 1 {
+		return ExchangeTick{
+			Tick: Tick{
+				Pair: ep.Pair,
+			},
+			Exchange: ep.Exchange,
+			Error: fmt.Errorf("unable to fetch tick for %s", ep.Pair),
+		}
+	}
+
+	if cr[0].Error != nil {
+		return ExchangeTick{
+			Tick: Tick{
+				Pair: ep.Pair,
+			},
+			Exchange: ep.Exchange,
+			Error: cr[0].Error,
+		}
+	}
 
 	return ExchangeTick{
 		Tick: Tick{

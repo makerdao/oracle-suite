@@ -17,20 +17,28 @@ func TestAll(t *testing.T) {
 	}
 
 	// Build Graph from JSON
-	g, err := f.BuildGraphs()
+	graphs, err := f.BuildGraphs()
 	if err != nil {
 		panic(err)
 	}
 
-	// Ingest graph
-	BATUSDGraph := g["BAT/USD"]
-	ingestor := graph.NewIngestor(exchange.DefaultSet())
-	ingestor.Ingest(BATUSDGraph)
+	// Print graphs
+	for p, g := range graphs {
+		fmt.Printf("Pair %s:\n", p)
+		ingestor := graph.NewIngestor(exchange.DefaultSet())
+		ingestor.Ingest(g)
 
-	// Get tick
-	tick := BATUSDGraph.Tick()
+		// Get tick
+		tick := g.Tick()
 
-	// Print result:
+		// Print result:
+		tickRecurPrinter(tick)
+
+		fmt.Printf(strings.Repeat("-", 80) + "\n\n")
+	}
+}
+
+func tickRecurPrinter(tick graph.IndirectTick)  {
 	var recur func(tick interface{}, lvl int)
 	recur = func(tick interface{}, lvl int) {
 		lvlstr := strings.Repeat("  ", lvl)
@@ -41,7 +49,7 @@ func TestAll(t *testing.T) {
 			} else {
 				fmt.Printf("%s%s (aggreagate): %f\n", lvlstr, typedTick.Pair, typedTick.Price)
 				if typedTick.Error != nil {
-					fmt.Printf("%sErrors: %s", lvlstr, strings.TrimSpace(typedTick.Error.Error()))
+					fmt.Printf("%s⌙ errors: %s", lvlstr, formatError(typedTick.Error))
 				}
 
 				for _, t := range typedTick.ExchangeTicks {
@@ -54,9 +62,17 @@ func TestAll(t *testing.T) {
 		case graph.ExchangeTick:
 			fmt.Printf("%s%s (%s): %f\n", lvlstr, typedTick.Pair, typedTick.Exchange, typedTick.Price)
 			if typedTick.Error != nil {
-				fmt.Printf("%sErrors: %s", lvlstr, strings.TrimSpace(typedTick.Error.Error()))
+				fmt.Printf("%s⌙ errors: %s", lvlstr, formatError(typedTick.Error))
 			}
 		}
 	}
 	recur(tick, 0)
+}
+
+func formatError (err error) string {
+	if err == nil {
+		return ""
+	}
+
+	return strings.TrimSpace(err.Error()) + "\n"
 }
