@@ -54,14 +54,7 @@ func (p *Poloniex) getURL(pp *model.PotentialPricePoint) string {
 }
 
 func (p *Poloniex) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := p.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(p, ppps)
 }
 
 func (p *Poloniex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

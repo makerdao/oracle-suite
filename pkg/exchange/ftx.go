@@ -52,13 +52,7 @@ func (f *Ftx) getURL(pp *model.PotentialPricePoint) string {
 }
 
 func (f *Ftx) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := f.callOne(ppp)
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(f, ppps)
 }
 
 func (f *Ftx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

@@ -50,14 +50,7 @@ func (c *Coinbase) getURL(pp *model.PotentialPricePoint) string {
 }
 
 func (c *Coinbase) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := c.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(c, ppps)
 }
 
 func (c *Coinbase) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

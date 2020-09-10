@@ -70,14 +70,7 @@ func (u *Uniswap) getURL(_ *model.PotentialPricePoint) string {
 }
 
 func (u *Uniswap) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := u.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(u, ppps)
 }
 
 func (u *Uniswap) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

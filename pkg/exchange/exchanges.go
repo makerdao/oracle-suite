@@ -17,7 +17,6 @@ package exchange
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/model"
@@ -28,6 +27,19 @@ type Handler interface {
 	// Call should implement making API request to exchange URL and
 	// collecting/parsing exchange data.
 	Call(ppps []*model.PotentialPricePoint) []CallResult
+}
+
+type CallError struct {
+	PotentialPricePoint *model.PotentialPricePoint
+	Err                 error
+}
+
+func (e CallError) Error() string {
+	return fmt.Sprintf("Fetching %s gave error: %s", e.PotentialPricePoint, e.Err)
+}
+
+func (e CallError) Unwrap() error {
+	return e.Err
 }
 
 // CallResult is returned by Handler.Call method. It contains model.PricePoint
@@ -58,16 +70,11 @@ func (p pppList) groupByHandler() map[*model.Exchange]pppList {
 //
 // The model.PricePoint is always assigned to the CallResult to track
 // information about a pair and an exchange for which an error was generated.
-func newCallResultWithError(ppp *model.PotentialPricePoint, err error) CallResult {
-	pp := &model.PricePoint{
-		Exchange:  ppp.Exchange,
-		Pair:      ppp.Pair,
-		Price:     0,
-		Volume:    0,
-		Timestamp: time.Now().Unix(),
+func newCallResult(ppp *model.PotentialPricePoint, result *model.PricePoint, err error) CallResult {
+	if err != nil {
+		return CallResult{Error: &CallError{PotentialPricePoint: ppp, Err: err}}
 	}
-
-	return CallResult{PricePoint: pp, Error: err}
+	return CallResult{PricePoint: result}
 }
 
 type Set struct {
@@ -121,19 +128,33 @@ func (e *Set) Call(ppps []*model.PotentialPricePoint) []CallResult {
 		err = model.ValidateExchange(exchange)
 		if err != nil {
 			for _, ppp := range ppps {
-				cr = append(cr, newCallResultWithError(ppp, err))
+				cr = append(cr, newCallResult(ppp, nil, err))
 			}
 		} else {
 			handler, ok := e.list[exchange.Name]
 			if !ok {
 				err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
 				for _, ppp := range ppps {
-					cr = append(cr, newCallResultWithError(ppp, err))
+					cr = append(cr, newCallResult(ppp, nil, err))
 				}
 			} else {
 				cr = append(cr, handler.Call(ppps)...)
 			}
 		}
+	}
+
+	return cr
+}
+
+type singlePairExchange interface {
+	callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error)
+}
+
+func callSinglePairExchange(e singlePairExchange, ppps []*model.PotentialPricePoint) []CallResult {
+	cr := make([]CallResult, 0)
+	for _, ppp := range ppps {
+		pp, err := e.callOne(ppp)
+		cr = append(cr, newCallResult(ppp, pp, err))
 	}
 
 	return cr
