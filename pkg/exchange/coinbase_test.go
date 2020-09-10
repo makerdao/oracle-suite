@@ -69,7 +69,7 @@ func (suite *CoinbaseSuite) TestFailOnWrongInput() {
 	pp := newPotentialPricePoint("coinbase", "BTC", "ETH")
 	// nil as response
 	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -78,7 +78,7 @@ func (suite *CoinbaseSuite) TestFailOnWrongInput() {
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{

@@ -16,20 +16,20 @@
 package main
 
 import (
-	"log"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func main() {
-	var opts options
-	rootCmd := NewRootCommand(&opts)
+func TestFormatTypeValue(t *testing.T) {
+	for ct, st := range formatMap {
+		t.Run(st, func(t *testing.T) {
+			ftv := formatTypeValue{}
+			err := ftv.Set(st)
 
-	rootCmd.AddCommand(
-		NewExchangesCmd(&opts),
-		NewPairsCmd(&opts),
-		NewPriceCmd(&opts),
-	)
-
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
+			assert.Nil(t, err)
+			assert.Equal(t, st, ftv.String())
+			assert.Equal(t, ct, ftv.format)
+		})
 	}
 }

@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package command
+package main
 
 import (
 	"fmt"
@@ -23,9 +23,9 @@ import (
 )
 
 // These are the command options that can be set by CLI flags.
-type Options struct {
+type options struct {
 	ConfigFilePath string
-	OutputFormat   FormatTypeValue
+	OutputFormat   formatTypeValue
 }
 
 var formatMap = map[marshal.FormatType]string{
@@ -35,27 +35,27 @@ var formatMap = map[marshal.FormatType]string{
 	marshal.NDJSON: "ndjson",
 }
 
-// FormatTypeValue is a wrapper for the FormatType to allow implement
+// formatTypeValue is a wrapper for the FormatType to allow implement
 // the flag.Value and spf13.pflag.Value interfaces.
-type FormatTypeValue struct {
-	Format marshal.FormatType
+type formatTypeValue struct {
+	format marshal.FormatType
 }
 
 // Will return the default value if none is set
 // and will fail if the `format` is set to an unsupported value for some reason.
-func (v *FormatTypeValue) String() string {
+func (v *formatTypeValue) String() string {
 	if v != nil {
-		return formatMap[v.Format]
+		return formatMap[v.format]
 	}
 	return formatMap[marshal.Plain]
 }
 
-func (v *FormatTypeValue) Set(s string) error {
+func (v *formatTypeValue) Set(s string) error {
 	s = strings.ToLower(s)
 
 	for ct, st := range formatMap {
 		if s == st {
-			v.Format = ct
+			v.format = ct
 			return nil
 		}
 	}
@@ -63,6 +63,6 @@ func (v *FormatTypeValue) Set(s string) error {
 	return fmt.Errorf("unsupported format")
 }
 
-func (v *FormatTypeValue) Type() string {
+func (v *formatTypeValue) Type() string {
 	return "plain|trace|json|ndjson"
 }

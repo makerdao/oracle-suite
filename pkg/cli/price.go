@@ -13,26 +13,51 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package command
+package cli
 
 import (
-	"github.com/spf13/cobra"
+	"io"
+
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func New(opts *Options) *cobra.Command {
-	rootCmd := &cobra.Command{
-		Use:     "gofer",
-		Version: "DEV",
-		Short:   "Tool for providing reliable data in the blockchain ecosystem",
-		Long: `
-Gofer is a CLI interface for the Gofer Go Library.
+type ReadWriteCloser interface {
+	io.ReadCloser
+	Write(item interface{}, err error) error
+}
 
-It is a tool that allows for easy data retrieval from various sources
-with aggregates that increase reliability in the DeFi environment.`,
+type pricer interface {
+	Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error)
+}
+
+func Price(args []string, l pricer, m ReadWriteCloser) error {
+	var err error
+
+	var pairs []graph.Pair
+	for _, pair := range args {
+		p, err := graph.NewPair(pair)
+		if err != nil {
+			return err
+		}
+		pairs = append(pairs, p)
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./gofer.json", "config file")
-	rootCmd.PersistentFlags().VarP(&opts.OutputFormat, "format", "f", "output format")
+	ticks, err := l.Ticks(pairs...)
+	if err != nil {
+		return err
+	}
 
-	return rootCmd
+	for _, t := range ticks {
+		err := m.Write(t, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = m.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

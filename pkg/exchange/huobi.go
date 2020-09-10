@@ -50,14 +50,7 @@ func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
 }
 
 func (h *Huobi) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := h.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(h, ppps)
 }
 
 func (h *Huobi) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

@@ -13,23 +13,41 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package command
+package cli
 
 import (
-	"testing"
+	"sort"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func TestFormatTypeValue(t *testing.T) {
-	for ct, st := range formatMap {
-		t.Run(st, func(t *testing.T) {
-			ftv := FormatTypeValue{}
-			err := ftv.Set(st)
+type pairsLister interface {
+	Graphs() map[graph.Pair]graph.Aggregator
+}
 
-			assert.Nil(t, err)
-			assert.Equal(t, st, ftv.String())
-			assert.Equal(t, ct, ftv.Format)
-		})
+func Pairs(l pairsLister, m ReadWriteCloser) error {
+	var err error
+
+	var graphs []graph.Aggregator
+	for _, g := range l.Graphs() {
+		graphs = append(graphs, g)
 	}
+
+	sort.SliceStable(graphs, func(i, j int) bool {
+		return graphs[i].Pair().String() < graphs[j].Pair().String()
+	})
+
+	for _, g := range graphs {
+		err = m.Write(g, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = m.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

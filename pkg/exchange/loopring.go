@@ -58,14 +58,7 @@ func (l *Loopring) getURL(pp *model.PotentialPricePoint) string {
 }
 
 func (l *Loopring) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := l.callOne(ppp)
-
-		cr = append(cr, CallResult{PricePoint: pp, Error: err})
-	}
-
-	return cr
+	return callSinglePairExchange(l, ppps)
 }
 
 func (l *Loopring) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {

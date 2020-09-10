@@ -54,7 +54,8 @@ func (suite *ExchangesSuite) TestCallErrorNegative() {
 		Exchange: ex,
 	}
 	cr = suite.set.Call([]*model.PotentialPricePoint{pp})
-	assert.Same(suite.T(), ex, cr[0].PricePoint.Exchange)
+	assert.Nil(suite.T(), cr[0].PricePoint)
+	assert.Same(suite.T(), ex, cr[0].Error.(*CallError).PotentialPricePoint.Exchange)
 	assert.Error(suite.T(), cr[0].Error)
 }
 
