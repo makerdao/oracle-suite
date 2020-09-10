@@ -77,9 +77,15 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			continue
 		}
 
-		prices = append(prices, tick.Price)
-		bids = append(bids, tick.Bid)
-		asks = append(asks, tick.Ask)
+		if tick.Price > 0 {
+			prices = append(prices, tick.Price)
+		}
+		if tick.Bid > 0 {
+			bids = append(bids, tick.Bid)
+		}
+		if tick.Ask > 0 {
+			asks = append(asks, tick.Ask)
+		}
 	}
 
 	if len(prices) < n.minSources {
@@ -89,26 +95,15 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 	return IndirectTick{
 		Tick: Tick{
 			Pair:      pair,
-			Price:     median(filterOutZeros(prices)),
-			Bid:       median(filterOutZeros(bids)),
-			Ask:       median(filterOutZeros(asks)),
+			Price:     median(prices),
+			Bid:       median(bids),
+			Ask:       median(asks),
 			Volume24h: 0,
 		},
 		ExchangeTicks: exchangeTicks,
 		IndirectTick:  indirectTicks,
 		Error:         err,
 	}
-}
-
-func filterOutZeros(xs []float64) []float64 {
-	var r []float64
-	for _, x := range xs {
-		if x > 0 {
-			r = append(r, x)
-		}
-	}
-
-	return r
 }
 
 func median(xs []float64) float64 {

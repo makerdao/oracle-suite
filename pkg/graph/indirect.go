@@ -2,8 +2,6 @@ package graph
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 // IndirectAggregatorNode merges Ticks for different pairs and returns one,
@@ -42,20 +40,21 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 		switch typedNode := c.(type) {
 		case Exchange:
 			exchangeTicks = append(exchangeTicks, typedNode.Tick())
-			ticks = append(ticks, typedNode.Tick().Tick)
-			if typedNode.Tick().Error != nil {
-				err = multierror.Append(err, typedNode.Tick().Error)
+			if typedNode.Tick().Error == nil {
+				ticks = append(ticks, typedNode.Tick().Tick)
 			}
 		case Aggregator:
 			indirectTicks = append(indirectTicks, typedNode.Tick())
-			ticks = append(ticks, typedNode.Tick().Tick)
-			if typedNode.Tick().Error != nil {
-				err = multierror.Append(err, typedNode.Tick().Error)
+			if typedNode.Tick().Error == nil {
+				ticks = append(ticks, typedNode.Tick().Tick)
 			}
 		}
 	}
 
 	indirectTick, err := calcIndirectTick(ticks)
+	if err == nil && indirectTick.Price <= 0 {
+		err = fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair)
+	}
 
 	return IndirectTick{
 		Tick:          indirectTick,
