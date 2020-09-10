@@ -23,15 +23,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/model"
-
 	"github.com/makerdao/gofer/cmd/gofer/internal/command"
 	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/config"
+	"github.com/makerdao/gofer/pkg/exchange"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type lib interface {
-	Exchanges(pairs ...*model.Pair) []*model.Exchange
+	Exchanges(pairs ...graph.Pair) (map[graph.Pair][]string, error)
 }
 
 func newLib(path string) (lib, error) {
@@ -40,12 +41,17 @@ func newLib(path string) (lib, error) {
 		return nil, err
 	}
 
-	lib, err := gofer.ReadFile(absPath)
+	j, err := config.ParseJSONFile(absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return lib, nil
+	g, err := j.BuildGraphs()
+	if err != nil {
+		return nil, err
+	}
+
+	return gofer.NewGofer(g, graph.NewIngestor(exchange.DefaultSet(), 10)), nil
 }
 
 func New(opts *command.Options) *cobra.Command {
@@ -65,13 +71,13 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			var pairs []*model.Pair
+			var pairs []graph.Pair
 			for _, pair := range args {
-				var p *model.Pair
-				if p, err = model.NewPairFromString(pair); err != nil {
+				var p graph.Pair
+				if p, err = graph.NewPair(pair); err != nil {
 					return err
 				}
-				pairs = append(pairs, model.NewPair(p.Base, p.Quote))
+				pairs = append(pairs, p)
 			}
 
 			err = exchanges(l, m, pairs)
@@ -91,22 +97,31 @@ or a subset of those, if at least one PAIR is provided.`,
 	}
 }
 
-func exchanges(g lib, m *marshal.Marshal, pairs []*model.Pair) error {
-	exchanges := g.Exchanges(pairs...)
+func exchanges(g lib, m *marshal.Marshal, pairs []graph.Pair) error {
+	var err error
 
-	sort.SliceStable(exchanges, func(i, j int) bool {
-		return exchanges[i].Name < exchanges[j].Name
+	exchanges, err := g.Exchanges(pairs...)
+	if err != nil {
+		return err
+	}
+
+	var list []string
+	for _, e := range exchanges {
+		list = append(list, e...)
+	}
+
+	sort.SliceStable(list, func(i, j int) bool {
+		return list[i] < list[j]
 	})
 
-	var er error
-	for _, e := range exchanges {
-		err := m.Write(e, er)
+	for _, name := range list {
+		err := m.Write(name, nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := m.Close()
+	err = m.Close()
 	if err != nil {
 		return err
 	}

@@ -19,12 +19,14 @@ import (
 //
 // All children of this node must return tick for the same pair.
 type MedianAggregatorNode struct {
+	pair       Pair
 	minSources int
 	children   []Node
 }
 
-func NewMedianAggregatorNode(minSources int) *MedianAggregatorNode {
+func NewMedianAggregatorNode(pair Pair, minSources int) *MedianAggregatorNode {
 	return &MedianAggregatorNode{
+		pair:       pair,
 		minSources: minSources,
 	}
 }
@@ -37,8 +39,11 @@ func (n *MedianAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }
 
+func (n *MedianAggregatorNode) Pair() Pair {
+	return n.pair
+}
+
 func (n *MedianAggregatorNode) Tick() IndirectTick {
-	var pair Pair
 	var prices, bids, asks []float64
 	var exchangeTicks []ExchangeTick
 	var indirectTicks []IndirectTick
@@ -63,15 +68,13 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			}
 		}
 
-		if pair.Empty() {
-			pair = tick.Pair
-		} else if !pair.Equal(tick.Pair) {
+		if !n.pair.Equal(tick.Pair) {
 			err = multierror.Append(
 				err,
 				fmt.Errorf(
-					"unable to calculate median for different pairs, %s and %s given",
-					pair,
+					"unable to calculate median for different pairs, %s given but %s was expected",
 					tick.Pair,
+					n.pair,
 				),
 			)
 			continue
@@ -89,12 +92,15 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 	}
 
 	if len(prices) < n.minSources {
-		err = multierror.Append(err, errors.New("not enough sources to calculate median"))
+		err = multierror.Append(
+			err,
+			errors.New("not enough sources to calculate median"),
+		)
 	}
 
 	return IndirectTick{
 		Tick: Tick{
-			Pair:      pair,
+			Pair:      n.pair,
 			Price:     median(prices),
 			Bid:       median(bids),
 			Ask:       median(asks),

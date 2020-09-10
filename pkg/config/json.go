@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
@@ -67,16 +66,21 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) BuildGraphs() (map[string]graph.Aggregator, error) {
-	graphs := map[string]graph.Aggregator{}
+func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
+	graphs := map[graph.Pair]graph.Aggregator{}
 
 	// Build roots:
 	// It's important to do it before branches, because branches may refer to
 	// another root nodes.
 	for name, model := range j.Aggregator.Parameters.PriceModels {
+		pair, err := graph.NewPair(name)
+		if err != nil {
+			return nil, err
+		}
+
 		switch model.Method {
 		case "median":
-			graphs[name] = graph.NewMedianAggregatorNode(model.MinSourceSuccess)
+			graphs[pair] = graph.NewMedianAggregatorNode(pair, model.MinSourceSuccess)
 		default:
 			return nil, fmt.Errorf("unknown method: %s", model.Method)
 		}
@@ -84,18 +88,24 @@ func (j *JSON) BuildGraphs() (map[string]graph.Aggregator, error) {
 
 	// Build branches:
 	for name, model := range j.Aggregator.Parameters.PriceModels {
+		pair, _ := graph.NewPair(name)
 		for _, sources := range model.Sources {
-			indirectAggregator := graph.NewIndirectAggregatorNode()
+			indirectAggregator := graph.NewIndirectAggregatorNode(pair)
 
 			for _, source := range sources {
+				sourcePair, err := graph.NewPair(source.Pair)
+				if err != nil {
+					return nil, err
+				}
+
 				if source.Origin == "." {
 					// The reference to an other root node:
 					indirectAggregator.AddChild(
-						graphs[source.Pair].(graph.Node),
+						graphs[sourcePair].(graph.Node),
 					)
 				} else {
 					// The exchange node:
-					pair, err := newPairFromString(source.Pair)
+					pair, err := graph.NewPair(source.Pair)
 					if err != nil {
 						return nil, err
 					}
@@ -111,7 +121,7 @@ func (j *JSON) BuildGraphs() (map[string]graph.Aggregator, error) {
 				}
 			}
 
-			switch typedNode := graphs[name].(type) {
+			switch typedNode := graphs[pair].(type) {
 			case *graph.MedianAggregatorNode:
 				typedNode.AddChild(indirectAggregator)
 			}
@@ -119,21 +129,4 @@ func (j *JSON) BuildGraphs() (map[string]graph.Aggregator, error) {
 	}
 
 	return graphs, nil
-}
-
-func newPairFromString(s string) (graph.Pair, error) {
-	ss := strings.Split(s, "/")
-	if len(ss) != 2 {
-		return graph.Pair{}, fmt.Errorf("couldn't parse pair \"%s\"", s)
-	}
-
-	if len(ss[0]) == 0 {
-		return graph.Pair{}, fmt.Errorf("base asset name is empty")
-	}
-
-	if len(ss[1]) == 0 {
-		return graph.Pair{}, fmt.Errorf("quote asset name is empty")
-	}
-
-	return graph.Pair{Base: strings.ToUpper(ss[0]), Quote: strings.ToUpper(ss[1])}, nil
 }

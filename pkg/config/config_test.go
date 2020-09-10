@@ -38,7 +38,7 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func tickRecurPrinter(tick graph.IndirectTick)  {
+func tickRecurPrinter(tick graph.IndirectTick) {
 	var recur func(tick interface{}, lvl int)
 	recur = func(tick interface{}, lvl int) {
 		lvlstr := strings.Repeat("  ", lvl)
@@ -69,7 +69,7 @@ func tickRecurPrinter(tick graph.IndirectTick)  {
 	recur(tick, 0)
 }
 
-func formatError (err error) string {
+func formatError(err error) string {
 	if err == nil {
 		return ""
 	}

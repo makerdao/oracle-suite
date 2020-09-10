@@ -12,12 +12,14 @@ type Node interface {
 // Aggregator represents a node which can aggregate ticks from its children.
 type Aggregator interface {
 	Node
+	Pair() Pair
 	Tick() IndirectTick
 }
 
 // Exchange represents a node which provides tick directly from an exchange.
 type Exchange interface {
 	Node
+	ExchangePair() ExchangePair
 	Tick() ExchangeTick
 }
 

@@ -29,7 +29,7 @@ func (i *Ingestor) Ingest(node Node) {
 
 	AsyncWalk(node, func(node Node) {
 		if ingestableNode, ok := node.(Ingestable); ok {
-			if ingestableNode.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1 * i.ttl))) {
+			if ingestableNode.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
 				ingestableNode.SetTick(i.fetch(ingestableNode.ExchangePair()))
 			}
 		}

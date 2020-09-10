@@ -2,6 +2,8 @@ package graph
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // IndirectAggregatorNode merges Ticks for different pairs and returns one,
@@ -15,11 +17,14 @@ import (
 //
 // For above node, price for pair A/D will be calculated.
 type IndirectAggregatorNode struct {
+	pair     Pair
 	children []Node
 }
 
-func NewIndirectAggregatorNode() *IndirectAggregatorNode {
-	return &IndirectAggregatorNode{}
+func NewIndirectAggregatorNode(pair Pair) *IndirectAggregatorNode {
+	return &IndirectAggregatorNode{
+		pair: pair,
+	}
 }
 
 func (n *IndirectAggregatorNode) Children() []Node {
@@ -28,6 +33,10 @@ func (n *IndirectAggregatorNode) Children() []Node {
 
 func (n *IndirectAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
+}
+
+func (n *IndirectAggregatorNode) Pair() Pair {
+	return n.pair
 }
 
 func (n *IndirectAggregatorNode) Tick() IndirectTick {
@@ -52,8 +61,21 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 	}
 
 	indirectTick, err := calcIndirectTick(ticks)
-	if err == nil && indirectTick.Price <= 0 {
-		err = fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair)
+
+	if err == nil {
+		if indirectTick.Price <= 0 {
+			err = multierror.Append(
+				err,
+				fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair),
+			)
+		}
+
+		if !indirectTick.Pair.Equal(n.pair) {
+			err = multierror.Append(
+				err,
+				fmt.Errorf("indirect price was resolved to %s but %s was expected", indirectTick.Pair, n.pair),
+			)
+		}
 	}
 
 	return IndirectTick{

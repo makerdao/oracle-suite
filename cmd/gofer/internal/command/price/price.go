@@ -16,23 +16,22 @@
 package price
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/model"
-
 	"github.com/makerdao/gofer/cmd/gofer/internal/command"
 	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/config"
+	"github.com/makerdao/gofer/pkg/exchange"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type lib interface {
-	Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error)
+	Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error)
 }
 
 func newLib(path string) (lib, error) {
@@ -41,12 +40,17 @@ func newLib(path string) (lib, error) {
 		return nil, err
 	}
 
-	lib, err := gofer.ReadFile(absPath)
+	j, err := config.ParseJSONFile(absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return lib, nil
+	g, err := j.BuildGraphs()
+	if err != nil {
+		return nil, err
+	}
+
+	return gofer.NewGofer(g, graph.NewIngestor(exchange.DefaultSet(), 10)), nil
 }
 
 func New(opts *command.Options) *cobra.Command {
@@ -66,13 +70,13 @@ func New(opts *command.Options) *cobra.Command {
 				return err
 			}
 
-			var pairs []*model.Pair
+			var pairs []graph.Pair
 			for _, pair := range args {
-				var p *model.Pair
-				if p, err = model.NewPairFromString(pair); err != nil {
+				var p graph.Pair
+				if p, err = graph.NewPair(pair); err != nil {
 					return err
 				}
-				pairs = append(pairs, model.NewPair(p.Base, p.Quote))
+				pairs = append(pairs, p)
 			}
 
 			err = prices(l, m, pairs)
@@ -90,21 +94,16 @@ func New(opts *command.Options) *cobra.Command {
 	}
 }
 
-func prices(g lib, m *marshal.Marshal, pairs []*model.Pair) error {
-	prices, err := g.Prices(pairs...)
+func prices(g lib, m *marshal.Marshal, pairs []graph.Pair) error {
+	var err error
+
+	ticks, err := g.Ticks(pairs...)
 	if err != nil {
 		return err
 	}
 
-	for _, p := range sortPrices(prices) {
-		var e error
-		if prices[p] == nil {
-			e = fmt.Errorf("no price aggregate available for %s available", p.String())
-		} else if prices[p].Price == 0 {
-			e = fmt.Errorf("invalid price for %s", p.String())
-		}
-
-		err = m.Write(prices[p], e)
+	for _, t := range ticks {
+		err := m.Write(t, nil)
 		if err != nil {
 			return err
 		}
@@ -118,15 +117,3 @@ func prices(g lib, m *marshal.Marshal, pairs []*model.Pair) error {
 	return nil
 }
 
-func sortPrices(prices map[model.Pair]*model.PriceAggregate) []model.Pair {
-	pairs := make([]model.Pair, 0)
-	for k := range prices {
-		pairs = append(pairs, k)
-	}
-
-	sort.SliceStable(pairs, func(i, j int) bool {
-		return pairs[i].String() < pairs[j].String()
-	})
-
-	return pairs
-}

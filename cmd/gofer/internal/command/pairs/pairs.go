@@ -18,16 +18,42 @@ package pairs
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"sort"
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
+	"github.com/makerdao/gofer/pkg/config"
+	"github.com/makerdao/gofer/pkg/exchange"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/graph"
 
 	"github.com/makerdao/gofer/cmd/gofer/internal/command"
-	"github.com/makerdao/gofer/cmd/gofer/internal/config"
 	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
 )
+
+type lib interface {
+	Graphs() map[graph.Pair]graph.Aggregator
+}
+
+func newLib(path string) (lib, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	j, err := config.ParseJSONFile(absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := j.BuildGraphs()
+	if err != nil {
+		return nil, err
+	}
+
+	return gofer.NewGofer(g, graph.NewIngestor(exchange.DefaultSet(), 10)), nil
+}
 
 func New(opts *command.Options) *cobra.Command {
 	return &cobra.Command{
@@ -41,12 +67,12 @@ func New(opts *command.Options) *cobra.Command {
 				return err
 			}
 
-			conf, err := config.ReadConfig(opts.ConfigFilePath)
+			l, err := newLib(opts.ConfigFilePath)
 			if err != nil {
 				return err
 			}
 
-			err = pairs(conf.Aggregator.Parameters.PriceModels, m)
+			err = pairs(l, m)
 			if err != nil {
 				return err
 			}
@@ -63,11 +89,20 @@ func New(opts *command.Options) *cobra.Command {
 	}
 }
 
-func pairs(s aggregator.PriceModelMap, m *marshal.Marshal) error {
+func pairs(l lib, m *marshal.Marshal) error {
 	var err error
 
-	for _, p := range sortPriceModels(s) {
-		err = m.Write(aggregator.PriceModelMap{p: s[p]}, nil)
+	var graphs []graph.Aggregator
+	for _, g := range l.Graphs() {
+		graphs = append(graphs, g)
+	}
+
+	sort.SliceStable(graphs, func(i, j int) bool {
+		return graphs[i].Pair().String() < graphs[j].Pair().String()
+	})
+
+	for _, g := range graphs {
+		err = m.Write(g, nil)
 		if err != nil {
 			return err
 		}
@@ -79,17 +114,4 @@ func pairs(s aggregator.PriceModelMap, m *marshal.Marshal) error {
 	}
 
 	return nil
-}
-
-func sortPriceModels(models aggregator.PriceModelMap) []aggregator.Pair {
-	pairs := make([]aggregator.Pair, 0)
-	for k := range models {
-		pairs = append(pairs, k)
-	}
-
-	sort.SliceStable(pairs, func(i, j int) bool {
-		return pairs[i].String() < pairs[j].String()
-	})
-
-	return pairs
 }

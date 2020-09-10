@@ -19,8 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type trace struct {
@@ -42,12 +41,12 @@ func newTrace() *trace {
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case *model.PriceAggregate:
-			traceHandlePriceAggregate(&ret, i, ierr)
-		case *model.Exchange:
-			traceHandleExchange(&ret, i)
-		case aggregator.PriceModelMap:
-			traceHandlePriceModelMap(&ret, i)
+		case graph.IndirectTick:
+			traceHandleTrick(&ret, i)
+		case graph.Aggregator:
+			traceHandleGraph(&ret, i)
+		case string:
+			traceHandleString(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -71,16 +70,14 @@ func (j *trace) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func traceHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) {
-	*ret = append(*ret, []byte(newPriceAggregate(aggregate, err).toString(0)))
+func traceHandleTrick(ret *[]marshalledItem, tick graph.IndirectTick) {
+	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
 }
 
-func traceHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) {
-	*ret = append(*ret, []byte(fmt.Sprintf("exchange[%s]", exchange.Name)))
+func traceHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) {
+	*ret = append(*ret, []byte(graph.Pair().String()))
 }
 
-func traceHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) {
-	for pr, pm := range priceModelMap {
-		*ret = append(*ret, []byte(fmt.Sprintf("%s:%s", pr.String(), pm.String())))
-	}
+func traceHandleString(ret *[]marshalledItem, str string) {
+	*ret = append(*ret, []byte(str))
 }
