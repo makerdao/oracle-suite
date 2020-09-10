@@ -90,7 +90,7 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	for name, model := range j.Aggregator.Parameters.PriceModels {
 		pair, _ := graph.NewPair(name)
 		for _, sources := range model.Sources {
-			indirectAggregator := graph.NewIndirectAggregatorNode(pair)
+			var childs []graph.Node
 
 			for _, source := range sources {
 				sourcePair, err := graph.NewPair(source.Pair)
@@ -100,9 +100,7 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 
 				if source.Origin == "." {
 					// The reference to an other root node:
-					indirectAggregator.AddChild(
-						graphs[sourcePair].(graph.Node),
-					)
+					childs = append(childs, graphs[sourcePair].(graph.Node))
 				} else {
 					// The exchange node:
 					pair, err := graph.NewPair(source.Pair)
@@ -115,15 +113,26 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 						Pair:     pair,
 					}
 
-					indirectAggregator.AddChild(
-						graph.NewExchangeNode(exchangePair),
-					)
+					childs = append(childs, graph.NewExchangeNode(exchangePair))
 				}
+			}
+
+			var node graph.Node
+			if len(childs) == 1 {
+				// If there is only one node, there is no need to wrap it with
+				// IndirectAggregatorNode.
+				node = childs[0]
+			} else {
+				indirectAggregator := graph.NewIndirectAggregatorNode(pair)
+				for _, c := range childs {
+					indirectAggregator.AddChild(c)
+				}
+				node = indirectAggregator
 			}
 
 			switch typedNode := graphs[pair].(type) {
 			case *graph.MedianAggregatorNode:
-				typedNode.AddChild(indirectAggregator)
+				typedNode.AddChild(node)
 			}
 		}
 	}
