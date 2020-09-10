@@ -19,9 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Kucoin URL
@@ -42,24 +42,20 @@ type Kucoin struct {
 	Pool query.WorkerPool
 }
 
-func (k *Kucoin) localPairName(pair *model.Pair) string {
+func (k *Kucoin) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (k *Kucoin) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(kucoinURL, k.localPairName(pp.Pair))
+func (k *Kucoin) getURL(pp Pair) string {
+	return fmt.Sprintf(kucoinURL, k.localPairName(pp))
 }
 
-func (k *Kucoin) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (k *Kucoin) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(k, ppps)
 }
 
-func (k *Kucoin) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (k *Kucoin) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: k.getURL(pp),
 	}
@@ -94,11 +90,10 @@ func (k *Kucoin) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 		return nil, fmt.Errorf("failed to parse bid from kucoin exchange %s", res.Body)
 	}
 	// Parsing volume from string
-	// building PricePoint
-	return &model.PricePoint{
-		Timestamp: resp.Data.Time / 1000,
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
+		Timestamp: time.Unix(resp.Data.Time/1000, 0),
 		Price:     price,
 		Ask:       bid,
 		Bid:       ask,

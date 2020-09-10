@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Folgory URL
@@ -44,25 +43,21 @@ func (f *Folgory) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (f *Folgory) localPairName(pair *model.Pair) string {
+func (f *Folgory) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-func (f *Folgory) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (f *Folgory) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(f, ppps)
 }
 
-func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (f *Folgory) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: folgoryURL,
 	}
 
-	pair := f.localPairName(pp.Pair)
+	pair := f.localPairName(pp)
 
 	// make query
 	res := f.Pool.Query(req)
@@ -101,12 +96,11 @@ func (f *Folgory) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from folgory exchange %v", data)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
-		Timestamp: time.Now().Unix(),
+		Volume24h: volume,
+		Timestamp: time.Now(),
 	}, nil
 }

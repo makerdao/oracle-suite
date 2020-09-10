@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Gemini URL
@@ -42,24 +42,20 @@ type Gemini struct {
 	Pool query.WorkerPool
 }
 
-func (g *Gemini) localPairName(pair *model.Pair) string {
+func (g *Gemini) localPairName(pair Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (g *Gemini) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(geminiURL, g.localPairName(pp.Pair))
+func (g *Gemini) getURL(pp Pair) string {
+	return fmt.Sprintf(geminiURL, g.localPairName(pp))
 }
 
-func (g *Gemini) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (g *Gemini) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(g, ppps)
 }
 
-func (g *Gemini) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (g *Gemini) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: g.getURL(pp),
 	}
@@ -93,13 +89,12 @@ func (g *Gemini) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from gemini exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: resp.Volume.Timestamp / 1000,
+		Timestamp: time.Unix(resp.Volume.Timestamp/1000, 0),
 	}, nil
 }

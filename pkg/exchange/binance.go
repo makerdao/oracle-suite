@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Binance URL
@@ -42,24 +41,20 @@ func (b *Binance) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (b *Binance) localPairName(pair *model.Pair) string {
+func (b *Binance) localPairName(pair Pair) string {
 	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
 }
 
-func (b *Binance) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(binanceURL, b.localPairName(pp.Pair))
+func (b *Binance) getURL(pp Pair) string {
+	return fmt.Sprintf(binanceURL, b.localPairName(pp))
 }
 
-func (b *Binance) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (b *Binance) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(b, ppps)
 }
 
-func (b *Binance) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (b *Binance) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: b.getURL(pp),
 	}
@@ -83,11 +78,10 @@ func (b *Binance) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

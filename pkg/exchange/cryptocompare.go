@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Exchange URL
@@ -34,20 +33,16 @@ type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
+func (c *CryptoCompare) getURL(pp Pair) string {
+	return fmt.Sprintf(cryptoCompareURL, pp.Base, pp.Quote)
 }
 
-func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (c *CryptoCompare) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(c, ppps)
 }
 
-func (c *CryptoCompare) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *CryptoCompare) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: c.getURL(pp),
 	}
@@ -67,16 +62,15 @@ func (c *CryptoCompare) callOne(pp *model.PotentialPricePoint) (*model.PricePoin
 		return nil, fmt.Errorf("failed to parse CryptoCompare response: %w", err)
 	}
 
-	price, ok := resp[pp.Pair.Quote]
+	price, ok := resp[pp.Quote]
 	if !ok {
-		return nil, fmt.Errorf("failed to get price for %s: %s", pp.Pair.Quote, res.Body)
+		return nil, fmt.Errorf("failed to get price for %s: %s", pp.Quote, res.Body)
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

@@ -19,9 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Huobi URL
@@ -41,24 +41,20 @@ type Huobi struct {
 	Pool query.WorkerPool
 }
 
-func (h *Huobi) localPairName(pair *model.Pair) string {
+func (h *Huobi) localPairName(pair Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (h *Huobi) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(huobiURL, h.localPairName(pp.Pair))
+func (h *Huobi) getURL(pp Pair) string {
+	return fmt.Sprintf(huobiURL, h.localPairName(pp))
 }
 
-func (h *Huobi) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (h *Huobi) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(h, ppps)
 }
 
-func (h *Huobi) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (h *Huobi) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: h.getURL(pp),
 	}
@@ -83,11 +79,10 @@ func (h *Huobi) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 		return nil, fmt.Errorf("wrong bid response from huobi exchange %s", res.Body)
 	}
 
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	return &Tick{
+		Pair:      pp,
 		Price:     resp.Tick.Bid[0],
-		Volume:    resp.Volume,
-		Timestamp: resp.Timestamp / 1000,
+		Volume24h: resp.Volume,
+		Timestamp: time.Unix(resp.Timestamp/1000, 0),
 	}, nil
 }

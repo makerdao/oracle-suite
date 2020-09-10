@@ -19,9 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Upbit URL
@@ -42,24 +42,20 @@ func (u *Upbit) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (u *Upbit) localPairName(pair *model.Pair) string {
+func (u *Upbit) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
 }
 
-func (u *Upbit) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(upbitURL, u.localPairName(pp.Pair))
+func (u *Upbit) getURL(pp Pair) string {
+	return fmt.Sprintf(upbitURL, u.localPairName(pp))
 }
 
-func (u *Upbit) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (u *Upbit) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(u, ppps)
 }
 
-func (u *Upbit) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (u *Upbit) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: u.getURL(pp),
 	}
@@ -82,12 +78,11 @@ func (u *Upbit) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 		return nil, fmt.Errorf("wrong upbit response: %s", res.Body)
 	}
 	data := resp[0]
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     data.Price,
-		Volume:    data.Volume,
-		Timestamp: data.Timestamp / 1000,
+		Volume24h: data.Volume,
+		Timestamp: time.Unix(data.Timestamp/1000, 0),
 	}, nil
 }

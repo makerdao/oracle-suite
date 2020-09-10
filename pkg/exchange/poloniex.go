@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Poloniex URL
@@ -45,29 +44,25 @@ func (p *Poloniex) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (p *Poloniex) localPairName(pair *model.Pair) string {
+func (p *Poloniex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", p.renameSymbol(pair.Quote), p.renameSymbol(pair.Base))
 }
 
-func (p *Poloniex) getURL(pp *model.PotentialPricePoint) string {
+func (p *Poloniex) getURL(pp Pair) string {
 	return poloniexURL
 }
 
-func (p *Poloniex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (p *Poloniex) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(p, ppps)
 }
 
-func (p *Poloniex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (p *Poloniex) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: p.getURL(pp),
 	}
 
-	pair := p.localPairName(pp.Pair)
+	pair := p.localPairName(pp)
 
 	// make query
 	res := p.Pool.Query(req)
@@ -107,14 +102,13 @@ func (p *Poloniex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from bitstamp exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
+		Volume24h: volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

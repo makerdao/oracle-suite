@@ -19,10 +19,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
-
 	"github.com/stretchr/testify/suite"
+
+	"github.com/makerdao/gofer/internal/query"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -51,26 +50,20 @@ func (suite *BitfinexSuite) TearDownTest() {
 }
 
 func (suite *BitfinexSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTCUSD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
-	suite.EqualValues("BTCUSD", suite.exchange.localPairName(model.NewPair("BTC", "USDT")))
+	suite.EqualValues("BTCETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTCUSD", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("BTCUSD", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USDT"}))
 }
 
 func (suite *BitfinexSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("bitfinex", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -78,15 +71,15 @@ func (suite *BitfinexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -94,22 +87,20 @@ func (suite *BitfinexSuite) TestFailOnWrongInput() {
 		Body: []byte(`[0,0]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *BitfinexSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("bitfinex", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`[1,1,1,1,1,1,1,1]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
+	suite.Equal(1.0, cr[0].Tick.Price)
+	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *BitfinexSuite) TestRealAPICall() {

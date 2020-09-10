@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Bitfinex URL
@@ -32,7 +31,7 @@ type Bitfinex struct {
 	Pool query.WorkerPool
 }
 
-func (b *Bitfinex) localPairName(pair *model.Pair) string {
+func (b *Bitfinex) localPairName(pair Pair) string {
 	const USDT = "USDT"
 	const USD = "USD"
 	if pair.Base == USDT && pair.Quote == USD {
@@ -44,30 +43,16 @@ func (b *Bitfinex) localPairName(pair *model.Pair) string {
 	return pair.Base + pair.Quote
 }
 
-func (b *Bitfinex) getURL(pp *model.PotentialPricePoint) string {
-	var pair string
-
-	if pp.Exchange == nil {
-		pair = b.localPairName(pp.Pair)
-	} else {
-		pair = pp.Exchange.Config["pair"]
-	}
-	if pair == "" {
-		pair = b.localPairName(pp.Pair)
-	}
-	return fmt.Sprintf(bitfinexURL, pair)
+func (b *Bitfinex) getURL(pp Pair) string {
+	return fmt.Sprintf(bitfinexURL, b.localPairName(pp))
 }
 
-func (b *Bitfinex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (b *Bitfinex) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(b, ppps)
 }
 
-func (b *Bitfinex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (b *Bitfinex) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: b.getURL(pp),
 	}
@@ -91,12 +76,11 @@ func (b *Bitfinex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 		return nil, fmt.Errorf("wrong bitfinex response")
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     resp[6],
-		Volume:    resp[7],
-		Timestamp: time.Now().Unix(),
+		Volume24h: resp[7],
+		Timestamp: time.Now(),
 	}, nil
 }

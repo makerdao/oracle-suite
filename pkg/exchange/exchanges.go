@@ -17,64 +17,39 @@ package exchange
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Handler is interface that all Exchange API handlers should implement.
 type Handler interface {
 	// Call should implement making API request to exchange URL and
 	// collecting/parsing exchange data.
-	Call(ppps []*model.PotentialPricePoint) []CallResult
+	Call(ppps []Pair) []CallResult
 }
 
-type CallError struct {
-	PotentialPricePoint *model.PotentialPricePoint
-	Err                 error
+type Pair struct {
+	Quote string
+	Base  string
 }
 
-func (e CallError) Error() string {
-	return fmt.Sprintf("Fetching %s gave error: %s", e.PotentialPricePoint, e.Err)
+func (p Pair) String() string {
+	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
 }
 
-func (e CallError) Unwrap() error {
-	return e.Err
+type Tick struct {
+	Pair      Pair
+	Price     float64
+	Bid       float64
+	Ask       float64
+	Volume24h float64
+	Timestamp time.Time
 }
 
-// CallResult is returned by Handler.Call method. It contains model.PricePoint
-// and optional error.
 type CallResult struct {
-	PricePoint *model.PricePoint
-	Error      error
-}
-
-type pppList []*model.PotentialPricePoint
-
-// groupByHandler groups Potential Price Points by handler. Grouped PPPs are
-// returned as a map where the key is the handler and value is the list of
-// all PPPs assigned to that handler.
-func (p pppList) groupByHandler() map[*model.Exchange]pppList {
-	pppMap := map[*model.Exchange]pppList{}
-	for _, ppp := range p {
-		if _, ok := pppMap[ppp.Exchange]; !ok {
-			pppMap[ppp.Exchange] = []*model.PotentialPricePoint{}
-		}
-		pppMap[ppp.Exchange] = append(pppMap[ppp.Exchange], ppp)
-	}
-
-	return pppMap
-}
-
-// newCallResultWithError creates new CallResult instance with assigned error.
-//
-// The model.PricePoint is always assigned to the CallResult to track
-// information about a pair and an exchange for which an error was generated.
-func newCallResult(ppp *model.PotentialPricePoint, result *model.PricePoint, err error) CallResult {
-	if err != nil {
-		return CallResult{Error: &CallError{PotentialPricePoint: ppp, Err: err}}
-	}
-	return CallResult{PricePoint: result}
+	Tick  Tick
+	Error error
 }
 
 type Set struct {
@@ -117,45 +92,50 @@ func DefaultSet() *Set {
 }
 
 // Call makes handler call using handlers from the Set structure.
-func (e *Set) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (e *Set) Call(exchangePairs map[string][]Pair) map[string][]CallResult {
 	var err error
 
-	// The loop below uses pppList.groupByHandler method to group all PPPs.
-	// Grouping allows to pass multiple PPPs to one handler which helps
-	// to reduce the number of API calls.
-	cr := make([]CallResult, 0)
-	for exchange, ppps := range pppList(ppps).groupByHandler() {
-		err = model.ValidateExchange(exchange)
-		if err != nil {
-			for _, ppp := range ppps {
-				cr = append(cr, newCallResult(ppp, nil, err))
+	crs := map[string][]CallResult{}
+	for exchange, pairs := range exchangePairs {
+		handler, ok := e.list[exchange]
+		if !ok {
+			err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange)
+			for _, pair := range pairs {
+				crs[exchange] = append(crs[exchange], CallResult{
+					Tick:  Tick{Pair: pair},
+					Error: err,
+				})
 			}
 		} else {
-			handler, ok := e.list[exchange.Name]
-			if !ok {
-				err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
-				for _, ppp := range ppps {
-					cr = append(cr, newCallResult(ppp, nil, err))
-				}
-			} else {
-				cr = append(cr, handler.Call(ppps)...)
+			for _, cr := range handler.Call(pairs) {
+				crs[exchange] = append(crs[exchange], cr)
 			}
 		}
 	}
 
-	return cr
+	return crs
 }
 
 type singlePairExchange interface {
-	callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error)
+	callOne(pair Pair) (*Tick, error)
 }
 
-func callSinglePairExchange(e singlePairExchange, ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := e.callOne(ppp)
-		cr = append(cr, newCallResult(ppp, pp, err))
+func callSinglePairExchange(e singlePairExchange, pairs []Pair) []CallResult {
+	crs := make([]CallResult, 0)
+	for _, pair := range pairs {
+		tick, err := e.callOne(pair)
+		if err != nil {
+			crs = append(crs, CallResult{
+				Tick:  Tick{Pair: pair},
+				Error: err,
+			})
+		} else {
+			crs = append(crs, CallResult{
+				Tick:  *tick,
+				Error: err,
+			})
+		}
 	}
 
-	return cr
+	return crs
 }

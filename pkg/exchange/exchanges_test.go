@@ -19,11 +19,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/makerdao/gofer/internal/query"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -45,35 +44,29 @@ func (suite *ExchangesSuite) SetupSuite() {
 	})
 }
 
-func (suite *ExchangesSuite) TestCallErrorNegative() {
-	cr := suite.set.Call([]*model.PotentialPricePoint{{}})
-	assert.Error(suite.T(), cr[0].Error)
+func (suite *ExchangesSuite) TestCallWithMissingExchange() {
+	cr := suite.set.Call(map[string][]Pair{"x": {{}}})
+	assert.Error(suite.T(), cr["x"][0].Error)
 
-	ex := &model.Exchange{Name: "unknown"}
-	pp := &model.PotentialPricePoint{
-		Exchange: ex,
-	}
-	cr = suite.set.Call([]*model.PotentialPricePoint{pp})
-	assert.Nil(suite.T(), cr[0].PricePoint)
-	assert.Same(suite.T(), ex, cr[0].Error.(*CallError).PotentialPricePoint.Exchange)
-	assert.Error(suite.T(), cr[0].Error)
+	pp := Pair{Quote: "A", Base: "B"}
+	cr = suite.set.Call(map[string][]Pair{"x": {pp}})
+
+	assert.Equal(suite.T(), pp, cr["x"][0].Tick.Pair)
+	assert.Error(suite.T(), cr["x"][0].Error)
 }
 
 func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
-	pp := &model.PotentialPricePoint{
-		Exchange: &model.Exchange{
-			Name: "binance",
-		},
-		Pair: &model.Pair{
-			Base:  "BTC",
-			Quote: "ETH",
-		},
+	resp := &query.HTTPResponse{
+		Body:  []byte{},
+		Error: nil,
 	}
 
-	cr := suite.set.Call([]*model.PotentialPricePoint{pp})
+	suite.pool.MockResp(resp)
 
-	assert.Error(suite.T(), cr[0].Error)
-	assert.Nil(suite.T(), cr[0].PricePoint)
+	pp := Pair{Base: "BTC", Quote: "ETH"}
+	cr := suite.set.Call(map[string][]Pair{"binance": {pp}})
+
+	assert.Error(suite.T(), cr["binance"][0].Error)
 }
 
 func (suite *ExchangesSuite) TestSuccessBinance() {
@@ -83,23 +76,15 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 		Body:  []byte(json),
 		Error: nil,
 	}
-	p := &model.Pair{
-		Base:  "BTC",
-		Quote: "ETH",
-	}
+
 	suite.pool.MockResp(resp)
-	pp := &model.PotentialPricePoint{
-		Exchange: &model.Exchange{
-			Name: "binance",
-		},
-		Pair: p,
-	}
 
-	cr := suite.set.Call([]*model.PotentialPricePoint{pp})
+	pp := Pair{Quote: "BTC", Base: "ETH"}
+	cr := suite.set.Call(map[string][]Pair{"binance": {pp}})
 
-	assert.NoError(suite.T(), cr[0].Error)
-	assert.EqualValues(suite.T(), p, cr[0].PricePoint.Pair)
-	assert.EqualValues(suite.T(), price, cr[0].PricePoint.Price)
+	assert.NoError(suite.T(), cr["binance"][0].Error)
+	assert.EqualValues(suite.T(), pp, cr["binance"][0].Tick.Pair)
+	assert.EqualValues(suite.T(), price, cr["binance"][0].Tick.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

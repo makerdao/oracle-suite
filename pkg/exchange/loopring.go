@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Loopring URL
@@ -49,23 +48,20 @@ type Loopring struct {
 	Pool query.WorkerPool
 }
 
-func (l *Loopring) localPairName(pair *model.Pair) string {
+func (l *Loopring) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-func (l *Loopring) getURL(pp *model.PotentialPricePoint) string {
+func (l *Loopring) getURL(pp Pair) string {
 	return loopringURL
 }
 
-func (l *Loopring) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (l *Loopring) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(l, ppps)
 }
 
-func (l *Loopring) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
+func (l *Loopring) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: l.getURL(pp),
 	}
@@ -89,7 +85,7 @@ func (l *Loopring) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 	if resp.Data == nil {
 		return nil, fmt.Errorf("empty `data` field for loopring response: %s", res.Body)
 	}
-	pair := l.localPairName(pp.Pair)
+	pair := l.localPairName(pp)
 	pairRes, ok := resp.Data[pair]
 	if !ok {
 		return nil, fmt.Errorf("no %s pair exist in loopring response: %s", pair, res.Body)
@@ -112,14 +108,13 @@ func (l *Loopring) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from loopring exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
+		Volume24h: volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }
