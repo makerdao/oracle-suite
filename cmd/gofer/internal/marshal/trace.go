@@ -16,7 +16,9 @@
 package marshal
 
 import (
+	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/makerdao/gofer/pkg/graph"
@@ -42,7 +44,7 @@ func newTrace() *trace {
 
 		switch i := item.(type) {
 		case graph.IndirectTick:
-			traceHandleTrick(&ret, i)
+			traceHandleTick(&ret, i)
 		case graph.Aggregator:
 			traceHandleGraph(&ret, i)
 		case string:
@@ -70,14 +72,109 @@ func (j *trace) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func traceHandleTrick(ret *[]marshalledItem, tick graph.IndirectTick) {
-	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
+func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
+	buf := &bytes.Buffer{}
+
+	var recur func(interface{}, int)
+	recur = func(tick interface{}, level int) {
+		prefix := strings.Repeat(" ", level)
+		switch typedTick := tick.(type) {
+		case graph.IndirectTick:
+			fmt.Fprintf(
+				buf,
+				"%sAggregator(%s)=%f\n",
+				prefix,
+				typedTick.Pair,
+				typedTick.Price,
+			)
+
+			if typedTick.Error != nil {
+				fmt.Fprintf(
+					buf,
+					"%serror: %s",
+					prefix,
+					strings.TrimSpace(typedTick.Error.Error()),
+				)
+			}
+
+			for _, t := range typedTick.ExchangeTicks {
+				recur(t, level+1)
+			}
+			for _, t := range typedTick.IndirectTick {
+				recur(t, level+1)
+			}
+		case graph.ExchangeTick:
+			fmt.Fprintf(
+				buf,
+				"%sExchange(%s, %s)=%f\n",
+				prefix,
+				typedTick.Pair,
+				typedTick.Exchange,
+				typedTick.Price,
+			)
+
+			if typedTick.Error != nil {
+				fmt.Printf(
+					"%serror: %s",
+					prefix,
+					strings.TrimSpace(typedTick.Error.Error()),
+				)
+			}
+		}
+	}
+
+	fmt.Fprintf(buf, "Trace for %s pair:\n", t.Pair)
+	recur(t, 0)
+
+	*ret = append(*ret, buf.Bytes())
 }
 
-func traceHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) {
-	*ret = append(*ret, []byte(graph.Pair().String()))
+func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
+	buf := &bytes.Buffer{}
+
+	var recur func(graph.Node, int)
+	recur = func(node graph.Node, level int) {
+		prefix := strings.Repeat(" ", level)
+
+		switch typedNode := node.(type) {
+		case graph.Aggregator:
+			fmt.Fprintf(
+				buf,
+				"%s%s(%s)\n",
+				prefix,
+				reflect.TypeOf(node).Elem().String(),
+				typedNode.Pair(),
+
+			)
+		case graph.Exchange:
+			fmt.Fprintf(
+				buf,
+				"%s%s(%s, %s)\n",
+				prefix,
+				reflect.TypeOf(node).Elem().String(),
+				typedNode.ExchangePair().Pair,
+				typedNode.ExchangePair().Exchange,
+			)
+		default:
+			fmt.Fprintf(
+				buf,
+				"%s%s\n",
+				prefix,
+				reflect.TypeOf(node).Elem().String(),
+			)
+		}
+
+		for _, c := range node.Children() {
+			recur(c, level+1)
+		}
+	}
+
+	fmt.Fprintf(buf, "Graph for %s pair:\n", g.Pair())
+	recur(g, 0)
+
+	*ret = append(*ret, buf.Bytes())
 }
 
-func traceHandleString(ret *[]marshalledItem, str string) {
-	*ret = append(*ret, []byte(str))
+func traceHandleString(ret *[]marshalledItem, s string) {
+	*ret = append(*ret, []byte(s))
 }
