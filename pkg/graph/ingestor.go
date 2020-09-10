@@ -11,21 +11,27 @@ import (
 type Ingestable interface {
 	ExchangePair() ExchangePair
 	SetTick(tick ExchangeTick)
+	Tick() ExchangeTick
 }
 
 // Ingestor sets data to the Ingestable nodes.
 type Ingestor struct {
 	set *exchange.Set
+	ttl int
 }
 
-func NewIngestor(set *exchange.Set) *Ingestor {
-	return &Ingestor{set: set}
+func NewIngestor(set *exchange.Set, ttl int) *Ingestor {
+	return &Ingestor{set: set, ttl: ttl}
 }
 
 func (i *Ingestor) Ingest(node Node) {
+	t := time.Now()
+
 	AsyncWalk(node, func(node Node) {
 		if ingestableNode, ok := node.(Ingestable); ok {
-			ingestableNode.SetTick(i.fetch(ingestableNode.ExchangePair()))
+			if ingestableNode.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1 * i.ttl))) {
+				ingestableNode.SetTick(i.fetch(ingestableNode.ExchangePair()))
+			}
 		}
 	})
 }
@@ -57,7 +63,7 @@ func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
 				Pair: ep.Pair,
 			},
 			Exchange: ep.Exchange,
-			Error: fmt.Errorf("unable to fetch tick for %s", ep.Pair),
+			Error:    fmt.Errorf("unable to fetch tick for %s", ep.Pair),
 		}
 	}
 
@@ -67,7 +73,7 @@ func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
 				Pair: ep.Pair,
 			},
 			Exchange: ep.Exchange,
-			Error: cr[0].Error,
+			Error:    cr[0].Error,
 		}
 	}
 

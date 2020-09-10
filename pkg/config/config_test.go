@@ -25,7 +25,7 @@ func TestAll(t *testing.T) {
 	// Print graphs
 	for p, g := range graphs {
 		fmt.Printf("Pair %s:\n", p)
-		ingestor := graph.NewIngestor(exchange.DefaultSet())
+		ingestor := graph.NewIngestor(exchange.DefaultSet(), 10)
 		ingestor.Ingest(g)
 
 		// Get tick
