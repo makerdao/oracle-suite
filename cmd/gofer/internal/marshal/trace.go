@@ -91,7 +91,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			if typedTick.Error != nil {
 				fmt.Fprintf(
 					buf,
-					"%serror: %s",
+					"%s error: %s\n",
 					prefix,
 					strings.TrimSpace(typedTick.Error.Error()),
 				)
@@ -114,8 +114,9 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			)
 
 			if typedTick.Error != nil {
-				fmt.Printf(
-					"%serror: %s",
+				fmt.Fprintf(
+					buf,
+					"%s error: %s\n",
 					prefix,
 					strings.TrimSpace(typedTick.Error.Error()),
 				)
