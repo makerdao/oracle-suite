@@ -44,18 +44,18 @@ func (c *Coinbase) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-func (c *Coinbase) getURL(pp Pair) string {
-	return fmt.Sprintf(coinbaseURL, c.localPairName(pp))
+func (c *Coinbase) getURL(pair Pair) string {
+	return fmt.Sprintf(coinbaseURL, c.localPairName(pair))
 }
 
-func (c *Coinbase) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(c, ppps)
+func (c *Coinbase) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(c, pairs)
 }
 
-func (c *Coinbase) callOne(pp Pair) (*Tick, error) {
+func (c *Coinbase) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: c.getURL(pp),
+		URL: c.getURL(pair),
 	}
 
 	// make query
@@ -94,7 +94,7 @@ func (c *Coinbase) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Ask:       ask,

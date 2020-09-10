@@ -55,13 +55,13 @@ func (suite *OkexSuite) TestLocalPair() {
 }
 
 func (suite *OkexSuite) TestFailOnWrongInput() {
-	// wrong pp
+	// wrong pair
 	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
@@ -70,7 +70,7 @@ func (suite *OkexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
@@ -78,7 +78,7 @@ func (suite *OkexSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	for n, r := range [][]byte{
@@ -162,14 +162,14 @@ func (suite *OkexSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Call([]Pair{pp})
+			cr = suite.exchange.Call([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
 	}
 }
 
 func (suite *OkexSuite) TestSuccessResponse() {
-	pp := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{
 			"best_ask":"10000.5",
@@ -191,7 +191,7 @@ func (suite *OkexSuite) TestSuccessResponse() {
 		}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(int64(1596708166), cr[0].Tick.Timestamp.Unix())
 	suite.Equal(10000.4, cr[0].Tick.Price)

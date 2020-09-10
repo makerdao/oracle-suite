@@ -56,13 +56,13 @@ func (suite *UniswapSuite) TestLocalPair() {
 }
 
 func (suite *UniswapSuite) TestFailOnWrongInput() {
-	// wrong pp
+	// wrong pair
 	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := Pair{Base: "COMP", Quote: "ETH"}
+	pair := Pair{Base: "COMP", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
@@ -71,7 +71,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
@@ -79,7 +79,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error unmarshal
@@ -87,7 +87,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 		Body: []byte("{}"),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -95,7 +95,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"data":{}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -103,7 +103,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"data":{"pairs":[]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -111,28 +111,28 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"data":{"pairs":[{}]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *UniswapSuite) TestSuccessResponse() {
-	pp := Pair{Base: "COMP", Quote: "ETH"}
+	pair := Pair{Base: "COMP", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"data":{"pairs":[{"token0Price":"0", "token1Price":"1"}]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 }
 
 func (suite *UniswapSuite) TestSuccessResponseForToken0Price() {
-	pp := Pair{Base: "KNC", Quote: "ETH"}
+	pair := Pair{Base: "KNC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"data":{"pairs":[{"token0Price":"1", "token1Price":"2"}]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 }

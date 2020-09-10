@@ -50,13 +50,13 @@ func (suite *CryptoCompareSuite) TearDownTest() {
 }
 
 func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
-	// wrong pp
+	// wrong pair
 	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
@@ -65,7 +65,7 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	for n, r := range [][]byte{
@@ -81,19 +81,19 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Call([]Pair{pp})
+			cr = suite.exchange.Call([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
 	}
 }
 
 func (suite *CryptoCompareSuite) TestSuccessResponse() {
-	pp := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"ETH":1.1}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.1, cr[0].Tick.Price)
 	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))

@@ -46,18 +46,18 @@ func (k *Kucoin) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (k *Kucoin) getURL(pp Pair) string {
-	return fmt.Sprintf(kucoinURL, k.localPairName(pp))
+func (k *Kucoin) getURL(pair Pair) string {
+	return fmt.Sprintf(kucoinURL, k.localPairName(pair))
 }
 
-func (k *Kucoin) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(k, ppps)
+func (k *Kucoin) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(k, pairs)
 }
 
-func (k *Kucoin) callOne(pp Pair) (*Tick, error) {
+func (k *Kucoin) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: k.getURL(pp),
+		URL: k.getURL(pair),
 	}
 
 	// make query
@@ -92,7 +92,7 @@ func (k *Kucoin) callOne(pp Pair) (*Tick, error) {
 	// Parsing volume from string
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Timestamp: time.Unix(resp.Data.Time/1000, 0),
 		Price:     price,
 		Ask:       bid,

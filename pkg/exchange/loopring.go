@@ -52,18 +52,18 @@ func (l *Loopring) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-func (l *Loopring) getURL(pp Pair) string {
+func (l *Loopring) getURL(pair Pair) string {
 	return loopringURL
 }
 
-func (l *Loopring) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(l, ppps)
+func (l *Loopring) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(l, pairs)
 }
 
-func (l *Loopring) callOne(pp Pair) (*Tick, error) {
+func (l *Loopring) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: l.getURL(pp),
+		URL: l.getURL(pair),
 	}
 	// make query
 	res := l.Pool.Query(req)
@@ -85,8 +85,8 @@ func (l *Loopring) callOne(pp Pair) (*Tick, error) {
 	if resp.Data == nil {
 		return nil, fmt.Errorf("empty `data` field for loopring response: %s", res.Body)
 	}
-	pair := l.localPairName(pp)
-	pairRes, ok := resp.Data[pair]
+	pairName := l.localPairName(pair)
+	pairRes, ok := resp.Data[pairName]
 	if !ok {
 		return nil, fmt.Errorf("no %s pair exist in loopring response: %s", pair, res.Body)
 	}
@@ -110,7 +110,7 @@ func (l *Loopring) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Ask:       ask,

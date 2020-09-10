@@ -46,18 +46,18 @@ func (f *Ftx) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }
 
-func (f *Ftx) getURL(pp Pair) string {
-	return fmt.Sprintf(ftxURL, f.localPairName(pp))
+func (f *Ftx) getURL(pair Pair) string {
+	return fmt.Sprintf(ftxURL, f.localPairName(pair))
 }
 
-func (f *Ftx) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(f, ppps)
+func (f *Ftx) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(f, pairs)
 }
 
-func (f *Ftx) callOne(pp Pair) (*Tick, error) {
+func (f *Ftx) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: f.getURL(pp),
+		URL: f.getURL(pair),
 	}
 
 	// make query
@@ -75,13 +75,13 @@ func (f *Ftx) callOne(pp Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse ftx response: %w", err)
 	}
 
-	if !resp.Success || resp.Result.Name != f.localPairName(pp) {
+	if !resp.Success || resp.Result.Name != f.localPairName(pair) {
 		return nil, fmt.Errorf("failed to get correct response from ftx: %s", res.Body)
 	}
 
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     resp.Result.Price,
 		Ask:       resp.Result.Ask,
 		Bid:       resp.Result.Bid,

@@ -47,17 +47,17 @@ func (f *Folgory) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
 }
 
-func (f *Folgory) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(f, ppps)
+func (f *Folgory) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(f, pairs)
 }
 
-func (f *Folgory) callOne(pp Pair) (*Tick, error) {
+func (f *Folgory) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
 		URL: folgoryURL,
 	}
 
-	pair := f.localPairName(pp)
+	pairName := f.localPairName(pair)
 
 	// make query
 	res := f.Pool.Query(req)
@@ -78,7 +78,7 @@ func (f *Folgory) callOne(pp Pair) (*Tick, error) {
 
 	var data *folgoryResponse
 	for _, symbol := range resp {
-		if symbol.Symbol == pair {
+		if symbol.Symbol == pairName {
 			data = &symbol
 			break
 		}
@@ -98,7 +98,7 @@ func (f *Folgory) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Timestamp: time.Now(),

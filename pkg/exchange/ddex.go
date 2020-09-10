@@ -52,18 +52,18 @@ func (d *Ddex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (d *Ddex) getURL(pp Pair) string {
-	return fmt.Sprintf(ddexURL, d.localPairName(pp))
+func (d *Ddex) getURL(pair Pair) string {
+	return fmt.Sprintf(ddexURL, d.localPairName(pair))
 }
 
-func (d *Ddex) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(d, ppps)
+func (d *Ddex) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(d, pairs)
 }
 
-func (d *Ddex) callOne(pp Pair) (*Tick, error) {
+func (d *Ddex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: d.getURL(pp),
+		URL: d.getURL(pair),
 	}
 
 	// make query
@@ -96,7 +96,7 @@ func (d *Ddex) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Ask:       ask,
 		Bid:       bid,
 		Price:     bid,

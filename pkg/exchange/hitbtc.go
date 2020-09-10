@@ -45,18 +45,18 @@ func (h *Hitbtc) localPairName(pair Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
 }
 
-func (h *Hitbtc) getURL(pp Pair) string {
-	return fmt.Sprintf(hitbtcURL, h.localPairName(pp))
+func (h *Hitbtc) getURL(pair Pair) string {
+	return fmt.Sprintf(hitbtcURL, h.localPairName(pair))
 }
 
-func (h *Hitbtc) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(h, ppps)
+func (h *Hitbtc) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(h, pairs)
 }
 
-func (h *Hitbtc) callOne(pp Pair) (*Tick, error) {
+func (h *Hitbtc) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: h.getURL(pp),
+		URL: h.getURL(pair),
 	}
 
 	// make query
@@ -95,7 +95,7 @@ func (h *Hitbtc) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Ask:       ask,

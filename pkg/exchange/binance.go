@@ -45,18 +45,18 @@ func (b *Binance) localPairName(pair Pair) string {
 	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
 }
 
-func (b *Binance) getURL(pp Pair) string {
-	return fmt.Sprintf(binanceURL, b.localPairName(pp))
+func (b *Binance) getURL(pair Pair) string {
+	return fmt.Sprintf(binanceURL, b.localPairName(pair))
 }
 
-func (b *Binance) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(b, ppps)
+func (b *Binance) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(b, pairs)
 }
 
-func (b *Binance) callOne(pp Pair) (*Tick, error) {
+func (b *Binance) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: b.getURL(pp),
+		URL: b.getURL(pair),
 	}
 
 	// make query
@@ -80,7 +80,7 @@ func (b *Binance) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Timestamp: time.Now(),
 	}, nil

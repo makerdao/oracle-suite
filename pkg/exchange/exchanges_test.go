@@ -48,10 +48,10 @@ func (suite *ExchangesSuite) TestCallWithMissingExchange() {
 	cr := suite.set.Call(map[string][]Pair{"x": {{}}})
 	assert.Error(suite.T(), cr["x"][0].Error)
 
-	pp := Pair{Quote: "A", Base: "B"}
-	cr = suite.set.Call(map[string][]Pair{"x": {pp}})
+	pair := Pair{Quote: "A", Base: "B"}
+	cr = suite.set.Call(map[string][]Pair{"x": {pair}})
 
-	assert.Equal(suite.T(), pp, cr["x"][0].Tick.Pair)
+	assert.Equal(suite.T(), pair, cr["x"][0].Tick.Pair)
 	assert.Error(suite.T(), cr["x"][0].Error)
 }
 
@@ -63,8 +63,8 @@ func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 
 	suite.pool.MockResp(resp)
 
-	pp := Pair{Base: "BTC", Quote: "ETH"}
-	cr := suite.set.Call(map[string][]Pair{"binance": {pp}})
+	pair := Pair{Base: "BTC", Quote: "ETH"}
+	cr := suite.set.Call(map[string][]Pair{"binance": {pair}})
 
 	assert.Error(suite.T(), cr["binance"][0].Error)
 }
@@ -79,11 +79,11 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 
 	suite.pool.MockResp(resp)
 
-	pp := Pair{Quote: "BTC", Base: "ETH"}
-	cr := suite.set.Call(map[string][]Pair{"binance": {pp}})
+	pair := Pair{Quote: "BTC", Base: "ETH"}
+	cr := suite.set.Call(map[string][]Pair{"binance": {pair}})
 
 	assert.NoError(suite.T(), cr["binance"][0].Error)
-	assert.EqualValues(suite.T(), pp, cr["binance"][0].Tick.Pair)
+	assert.EqualValues(suite.T(), pair, cr["binance"][0].Tick.Pair)
 	assert.EqualValues(suite.T(), price, cr["binance"][0].Tick.Price)
 }
 

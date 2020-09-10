@@ -69,17 +69,17 @@ func (u *Uniswap) getURL(_ Pair) string {
 	return uniswapURL
 }
 
-func (u *Uniswap) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(u, ppps)
+func (u *Uniswap) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(u, pairs)
 }
 
-func (u *Uniswap) callOne(pp Pair) (*Tick, error) {
+func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
 	var err error
-	pair := u.localPairName(pp)
-	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`, pair)
+	pairName := u.localPairName(pair)
+	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`, pairName)
 
 	req := &query.HTTPRequest{
-		URL:    u.getURL(pp),
+		URL:    u.getURL(pair),
 		Method: "POST",
 		Body:   bytes.NewBuffer([]byte(body)),
 	}
@@ -102,7 +102,7 @@ func (u *Uniswap) callOne(pp Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse uniswap response: no pairs %s", res.Body)
 	}
 	// Due to API for some pairs like `KNC/ETH` we have to take `token0Price` field rather than `token1Price`
-	priceStr := getPriceByPair(pp, resp.Data.Pairs[0])
+	priceStr := getPriceByPair(pair, resp.Data.Pairs[0])
 	if priceStr == "" {
 		return nil, fmt.Errorf("failed to parse uniswap price: %s", res.Body)
 	}
@@ -113,7 +113,7 @@ func (u *Uniswap) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Timestamp: time.Now(),
 	}, nil

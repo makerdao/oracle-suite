@@ -56,18 +56,18 @@ func (k *Kyber) localPairName(pair Pair) string {
 
 const refQty = 2.5
 
-func (k *Kyber) getURL(pp Pair) string {
-	return fmt.Sprintf(kyberURL, k.localPairName(pp), refQty)
+func (k *Kyber) getURL(pair Pair) string {
+	return fmt.Sprintf(kyberURL, k.localPairName(pair), refQty)
 }
 
-func (k *Kyber) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(k, ppps)
+func (k *Kyber) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(k, pairs)
 }
 
-func (k *Kyber) callOne(pp Pair) (*Tick, error) {
+func (k *Kyber) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: k.getURL(pp),
+		URL: k.getURL(pair),
 	}
 
 	// make query
@@ -93,7 +93,7 @@ func (k *Kyber) callOne(pp Pair) (*Tick, error) {
 	result := resp.Result[0]
 
 	if len(result.SrcQty) == 0 || len(result.DstQty) == 0 {
-		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.String(), result)
+		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pair.String(), result)
 	}
 
 	if result.SrcQty[0] <= 0 {
@@ -108,13 +108,13 @@ func (k *Kyber) callOne(pp Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
 	}
 
-	if result.Dst != k.localPairName(pp) {
+	if result.Dst != k.localPairName(pair) {
 		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
 	}
 
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     result.SrcQty[0] / result.DstQty[0],
 		Volume24h: result.DstQty[0],
 		Timestamp: time.Now(),

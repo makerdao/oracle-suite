@@ -45,18 +45,18 @@ func (h *Huobi) localPairName(pair Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (h *Huobi) getURL(pp Pair) string {
-	return fmt.Sprintf(huobiURL, h.localPairName(pp))
+func (h *Huobi) getURL(pair Pair) string {
+	return fmt.Sprintf(huobiURL, h.localPairName(pair))
 }
 
-func (h *Huobi) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(h, ppps)
+func (h *Huobi) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(h, pairs)
 }
 
-func (h *Huobi) callOne(pp Pair) (*Tick, error) {
+func (h *Huobi) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: h.getURL(pp),
+		URL: h.getURL(pair),
 	}
 
 	res := h.Pool.Query(req)
@@ -80,7 +80,7 @@ func (h *Huobi) callOne(pp Pair) (*Tick, error) {
 	}
 
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     resp.Tick.Bid[0],
 		Volume24h: resp.Volume,
 		Timestamp: time.Unix(resp.Timestamp/1000, 0),

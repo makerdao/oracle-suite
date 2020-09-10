@@ -55,13 +55,13 @@ func (suite *HuobiSuite) TestLocalPair() {
 }
 
 func (suite *HuobiSuite) TestFailOnWrongInput() {
-	// wrong pp
+	// wrong pair
 	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
@@ -70,7 +70,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
@@ -78,7 +78,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -86,7 +86,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"error"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -94,7 +94,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -102,7 +102,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"1","ts":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -110,17 +110,17 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"1","ts":2,"tick":{"bid":["abc"]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *HuobiSuite) TestSuccessResponse() {
-	pp := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.3, cr[0].Tick.Volume24h)

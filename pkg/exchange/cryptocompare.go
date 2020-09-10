@@ -33,18 +33,18 @@ type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-func (c *CryptoCompare) getURL(pp Pair) string {
-	return fmt.Sprintf(cryptoCompareURL, pp.Base, pp.Quote)
+func (c *CryptoCompare) getURL(pair Pair) string {
+	return fmt.Sprintf(cryptoCompareURL, pair.Base, pair.Quote)
 }
 
-func (c *CryptoCompare) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(c, ppps)
+func (c *CryptoCompare) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(c, pairs)
 }
 
-func (c *CryptoCompare) callOne(pp Pair) (*Tick, error) {
+func (c *CryptoCompare) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: c.getURL(pp),
+		URL: c.getURL(pair),
 	}
 
 	// make query
@@ -62,14 +62,14 @@ func (c *CryptoCompare) callOne(pp Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse CryptoCompare response: %w", err)
 	}
 
-	price, ok := resp[pp.Quote]
+	price, ok := resp[pair.Quote]
 	if !ok {
-		return nil, fmt.Errorf("failed to get price for %s: %s", pp.Quote, res.Body)
+		return nil, fmt.Errorf("failed to get price for %s: %s", pair.Quote, res.Body)
 	}
 
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Timestamp: time.Now(),
 	}, nil

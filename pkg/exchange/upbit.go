@@ -46,18 +46,18 @@ func (u *Upbit) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
 }
 
-func (u *Upbit) getURL(pp Pair) string {
-	return fmt.Sprintf(upbitURL, u.localPairName(pp))
+func (u *Upbit) getURL(pair Pair) string {
+	return fmt.Sprintf(upbitURL, u.localPairName(pair))
 }
 
-func (u *Upbit) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(u, ppps)
+func (u *Upbit) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(u, pairs)
 }
 
-func (u *Upbit) callOne(pp Pair) (*Tick, error) {
+func (u *Upbit) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: u.getURL(pp),
+		URL: u.getURL(pair),
 	}
 
 	// make query
@@ -80,7 +80,7 @@ func (u *Upbit) callOne(pp Pair) (*Tick, error) {
 	data := resp[0]
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     data.Price,
 		Volume24h: data.Volume,
 		Timestamp: time.Unix(data.Timestamp/1000, 0),

@@ -53,18 +53,18 @@ func (g *Gateio) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
-func (g *Gateio) getURL(pp Pair) string {
-	return fmt.Sprintf(gateioURL, g.localPairName(pp))
+func (g *Gateio) getURL(pair Pair) string {
+	return fmt.Sprintf(gateioURL, g.localPairName(pair))
 }
 
-func (g *Gateio) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(g, ppps)
+func (g *Gateio) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(g, pairs)
 }
 
-func (g *Gateio) callOne(pp Pair) (*Tick, error) {
+func (g *Gateio) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: g.getURL(pp),
+		URL: g.getURL(pair),
 	}
 
 	// make query
@@ -85,7 +85,7 @@ func (g *Gateio) callOne(pp Pair) (*Tick, error) {
 		return nil, fmt.Errorf("wrong gateio response: %s", res.Body)
 	}
 	// Check pair name
-	if resp[0].Pair != g.localPairName(pp) {
+	if resp[0].Pair != g.localPairName(pair) {
 		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
 	}
 
@@ -110,7 +110,7 @@ func (g *Gateio) callOne(pp Pair) (*Tick, error) {
 
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Ask:       ask,
