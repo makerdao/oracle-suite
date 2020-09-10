@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package command
+package main
 
 import (
 	"testing"
@@ -24,12 +24,12 @@ import (
 func TestFormatTypeValue(t *testing.T) {
 	for ct, st := range formatMap {
 		t.Run(st, func(t *testing.T) {
-			ftv := FormatTypeValue{}
+			ftv := formatTypeValue{}
 			err := ftv.Set(st)
 
 			assert.Nil(t, err)
 			assert.Equal(t, st, ftv.String())
-			assert.Equal(t, ct, ftv.Format)
+			assert.Equal(t, ct, ftv.format)
 		})
 	}
 }
