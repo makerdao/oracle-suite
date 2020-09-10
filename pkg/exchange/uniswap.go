@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Uniswap URL
@@ -40,8 +39,9 @@ type uniswapResponse struct {
 	}
 }
 
-func getPriceByPair(pair model.Pair, res *uniswapPairResponse) string {
-	if pair == *model.NewPair("KNC", "ETH") {
+func getPriceByPair(pair Pair, res *uniswapPairResponse) string {
+	p := Pair{Base: "KNC", Quote: "ETH"}
+	if pair == p {
 		return res.Price0
 	}
 	return res.Price
@@ -52,34 +52,30 @@ type Uniswap struct {
 	Pool query.WorkerPool
 }
 
-func (u *Uniswap) localPairName(pair *model.Pair) string {
-	switch *pair {
-	case *model.NewPair("COMP", "ETH"):
+func (u *Uniswap) localPairName(pair Pair) string {
+	switch pair {
+	case Pair{Base: "COMP", Quote: "ETH"}:
 		return "0xcffdded873554f362ac02f8fb1f02e5ada10516f"
-	case *model.NewPair("LRC", "ETH"):
+	case Pair{Base: "LRC", Quote: "ETH"}:
 		return "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70"
-	case *model.NewPair("KNC", "ETH"):
+	case Pair{Base: "KNC", Quote: "ETH"}:
 		return "0xf49c43ae0faf37217bdcb00df478cf793edd6687"
 	default:
 		return pair.String()
 	}
 }
 
-func (u *Uniswap) getURL(_ *model.PotentialPricePoint) string {
+func (u *Uniswap) getURL(_ Pair) string {
 	return uniswapURL
 }
 
-func (u *Uniswap) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (u *Uniswap) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(u, ppps)
 }
 
-func (u *Uniswap) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
-	pair := u.localPairName(pp.Pair)
+func (u *Uniswap) callOne(pp Pair) (*Tick, error) {
+	var err error
+	pair := u.localPairName(pp)
 	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`, pair)
 
 	req := &query.HTTPRequest{
@@ -106,7 +102,7 @@ func (u *Uniswap) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 		return nil, fmt.Errorf("failed to parse uniswap response: no pairs %s", res.Body)
 	}
 	// Due to API for some pairs like `KNC/ETH` we have to take `token0Price` field rather than `token1Price`
-	priceStr := getPriceByPair(*pp.Pair, resp.Data.Pairs[0])
+	priceStr := getPriceByPair(pp, resp.Data.Pairs[0])
 	if priceStr == "" {
 		return nil, fmt.Errorf("failed to parse uniswap price: %s", res.Body)
 	}
@@ -115,11 +111,10 @@ func (u *Uniswap) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse price from uniswap exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // BitTrex URL
@@ -42,24 +41,20 @@ type BitTrex struct {
 	Pool query.WorkerPool
 }
 
-func (b *BitTrex) localPairName(pair *model.Pair) string {
+func (b *BitTrex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
 }
 
-func (b *BitTrex) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(bittrexURL, b.localPairName(pp.Pair))
+func (b *BitTrex) getURL(pp Pair) string {
+	return fmt.Sprintf(bittrexURL, b.localPairName(pp))
 }
 
-func (b *BitTrex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (b *BitTrex) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(b, ppps)
 }
 
-func (b *BitTrex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (b *BitTrex) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: b.getURL(pp),
 	}
@@ -81,13 +76,12 @@ func (b *BitTrex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, err
 	if !resp.Success {
 		return nil, fmt.Errorf("wrong response from bittrex %v", resp)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     resp.Result.Last,
 		Ask:       resp.Result.Ask,
 		Bid:       resp.Result.Bid,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

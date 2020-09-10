@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Fx URL
@@ -41,24 +40,20 @@ func (f *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (f *Fx) localPairName(pair *model.Pair) string {
+func (f *Fx) localPairName(pair Pair) string {
 	return f.renameSymbol(pair.Base)
 }
 
-func (f *Fx) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(fxURL, f.localPairName(pp.Pair))
+func (f *Fx) getURL(pp Pair) string {
+	return fmt.Sprintf(fxURL, f.localPairName(pp))
 }
 
-func (f *Fx) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (f *Fx) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(f, ppps)
 }
 
-func (f *Fx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (f *Fx) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: f.getURL(pp),
 	}
@@ -80,15 +75,14 @@ func (f *Fx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
 	if resp.Rates == nil {
 		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
 	}
-	price, ok := resp.Rates[f.renameSymbol(pp.Pair.Quote)]
+	price, ok := resp.Rates[f.renameSymbol(pp.Quote)]
 	if !ok {
-		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body)
+		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Quote, res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

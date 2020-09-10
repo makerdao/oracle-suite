@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -51,25 +50,19 @@ func (suite *HitbtcSuite) TearDownTest() {
 }
 
 func (suite *HitbtcSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTCUSD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTCETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTCUSD", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *HitbtcSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("hitbtc", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,15 +70,15 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -93,7 +86,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"last":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -101,7 +94,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"last":"1","ask":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -109,7 +102,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"last":"1","ask":"1","volume":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -117,25 +110,23 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"last":"1","ask":"1","volume":"1","bid":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *HitbtcSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("hitbtc", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","timestamp":"2020-04-24T20:09:36.229Z"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Equal(2.0, cr[0].PricePoint.Ask)
-	suite.Equal(3.0, cr[0].PricePoint.Volume)
-	suite.Equal(4.0, cr[0].PricePoint.Bid)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(2))
+	suite.Equal(1.0, cr[0].Tick.Price)
+	suite.Equal(2.0, cr[0].Tick.Ask)
+	suite.Equal(3.0, cr[0].Tick.Volume24h)
+	suite.Equal(4.0, cr[0].Tick.Bid)
+	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *HitbtcSuite) TestRealAPICall() {

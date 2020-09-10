@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -51,20 +50,14 @@ func (suite *CryptoCompareSuite) TearDownTest() {
 }
 
 func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -72,8 +65,8 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	for n, r := range [][]byte{
 		// invalid response
@@ -88,24 +81,22 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+			cr = suite.exchange.Call([]Pair{pp})
 			suite.Error(cr[0].Error)
 		})
 	}
 }
 
 func (suite *CryptoCompareSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"ETH":1.1}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.1, cr[0].PricePoint.Price)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
+	suite.Equal(1.1, cr[0].Tick.Price)
+	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Kraken URL
@@ -42,18 +41,6 @@ type krakenResponse struct {
 // Kraken exchange handler
 type Kraken struct {
 	Pool query.WorkerPool
-}
-
-func (k *Kraken) getPair(pp *model.PotentialPricePoint) string {
-	if pp.Exchange == nil {
-		return k.localPairName(pp.Pair)
-	}
-
-	pair, ok := pp.Exchange.Config["pair"]
-	if !ok || pair == "" {
-		pair = k.localPairName(pp.Pair)
-	}
-	return pair
 }
 
 func (k *Kraken) getSymbol(symbol string) string {
@@ -95,28 +82,23 @@ func (k *Kraken) getSymbol(symbol string) string {
 	}
 }
 
-func (k *Kraken) localPairName(pair *model.Pair) string {
+func (k *Kraken) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
 }
 
-func (k *Kraken) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(krakenURL, k.getPair(pp))
+func (k *Kraken) getURL(pp Pair) string {
+	return fmt.Sprintf(krakenURL, k.localPairName(pp))
 }
 
-func (k *Kraken) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (k *Kraken) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(k, ppps)
 }
 
-func (k *Kraken) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (k *Kraken) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: k.getURL(pp),
 	}
-	pair := k.getPair(pp)
 
 	// make query
 	res := k.Pool.Query(req)
@@ -135,12 +117,12 @@ func (k *Kraken) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	if len(resp.Errors) > 0 {
 		return nil, fmt.Errorf("kraken API error: %s", strings.Join(resp.Errors, " "))
 	}
-	result, ok := resp.Result[pair]
+	result, ok := resp.Result[k.localPairName(pp)]
 	if !ok || result == nil {
 		return nil, fmt.Errorf("wrong kraken exchange response. No resulting data %+v", resp)
 	}
 	if len(result.Price) == 0 || len(result.Volume) == 0 {
-		return nil, fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pair, result)
+		return nil, fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pp, result)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(result.Price[0], 64)
@@ -152,12 +134,11 @@ func (k *Kraken) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from kraken exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
-		Timestamp: time.Now().Unix(),
+		Volume24h: volume,
+		Timestamp: time.Now(),
 	}, nil
 }

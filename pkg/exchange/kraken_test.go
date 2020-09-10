@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -51,25 +50,19 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("XXBTXETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("XXBTZUSD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("XXBTXETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("XXBTZUSD", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("kraken", "DAI", "USD")
+	pp := Pair{Base: "DAI", Quote: "USD"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,15 +70,15 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error
@@ -93,7 +86,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"error":["abcd"]}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error
@@ -101,7 +94,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"error":[], "result":{}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error
@@ -109,23 +102,21 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *KrakenSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("kraken", "DAI", "USD")
+	pp := Pair{Base: "DAI", Quote: "USD"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Equal(2.0, cr[0].PricePoint.Volume)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
+	suite.Equal(1.0, cr[0].Tick.Price)
+	suite.Equal(2.0, cr[0].Tick.Volume24h)
+	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *KrakenSuite) TestRealAPICall() {

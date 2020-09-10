@@ -20,8 +20,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real exchanges API")
@@ -33,19 +31,6 @@ type Suite interface {
 	Exchange() Handler
 }
 
-func newPotentialPricePoint(exchangeName, base, quote string) *model.PotentialPricePoint {
-	p := &model.Pair{
-		Base:  base,
-		Quote: quote,
-	}
-	return &model.PotentialPricePoint{
-		Exchange: &model.Exchange{
-			Name: exchangeName,
-		},
-		Pair: p,
-	}
-}
-
 func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
 	if !*testAPICalls {
 		suite.T().SkipNow()
@@ -53,9 +38,9 @@ func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
 
 	suite.Assert().IsType(suite.Exchange(), exchange)
 
-	ppp := newPotentialPricePoint("exchange", base, quote)
-	cr := exchange.Call([]*model.PotentialPricePoint{ppp})
+	ppp := Pair{Base: base, Quote: quote}
+	cr := exchange.Call([]Pair{ppp})
 
 	suite.Assert().NoError(cr[0].Error)
-	suite.Assert().Greater(cr[0].PricePoint.Price, float64(0))
+	suite.Assert().Greater(cr[0].Tick.Price, float64(0))
 }

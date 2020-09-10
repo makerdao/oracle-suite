@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Coinbase URL
@@ -41,24 +40,20 @@ type CoinbasePro struct {
 	Pool query.WorkerPool
 }
 
-func (c *CoinbasePro) localPairName(pair *model.Pair) string {
+func (c *CoinbasePro) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
 }
 
-func (c *CoinbasePro) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp.Pair))
+func (c *CoinbasePro) getURL(pp Pair) string {
+	return fmt.Sprintf(coinbaseProURL, c.localPairName(pp))
 }
 
-func (c *CoinbasePro) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (c *CoinbasePro) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(c, ppps)
 }
 
-func (c *CoinbasePro) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *CoinbasePro) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: c.getURL(pp),
 	}
@@ -97,14 +92,13 @@ func (c *CoinbasePro) callOne(pp *model.PotentialPricePoint) (*model.PricePoint,
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from coinbasepro exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
+		Volume24h: volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

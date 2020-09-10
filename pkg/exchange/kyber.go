@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 const kyberURL = "https://api.kyber.network/buy_rate?id=%s&qty=%g"
@@ -44,33 +43,29 @@ type Kyber struct {
 	Pool query.WorkerPool
 }
 
-func (k *Kyber) localPairName(pair *model.Pair) string {
-	var addrList = map[model.Pair]string{
+func (k *Kyber) localPairName(pair Pair) string {
+	var addrList = map[Pair]string{
 		{Base: "DGX", Quote: "ETH"}:  "0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf",
 		{Base: "KNC", Quote: "ETH"}:  "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
 		{Base: "LEND", Quote: "ETH"}: "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
 		{Base: "MKR", Quote: "ETH"}:  "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
 		{Base: "WBTC", Quote: "ETH"}: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
 	}
-	return addrList[*pair]
+	return addrList[pair]
 }
 
 const refQty = 2.5
 
-func (k *Kyber) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(kyberURL, k.localPairName(pp.Pair), refQty)
+func (k *Kyber) getURL(pp Pair) string {
+	return fmt.Sprintf(kyberURL, k.localPairName(pp), refQty)
 }
 
-func (k *Kyber) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (k *Kyber) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(k, ppps)
 }
 
-func (k *Kyber) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (k *Kyber) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: k.getURL(pp),
 	}
@@ -98,7 +93,7 @@ func (k *Kyber) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 	result := resp.Result[0]
 
 	if len(result.SrcQty) == 0 || len(result.DstQty) == 0 {
-		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.Pair.String(), result)
+		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pp.String(), result)
 	}
 
 	if result.SrcQty[0] <= 0 {
@@ -113,16 +108,15 @@ func (k *Kyber) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error
 		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
 	}
 
-	if result.Dst != k.localPairName(pp.Pair) {
+	if result.Dst != k.localPairName(pp) {
 		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     result.SrcQty[0] / result.DstQty[0],
-		Volume:    result.DstQty[0],
-		Timestamp: time.Now().Unix(),
+		Volume24h: result.DstQty[0],
+		Timestamp: time.Now(),
 	}, nil
 }

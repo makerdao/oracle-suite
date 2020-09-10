@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/pkg/exchange"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 type Ingestable interface {
@@ -44,20 +43,16 @@ func (i *Ingestor) Clear(node Node) {
 	})
 }
 
-// TODO: Temp function, to remove
 func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
-	p, _ := model.NewPairFromString(ep.Pair.Base + "/" + ep.Pair.Quote)
-	ppp := &model.PotentialPricePoint{
-		Pair: p,
-		Exchange: &model.Exchange{
-			Name:   ep.Exchange,
-			Config: nil,
-		},
-	}
+	// TODO: update for batch requests
+	crs := i.set.Call(map[string][]exchange.Pair{
+		ep.Exchange: {{
+			Quote: ep.Pair.Quote,
+			Base:  ep.Pair.Base,
+		}},
+	})
 
-	cr := i.set.Call([]*model.PotentialPricePoint{ppp})
-
-	if len(cr) != 1 {
+	if len(crs[ep.Exchange]) != 1 {
 		return ExchangeTick{
 			Tick: Tick{
 				Pair: ep.Pair,
@@ -67,26 +62,28 @@ func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
 		}
 	}
 
-	if cr[0].Error != nil {
+	cr := crs[ep.Exchange][0]
+
+	if cr.Error != nil {
 		return ExchangeTick{
 			Tick: Tick{
 				Pair: ep.Pair,
 			},
 			Exchange: ep.Exchange,
-			Error:    cr[0].Error,
+			Error:    cr.Error,
 		}
 	}
 
 	return ExchangeTick{
 		Tick: Tick{
 			Pair:      ep.Pair,
-			Price:     cr[0].PricePoint.Price,
-			Bid:       cr[0].PricePoint.Bid,
-			Ask:       cr[0].PricePoint.Ask,
-			Volume24h: cr[0].PricePoint.Volume,
-			Timestamp: time.Unix(cr[0].PricePoint.Timestamp, 0),
+			Price:     cr.Tick.Price,
+			Bid:       cr.Tick.Bid,
+			Ask:       cr.Tick.Ask,
+			Volume24h: cr.Tick.Volume24h,
+			Timestamp: cr.Tick.Timestamp,
 		},
 		Exchange: ep.Exchange,
-		Error:    cr[0].Error,
+		Error:    cr.Error,
 	}
 }

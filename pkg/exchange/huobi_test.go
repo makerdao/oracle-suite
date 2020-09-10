@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -51,25 +50,19 @@ func (suite *HuobiSuite) TearDownTest() {
 }
 
 func (suite *HuobiSuite) TestLocalPair() {
-	suite.EqualValues("btceth", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("btcusd", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("btceth", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("btcusd", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *HuobiSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("huobi", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,15 +70,15 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -93,7 +86,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"error"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -101,7 +94,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -109,7 +102,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"1","ts":"abc"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
@@ -117,24 +110,22 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"status":"success","vol":"1","ts":2,"tick":{"bid":["abc"]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *HuobiSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("huobi", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.3, cr[0].PricePoint.Volume)
-	suite.Equal(2.1, cr[0].PricePoint.Price)
-	suite.Equal(cr[0].PricePoint.Timestamp, int64(2))
+	suite.Equal(1.3, cr[0].Tick.Volume24h)
+	suite.Equal(2.1, cr[0].Tick.Price)
+	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *HuobiSuite) TestRealAPICall() {

@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Exchange URL
@@ -43,24 +42,20 @@ type Ftx struct {
 	Pool query.WorkerPool
 }
 
-func (f *Ftx) localPairName(pair *model.Pair) string {
+func (f *Ftx) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }
 
-func (f *Ftx) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(ftxURL, f.localPairName(pp.Pair))
+func (f *Ftx) getURL(pp Pair) string {
+	return fmt.Sprintf(ftxURL, f.localPairName(pp))
 }
 
-func (f *Ftx) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (f *Ftx) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(f, ppps)
 }
 
-func (f *Ftx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (f *Ftx) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: f.getURL(pp),
 	}
@@ -80,18 +75,17 @@ func (f *Ftx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) 
 		return nil, fmt.Errorf("failed to parse ftx response: %w", err)
 	}
 
-	if !resp.Success || resp.Result.Name != f.localPairName(pp.Pair) {
+	if !resp.Success || resp.Result.Name != f.localPairName(pp) {
 		return nil, fmt.Errorf("failed to get correct response from ftx: %s", res.Body)
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     resp.Result.Price,
 		Ask:       resp.Result.Ask,
 		Bid:       resp.Result.Bid,
-		Volume:    resp.Result.Volume,
-		Timestamp: time.Now().Unix(),
+		Volume24h: resp.Result.Volume,
+		Timestamp: time.Now(),
 	}, nil
 }

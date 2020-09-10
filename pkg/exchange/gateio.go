@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Gateio URL
@@ -50,24 +49,20 @@ func (g *Gateio) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (g *Gateio) localPairName(pair *model.Pair) string {
+func (g *Gateio) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
-func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
+func (g *Gateio) getURL(pp Pair) string {
+	return fmt.Sprintf(gateioURL, g.localPairName(pp))
 }
 
-func (g *Gateio) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (g *Gateio) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(g, ppps)
 }
 
-func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (g *Gateio) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: g.getURL(pp),
 	}
@@ -90,7 +85,7 @@ func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 		return nil, fmt.Errorf("wrong gateio response: %s", res.Body)
 	}
 	// Check pair name
-	if resp[0].Pair != g.localPairName(pp.Pair) {
+	if resp[0].Pair != g.localPairName(pp) {
 		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
 	}
 
@@ -113,14 +108,13 @@ func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
 	}
 
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
+		Volume24h: volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

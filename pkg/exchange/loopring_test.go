@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -82,25 +81,19 @@ func (suite *LoopringSuite) TearDownTest() {
 }
 
 func (suite *LoopringSuite) TestLocalPair() {
-	suite.EqualValues("USDT-DAI", suite.exchange.localPairName(model.NewPair("USDT", "DAI")))
-	suite.EqualValues("ETH-DAI", suite.exchange.localPairName(model.NewPair("ETH", "DAI")))
+	suite.EqualValues("USDT-DAI", suite.exchange.localPairName(Pair{Base: "USDT", Quote: "DAI"}))
+	suite.EqualValues("ETH-DAI", suite.exchange.localPairName(Pair{Base: "ETH", Quote: "DAI"}))
 }
 
 func (suite *LoopringSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("loopring", "LRC", "USDT")
+	pp := Pair{Base: "LRC", Quote: "USDT"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -108,15 +101,15 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error unmarshal
@@ -124,7 +117,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte("{}"),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error wrong code
@@ -132,7 +125,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"resultInfo":{"code":1,"message":"SUCCESS"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error wrong message
@@ -140,7 +133,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"resultInfo":{"code":0,"message":"Wrong"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	// Error no data
@@ -148,32 +141,30 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 	// Error no pair in data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"},"data":{}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *LoopringSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("loopring", "LRC", "USDT")
+	pp := Pair{Base: "LRC", Quote: "USDT"}
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(0.1221, cr[0].PricePoint.Price)
-	suite.Equal(181251.50, cr[0].PricePoint.Volume)
-	suite.Equal(0.1221, cr[0].PricePoint.Ask)
-	suite.Equal(0.1215, cr[0].PricePoint.Bid)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(2))
+	suite.Equal(0.1221, cr[0].Tick.Price)
+	suite.Equal(181251.50, cr[0].Tick.Volume24h)
+	suite.Equal(0.1221, cr[0].Tick.Ask)
+	suite.Equal(0.1215, cr[0].Tick.Bid)
+	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *LoopringSuite) TestRealAPICall() {

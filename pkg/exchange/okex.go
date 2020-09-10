@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Okex URL
@@ -41,32 +40,20 @@ type Okex struct {
 	Pool query.WorkerPool
 }
 
-func (o *Okex) getPair(pp *model.PotentialPricePoint) string {
-	pair, ok := pp.Exchange.Config["pair"]
-	if !ok || pair == "" {
-		pair = o.localPairName(pp.Pair)
-	}
-	return pair
-}
-
-func (o *Okex) localPairName(pair *model.Pair) string {
+func (o *Okex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (o *Okex) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(okexURL, o.getPair(pp))
+func (o *Okex) getURL(pp Pair) string {
+	return fmt.Sprintf(okexURL, o.localPairName(pp))
 }
 
-func (o *Okex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (o *Okex) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(o, ppps)
 }
 
-func (o *Okex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (o *Okex) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: o.getURL(pp),
 	}
@@ -105,14 +92,13 @@ func (o *Okex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse volume from okex exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Timestamp: resp.Timestamp.Unix(),
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
+		Timestamp: resp.Timestamp,
 		Price:     price,
 		Ask:       ask,
 		Bid:       bid,
-		Volume:    volume,
+		Volume24h: volume,
 	}, nil
 }

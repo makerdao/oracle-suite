@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Hitbtc URL
@@ -42,24 +41,20 @@ type Hitbtc struct {
 	Pool query.WorkerPool
 }
 
-func (h *Hitbtc) localPairName(pair *model.Pair) string {
+func (h *Hitbtc) localPairName(pair Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
 }
 
-func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
+func (h *Hitbtc) getURL(pp Pair) string {
+	return fmt.Sprintf(hitbtcURL, h.localPairName(pp))
 }
 
-func (h *Hitbtc) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (h *Hitbtc) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(h, ppps)
 }
 
-func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (h *Hitbtc) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: h.getURL(pp),
 	}
@@ -98,14 +93,13 @@ func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from hitbtc exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Price:     price,
-		Volume:    volume,
+		Volume24h: volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: resp.Timestamp.Unix(),
+		Timestamp: resp.Timestamp,
 	}, nil
 }

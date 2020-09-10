@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Ddex URL
@@ -49,24 +48,20 @@ type Ddex struct {
 	Pool query.WorkerPool
 }
 
-func (d *Ddex) localPairName(pair *model.Pair) string {
+func (d *Ddex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (d *Ddex) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(ddexURL, d.localPairName(pp.Pair))
+func (d *Ddex) getURL(pp Pair) string {
+	return fmt.Sprintf(ddexURL, d.localPairName(pp))
 }
 
-func (d *Ddex) Call(ppps []*model.PotentialPricePoint) []CallResult {
+func (d *Ddex) Call(ppps []Pair) []CallResult {
 	return callSinglePairExchange(d, ppps)
 }
 
-func (d *Ddex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (d *Ddex) callOne(pp Pair) (*Tick, error) {
+	var err error
 	req := &query.HTTPRequest{
 		URL: d.getURL(pp),
 	}
@@ -99,13 +94,12 @@ func (d *Ddex) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from ddex exchange %s", res.Body)
 	}
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// building Tick
+	return &Tick{
+		Pair:      pp,
 		Ask:       ask,
 		Bid:       bid,
 		Price:     bid,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}, nil
 }

@@ -20,13 +20,13 @@ import (
 	"fmt"
 )
 
-var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil PotentialPricePoint")
+var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil ExchangePair")
 
 //nolint:deadcode,varcheck,unused
-var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong PotentialPricePoint")
+var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong ExchangePair")
 
 //nolint:deadcode,varcheck,unused
-var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for nil exchange in given PotentialPricePoint")
+var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for nil exchange in given ExchangePair")
 
 var errEmptyExchangeResponse = fmt.Errorf("empty exchange response received")
 

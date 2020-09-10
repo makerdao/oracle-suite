@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -51,25 +50,19 @@ func (suite *OkexSuite) TearDownTest() {
 }
 
 func (suite *OkexSuite) TestLocalPair() {
-	suite.EqualValues("BTC-ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-	suite.NotEqual("BTC-USDC", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTC-ETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.NotEqual("BTC-USDC", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *OkexSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
 	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
+	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := newPotentialPricePoint("okex", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -77,15 +70,15 @@ func (suite *OkexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	cr = suite.exchange.Call([]Pair{pp})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]Pair{pp})
 	suite.Error(cr[0].Error)
 
 	for n, r := range [][]byte{
@@ -169,14 +162,14 @@ func (suite *OkexSuite) TestFailOnWrongInput() {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
 			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+			cr = suite.exchange.Call([]Pair{pp})
 			suite.Error(cr[0].Error)
 		})
 	}
 }
 
 func (suite *OkexSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("okex", "BTC", "ETH")
+	pp := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{
 			"best_ask":"10000.5",
@@ -198,15 +191,13 @@ func (suite *OkexSuite) TestSuccessResponse() {
 		}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]Pair{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(int64(1596708166), cr[0].PricePoint.Timestamp)
-	suite.Equal(10000.4, cr[0].PricePoint.Price)
-	suite.Equal(50000.1234, cr[0].PricePoint.Volume)
-	suite.Equal(10000.4, cr[0].PricePoint.Bid)
-	suite.Equal(10000.5, cr[0].PricePoint.Ask)
+	suite.Equal(int64(1596708166), cr[0].Tick.Timestamp.Unix())
+	suite.Equal(10000.4, cr[0].Tick.Price)
+	suite.Equal(50000.1234, cr[0].Tick.Volume24h)
+	suite.Equal(10000.4, cr[0].Tick.Bid)
+	suite.Equal(10000.5, cr[0].Tick.Ask)
 }
 
 func (suite *OkexSuite) TestRealAPICall() {
