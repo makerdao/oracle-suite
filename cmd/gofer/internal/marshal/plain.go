@@ -42,7 +42,7 @@ func newPlain() *plain {
 
 		switch i := item.(type) {
 		case graph.IndirectTick:
-			plainHandleTrick(&ret, i)
+			plainHandleTick(&ret, i)
 		case graph.Aggregator:
 			plainHandleGraph(&ret, i)
 		case string:
@@ -70,7 +70,7 @@ func (j *plain) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func plainHandleTrick(ret *[]marshalledItem, tick graph.IndirectTick) {
+func plainHandleTick(ret *[]marshalledItem, tick graph.IndirectTick) {
 	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
 }
 
