@@ -45,18 +45,18 @@ func (b *BitTrex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
 }
 
-func (b *BitTrex) getURL(pp Pair) string {
-	return fmt.Sprintf(bittrexURL, b.localPairName(pp))
+func (b *BitTrex) getURL(pair Pair) string {
+	return fmt.Sprintf(bittrexURL, b.localPairName(pair))
 }
 
-func (b *BitTrex) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(b, ppps)
+func (b *BitTrex) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(b, pairs)
 }
 
-func (b *BitTrex) callOne(pp Pair) (*Tick, error) {
+func (b *BitTrex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: b.getURL(pp),
+		URL: b.getURL(pair),
 	}
 
 	// make query
@@ -78,7 +78,7 @@ func (b *BitTrex) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     resp.Result.Last,
 		Ask:       resp.Result.Ask,
 		Bid:       resp.Result.Bid,

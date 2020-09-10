@@ -43,18 +43,18 @@ func (b *Bitfinex) localPairName(pair Pair) string {
 	return pair.Base + pair.Quote
 }
 
-func (b *Bitfinex) getURL(pp Pair) string {
-	return fmt.Sprintf(bitfinexURL, b.localPairName(pp))
+func (b *Bitfinex) getURL(pair Pair) string {
+	return fmt.Sprintf(bitfinexURL, b.localPairName(pair))
 }
 
-func (b *Bitfinex) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(b, ppps)
+func (b *Bitfinex) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(b, pairs)
 }
 
-func (b *Bitfinex) callOne(pp Pair) (*Tick, error) {
+func (b *Bitfinex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: b.getURL(pp),
+		URL: b.getURL(pair),
 	}
 
 	// make query
@@ -78,7 +78,7 @@ func (b *Bitfinex) callOne(pp Pair) (*Tick, error) {
 
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     resp[6],
 		Volume24h: resp[7],
 		Timestamp: time.Now(),

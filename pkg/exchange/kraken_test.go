@@ -55,13 +55,13 @@ func (suite *KrakenSuite) TestLocalPair() {
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
-	// wrong pp
+	// wrong pair
 	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := Pair{Base: "DAI", Quote: "USD"}
+	pair := Pair{Base: "DAI", Quote: "USD"}
 	// nil as response
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
@@ -70,7 +70,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
@@ -78,7 +78,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error
@@ -86,7 +86,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"error":["abcd"]}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error
@@ -94,7 +94,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"error":[], "result":{}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error
@@ -102,17 +102,17 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *KrakenSuite) TestSuccessResponse() {
-	pp := Pair{Base: "DAI", Quote: "USD"}
+	pair := Pair{Base: "DAI", Quote: "USD"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 	suite.Equal(2.0, cr[0].Tick.Volume24h)

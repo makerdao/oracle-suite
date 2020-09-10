@@ -46,7 +46,7 @@ type Kraken struct {
 func (k *Kraken) getSymbol(symbol string) string {
 	symbol = strings.ToUpper(symbol)
 
-	// https://support.kraken.com/hc/en-us/articles/360001185506-How-to-interpret-asset-codes
+	// https://supairort.kraken.com/hc/en-us/articles/360001185506-How-to-interpret-asset-codes
 	switch symbol {
 	case "BTC":
 		return "XXBT"
@@ -86,18 +86,18 @@ func (k *Kraken) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
 }
 
-func (k *Kraken) getURL(pp Pair) string {
-	return fmt.Sprintf(krakenURL, k.localPairName(pp))
+func (k *Kraken) getURL(pair Pair) string {
+	return fmt.Sprintf(krakenURL, k.localPairName(pair))
 }
 
-func (k *Kraken) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(k, ppps)
+func (k *Kraken) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(k, pairs)
 }
 
-func (k *Kraken) callOne(pp Pair) (*Tick, error) {
+func (k *Kraken) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: k.getURL(pp),
+		URL: k.getURL(pair),
 	}
 
 	// make query
@@ -117,12 +117,12 @@ func (k *Kraken) callOne(pp Pair) (*Tick, error) {
 	if len(resp.Errors) > 0 {
 		return nil, fmt.Errorf("kraken API error: %s", strings.Join(resp.Errors, " "))
 	}
-	result, ok := resp.Result[k.localPairName(pp)]
+	result, ok := resp.Result[k.localPairName(pair)]
 	if !ok || result == nil {
 		return nil, fmt.Errorf("wrong kraken exchange response. No resulting data %+v", resp)
 	}
 	if len(result.Price) == 0 || len(result.Volume) == 0 {
-		return nil, fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pp, result)
+		return nil, fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pair, result)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(result.Price[0], 64)
@@ -136,7 +136,7 @@ func (k *Kraken) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Timestamp: time.Now(),

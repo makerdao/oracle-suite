@@ -49,18 +49,18 @@ func (b *Bitstamp) localPairName(pair Pair) string {
 	return strings.ToLower(b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote))
 }
 
-func (b *Bitstamp) getURL(pp Pair) string {
-	return fmt.Sprintf(bitstampURL, b.localPairName(pp))
+func (b *Bitstamp) getURL(pair Pair) string {
+	return fmt.Sprintf(bitstampURL, b.localPairName(pair))
 }
 
-func (b *Bitstamp) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(b, ppps)
+func (b *Bitstamp) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(b, pairs)
 }
 
-func (b *Bitstamp) callOne(pp Pair) (*Tick, error) {
+func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: b.getURL(pp),
+		URL: b.getURL(pair),
 	}
 
 	// make query
@@ -105,7 +105,7 @@ func (b *Bitstamp) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Ask:       ask,

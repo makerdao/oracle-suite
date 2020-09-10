@@ -26,7 +26,7 @@ import (
 type Handler interface {
 	// Call should implement making API request to exchange URL and
 	// collecting/parsing exchange data.
-	Call(ppps []Pair) []CallResult
+	Call(pairs []Pair) []CallResult
 }
 
 type Pair struct {

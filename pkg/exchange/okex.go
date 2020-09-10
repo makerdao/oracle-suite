@@ -44,18 +44,18 @@ func (o *Okex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (o *Okex) getURL(pp Pair) string {
-	return fmt.Sprintf(okexURL, o.localPairName(pp))
+func (o *Okex) getURL(pair Pair) string {
+	return fmt.Sprintf(okexURL, o.localPairName(pair))
 }
 
-func (o *Okex) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(o, ppps)
+func (o *Okex) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(o, pairs)
 }
 
-func (o *Okex) callOne(pp Pair) (*Tick, error) {
+func (o *Okex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: o.getURL(pp),
+		URL: o.getURL(pair),
 	}
 
 	// make query
@@ -94,7 +94,7 @@ func (o *Okex) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Timestamp: resp.Timestamp,
 		Price:     price,
 		Ask:       ask,

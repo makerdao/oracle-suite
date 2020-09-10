@@ -86,13 +86,13 @@ func (suite *LoopringSuite) TestLocalPair() {
 }
 
 func (suite *LoopringSuite) TestFailOnWrongInput() {
-	// wrong pp
+	// wrong pair
 	cr := suite.exchange.Call([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pp := Pair{Base: "LRC", Quote: "USDT"}
+	pair := Pair{Base: "LRC", Quote: "USDT"}
 	// nil as response
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
 
 	// error in response
@@ -101,7 +101,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
@@ -109,7 +109,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(""),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error unmarshal
@@ -117,7 +117,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte("{}"),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error wrong code
@@ -125,7 +125,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"resultInfo":{"code":1,"message":"SUCCESS"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error wrong message
@@ -133,7 +133,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"resultInfo":{"code":0,"message":"Wrong"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error no data
@@ -141,24 +141,24 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 	// Error no pair in data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"},"data":{}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]Pair{pp})
+	cr = suite.exchange.Call([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *LoopringSuite) TestSuccessResponse() {
-	pp := Pair{Base: "LRC", Quote: "USDT"}
+	pair := Pair{Base: "LRC", Quote: "USDT"}
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]Pair{pp})
+	cr := suite.exchange.Call([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(0.1221, cr[0].Tick.Price)
 	suite.Equal(181251.50, cr[0].Tick.Volume24h)

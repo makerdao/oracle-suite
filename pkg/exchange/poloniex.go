@@ -48,21 +48,21 @@ func (p *Poloniex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", p.renameSymbol(pair.Quote), p.renameSymbol(pair.Base))
 }
 
-func (p *Poloniex) getURL(pp Pair) string {
+func (p *Poloniex) getURL(pair Pair) string {
 	return poloniexURL
 }
 
-func (p *Poloniex) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(p, ppps)
+func (p *Poloniex) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(p, pairs)
 }
 
-func (p *Poloniex) callOne(pp Pair) (*Tick, error) {
+func (p *Poloniex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: p.getURL(pp),
+		URL: p.getURL(pair),
 	}
 
-	pair := p.localPairName(pp)
+	pairName := p.localPairName(pair)
 
 	// make query
 	res := p.Pool.Query(req)
@@ -78,7 +78,7 @@ func (p *Poloniex) callOne(pp Pair) (*Tick, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse poloniex response: %w", err)
 	}
-	pairResp, ok := resp[pair]
+	pairResp, ok := resp[pairName]
 	if !ok {
 		return nil, fmt.Errorf("failed to get correct response from exchange (no %s exist) %s", pair, res.Body)
 	}
@@ -104,7 +104,7 @@ func (p *Poloniex) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,
 		Ask:       ask,

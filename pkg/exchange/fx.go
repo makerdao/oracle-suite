@@ -44,18 +44,18 @@ func (f *Fx) localPairName(pair Pair) string {
 	return f.renameSymbol(pair.Base)
 }
 
-func (f *Fx) getURL(pp Pair) string {
-	return fmt.Sprintf(fxURL, f.localPairName(pp))
+func (f *Fx) getURL(pair Pair) string {
+	return fmt.Sprintf(fxURL, f.localPairName(pair))
 }
 
-func (f *Fx) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(f, ppps)
+func (f *Fx) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(f, pairs)
 }
 
-func (f *Fx) callOne(pp Pair) (*Tick, error) {
+func (f *Fx) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: f.getURL(pp),
+		URL: f.getURL(pair),
 	}
 
 	// make query
@@ -75,13 +75,13 @@ func (f *Fx) callOne(pp Pair) (*Tick, error) {
 	if resp.Rates == nil {
 		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
 	}
-	price, ok := resp.Rates[f.renameSymbol(pp.Quote)]
+	price, ok := resp.Rates[f.renameSymbol(pair.Quote)]
 	if !ok {
-		return nil, fmt.Errorf("no price for %s quote exist in response %s", pp.Quote, res.Body)
+		return nil, fmt.Errorf("no price for %s quote exist in response %s", pair.Quote, res.Body)
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Timestamp: time.Now(),
 	}, nil

@@ -46,18 +46,18 @@ func (g *Gemini) localPairName(pair Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (g *Gemini) getURL(pp Pair) string {
-	return fmt.Sprintf(geminiURL, g.localPairName(pp))
+func (g *Gemini) getURL(pair Pair) string {
+	return fmt.Sprintf(geminiURL, g.localPairName(pair))
 }
 
-func (g *Gemini) Call(ppps []Pair) []CallResult {
-	return callSinglePairExchange(g, ppps)
+func (g *Gemini) Call(pairs []Pair) []CallResult {
+	return callSinglePairExchange(g, pairs)
 }
 
-func (g *Gemini) callOne(pp Pair) (*Tick, error) {
+func (g *Gemini) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: g.getURL(pp),
+		URL: g.getURL(pair),
 	}
 
 	// make query
@@ -91,7 +91,7 @@ func (g *Gemini) callOne(pp Pair) (*Tick, error) {
 	}
 	// building Tick
 	return &Tick{
-		Pair:      pp,
+		Pair:      pair,
 		Price:     price,
 		Ask:       ask,
 		Bid:       bid,
