@@ -45,11 +45,11 @@ func (suite *OriginsSuite) SetupSuite() {
 }
 
 func (suite *OriginsSuite) TestCallWithMissingOrigin() {
-	cr := suite.set.Call(map[string][]Pair{"x": {{}}})
+	cr := suite.set.Fetch(map[string][]Pair{"x": {{}}})
 	assert.Error(suite.T(), cr["x"][0].Error)
 
 	pair := Pair{Quote: "A", Base: "B"}
-	cr = suite.set.Call(map[string][]Pair{"x": {pair}})
+	cr = suite.set.Fetch(map[string][]Pair{"x": {pair}})
 
 	assert.Equal(suite.T(), pair, cr["x"][0].Tick.Pair)
 	assert.Error(suite.T(), cr["x"][0].Error)
@@ -64,7 +64,7 @@ func (suite *OriginsSuite) TestFailWithNilResponseForBinance() {
 	suite.pool.MockResp(resp)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
-	cr := suite.set.Call(map[string][]Pair{"binance": {pair}})
+	cr := suite.set.Fetch(map[string][]Pair{"binance": {pair}})
 
 	assert.Error(suite.T(), cr["binance"][0].Error)
 }
@@ -80,7 +80,7 @@ func (suite *OriginsSuite) TestSuccessBinance() {
 	suite.pool.MockResp(resp)
 
 	pair := Pair{Quote: "BTC", Base: "ETH"}
-	cr := suite.set.Call(map[string][]Pair{"binance": {pair}})
+	cr := suite.set.Fetch(map[string][]Pair{"binance": {pair}})
 
 	assert.NoError(suite.T(), cr["binance"][0].Error)
 	assert.EqualValues(suite.T(), pair, cr["binance"][0].Tick.Pair)
