@@ -106,9 +106,9 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			Ask:       median(asks),
 			Volume24h: 0,
 		},
-		OriginTicks: originTicks,
-		IndirectTick:  indirectTicks,
-		Error:         err,
+		OriginTicks:  originTicks,
+		IndirectTick: indirectTicks,
+		Error:        err,
 	}
 }
 
