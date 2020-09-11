@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/exchange"
+	"github.com/makerdao/gofer/pkg/origins"
 )
 
 type Feedable interface {
@@ -15,11 +15,11 @@ type Feedable interface {
 
 // Feeder sets data to the Feedable nodes.
 type Feeder struct {
-	set *exchange.Set
+	set *origins.Set
 	ttl int
 }
 
-func NewFeeder(set *exchange.Set, ttl int) *Feeder {
+func NewFeeder(set *origins.Set, ttl int) *Feeder {
 	return &Feeder{set: set, ttl: ttl}
 }
 
@@ -45,7 +45,7 @@ func (i *Feeder) Clear(node Node) {
 
 func (i *Feeder) fetch(ep ExchangePair) ExchangeTick {
 	// TODO: update for batch requests
-	crs := i.set.Call(map[string][]exchange.Pair{
+	crs := i.set.Call(map[string][]origins.Pair{
 		ep.Exchange: {{
 			Quote: ep.Pair.Quote,
 			Base:  ep.Pair.Base,

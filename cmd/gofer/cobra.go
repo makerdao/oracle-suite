@@ -25,9 +25,9 @@ import (
 	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/config"
-	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/origins"
 )
 
 func newGofer(path string) (*gofer.Gofer, error) {
@@ -46,7 +46,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, graph.NewFeeder(exchange.DefaultSet(), 10)), nil
+	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet(), 10)), nil
 }
 
 func NewPairsCmd(o *options) *cobra.Command {
