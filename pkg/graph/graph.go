@@ -9,6 +9,12 @@ type Node interface {
 	Children() []Node
 }
 
+// Parent represents a node to which you can add a child node.
+type Parent interface {
+	Node
+	AddChild(node Node)
+}
+
 // Aggregator represents a node which can aggregate ticks from its children.
 type Aggregator interface {
 	Node
