@@ -3,7 +3,7 @@ package graph
 // OriginNode contains a Tick fetched directly from an origin.
 type OriginNode struct {
 	originPair OriginPair
-	tick         OriginTick
+	tick       OriginTick
 }
 
 func NewOriginNode(originPair OriginPair) *OriginNode {

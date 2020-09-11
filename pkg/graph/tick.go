@@ -34,7 +34,7 @@ func (p Pair) String() string {
 
 type OriginPair struct {
 	Origin string
-	Pair     Pair
+	Pair   Pair
 }
 
 type Tick struct {
@@ -50,13 +50,13 @@ type Tick struct {
 type OriginTick struct {
 	Tick
 	Origin string
-	Error    error
+	Error  error
 }
 
 // IndirectTick represent Tick which was calculated using other ticks.
 type IndirectTick struct {
 	Tick
-	OriginTicks []OriginTick
-	IndirectTick  []IndirectTick
-	Error         error
+	OriginTicks  []OriginTick
+	IndirectTick []IndirectTick
+	Error        error
 }

@@ -58,7 +58,7 @@ func (i *Feeder) fetch(ep OriginPair) OriginTick {
 				Pair: ep.Pair,
 			},
 			Origin: ep.Origin,
-			Error:    fmt.Errorf("unable to fetch tick for %s", ep.Pair),
+			Error:  fmt.Errorf("unable to fetch tick for %s", ep.Pair),
 		}
 	}
 
@@ -70,7 +70,7 @@ func (i *Feeder) fetch(ep OriginPair) OriginTick {
 				Pair: ep.Pair,
 			},
 			Origin: ep.Origin,
-			Error:    cr.Error,
+			Error:  cr.Error,
 		}
 	}
 
@@ -84,6 +84,6 @@ func (i *Feeder) fetch(ep OriginPair) OriginTick {
 			Timestamp: cr.Tick.Timestamp,
 		},
 		Origin: ep.Origin,
-		Error:    cr.Error,
+		Error:  cr.Error,
 	}
 }
