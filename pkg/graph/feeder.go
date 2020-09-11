@@ -45,7 +45,7 @@ func (i *Feeder) Clear(node Node) {
 
 func (i *Feeder) fetch(ep ExchangePair) ExchangeTick {
 	// TODO: update for batch requests
-	crs := i.set.Call(map[string][]origins.Pair{
+	crs := i.set.Fetch(map[string][]origins.Pair{
 		ep.Exchange: {{
 			Quote: ep.Pair.Quote,
 			Base:  ep.Pair.Base,

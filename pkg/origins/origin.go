@@ -91,8 +91,8 @@ func DefaultSet() *Set {
 	})
 }
 
-// Call makes handler call using handlers from the Set structure.
-func (e *Set) Call(originPairs map[string][]Pair) map[string][]FetchResult {
+// Fetch makes handler call using handlers from the Set structure.
+func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var err error
 
 	crs := map[string][]FetchResult{}
