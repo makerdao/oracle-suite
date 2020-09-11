@@ -29,17 +29,17 @@ import (
 // returns the current testing context
 type UpbitSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Upbit
+	pool   query.WorkerPool
+	origin *Upbit
 }
 
-func (suite *UpbitSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *UpbitSuite) Origin() Handler {
+	return suite.origin
 }
 
-// Setup exchange
+// Setup origin
 func (suite *UpbitSuite) SetupSuite() {
-	suite.exchange = &Upbit{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Upbit{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *UpbitSuite) TearDownTest() {
@@ -50,59 +50,59 @@ func (suite *UpbitSuite) TearDownTest() {
 }
 
 func (suite *UpbitSuite) TestLocalPair() {
-	suite.EqualValues("ETH-BTC", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.NotEqual("USDC-BTC", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("ETH-BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.NotEqual("USDC-BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *UpbitSuite) TestFailOnWrongInput() {
 	// wrong pair
-	cr := suite.exchange.Fetch([]Pair{{}})
+	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Fetch([]Pair{pair})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte("[]"),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"trade_price":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"trade_price":1,"acc_trade_volume":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
@@ -111,8 +111,8 @@ func (suite *UpbitSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`[{"trade_price":1,"acc_trade_volume":3,"timestamp":2000}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 	suite.Equal(3.0, cr[0].Tick.Volume24h)

@@ -61,7 +61,7 @@ func (k *Kyber) getURL(pair Pair) string {
 }
 
 func (k *Kyber) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(k, pairs)
+	return callSinglePairOrigin(k, pairs)
 }
 
 func (k *Kyber) callOne(pair Pair) (*Tick, error) {
@@ -73,7 +73,7 @@ func (k *Kyber) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := k.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -88,28 +88,28 @@ func (k *Kyber) callOne(pair Pair) (*Tick, error) {
 		return nil, fmt.Errorf("kyber API error: %s (%s)", resp.Reason, resp.AdditionalData)
 	}
 	if len(resp.Result) == 0 {
-		return nil, fmt.Errorf("wrong kyber exchange response. No resulting data %+v", resp)
+		return nil, fmt.Errorf("wrong kyber origin response. No resulting data %+v", resp)
 	}
 	result := resp.Result[0]
 
 	if len(result.SrcQty) == 0 || len(result.DstQty) == 0 {
-		return nil, fmt.Errorf("wrong kyber exchange response. No resulting pair %s data %+v", pair.String(), result)
+		return nil, fmt.Errorf("wrong kyber origin response. No resulting pair %s data %+v", pair.String(), result)
 	}
 
 	if result.SrcQty[0] <= 0 {
-		return nil, fmt.Errorf("failed to parse price from kyber exchange (needs to be gtreater than 0) %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from kyber origin (needs to be gtreater than 0) %s", res.Body)
 	}
 
 	if result.DstQty[0] != refQty {
-		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		return nil, fmt.Errorf("failed to parse volume from kyber origin (it needs to be %f) %s", refQty, res.Body)
 	}
 
 	if result.Src != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" {
-		return nil, fmt.Errorf("failed to parse price from kyber exchange (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from kyber origin (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
 	}
 
 	if result.Dst != k.localPairName(pair) {
-		return nil, fmt.Errorf("failed to parse volume from kyber exchange (it needs to be %f) %s", refQty, res.Body)
+		return nil, fmt.Errorf("failed to parse volume from kyber origin (it needs to be %f) %s", refQty, res.Body)
 	}
 
 	// building Tick

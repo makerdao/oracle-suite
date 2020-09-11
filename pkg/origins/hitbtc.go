@@ -36,7 +36,7 @@ type hitbtcResponse struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// Hitbtc exchange handler
+// Hitbtc origin handler
 type Hitbtc struct {
 	Pool query.WorkerPool
 }
@@ -50,7 +50,7 @@ func (h *Hitbtc) getURL(pair Pair) string {
 }
 
 func (h *Hitbtc) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(h, pairs)
+	return callSinglePairOrigin(h, pairs)
 }
 
 func (h *Hitbtc) callOne(pair Pair) (*Tick, error) {
@@ -62,7 +62,7 @@ func (h *Hitbtc) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := h.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -76,22 +76,22 @@ func (h *Hitbtc) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from hitbtc origin %s", res.Body)
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from hitbtc origin %s", res.Body)
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from hitbtc origin %s", res.Body)
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from hitbtc origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

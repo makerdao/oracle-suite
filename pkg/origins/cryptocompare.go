@@ -23,12 +23,12 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Exchange URL
+// Origin URL
 const cryptoCompareURL = "https://min-api.cryptocompare.com/data/price?fsym=%s&tsyms=%s"
 
 type cryptoCompareResponse map[string]float64
 
-// Exchange handler
+// Origin handler
 type CryptoCompare struct {
 	Pool query.WorkerPool
 }
@@ -38,7 +38,7 @@ func (c *CryptoCompare) getURL(pair Pair) string {
 }
 
 func (c *CryptoCompare) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(c, pairs)
+	return callSinglePairOrigin(c, pairs)
 }
 
 func (c *CryptoCompare) callOne(pair Pair) (*Tick, error) {
@@ -50,7 +50,7 @@ func (c *CryptoCompare) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := c.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

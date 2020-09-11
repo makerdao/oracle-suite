@@ -29,17 +29,17 @@ import (
 // returns the current testing context
 type OkexSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Okex
+	pool   query.WorkerPool
+	origin *Okex
 }
 
-func (suite *OkexSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *OkexSuite) Origin() Handler {
+	return suite.origin
 }
 
-// Setup exchange
+// Setup origin
 func (suite *OkexSuite) SetupSuite() {
-	suite.exchange = &Okex{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Okex{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *OkexSuite) TearDownTest() {
@@ -50,35 +50,35 @@ func (suite *OkexSuite) TearDownTest() {
 }
 
 func (suite *OkexSuite) TestLocalPair() {
-	suite.EqualValues("BTC-ETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.NotEqual("BTC-USDC", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("BTC-ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.NotEqual("BTC-USDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *OkexSuite) TestFailOnWrongInput() {
 	// wrong pair
-	cr := suite.exchange.Fetch([]Pair{{}})
+	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Fetch([]Pair{pair})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	for n, r := range [][]byte{
@@ -161,8 +161,8 @@ func (suite *OkexSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Fetch([]Pair{pair})
+			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
 	}
@@ -190,8 +190,8 @@ func (suite *OkexSuite) TestSuccessResponse() {
 			"quote_volume_24h":"600000001"
 		}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(int64(1596708166), cr[0].Tick.Timestamp.Unix())
 	suite.Equal(10000.4, cr[0].Tick.Price)

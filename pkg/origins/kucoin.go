@@ -37,7 +37,7 @@ type kucoinResponse struct {
 	} `json:"data"`
 }
 
-// Kucoin exchange handler
+// Kucoin origin handler
 type Kucoin struct {
 	Pool query.WorkerPool
 }
@@ -51,7 +51,7 @@ func (k *Kucoin) getURL(pair Pair) string {
 }
 
 func (k *Kucoin) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(k, pairs)
+	return callSinglePairOrigin(k, pairs)
 }
 
 func (k *Kucoin) callOne(pair Pair) (*Tick, error) {
@@ -63,7 +63,7 @@ func (k *Kucoin) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := k.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -77,17 +77,17 @@ func (k *Kucoin) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Data.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from kucoin exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from kucoin origin %s", res.Body)
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Data.BestAsk, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from kucoin exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from kucoin origin %s", res.Body)
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Data.BestBid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from kucoin exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from kucoin origin %s", res.Body)
 	}
 	// Parsing volume from string
 	// building Tick

@@ -35,7 +35,7 @@ type okexResponse struct {
 	Timestamp     time.Time `json:"timestamp"`
 }
 
-// Okex exchange handler
+// Okex origin handler
 type Okex struct {
 	Pool query.WorkerPool
 }
@@ -49,7 +49,7 @@ func (o *Okex) getURL(pair Pair) string {
 }
 
 func (o *Okex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(o, pairs)
+	return callSinglePairOrigin(o, pairs)
 }
 
 func (o *Okex) callOne(pair Pair) (*Tick, error) {
@@ -61,7 +61,7 @@ func (o *Okex) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := o.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -75,22 +75,22 @@ func (o *Okex) callOne(pair Pair) (*Tick, error) {
 	// parsing price from string
 	price, err := strconv.ParseFloat(resp.Last, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from okex exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from okex origin %s", res.Body)
 	}
 	// parsing ask price from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from okex exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from okex origin %s", res.Body)
 	}
 	// parsing bid price from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from okex exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from okex origin %s", res.Body)
 	}
 	// parsing volume from string
 	volume, err := strconv.ParseFloat(resp.BaseVolume24H, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from okex exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from okex origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

@@ -22,24 +22,24 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real exchanges API")
+var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real origins API")
 
 type Suite interface {
 	suite.TestingSuite
 
 	Assert() *assert.Assertions
-	Exchange() Handler
+	Origin() Handler
 }
 
-func testRealAPICall(suite Suite, exchange Handler, base, quote string) {
+func testRealAPICall(suite Suite, origin Handler, base, quote string) {
 	if !*testAPICalls {
 		suite.T().SkipNow()
 	}
 
-	suite.Assert().IsType(suite.Exchange(), exchange)
+	suite.Assert().IsType(suite.Origin(), origin)
 
 	pair := Pair{Base: base, Quote: quote}
-	cr := exchange.Fetch([]Pair{pair})
+	cr := origin.Fetch([]Pair{pair})
 
 	suite.Assert().NoError(cr[0].Error)
 	suite.Assert().Greater(cr[0].Tick.Price, float64(0))

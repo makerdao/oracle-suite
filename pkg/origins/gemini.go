@@ -37,7 +37,7 @@ type geminiResponse struct {
 	}
 }
 
-// Gemini exchange handler
+// Gemini origin handler
 type Gemini struct {
 	Pool query.WorkerPool
 }
@@ -51,7 +51,7 @@ func (g *Gemini) getURL(pair Pair) string {
 }
 
 func (g *Gemini) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(g, pairs)
+	return callSinglePairOrigin(g, pairs)
 }
 
 func (g *Gemini) callOne(pair Pair) (*Tick, error) {
@@ -63,7 +63,7 @@ func (g *Gemini) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := g.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -77,17 +77,17 @@ func (g *Gemini) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from gemini exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from gemini origin %s", res.Body)
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from gemini exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from gemini origin %s", res.Body)
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from gemini exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from gemini origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

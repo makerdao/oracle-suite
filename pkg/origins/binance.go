@@ -32,7 +32,7 @@ type binanceResponse struct {
 	Price string `json:"price"`
 }
 
-// Binance exchange handler
+// Binance origin handler
 type Binance struct {
 	Pool query.WorkerPool
 }
@@ -50,7 +50,7 @@ func (b *Binance) getURL(pair Pair) string {
 }
 
 func (b *Binance) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(b, pairs)
+	return callSinglePairOrigin(b, pairs)
 }
 
 func (b *Binance) callOne(pair Pair) (*Tick, error) {
@@ -62,7 +62,7 @@ func (b *Binance) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -76,7 +76,7 @@ func (b *Binance) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from binance exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from binance origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

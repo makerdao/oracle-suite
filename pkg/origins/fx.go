@@ -25,13 +25,13 @@ import (
 )
 
 // Fx URL
-const fxURL = "https://api.exchangeratesapi.io/latest?base=%s"
+const fxURL = "https://api.originratesapi.io/latest?base=%s"
 
 type fxResponse struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
-// Fx exchange handler
+// Fx origin handler
 type Fx struct {
 	Pool query.WorkerPool
 }
@@ -49,7 +49,7 @@ func (f *Fx) getURL(pair Pair) string {
 }
 
 func (f *Fx) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(f, pairs)
+	return callSinglePairOrigin(f, pairs)
 }
 
 func (f *Fx) callOne(pair Pair) (*Tick, error) {
@@ -61,7 +61,7 @@ func (f *Fx) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

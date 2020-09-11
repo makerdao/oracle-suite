@@ -36,7 +36,7 @@ type bitstampResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// Bitstamp exchange handler
+// Bitstamp origin handler
 type Bitstamp struct {
 	Pool query.WorkerPool
 }
@@ -54,7 +54,7 @@ func (b *Bitstamp) getURL(pair Pair) string {
 }
 
 func (b *Bitstamp) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(b, pairs)
+	return callSinglePairOrigin(b, pairs)
 }
 
 func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
@@ -66,7 +66,7 @@ func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -81,27 +81,27 @@ func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from bitstamp exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from bitstamp origin %s", res.Body)
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from bitstamp exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from bitstamp origin %s", res.Body)
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from bitstamp exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from bitstamp origin %s", res.Body)
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from bitstamp exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from bitstamp origin %s", res.Body)
 	}
 	// Parsing timestamp from string
 	timestamp, err := strconv.ParseInt(resp.Timestamp, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse timestamp from bitstamp exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse timestamp from bitstamp origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

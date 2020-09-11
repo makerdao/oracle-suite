@@ -40,7 +40,7 @@ type gateioResponse struct {
 	Bid    string `json:"highest_bid"`
 }
 
-// Gateio exchange handler
+// Gateio origin handler
 type Gateio struct {
 	Pool query.WorkerPool
 }
@@ -58,7 +58,7 @@ func (g *Gateio) getURL(pair Pair) string {
 }
 
 func (g *Gateio) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(g, pairs)
+	return callSinglePairOrigin(g, pairs)
 }
 
 func (g *Gateio) callOne(pair Pair) (*Tick, error) {
@@ -70,7 +70,7 @@ func (g *Gateio) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := g.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -92,20 +92,20 @@ func (g *Gateio) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from gateio origin: %s", res.Body)
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp[0].Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from gateio origin: %s", res.Body)
 	}
 	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from gateio origin: %s", res.Body)
 	}
 	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from gateio origin: %s", res.Body)
 	}
 
 	// building Tick

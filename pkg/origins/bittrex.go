@@ -36,7 +36,7 @@ type bittrexResponse struct {
 	} `json:"result"`
 }
 
-// BitTrex exchange handler
+// BitTrex origin handler
 type BitTrex struct {
 	Pool query.WorkerPool
 }
@@ -50,7 +50,7 @@ func (b *BitTrex) getURL(pair Pair) string {
 }
 
 func (b *BitTrex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(b, pairs)
+	return callSinglePairOrigin(b, pairs)
 }
 
 func (b *BitTrex) callOne(pair Pair) (*Tick, error) {
@@ -62,7 +62,7 @@ func (b *BitTrex) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

@@ -43,7 +43,7 @@ type loopringResponse struct {
 	Data map[string]pairResponse `json:"data"`
 }
 
-// Loopring exchange handler
+// Loopring origin handler
 type Loopring struct {
 	Pool query.WorkerPool
 }
@@ -57,7 +57,7 @@ func (l *Loopring) getURL(pair Pair) string {
 }
 
 func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(l, pairs)
+	return callSinglePairOrigin(l, pairs)
 }
 
 func (l *Loopring) callOne(pair Pair) (*Tick, error) {
@@ -68,7 +68,7 @@ func (l *Loopring) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := l.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -93,20 +93,20 @@ func (l *Loopring) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(pairRes.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from loopring exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from loopring origin %s", res.Body)
 	}
 	// Parsing price from string
 	volume, err := strconv.ParseFloat(pairRes.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from loopring exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from loopring origin %s", res.Body)
 	}
 	ask, err := strconv.ParseFloat(pairRes.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from loopring exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from loopring origin %s", res.Body)
 	}
 	bid, err := strconv.ParseFloat(pairRes.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from loopring exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from loopring origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

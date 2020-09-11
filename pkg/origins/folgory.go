@@ -34,7 +34,7 @@ type folgoryResponse struct {
 	Volume string `json:"volume"`
 }
 
-// Folgory exchange handler
+// Folgory origin handler
 type Folgory struct {
 	Pool query.WorkerPool
 }
@@ -48,7 +48,7 @@ func (f *Folgory) localPairName(pair Pair) string {
 }
 
 func (f *Folgory) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(f, pairs)
+	return callSinglePairOrigin(f, pairs)
 }
 
 func (f *Folgory) callOne(pair Pair) (*Tick, error) {
@@ -62,7 +62,7 @@ func (f *Folgory) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -89,12 +89,12 @@ func (f *Folgory) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(data.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from folgory exchange %v", data)
+		return nil, fmt.Errorf("failed to parse price from folgory origin %v", data)
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(data.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from folgory exchange %v", data)
+		return nil, fmt.Errorf("failed to parse volume from folgory origin %v", data)
 	}
 	// building Tick
 	return &Tick{

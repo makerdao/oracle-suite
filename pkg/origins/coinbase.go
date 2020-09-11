@@ -35,7 +35,7 @@ type coinbaseResponse struct {
 	Volume string `json:"volume"`
 }
 
-// Coinbase exchange handler
+// Coinbase origin handler
 type Coinbase struct {
 	Pool query.WorkerPool
 }
@@ -49,7 +49,7 @@ func (c *Coinbase) getURL(pair Pair) string {
 }
 
 func (c *Coinbase) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(c, pairs)
+	return callSinglePairOrigin(c, pairs)
 }
 
 func (c *Coinbase) callOne(pair Pair) (*Tick, error) {
@@ -61,7 +61,7 @@ func (c *Coinbase) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := c.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -75,22 +75,22 @@ func (c *Coinbase) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from coinbase exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from coinbase origin %s", res.Body)
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from coinbase exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from coinbase origin %s", res.Body)
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from coinbase exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from coinbase origin %s", res.Body)
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from coinbase exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from coinbase origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

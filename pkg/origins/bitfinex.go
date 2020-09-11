@@ -26,7 +26,7 @@ import (
 // Bitfinex URL
 const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
 
-// Bitfinex exchange handler
+// Bitfinex origin handler
 type Bitfinex struct {
 	Pool query.WorkerPool
 }
@@ -48,7 +48,7 @@ func (b *Bitfinex) getURL(pair Pair) string {
 }
 
 func (b *Bitfinex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(b, pairs)
+	return callSinglePairOrigin(b, pairs)
 }
 
 func (b *Bitfinex) callOne(pair Pair) (*Tick, error) {
@@ -60,7 +60,7 @@ func (b *Bitfinex) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

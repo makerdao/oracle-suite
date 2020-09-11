@@ -43,7 +43,7 @@ type ddexResponse struct {
 	} `json:"data"`
 }
 
-// Ddex exchange handler
+// Ddex origin handler
 type Ddex struct {
 	Pool query.WorkerPool
 }
@@ -57,7 +57,7 @@ func (d *Ddex) getURL(pair Pair) string {
 }
 
 func (d *Ddex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(d, pairs)
+	return callSinglePairOrigin(d, pairs)
 }
 
 func (d *Ddex) callOne(pair Pair) (*Tick, error) {
@@ -69,7 +69,7 @@ func (d *Ddex) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := d.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -82,17 +82,17 @@ func (d *Ddex) callOne(pair Pair) (*Tick, error) {
 	}
 	// Check if response is successful
 	if resp.Desc != "success" || len(resp.Data.Orderbook.Asks) != 1 || 1 != len(resp.Data.Orderbook.Bids) {
-		return nil, fmt.Errorf("response returned from ddex exchange is invalid %s", res.Body)
+		return nil, fmt.Errorf("response returned from ddex origin is invalid %s", res.Body)
 	}
 	// Parsing ask from string
 	ask, err := strconv.ParseFloat(resp.Data.Orderbook.Asks[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from ddex exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from ddex origin %s", res.Body)
 	}
 	// Parsing bid from string
 	bid, err := strconv.ParseFloat(resp.Data.Orderbook.Bids[0].Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from ddex exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from ddex origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{
