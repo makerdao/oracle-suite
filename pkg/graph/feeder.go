@@ -7,43 +7,43 @@ import (
 	"github.com/makerdao/gofer/pkg/exchange"
 )
 
-type Ingestable interface {
+type Feedable interface {
 	ExchangePair() ExchangePair
-	SetTick(tick ExchangeTick)
+	Feed(tick ExchangeTick)
 	Tick() ExchangeTick
 }
 
-// Ingestor sets data to the Ingestable nodes.
-type Ingestor struct {
+// Feeder sets data to the Feedable nodes.
+type Feeder struct {
 	set *exchange.Set
 	ttl int
 }
 
-func NewIngestor(set *exchange.Set, ttl int) *Ingestor {
-	return &Ingestor{set: set, ttl: ttl}
+func NewFeeder(set *exchange.Set, ttl int) *Feeder {
+	return &Feeder{set: set, ttl: ttl}
 }
 
-func (i *Ingestor) Ingest(node Node) {
+func (i *Feeder) Feed(node Node) {
 	t := time.Now()
 
 	AsyncWalk(node, func(node Node) {
-		if ingestableNode, ok := node.(Ingestable); ok {
-			if ingestableNode.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
-				ingestableNode.SetTick(i.fetch(ingestableNode.ExchangePair()))
+		if feedable, ok := node.(Feedable); ok {
+			if feedable.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
+				feedable.Feed(i.fetch(feedable.ExchangePair()))
 			}
 		}
 	})
 }
 
-func (i *Ingestor) Clear(node Node) {
+func (i *Feeder) Clear(node Node) {
 	Walk(node, func(node Node) {
-		if ingestableNode, ok := node.(Ingestable); ok {
-			ingestableNode.SetTick(ExchangeTick{})
+		if ingestableNode, ok := node.(Feedable); ok {
+			ingestableNode.Feed(ExchangeTick{})
 		}
 	})
 }
 
-func (i *Ingestor) fetch(ep ExchangePair) ExchangeTick {
+func (i *Feeder) fetch(ep ExchangePair) ExchangeTick {
 	// TODO: update for batch requests
 	crs := i.set.Call(map[string][]exchange.Pair{
 		ep.Exchange: {{

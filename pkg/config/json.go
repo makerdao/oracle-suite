@@ -90,7 +90,7 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	for name, model := range j.Aggregator.Parameters.PriceModels {
 		pair, _ := graph.NewPair(name)
 		for _, sources := range model.Sources {
-			var childs []graph.Node
+			var children []graph.Node
 
 			for _, source := range sources {
 				sourcePair, err := graph.NewPair(source.Pair)
@@ -100,7 +100,7 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 
 				if source.Origin == "." {
 					// The reference to an other root node:
-					childs = append(childs, graphs[sourcePair].(graph.Node))
+					children = append(children, graphs[sourcePair].(graph.Node))
 				} else {
 					// The exchange node:
 					pair, err := graph.NewPair(source.Pair)
@@ -113,18 +113,18 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 						Pair:     pair,
 					}
 
-					childs = append(childs, graph.NewExchangeNode(exchangePair))
+					children = append(children, graph.NewExchangeNode(exchangePair))
 				}
 			}
 
 			var node graph.Node
-			if len(childs) == 1 {
+			if len(children) == 1 {
 				// If there is only one node, there is no need to wrap it with
 				// IndirectAggregatorNode.
-				node = childs[0]
+				node = children[0]
 			} else {
 				indirectAggregator := graph.NewIndirectAggregatorNode(pair)
-				for _, c := range childs {
+				for _, c := range children {
 					indirectAggregator.AddChild(c)
 				}
 				node = indirectAggregator
