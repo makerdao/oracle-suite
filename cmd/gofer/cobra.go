@@ -46,7 +46,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, graph.NewIngestor(exchange.DefaultSet(), 10)), nil
+	return gofer.NewGofer(g, graph.NewFeeder(exchange.DefaultSet(), 10)), nil
 }
 
 func NewPairsCmd(o *options) *cobra.Command {

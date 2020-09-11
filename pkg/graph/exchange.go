@@ -16,7 +16,7 @@ func (n *ExchangeNode) ExchangePair() ExchangePair {
 	return n.exchangePair
 }
 
-func (n *ExchangeNode) SetTick(tick ExchangeTick) {
+func (n *ExchangeNode) Feed(tick ExchangeTick) {
 	n.tick = tick
 }
 
