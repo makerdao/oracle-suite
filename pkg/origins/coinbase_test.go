@@ -29,17 +29,17 @@ import (
 // returns the current testing context
 type CoinbaseSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Coinbase
+	pool   query.WorkerPool
+	origin *Coinbase
 }
 
-func (suite *CoinbaseSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *CoinbaseSuite) Origin() Handler {
+	return suite.origin
 }
 
-// Setup exchange
+// Setup origin
 func (suite *CoinbaseSuite) SetupSuite() {
-	suite.exchange = &Coinbase{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Coinbase{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *CoinbaseSuite) TearDownTest() {
@@ -50,67 +50,67 @@ func (suite *CoinbaseSuite) TearDownTest() {
 }
 
 func (suite *CoinbaseSuite) TestLocalPair() {
-	suite.EqualValues("BTC-ETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC-USD", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("BTC-ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTC-USD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *CoinbaseSuite) TestFailOnWrongInput() {
 	// wrong pair
-	cr := suite.exchange.Fetch([]Pair{{}})
+	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Fetch([]Pair{pair})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"abc"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"abc"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"1","volume":"abc"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"1","volume":"1","bid":"abc"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
@@ -119,8 +119,8 @@ func (suite *CoinbaseSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"2","volume":"3","bid":"4"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 	suite.Equal(2.0, cr[0].Tick.Ask)

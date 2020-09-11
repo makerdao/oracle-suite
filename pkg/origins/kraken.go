@@ -38,7 +38,7 @@ type krakenResponse struct {
 	Result map[string]*krakenPairResponse
 }
 
-// Kraken exchange handler
+// Kraken origin handler
 type Kraken struct {
 	Pool query.WorkerPool
 }
@@ -91,7 +91,7 @@ func (k *Kraken) getURL(pair Pair) string {
 }
 
 func (k *Kraken) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(k, pairs)
+	return callSinglePairOrigin(k, pairs)
 }
 
 func (k *Kraken) callOne(pair Pair) (*Tick, error) {
@@ -103,7 +103,7 @@ func (k *Kraken) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := k.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -119,20 +119,20 @@ func (k *Kraken) callOne(pair Pair) (*Tick, error) {
 	}
 	result, ok := resp.Result[k.localPairName(pair)]
 	if !ok || result == nil {
-		return nil, fmt.Errorf("wrong kraken exchange response. No resulting data %+v", resp)
+		return nil, fmt.Errorf("wrong kraken origin response. No resulting data %+v", resp)
 	}
 	if len(result.Price) == 0 || len(result.Volume) == 0 {
-		return nil, fmt.Errorf("wrong kraken exchange response. No resulting pair %s data %+v", pair, result)
+		return nil, fmt.Errorf("wrong kraken origin response. No resulting pair %s data %+v", pair, result)
 	}
 	// Parsing price from string
 	price, err := strconv.ParseFloat(result.Price[0], 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from kraken exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from kraken origin %s", res.Body)
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(result.Volume[0], 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from kraken exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from kraken origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

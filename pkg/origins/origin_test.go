@@ -28,14 +28,14 @@ import (
 // Define the suite, and absorb the built-in basic suite
 // functionality from testify - including a T() method which
 // returns the current testing context
-type ExchangesSuite struct {
+type OriginsSuite struct {
 	suite.Suite
 	pool *query.MockWorkerPool
 	set  *Set
 }
 
-// Setup exchange
-func (suite *ExchangesSuite) SetupSuite() {
+// Setup origin
+func (suite *OriginsSuite) SetupSuite() {
 	pool := query.NewMockWorkerPool()
 
 	suite.pool = pool
@@ -44,7 +44,7 @@ func (suite *ExchangesSuite) SetupSuite() {
 	})
 }
 
-func (suite *ExchangesSuite) TestCallWithMissingExchange() {
+func (suite *OriginsSuite) TestCallWithMissingOrigin() {
 	cr := suite.set.Call(map[string][]Pair{"x": {{}}})
 	assert.Error(suite.T(), cr["x"][0].Error)
 
@@ -55,7 +55,7 @@ func (suite *ExchangesSuite) TestCallWithMissingExchange() {
 	assert.Error(suite.T(), cr["x"][0].Error)
 }
 
-func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
+func (suite *OriginsSuite) TestFailWithNilResponseForBinance() {
 	resp := &query.HTTPResponse{
 		Body:  []byte{},
 		Error: nil,
@@ -69,7 +69,7 @@ func (suite *ExchangesSuite) TestFailWithNilResponseForBinance() {
 	assert.Error(suite.T(), cr["binance"][0].Error)
 }
 
-func (suite *ExchangesSuite) TestSuccessBinance() {
+func (suite *OriginsSuite) TestSuccessBinance() {
 	price := 0.024361
 	json := fmt.Sprintf(`{"symbol":"ETHBTC","price":"%f"}`, price)
 	resp := &query.HTTPResponse{
@@ -89,6 +89,6 @@ func (suite *ExchangesSuite) TestSuccessBinance() {
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
-func TestExchangesSuite(t *testing.T) {
-	suite.Run(t, new(ExchangesSuite))
+func TestOriginsSuite(t *testing.T) {
+	suite.Run(t, new(OriginsSuite))
 }

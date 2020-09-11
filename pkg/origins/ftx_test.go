@@ -29,17 +29,17 @@ import (
 // returns the current testing context
 type FtxSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Ftx
+	pool   query.WorkerPool
+	origin *Ftx
 }
 
-func (suite *FtxSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *FtxSuite) Origin() Handler {
+	return suite.origin
 }
 
-// Setup exchange
+// Setup origin
 func (suite *FtxSuite) SetupSuite() {
-	suite.exchange = &Ftx{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Ftx{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *FtxSuite) TearDownTest() {
@@ -50,27 +50,27 @@ func (suite *FtxSuite) TearDownTest() {
 }
 
 func (suite *FtxSuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC/USDC", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USDC"}))
+	suite.EqualValues("BTC/ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTC/USDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USDC"}))
 }
 
 func (suite *FtxSuite) TestFailOnWrongInput() {
 	// wrong pair
-	cr := suite.exchange.Fetch([]Pair{{}})
+	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Fetch([]Pair{pair})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	for n, r := range [][]byte{
@@ -99,8 +99,8 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.exchange.Fetch([]Pair{pair})
+			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
 	}
@@ -111,8 +111,8 @@ func (suite *FtxSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":4}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 	suite.Equal(2.0, cr[0].Tick.Ask)

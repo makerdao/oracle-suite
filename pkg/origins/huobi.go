@@ -36,7 +36,7 @@ type huobiResponse struct {
 	}
 }
 
-// Huobi exchange handler
+// Huobi origin handler
 type Huobi struct {
 	Pool query.WorkerPool
 }
@@ -50,7 +50,7 @@ func (h *Huobi) getURL(pair Pair) string {
 }
 
 func (h *Huobi) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(h, pairs)
+	return callSinglePairOrigin(h, pairs)
 }
 
 func (h *Huobi) callOne(pair Pair) (*Tick, error) {
@@ -61,7 +61,7 @@ func (h *Huobi) callOne(pair Pair) (*Tick, error) {
 
 	res := h.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -73,10 +73,10 @@ func (h *Huobi) callOne(pair Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse huobi response: %w", err)
 	}
 	if resp.Status == "error" {
-		return nil, fmt.Errorf("wrong response from huobi exchange %s", res.Body)
+		return nil, fmt.Errorf("wrong response from huobi origin %s", res.Body)
 	}
 	if len(resp.Tick.Bid) < 1 {
-		return nil, fmt.Errorf("wrong bid response from huobi exchange %s", res.Body)
+		return nil, fmt.Errorf("wrong bid response from huobi origin %s", res.Body)
 	}
 
 	return &Tick{

@@ -47,7 +47,7 @@ func getPriceByPair(pair Pair, res *uniswapPairResponse) string {
 	return res.Price
 }
 
-// Uniswap exchange handler
+// Uniswap origin handler
 type Uniswap struct {
 	Pool query.WorkerPool
 }
@@ -70,7 +70,7 @@ func (u *Uniswap) getURL(_ Pair) string {
 }
 
 func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(u, pairs)
+	return callSinglePairOrigin(u, pairs)
 }
 
 func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
@@ -87,7 +87,7 @@ func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := u.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -109,7 +109,7 @@ func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
 	// Parsing price from string
 	price, err := strconv.ParseFloat(priceStr, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from uniswap exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from uniswap origin %s", res.Body)
 	}
 	// building Tick
 	return &Tick{

@@ -60,17 +60,17 @@ const successResponse = `{
 // returns the current testing context
 type LoopringSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Loopring
+	pool   query.WorkerPool
+	origin *Loopring
 }
 
-func (suite *LoopringSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *LoopringSuite) Origin() Handler {
+	return suite.origin
 }
 
-// Setup exchange
+// Setup origin
 func (suite *LoopringSuite) SetupSuite() {
-	suite.exchange = &Loopring{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Loopring{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *LoopringSuite) TearDownTest() {
@@ -81,74 +81,74 @@ func (suite *LoopringSuite) TearDownTest() {
 }
 
 func (suite *LoopringSuite) TestLocalPair() {
-	suite.EqualValues("USDT-DAI", suite.exchange.localPairName(Pair{Base: "USDT", Quote: "DAI"}))
-	suite.EqualValues("ETH-DAI", suite.exchange.localPairName(Pair{Base: "ETH", Quote: "DAI"}))
+	suite.EqualValues("USDT-DAI", suite.origin.localPairName(Pair{Base: "USDT", Quote: "DAI"}))
+	suite.EqualValues("ETH-DAI", suite.origin.localPairName(Pair{Base: "ETH", Quote: "DAI"}))
 }
 
 func (suite *LoopringSuite) TestFailOnWrongInput() {
 	// wrong pair
-	cr := suite.exchange.Fetch([]Pair{{}})
+	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
 	pair := Pair{Base: "LRC", Quote: "USDT"}
 	// nil as response
-	cr = suite.exchange.Fetch([]Pair{pair})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte("{}"),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error wrong code
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":1,"message":"SUCCESS"}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error wrong message
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"Wrong"}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error no data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 	// Error no pair in data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"},"data":{}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
@@ -157,8 +157,8 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(0.1221, cr[0].Tick.Price)
 	suite.Equal(181251.50, cr[0].Tick.Volume24h)

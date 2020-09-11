@@ -22,10 +22,10 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Handler is interface that all Exchange API handlers should implement.
+// Handler is interface that all Origin API handlers should implement.
 type Handler interface {
-	// Fetch should implement making API request to exchange URL and
-	// collecting/parsing exchange data.
+	// Fetch should implement making API request to origin URL and
+	// collecting/parsing origin data.
 	Fetch(pairs []Pair) []FetchResult
 }
 
@@ -92,23 +92,23 @@ func DefaultSet() *Set {
 }
 
 // Call makes handler call using handlers from the Set structure.
-func (e *Set) Call(exchangePairs map[string][]Pair) map[string][]FetchResult {
+func (e *Set) Call(originPairs map[string][]Pair) map[string][]FetchResult {
 	var err error
 
 	crs := map[string][]FetchResult{}
-	for exchange, pairs := range exchangePairs {
-		handler, ok := e.list[exchange]
+	for origin, pairs := range originPairs {
+		handler, ok := e.list[origin]
 		if !ok {
-			err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange)
+			err = fmt.Errorf("%w (%s)", errUnknownOrigin, origin)
 			for _, pair := range pairs {
-				crs[exchange] = append(crs[exchange], FetchResult{
+				crs[origin] = append(crs[origin], FetchResult{
 					Tick:  Tick{Pair: pair},
 					Error: err,
 				})
 			}
 		} else {
 			for _, cr := range handler.Fetch(pairs) {
-				crs[exchange] = append(crs[exchange], cr)
+				crs[origin] = append(crs[origin], cr)
 			}
 		}
 	}
@@ -116,11 +116,11 @@ func (e *Set) Call(exchangePairs map[string][]Pair) map[string][]FetchResult {
 	return crs
 }
 
-type singlePairExchange interface {
+type singlePairOrigin interface {
 	callOne(pair Pair) (*Tick, error)
 }
 
-func callSinglePairExchange(e singlePairExchange, pairs []Pair) []FetchResult {
+func callSinglePairOrigin(e singlePairOrigin, pairs []Pair) []FetchResult {
 	crs := make([]FetchResult, 0)
 	for _, pair := range pairs {
 		tick, err := e.callOne(pair)

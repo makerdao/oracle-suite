@@ -29,17 +29,17 @@ import (
 // returns the current testing context
 type HuobiSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Huobi
+	pool   query.WorkerPool
+	origin *Huobi
 }
 
-func (suite *HuobiSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *HuobiSuite) Origin() Handler {
+	return suite.origin
 }
 
-// Setup exchange
+// Setup origin
 func (suite *HuobiSuite) SetupSuite() {
-	suite.exchange = &Huobi{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Huobi{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *HuobiSuite) TearDownTest() {
@@ -50,67 +50,67 @@ func (suite *HuobiSuite) TearDownTest() {
 }
 
 func (suite *HuobiSuite) TestLocalPair() {
-	suite.EqualValues("btceth", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("btcusd", suite.exchange.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("btceth", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("btcusd", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *HuobiSuite) TestFailOnWrongInput() {
 	// wrong pair
-	cr := suite.exchange.Fetch([]Pair{{}})
+	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr = suite.exchange.Fetch([]Pair{pair})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"error"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"abc"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"1","ts":"abc"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"1","ts":2,"tick":{"bid":["abc"]}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
@@ -119,8 +119,8 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Fetch([]Pair{pair})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.origin.Fetch([]Pair{pair})
 
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.3, cr[0].Tick.Volume24h)

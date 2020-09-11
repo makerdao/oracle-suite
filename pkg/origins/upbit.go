@@ -33,7 +33,7 @@ type upbitResponse struct {
 	Timestamp int64   `json:"timestamp"`
 }
 
-// Upbit exchange handler
+// Upbit origin handler
 type Upbit struct {
 	Pool query.WorkerPool
 }
@@ -51,7 +51,7 @@ func (u *Upbit) getURL(pair Pair) string {
 }
 
 func (u *Upbit) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(u, pairs)
+	return callSinglePairOrigin(u, pairs)
 }
 
 func (u *Upbit) callOne(pair Pair) (*Tick, error) {
@@ -63,7 +63,7 @@ func (u *Upbit) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := u.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

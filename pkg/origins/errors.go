@@ -20,14 +20,14 @@ import (
 	"fmt"
 )
 
-var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil ExchangePair")
+var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil OriginPair")
 
 //nolint:deadcode,varcheck,unused
-var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong ExchangePair")
+var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong OriginPair")
 
 //nolint:deadcode,varcheck,unused
-var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for nil exchange in given ExchangePair")
+var errNoOriginInPotentialPricePoint = fmt.Errorf("failed to make request for nil origin in given OriginPair")
 
-var errEmptyExchangeResponse = fmt.Errorf("empty exchange response received")
+var errEmptyOriginResponse = fmt.Errorf("empty origin response received")
 
-var errUnknownExchange = errors.New("unknown exchange")
+var errUnknownOrigin = errors.New("unknown origin")

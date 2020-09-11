@@ -23,7 +23,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Exchange URL
+// Origin URL
 const ftxURL = "https://ftx.com/api/markets/%s"
 
 type ftxResponse struct {
@@ -37,7 +37,7 @@ type ftxResponse struct {
 	Success bool `json:"success"`
 }
 
-// Exchange handler
+// Origin handler
 type Ftx struct {
 	Pool query.WorkerPool
 }
@@ -51,7 +51,7 @@ func (f *Ftx) getURL(pair Pair) string {
 }
 
 func (f *Ftx) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairExchange(f, pairs)
+	return callSinglePairOrigin(f, pairs)
 }
 
 func (f *Ftx) callOne(pair Pair) (*Tick, error) {
@@ -63,7 +63,7 @@ func (f *Ftx) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
