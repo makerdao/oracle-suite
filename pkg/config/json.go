@@ -69,9 +69,8 @@ func ParseJSON(b []byte) (*JSON, error) {
 func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	graphs := map[graph.Pair]graph.Aggregator{}
 
-	// Build roots:
-	// It's important to do it before branches, because branches may refer to
-	// another root nodes.
+	// Build roots. It's important to create root nodes before branches,
+	// because branches may refer to another root nodes.
 	for name, model := range j.Aggregator.Parameters.PriceModels {
 		pair, err := graph.NewPair(name)
 		if err != nil {
@@ -86,12 +85,11 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 		}
 	}
 
-	// Build branches:
+	// Build branches.
 	for name, model := range j.Aggregator.Parameters.PriceModels {
 		pair, _ := graph.NewPair(name)
 		for _, sources := range model.Sources {
 			var children []graph.Node
-
 			for _, source := range sources {
 				sourcePair, err := graph.NewPair(source.Pair)
 				if err != nil {
@@ -130,8 +128,7 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 				node = indirectAggregator
 			}
 
-			switch typedNode := graphs[pair].(type) {
-			case *graph.MedianAggregatorNode:
+			if typedNode, ok := graphs[pair].(graph.Parent); ok {
 				typedNode.AddChild(node)
 			}
 		}
