@@ -55,19 +55,19 @@ func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error) {
 	return ticks, nil
 }
 
-func (g *Gofer) Exchanges(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
-	exchanges := map[graph.Pair][]string{}
+func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
+	origins := map[graph.Pair][]string{}
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
 			graph.Walk(pairGraph, func(node graph.Node) {
-				if exchangeNode, ok := node.(*graph.ExchangeNode); ok {
-					name := exchangeNode.ExchangePair().Exchange
-					for _, n := range exchanges[pair] {
+				if originNode, ok := node.(*graph.OriginNode); ok {
+					name := originNode.OriginPair().Origin
+					for _, n := range origins[pair] {
 						if name == n {
 							return
 						}
 					}
-					exchanges[pair] = append(exchanges[pair], name)
+					origins[pair] = append(origins[pair], name)
 				}
 			})
 		} else {
@@ -75,5 +75,5 @@ func (g *Gofer) Exchanges(pairs ...graph.Pair) (map[graph.Pair][]string, error) 
 		}
 	}
 
-	return exchanges, nil
+	return origins, nil
 }

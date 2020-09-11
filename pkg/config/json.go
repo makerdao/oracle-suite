@@ -100,18 +100,18 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 					// The reference to an other root node:
 					children = append(children, graphs[sourcePair].(graph.Node))
 				} else {
-					// The exchange node:
+					// The origin node:
 					pair, err := graph.NewPair(source.Pair)
 					if err != nil {
 						return nil, err
 					}
 
-					exchangePair := graph.ExchangePair{
-						Exchange: source.Origin,
-						Pair:     pair,
+					originPair := graph.OriginPair{
+						Origin: source.Origin,
+						Pair:   pair,
 					}
 
-					children = append(children, graph.NewExchangeNode(exchangePair))
+					children = append(children, graph.NewOriginNode(originPair))
 				}
 			}
 

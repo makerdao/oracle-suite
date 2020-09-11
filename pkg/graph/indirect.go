@@ -9,9 +9,9 @@ import (
 // IndirectAggregatorNode merges Ticks for different pairs and returns one,
 // merged pair.
 //
-//                             -- [Exchange A/B]
+//                             -- [Origin A/B]
 //                            /
-//  [IndirectAggregatorNode] ---- [Exchange B/C]
+//  [IndirectAggregatorNode] ---- [Origin B/C]
 //                            \
 //                             -- [Aggregator C/D]
 //
@@ -41,14 +41,14 @@ func (n *IndirectAggregatorNode) Pair() Pair {
 
 func (n *IndirectAggregatorNode) Tick() IndirectTick {
 	var ticks []Tick
-	var exchangeTicks []ExchangeTick
+	var originTicks []OriginTick
 	var indirectTicks []IndirectTick
 	var err error
 
 	for _, c := range n.children {
 		switch typedNode := c.(type) {
-		case Exchange:
-			exchangeTicks = append(exchangeTicks, typedNode.Tick())
+		case Origin:
+			originTicks = append(originTicks, typedNode.Tick())
 			if typedNode.Tick().Error == nil {
 				ticks = append(ticks, typedNode.Tick().Tick)
 			}
@@ -80,7 +80,7 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 
 	return IndirectTick{
 		Tick:          indirectTick,
-		ExchangeTicks: exchangeTicks,
+		OriginTicks: originTicks,
 		IndirectTick:  indirectTicks,
 		Error:         err,
 	}

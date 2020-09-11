@@ -97,19 +97,19 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 				)
 			}
 
-			for _, t := range typedTick.ExchangeTicks {
+			for _, t := range typedTick.OriginTicks {
 				recur(t, level+1)
 			}
 			for _, t := range typedTick.IndirectTick {
 				recur(t, level+1)
 			}
-		case graph.ExchangeTick:
+		case graph.OriginTick:
 			fmt.Fprintf(
 				buf,
-				"%sExchange(%s, %s)=%f\n",
+				"%sOrigin(%s, %s)=%f\n",
 				prefix,
 				typedTick.Pair,
-				typedTick.Exchange,
+				typedTick.Origin,
 				typedTick.Price,
 			)
 
@@ -147,14 +147,14 @@ func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 				typedNode.Pair(),
 
 			)
-		case graph.Exchange:
+		case graph.Origin:
 			fmt.Fprintf(
 				buf,
 				"%s%s(%s, %s)\n",
 				prefix,
 				reflect.TypeOf(node).Elem().String(),
-				typedNode.ExchangePair().Pair,
-				typedNode.ExchangePair().Exchange,
+				typedNode.OriginPair().Pair,
+				typedNode.OriginPair().Origin,
 			)
 		default:
 			fmt.Fprintf(

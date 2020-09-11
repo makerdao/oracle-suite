@@ -21,11 +21,11 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type exchangeLister interface {
-	Exchanges(pairs ...graph.Pair) (map[graph.Pair][]string, error)
+type originsLister interface {
+	Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error)
 }
 
-func Exchanges(args []string, l exchangeLister, m ReadWriteCloser) error {
+func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 	var err error
 
 	var pairs []graph.Pair
@@ -37,7 +37,7 @@ func Exchanges(args []string, l exchangeLister, m ReadWriteCloser) error {
 		pairs = append(pairs, p)
 	}
 
-	exchanges, err := l.Exchanges(pairs...)
+	exchanges, err := l.Origins(pairs...)
 	if err != nil {
 		return err
 	}

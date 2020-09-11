@@ -109,7 +109,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				panic(err)
 			}
 
-			err = cli.Exchanges(args, g, m)
+			err = cli.Origins(args, g, m)
 			if err != nil {
 				return err
 			}

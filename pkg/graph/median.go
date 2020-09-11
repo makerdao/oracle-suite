@@ -11,9 +11,9 @@ import (
 // MedianAggregatorNode gets Ticks from all of its children and calculates
 // median price.
 //
-//                           -- [Exchange A/B]
+//                           -- [Origin A/B]
 //                          /
-//  [MedianAggregatorNode] ---- [Exchange A/B]
+//  [MedianAggregatorNode] ---- [Origin A/B]
 //                          \
 //                           -- [Aggregator A/B]
 //
@@ -45,18 +45,18 @@ func (n *MedianAggregatorNode) Pair() Pair {
 
 func (n *MedianAggregatorNode) Tick() IndirectTick {
 	var prices, bids, asks []float64
-	var exchangeTicks []ExchangeTick
+	var originTicks []OriginTick
 	var indirectTicks []IndirectTick
 	var err error
 
 	for _, c := range n.children {
 		var tick Tick
 		switch typedNode := c.(type) {
-		case Exchange:
-			exchangeTick := typedNode.Tick()
-			exchangeTicks = append(exchangeTicks, exchangeTick)
-			tick = exchangeTick.Tick
-			if exchangeTick.Error != nil {
+		case Origin:
+			originTick := typedNode.Tick()
+			originTicks = append(originTicks, originTick)
+			tick = originTick.Tick
+			if originTick.Error != nil {
 				continue
 			}
 		case Aggregator:
@@ -106,7 +106,7 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			Ask:       median(asks),
 			Volume24h: 0,
 		},
-		ExchangeTicks: exchangeTicks,
+		OriginTicks: originTicks,
 		IndirectTick:  indirectTicks,
 		Error:         err,
 	}
