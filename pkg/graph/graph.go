@@ -22,11 +22,11 @@ type Aggregator interface {
 	Tick() IndirectTick
 }
 
-// Exchange represents a node which provides tick directly from an exchange.
-type Exchange interface {
+// Origin represents a node which provides tick directly from an origin.
+type Origin interface {
 	Node
-	ExchangePair() ExchangePair
-	Tick() ExchangeTick
+	OriginPair() OriginPair
+	Tick() OriginTick
 }
 
 func Walk(node Node, fn func(Node)) {

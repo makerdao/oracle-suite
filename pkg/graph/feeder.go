@@ -8,9 +8,9 @@ import (
 )
 
 type Feedable interface {
-	ExchangePair() ExchangePair
-	Feed(tick ExchangeTick)
-	Tick() ExchangeTick
+	OriginPair() OriginPair
+	Feed(tick OriginTick)
+	Tick() OriginTick
 }
 
 // Feeder sets data to the Feedable nodes.
@@ -29,7 +29,7 @@ func (i *Feeder) Feed(node Node) {
 	AsyncWalk(node, func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
 			if feedable.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
-				feedable.Feed(i.fetch(feedable.ExchangePair()))
+				feedable.Feed(i.fetch(feedable.OriginPair()))
 			}
 		}
 	})
@@ -37,44 +37,44 @@ func (i *Feeder) Feed(node Node) {
 
 func (i *Feeder) Clear(node Node) {
 	Walk(node, func(node Node) {
-		if ingestableNode, ok := node.(Feedable); ok {
-			ingestableNode.Feed(ExchangeTick{})
+		if feedable, ok := node.(Feedable); ok {
+			feedable.Feed(OriginTick{})
 		}
 	})
 }
 
-func (i *Feeder) fetch(ep ExchangePair) ExchangeTick {
+func (i *Feeder) fetch(ep OriginPair) OriginTick {
 	// TODO: update for batch requests
 	crs := i.set.Fetch(map[string][]origins.Pair{
-		ep.Exchange: {{
+		ep.Origin: {{
 			Quote: ep.Pair.Quote,
 			Base:  ep.Pair.Base,
 		}},
 	})
 
-	if len(crs[ep.Exchange]) != 1 {
-		return ExchangeTick{
+	if len(crs[ep.Origin]) != 1 {
+		return OriginTick{
 			Tick: Tick{
 				Pair: ep.Pair,
 			},
-			Exchange: ep.Exchange,
+			Origin: ep.Origin,
 			Error:    fmt.Errorf("unable to fetch tick for %s", ep.Pair),
 		}
 	}
 
-	cr := crs[ep.Exchange][0]
+	cr := crs[ep.Origin][0]
 
 	if cr.Error != nil {
-		return ExchangeTick{
+		return OriginTick{
 			Tick: Tick{
 				Pair: ep.Pair,
 			},
-			Exchange: ep.Exchange,
+			Origin: ep.Origin,
 			Error:    cr.Error,
 		}
 	}
 
-	return ExchangeTick{
+	return OriginTick{
 		Tick: Tick{
 			Pair:      ep.Pair,
 			Price:     cr.Tick.Price,
@@ -83,7 +83,7 @@ func (i *Feeder) fetch(ep ExchangePair) ExchangeTick {
 			Volume24h: cr.Tick.Volume24h,
 			Timestamp: cr.Tick.Timestamp,
 		},
-		Exchange: ep.Exchange,
+		Origin: ep.Origin,
 		Error:    cr.Error,
 	}
 }

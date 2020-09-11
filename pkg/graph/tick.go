@@ -32,8 +32,8 @@ func (p Pair) String() string {
 	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
 }
 
-type ExchangePair struct {
-	Exchange string
+type OriginPair struct {
+	Origin string
 	Pair     Pair
 }
 
@@ -46,17 +46,17 @@ type Tick struct {
 	Timestamp time.Time
 }
 
-// ExchangeTick represent Tick which was sourced directly from an exchange.
-type ExchangeTick struct {
+// OriginTick represent Tick which was sourced directly from an origin.
+type OriginTick struct {
 	Tick
-	Exchange string
+	Origin string
 	Error    error
 }
 
 // IndirectTick represent Tick which was calculated using other ticks.
 type IndirectTick struct {
 	Tick
-	ExchangeTicks []ExchangeTick
+	OriginTicks []OriginTick
 	IndirectTick  []IndirectTick
 	Error         error
 }
