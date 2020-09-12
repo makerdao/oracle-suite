@@ -25,7 +25,7 @@ import (
 )
 
 // Fx URL
-const fxURL = "https://api.originratesapi.io/latest?base=%s"
+const fxURL = "https://api.exchangeratesapi.io/latest?base=%s"
 
 type fxResponse struct {
 	Rates map[string]float64 `json:"rates"`
