@@ -16,7 +16,6 @@
 package marshal
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -73,109 +72,131 @@ func (j *trace) Close() error {
 }
 
 func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
-	buf := &bytes.Buffer{}
+	str := printTree(func(node interface{}) (string, []interface{}) {
+		var c []interface{}
+		var s string
 
-	var recur func(interface{}, int)
-	recur = func(tick interface{}, level int) {
-		prefix := strings.Repeat(" ", level)
-		switch typedTick := tick.(type) {
+		switch typedTick := node.(type) {
 		case graph.IndirectTick:
-			fmt.Fprintf(
-				buf,
-				"%sAggregator(%s)=%f\n",
-				prefix,
+			s = fmt.Sprintf(
+				"Aggregator(%s)=%f",
 				typedTick.Pair,
 				typedTick.Price,
 			)
 
 			if typedTick.Error != nil {
-				fmt.Fprintf(
-					buf,
-					"%s error: %s\n",
-					prefix,
+				s += fmt.Sprintf(
+					"\nError: %s",
 					strings.TrimSpace(typedTick.Error.Error()),
 				)
 			}
 
 			for _, t := range typedTick.OriginTicks {
-				recur(t, level+1)
+				c = append(c, t)
 			}
 			for _, t := range typedTick.IndirectTick {
-				recur(t, level+1)
+				c = append(c, t)
 			}
 		case graph.OriginTick:
-			fmt.Fprintf(
-				buf,
-				"%sOrigin(%s, %s)=%f\n",
-				prefix,
+			s = fmt.Sprintf(
+				"Origin(%s, %s)=%f",
 				typedTick.Pair,
 				typedTick.Origin,
 				typedTick.Price,
 			)
 
 			if typedTick.Error != nil {
-				fmt.Fprintf(
-					buf,
-					"%s error: %s\n",
-					prefix,
+				s += fmt.Sprintf(
+					"\nError: %s",
 					strings.TrimSpace(typedTick.Error.Error()),
 				)
 			}
 		}
-	}
 
-	fmt.Fprintf(buf, "Trace for %s pair:\n", t.Pair)
-	recur(t, 0)
+		return s, c
+	}, []interface{}{t})
 
-	*ret = append(*ret, buf.Bytes())
+	*ret = append(*ret, []byte(fmt.Sprintf("Price for %s:", t.Pair)))
+	*ret = append(*ret, []byte(str))
 }
 
 func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
-	buf := &bytes.Buffer{}
-
-	var recur func(graph.Node, int)
-	recur = func(node graph.Node, level int) {
-		prefix := strings.Repeat(" ", level)
+	str := printTree(func(node interface{}) (string, []interface{}) {
+		var c []interface{}
+		var s string
 
 		switch typedNode := node.(type) {
 		case graph.Aggregator:
-			fmt.Fprintf(
-				buf,
-				"%s%s(%s)\n",
-				prefix,
+			s = fmt.Sprintf(
+				"%s(%s)",
 				reflect.TypeOf(node).Elem().String(),
 				typedNode.Pair(),
-
 			)
+
+			for _, n := range typedNode.Children() {
+				c = append(c, n)
+			}
 		case graph.Origin:
-			fmt.Fprintf(
-				buf,
-				"%s%s(%s, %s)\n",
-				prefix,
+			s = fmt.Sprintf(
+				"%s(%s, %s)",
 				reflect.TypeOf(node).Elem().String(),
 				typedNode.OriginPair().Pair,
 				typedNode.OriginPair().Origin,
 			)
 		default:
-			fmt.Fprintf(
-				buf,
-				"%s%s\n",
-				prefix,
+			s = fmt.Sprintf(
+				"%s",
 				reflect.TypeOf(node).Elem().String(),
 			)
 		}
 
-		for _, c := range node.Children() {
-			recur(c, level+1)
-		}
-	}
+		return s, c
+	}, []interface{}{g})
 
-	fmt.Fprintf(buf, "Graph for %s pair:\n", g.Pair())
-	recur(g, 0)
-
-	*ret = append(*ret, buf.Bytes())
+	*ret = append(*ret, []byte(fmt.Sprintf("Graph for %s:", g.Pair())))
+	*ret = append(*ret, []byte(str))
 }
 
 func traceHandleString(ret *[]marshalledItem, s string) {
 	*ret = append(*ret, []byte(s))
+}
+
+func printTree(printer func(interface{}) (string, []interface{}), nodes []interface{}) string {
+	const middle = "├──"
+	const last = "└──"
+	const level = "│  "
+	const empty = "   "
+
+	prefixLines := func(str string, first, rest string) string {
+		return first + strings.ReplaceAll(strings.TrimRight(str, "\n"), "\n", "\n"+rest)
+	}
+
+	str := strings.Builder{}
+	for i, node := range nodes {
+		nodeStr, nodeChildren := printer(node)
+		isLast := i == len(nodes) - 1
+
+		if isLast {
+			str.WriteString(prefixLines(nodeStr, last, empty+level))
+		} else {
+			str.WriteString(prefixLines(nodeStr, middle, level+level))
+		}
+
+		str.WriteString("\n")
+
+		if len(nodeChildren) > 0 {
+			subTree := printTree(printer, nodeChildren)
+
+			if isLast {
+				subTree = prefixLines(subTree, empty, empty)
+			} else {
+				subTree = prefixLines(subTree, level, level)
+			}
+
+			str.WriteString(subTree)
+			str.WriteString("\n")
+		}
+	}
+
+	return str.String()
 }
