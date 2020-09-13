@@ -16,8 +16,10 @@
 package marshal
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/makerdao/gofer/pkg/graph"
@@ -35,7 +37,7 @@ func newTrace() *trace {
 				strs[n] = string(s)
 			}
 
-			return []marshalledItem{[]byte(strings.Join(strs, "\n") + "\n")}, nil
+			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
 		}
 
 		var err error
@@ -46,8 +48,8 @@ func newTrace() *trace {
 			traceHandleTick(&ret, i)
 		case graph.Aggregator:
 			traceHandleGraph(&ret, i)
-		case string:
-			traceHandleString(&ret, i)
+		case map[graph.Pair][]string:
+			traceHandleOrigins(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -72,7 +74,7 @@ func (j *trace) Close() error {
 }
 
 func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
-	str := printTree(func(node interface{}) (string, []interface{}) {
+	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
 		var s string
 
@@ -113,15 +115,15 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			}
 		}
 
-		return s, c
-	}, []interface{}{t})
+		return []byte(s), c
+	}, []interface{}{t}, 0)
 
 	*ret = append(*ret, []byte(fmt.Sprintf("Price for %s:", t.Pair)))
-	*ret = append(*ret, []byte(str))
+	*ret = append(*ret, str)
 }
 
 func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
-	str := printTree(func(node interface{}) (string, []interface{}) {
+	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
 		var s string
 
@@ -150,53 +152,94 @@ func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 			)
 		}
 
-		return s, c
-	}, []interface{}{g})
+		return []byte(s), c
+	}, []interface{}{g}, 0)
 
 	*ret = append(*ret, []byte(fmt.Sprintf("Graph for %s:", g.Pair())))
-	*ret = append(*ret, []byte(str))
+	*ret = append(*ret, str)
 }
 
-func traceHandleString(ret *[]marshalledItem, s string) {
-	*ret = append(*ret, []byte(s))
+func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
+	type originPair struct {
+		pair    graph.Pair
+		origins []string
+	}
+
+	var s []interface{}
+	for p, o := range origins {
+		s = append(s, originPair{pair: p, origins: o})
+	}
+
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].(originPair).pair.String() > s[j].(originPair).pair.String()
+	})
+
+	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+		var c []interface{}
+		var s string
+
+		switch typedNode := node.(type) {
+		case originPair:
+			s = typedNode.pair.String()
+			for _, o := range typedNode.origins {
+				c = append(c, o)
+			}
+		case string:
+			s = typedNode
+		}
+
+		return []byte(s), c
+	}, s, 0)
+
+	*ret = append(*ret, str)
 }
 
-func printTree(printer func(interface{}) (string, []interface{}), nodes []interface{}) string {
+func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []interface{}, level int) []byte {
+	const first = "┌──"
 	const middle = "├──"
 	const last = "└──"
-	const level = "│  "
+	const vline = "│  "
+	const hline = "───"
 	const empty = "   "
 
-	prefixLines := func(str string, first, rest string) string {
-		return first + strings.ReplaceAll(strings.TrimRight(str, "\n"), "\n", "\n"+rest)
-	}
-
-	str := strings.Builder{}
+	s := bytes.Buffer{}
 	for i, node := range nodes {
 		nodeStr, nodeChildren := printer(node)
-		isLast := i == len(nodes) - 1
+		isFirst := i == 0
+		isLast := i == len(nodes)-1
 
-		if isLast {
-			str.WriteString(prefixLines(nodeStr, last, empty+level))
+		if level == 0 && isFirst && isLast {
+			s.Write(prependLines(nodeStr, hline, empty+vline))
+		} else if level == 0 && isFirst {
+			s.Write(prependLines(nodeStr, first, vline+vline))
+		} else if isLast {
+			s.Write(prependLines(nodeStr, last, empty+vline))
 		} else {
-			str.WriteString(prefixLines(nodeStr, middle, level+level))
+			s.Write(prependLines(nodeStr, middle, vline+vline))
 		}
 
-		str.WriteString("\n")
+		s.WriteByte('\n')
 
 		if len(nodeChildren) > 0 {
-			subTree := printTree(printer, nodeChildren)
+			subTree := renderTree(printer, nodeChildren, level+1)
 
 			if isLast {
-				subTree = prefixLines(subTree, empty, empty)
+				subTree = prependLines(subTree, empty, empty)
 			} else {
-				subTree = prefixLines(subTree, level, level)
+				subTree = prependLines(subTree, vline, vline)
 			}
 
-			str.WriteString(subTree)
-			str.WriteString("\n")
+			s.Write(subTree)
+			s.WriteByte('\n')
 		}
 	}
 
-	return str.String()
+	return s.Bytes()
+}
+
+func prependLines(s []byte, first, rest string) []byte {
+	bts := bytes.Buffer{}
+	bts.WriteString(first)
+	bts.Write(bytes.ReplaceAll(bytes.TrimRight(s, "\n"), []byte{'\n'}, append([]byte{'\n'}, rest...)))
+	return bts.Bytes()
 }
