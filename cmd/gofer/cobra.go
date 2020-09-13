@@ -127,8 +127,8 @@ or a subset of those, if at least one PAIR is provided.`,
 
 func NewPriceCmd(o *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "price PAIR [PAIR...]",
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "price [PAIR...]",
+		Args:  cobra.MinimumNArgs(0),
 		Short: "Return price for given PAIRs",
 		Long:  `Print the price of given PAIRs`,
 		RunE: func(_ *cobra.Command, args []string) error {

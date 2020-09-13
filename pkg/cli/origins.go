@@ -37,22 +37,13 @@ func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 		pairs = append(pairs, p)
 	}
 
-	exchanges, err := l.Origins(pairs...)
+	origins, err := l.Origins(pairs...)
 	if err != nil {
 		return err
 	}
 
-	var list []string
-	for _, e := range exchanges {
-		list = append(list, e...)
-	}
-
-	sort.SliceStable(list, func(i, j int) bool {
-		return list[i] < list[j]
-	})
-
-	for _, name := range list {
-		err := m.Write(name, nil)
+	for _, p := range sortMapKeys(origins) {
+		err := m.Write(map[graph.Pair][]string{p: origins[p]}, nil)
 		if err != nil {
 			return err
 		}
@@ -64,4 +55,17 @@ func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 	}
 
 	return nil
+}
+
+func sortMapKeys(m map[graph.Pair][]string) []graph.Pair  {
+	var pairs []graph.Pair
+	for p, _ := range m {
+		pairs = append(pairs, p)
+	}
+
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].String() < pairs[j].Quote
+	})
+
+	return pairs
 }
