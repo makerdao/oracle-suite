@@ -49,13 +49,15 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 		switch typedNode := c.(type) {
 		case Origin:
 			originTicks = append(originTicks, typedNode.Tick())
-			if typedNode.Tick().Error == nil {
-				ticks = append(ticks, typedNode.Tick().Tick)
+			ticks = append(ticks, typedNode.Tick().Tick)
+			if typedNode.Tick().Error != nil {
+				err = multierror.Append(err, typedNode.Tick().Error)
 			}
 		case Aggregator:
 			indirectTicks = append(indirectTicks, typedNode.Tick())
-			if typedNode.Tick().Error == nil {
-				ticks = append(ticks, typedNode.Tick().Tick)
+			ticks = append(ticks, typedNode.Tick().Tick)
+			if typedNode.Tick().Error != nil {
+				err = multierror.Append(err, typedNode.Tick().Error)
 			}
 		}
 	}
