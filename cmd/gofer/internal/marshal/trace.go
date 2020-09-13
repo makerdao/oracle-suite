@@ -207,17 +207,32 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 		nodeStr, nodeChildren := printer(node)
 		isFirst := i == 0
 		isLast := i == len(nodes)-1
+		hasChild := len(nodeChildren) > 0
+
+		firstLinePrefix := ""
+		restLinesPrefix := ""
 
 		if level == 0 && isFirst && isLast {
-			s.Write(prependLines(nodeStr, hline, empty+vline))
+			firstLinePrefix = hline
 		} else if level == 0 && isFirst {
-			s.Write(prependLines(nodeStr, first, vline+empty))
+			firstLinePrefix = first
 		} else if isLast {
-			s.Write(prependLines(nodeStr, last, empty+vline))
+			firstLinePrefix = last
 		} else {
-			s.Write(prependLines(nodeStr, middle, vline+empty))
+			firstLinePrefix = middle
 		}
 
+		if isLast && hasChild {
+			restLinesPrefix = empty+vline
+		} else if !isLast && hasChild {
+			restLinesPrefix = vline+vline
+		} else if isLast && !hasChild {
+			restLinesPrefix = empty+empty
+		} else if !isLast && !hasChild {
+			restLinesPrefix = vline+empty
+		}
+
+		s.Write(prependLines(nodeStr, firstLinePrefix, restLinesPrefix))
 		s.WriteByte('\n')
 
 		if len(nodeChildren) > 0 {
