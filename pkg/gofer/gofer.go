@@ -41,6 +41,14 @@ func (g *Gofer) Ingestor() *graph.Feeder {
 	return g.ingestor
 }
 
+func (g *Gofer) Pairs() []graph.Pair {
+	var pairs []graph.Pair
+	for p, _ := range g.Graphs() {
+		pairs = append(pairs, p)
+	}
+	return pairs
+}
+
 func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error) {
 	var ticks []graph.IndirectTick
 	for _, pair := range pairs {
@@ -54,6 +62,7 @@ func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error) {
 
 	return ticks, nil
 }
+
 
 func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 	origins := map[graph.Pair][]string{}

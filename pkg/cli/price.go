@@ -28,18 +28,24 @@ type ReadWriteCloser interface {
 
 type pricer interface {
 	Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error)
+	Pairs() []graph.Pair
 }
 
 func Price(args []string, l pricer, m ReadWriteCloser) error {
 	var err error
 
 	var pairs []graph.Pair
-	for _, pair := range args {
-		p, err := graph.NewPair(pair)
-		if err != nil {
-			return err
+
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
 		}
-		pairs = append(pairs, p)
+	} else {
+		pairs = l.Pairs()
 	}
 
 	ticks, err := l.Ticks(pairs...)
