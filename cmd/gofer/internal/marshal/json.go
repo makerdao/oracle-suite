@@ -42,8 +42,8 @@ func newJSON(ndjson bool) *json {
 			err = jsonHandleTick(&ret, i, ierr)
 		case graph.Aggregator:
 			err = jsonHandleGraph(&ret, i)
-		case string:
-			err = jsonHandleString(&ret, i)
+		case map[graph.Pair][]string:
+			err = jsonHandleOrigins(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -89,8 +89,13 @@ func jsonHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) error {
 	return nil
 }
 
-func jsonHandleString(ret *[]marshalledItem, str string) error {
-	b, err := encodingJson.Marshal(str)
+func jsonHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) error {
+	r := make(map[string][]string)
+	for p, o := range origins {
+		r[p.String()] = o
+	}
+
+	b, err := encodingJson.Marshal(r)
 	if err != nil {
 		return err
 	}

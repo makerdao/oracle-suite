@@ -34,7 +34,7 @@ func newPlain() *plain {
 				strs[n] = string(s)
 			}
 
-			return []marshalledItem{[]byte(strings.Join(strs, "\n") + "\n")}, nil
+			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
 		}
 
 		var err error
@@ -45,8 +45,8 @@ func newPlain() *plain {
 			plainHandleTick(&ret, i)
 		case graph.Aggregator:
 			plainHandleGraph(&ret, i)
-		case string:
-			plainHandleString(&ret, i)
+		case map[graph.Pair][]string:
+			plainHandleOrigins(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -78,6 +78,12 @@ func plainHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) {
 	*ret = append(*ret, []byte(graph.Pair().String()))
 }
 
-func plainHandleString(ret *[]marshalledItem, str string) {
-	*ret = append(*ret, []byte(str))
+func plainHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
+	for p, os := range origins {
+		*ret = append(*ret, []byte(p.String()+":"))
+		for _, o := range os {
+			*ret = append(*ret, []byte(o))
+		}
+		*ret = append(*ret, []byte{})
+	}
 }
