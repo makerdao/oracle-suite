@@ -23,18 +23,23 @@ import (
 
 type originsLister interface {
 	Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error)
+	Pairs() []graph.Pair
 }
 
 func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 	var err error
 
 	var pairs []graph.Pair
-	for _, pair := range args {
-		p, err := graph.NewPair(pair)
-		if err != nil {
-			return err
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
 		}
-		pairs = append(pairs, p)
+	} else {
+		pairs = l.Pairs()
 	}
 
 	origins, err := l.Origins(pairs...)
