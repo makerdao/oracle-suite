@@ -71,10 +71,9 @@ func (j *plain) Close() error {
 }
 
 func plainHandleTick(ret *[]marshalledItem, tick graph.IndirectTick) {
+	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
 	if tick.Error != nil {
-		*ret = append(*ret, []byte(fmt.Sprintf("%s %s", tick.Pair.String(), strings.TrimSpace(tick.Error.Error()))))
-	} else {
-		*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
+		*ret = append(*ret, []byte("Error: "+strings.TrimSpace(tick.Error.Error())))
 	}
 }
 

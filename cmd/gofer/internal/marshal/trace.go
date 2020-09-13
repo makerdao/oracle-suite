@@ -211,11 +211,11 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 		if level == 0 && isFirst && isLast {
 			s.Write(prependLines(nodeStr, hline, empty+vline))
 		} else if level == 0 && isFirst {
-			s.Write(prependLines(nodeStr, first, vline+vline))
+			s.Write(prependLines(nodeStr, first, vline+empty))
 		} else if isLast {
 			s.Write(prependLines(nodeStr, last, empty+vline))
 		} else {
-			s.Write(prependLines(nodeStr, middle, vline+vline))
+			s.Write(prependLines(nodeStr, middle, vline+empty))
 		}
 
 		s.WriteByte('\n')
