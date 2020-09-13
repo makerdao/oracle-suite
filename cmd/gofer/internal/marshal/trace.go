@@ -81,7 +81,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 		switch typedTick := node.(type) {
 		case graph.IndirectTick:
 			s = fmt.Sprintf(
-				"Aggregator(%s)=%f",
+				"IndirectTick(%s, %f)",
 				typedTick.Pair,
 				typedTick.Price,
 			)
@@ -101,7 +101,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			}
 		case graph.OriginTick:
 			s = fmt.Sprintf(
-				"Origin(%s, %s)=%f",
+				"OriginTick(%s, %s, %f)",
 				typedTick.Pair,
 				typedTick.Origin,
 				typedTick.Price,
