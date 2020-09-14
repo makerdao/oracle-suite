@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
@@ -62,15 +63,31 @@ func ParseJSON(b []byte) (*JSON, error) {
 }
 
 func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
+	var err error
+
 	graphs := map[graph.Pair]graph.Aggregator{}
 
-	// Build roots.
-	//   It's important to create root nodes before branches,
-	//   because branches may refer to another root nodes.
+	err = j.buildRoots(graphs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = j.buildBranches(graphs)
+	if err != nil {
+		return nil, err
+	}
+
+	return graphs, nil
+}
+
+func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
+	// It's important to create root nodes before branches,
+	// because branches may refer to another root nodes
+	// instances.
 	for name, model := range j.PriceModels {
 		pair, err := graph.NewPair(name)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		switch model.Method {
@@ -78,48 +95,72 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 			var params MedianPriceModel
 			err := json.Unmarshal(model.Params, &params)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			graphs[pair] = graph.NewMedianAggregatorNode(pair, params.MinSourceSuccess)
 		default:
-			return nil, fmt.Errorf("unknown method: %s", model.Method)
+			return fmt.Errorf("unknown method: %s", model.Method)
 		}
 	}
 
-	// Build branches.
+	return nil
+}
+
+func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
+	origins := map[graph.OriginPair]graph.Origin{}
+
 	for name, model := range j.PriceModels {
 		pair, _ := graph.NewPair(name)
+
+		var parent graph.Parent
+		if typedNode, ok := graphs[pair].(graph.Parent); ok {
+			parent = typedNode
+		} else {
+			return fmt.Errorf(
+				"%s must implement graph.Parent interface",
+				reflect.TypeOf(graphs[pair]).Elem().String(),
+			)
+		}
+
 		for _, sources := range model.Sources {
 			var children []graph.Node
 			for _, source := range sources {
 				sourcePair, err := graph.NewPair(source.Pair)
 				if err != nil {
-					return nil, err
+					return err
 				}
 
 				if source.Origin == "." {
-					// The reference to an other root node:
+					// The reference to an other root node.
+					if _, ok := graphs[sourcePair]; !ok {
+						return fmt.Errorf("unable to find price model for %s pair", sourcePair)
+					}
 					children = append(children, graphs[sourcePair].(graph.Node))
 				} else {
-					// The origin node:
+					// The origin node. If it's possible we're trying to reuse
+					// previously created origin nodes.
 					pair, err := graph.NewPair(source.Pair)
 					if err != nil {
-						return nil, err
+						return err
 					}
-
 					originPair := graph.OriginPair{
 						Origin: source.Origin,
 						Pair:   pair,
 					}
-
-					children = append(children, graph.NewOriginNode(originPair))
+					if _, ok := origins[originPair]; !ok {
+						origins[originPair] = graph.NewOriginNode(originPair)
+					}
+					children = append(children, origins[originPair])
 				}
 			}
 
+			// If there are provided multiple sources it means, that price
+			// have to be calculated by using graph.IndirectAggregatorNode.
+			// Otherwise we can pass that graph.OriginNode directly to
+			// the parent node.
+
 			var node graph.Node
 			if len(children) == 1 {
-				// If there is only one node, there is no need to wrap it with
-				// IndirectAggregatorNode.
 				node = children[0]
 			} else {
 				indirectAggregator := graph.NewIndirectAggregatorNode(pair)
@@ -129,11 +170,9 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 				node = indirectAggregator
 			}
 
-			if typedNode, ok := graphs[pair].(graph.Parent); ok {
-				typedNode.AddChild(node)
-			}
+			parent.AddChild(node)
 		}
 	}
 
-	return graphs, nil
+	return nil
 }
