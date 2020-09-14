@@ -13,6 +13,8 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+//TODO: check if it's possible to merge coinbase and coinbasepro
+//nolint:dupl
 package origins
 
 import (

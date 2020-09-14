@@ -28,10 +28,6 @@ import (
 // Gateio URL
 const gateioURL = "https://fx-api.gateio.ws/api/v4/spot/tickers?currency_pair=%s"
 
-// {"currency_pair":"LRC_USDT","last":"0.12176","lowest_ask":"0.12355","highest_bid":"0.12225",
-//"change_percentage":"7.87",
-//"base_volume":"2705363.321762761","quote_volume":"331862.539837944479403",
-//"high_24h":"0.13315","low_24h":"0.10868"}
 type gateioResponse struct {
 	Pair   string `json:"currency_pair"`
 	Volume string `json:"quote_volume"`

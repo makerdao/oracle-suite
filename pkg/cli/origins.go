@@ -27,8 +27,6 @@ type originsLister interface {
 }
 
 func Origins(args []string, l originsLister, m ReadWriteCloser) error {
-	var err error
-
 	var pairs []graph.Pair
 	if len(args) > 0 {
 		for _, pair := range args {
@@ -48,7 +46,7 @@ func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 	}
 
 	for _, p := range sortMapKeys(origins) {
-		err := m.Write(map[graph.Pair][]string{p: origins[p]}, nil)
+		err = m.Write(map[graph.Pair][]string{p: origins[p]}, nil)
 		if err != nil {
 			return err
 		}
@@ -62,9 +60,9 @@ func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 	return nil
 }
 
-func sortMapKeys(m map[graph.Pair][]string) []graph.Pair  {
+func sortMapKeys(m map[graph.Pair][]string) []graph.Pair {
 	var pairs []graph.Pair
-	for p, _ := range m {
+	for p := range m {
 		pairs = append(pairs, p)
 	}
 
