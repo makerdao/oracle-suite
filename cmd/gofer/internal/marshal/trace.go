@@ -96,7 +96,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			for _, t := range typedTick.OriginTicks {
 				c = append(c, t)
 			}
-			for _, t := range typedTick.IndirectTick {
+			for _, t := range typedTick.IndirectTicks {
 				c = append(c, t)
 			}
 		case graph.OriginTick:
@@ -223,13 +223,13 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 		}
 
 		if isLast && hasChild {
-			restLinesPrefix = empty+vline
+			restLinesPrefix = empty + vline
 		} else if !isLast && hasChild {
-			restLinesPrefix = vline+vline
+			restLinesPrefix = vline + vline
 		} else if isLast && !hasChild {
-			restLinesPrefix = empty+empty
+			restLinesPrefix = empty + empty
 		} else if !isLast && !hasChild {
-			restLinesPrefix = vline+empty
+			restLinesPrefix = vline + empty
 		}
 
 		s.Write(prependLines(nodeStr, firstLinePrefix, restLinesPrefix))

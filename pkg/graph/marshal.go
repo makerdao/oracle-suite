@@ -27,13 +27,13 @@ func (p IndirectTick) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(struct {
 		Tick
-		OriginTicks  []OriginTick
-		IndirectTick []IndirectTick
-		Error        string
+		OriginTicks   []OriginTick
+		IndirectTicks []IndirectTick
+		Error         string
 	}{
-		Tick:         p.Tick,
-		OriginTicks:  p.OriginTicks,
-		IndirectTick: p.IndirectTick,
-		Error:        errStr,
+		Tick:          p.Tick,
+		OriginTicks:   p.OriginTicks,
+		IndirectTicks: p.IndirectTicks,
+		Error:         errStr,
 	})
 }

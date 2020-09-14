@@ -56,7 +56,7 @@ type OriginTick struct {
 // IndirectTick represent Tick which was calculated using other ticks.
 type IndirectTick struct {
 	Tick
-	OriginTicks  []OriginTick
-	IndirectTick []IndirectTick
-	Error        error
+	OriginTicks   []OriginTick
+	IndirectTicks []IndirectTick
+	Error         error
 }
