@@ -92,8 +92,18 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 }
 
 func calcIndirectTick(t []Tick) (Tick, error) {
+	var err error
+
 	if len(t) == 0 {
 		return Tick{}, nil
+	}
+
+	divByZeroErr := func(a, b Pair) error {
+		return fmt.Errorf(
+			"unable to merge %s and %s, because it requires division by zero",
+			a,
+			b,
+		)
 	}
 
 	for i := 0; i < len(t)-1; i++ {
@@ -110,18 +120,21 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 			if b.Price > 0 {
 				price = a.Price / b.Price
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				price = 0
 			}
 
 			if b.Bid > 0 {
 				bid = a.Bid / b.Bid
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				bid = 0
 			}
 
 			if b.Ask > 0 {
 				ask = a.Ask / b.Ask
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				ask = 0
 			}
 		case a.Pair.Base == b.Pair.Base: // C/A, C/B
@@ -131,18 +144,21 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 			if a.Price > 0 {
 				price = b.Price / a.Price
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				price = 0
 			}
 
 			if a.Bid > 0 {
 				bid = b.Bid / a.Bid
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				bid = 0
 			}
 
 			if a.Ask > 0 {
 				ask = b.Ask / a.Ask
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				ask = 0
 			}
 		case a.Pair.Quote == b.Pair.Base: // A/C, C/B
@@ -151,29 +167,38 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 			price = a.Price * b.Price
 			bid = a.Bid * b.Bid
 			ask = a.Ask * b.Ask
-		case a.Pair.Base == b.Pair.Quote: // C/A, B/C
+		case a.Pair.Base == b.Pair.Quote: // C/A, B/C -> A/B
 			pair.Base = a.Pair.Quote
 			pair.Quote = b.Pair.Base
 
-			if b.Price > 0 {
+			if a.Price > 0 && b.Price > 0 {
 				price = (float64(1) / b.Price) / a.Price
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				price = 0
 			}
 
-			if b.Bid > 0 {
+			if a.Bid > 0 && b.Bid > 0 {
 				bid = (float64(1) / b.Bid) / a.Bid
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				bid = 0
 			}
 
-			if b.Ask > 0 {
+			if a.Ask > 0 && b.Ask > 0 {
 				ask = (float64(1) / b.Ask) / a.Ask
 			} else {
+				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				ask = 0
 			}
 		default:
-			return a, fmt.Errorf("unable to merge %s and %s pairs, becuase they don't have a common part", a.Pair, b.Pair)
+			err = multierror.Append(err, fmt.Errorf(
+				"unable to merge %s and %s pairs, becuase they don't have a common part",
+				a.Pair,
+				b.Pair,
+			))
+
+			return a, err
 		}
 
 		b.Pair = pair
@@ -181,12 +206,12 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 		b.Bid = bid
 		b.Ask = ask
 		b.Volume24h = 0
-		if a.Timestamp.Before(a.Timestamp) {
+		if a.Timestamp.Before(b.Timestamp) {
 			b.Timestamp = a.Timestamp
 		}
 
 		t[i+1] = b
 	}
 
-	return t[len(t)-1], nil
+	return t[len(t)-1], err
 }
