@@ -52,34 +52,35 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 			originTicks = append(originTicks, tick)
 			ticks = append(ticks, tick.Tick)
 			if tick.Error != nil {
-				err = multierror.Append(err, tick.Error)
+				err = multierror.Append(err, fmt.Errorf("error in %s pair from %s", typedNode.Tick().Pair, typedNode.Tick().Origin))
 			}
 		case Aggregator:
 			tick := typedNode.Tick()
 			indirectTicks = append(indirectTicks, tick)
 			ticks = append(ticks, tick.Tick)
 			if typedNode.Tick().Error != nil {
-				err = multierror.Append(err, tick.Error)
+				err = multierror.Append(err, fmt.Errorf("error in %s pair", typedNode.Tick().Pair))
 			}
 		}
 	}
 
-	indirectTick, err := calcIndirectTick(ticks)
+	indirectTick, e := calcIndirectTick(ticks)
+	if e != nil {
+		err = multierror.Append(err, e)
+	}
 
-	if err == nil {
-		if indirectTick.Price <= 0 {
-			err = multierror.Append(
-				err,
-				fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair),
-			)
-		}
+	// if indirectTick.Price <= 0 {
+	// 	err = multierror.Append(
+	// 		err,
+	// 		fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair),
+	// 	)
+	// }
 
-		if !indirectTick.Pair.Equal(n.pair) {
-			err = multierror.Append(
-				err,
-				fmt.Errorf("indirect price was resolved to %s but %s was expected", indirectTick.Pair, n.pair),
-			)
-		}
+	if !indirectTick.Pair.Equal(n.pair) {
+		err = multierror.Append(
+			err,
+			fmt.Errorf("indirect price was resolved to %s but %s was expected", indirectTick.Pair, n.pair),
+		)
 	}
 
 	return IndirectTick{
@@ -101,7 +102,6 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 
 		var pair Pair
 		var price, bid, ask float64
-
 		switch true {
 		case a.Pair.Quote == b.Pair.Quote: // A/C, B/C
 			pair.Base = a.Pair.Base
@@ -173,7 +173,7 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 				ask = 0
 			}
 		default:
-			return a, fmt.Errorf("unable to merge %s and %s pairs, becuase they don't have any common part", a.Pair, b.Pair)
+			return a, fmt.Errorf("unable to merge %s and %s pairs, becuase they don't have a common part", a.Pair, b.Pair)
 		}
 
 		b.Pair = pair
@@ -181,6 +181,9 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 		b.Bid = bid
 		b.Ask = ask
 		b.Volume24h = 0
+		if a.Timestamp.Before(a.Timestamp) {
+			b.Timestamp = a.Timestamp
+		}
 
 		t[i+1] = b
 	}
