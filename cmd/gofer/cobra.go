@@ -81,7 +81,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			fmt.Print(string(b))
+			fmt.Println(string(b))
 			return nil
 		},
 	}
@@ -119,7 +119,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			fmt.Print(string(b))
+			fmt.Println(string(b))
 			return nil
 		},
 	}
@@ -157,7 +157,7 @@ func NewPriceCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			fmt.Print(string(b))
+			fmt.Println(string(b))
 			return nil
 		},
 	}
