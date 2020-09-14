@@ -76,7 +76,10 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
 	var err error
 	pairName := u.localPairName(pair)
-	body := fmt.Sprintf(`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`, pairName)
+	body := fmt.Sprintf(
+		`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`,
+		pairName,
+	)
 
 	req := &query.HTTPRequest{
 		URL:    u.getURL(pair),

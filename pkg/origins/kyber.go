@@ -105,7 +105,10 @@ func (k *Kyber) callOne(pair Pair) (*Tick, error) {
 	}
 
 	if result.Src != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" {
-		return nil, fmt.Errorf("failed to parse price from kyber origin (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s", res.Body)
+		return nil, fmt.Errorf(
+			"failed to parse price from kyber origin (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s",
+			res.Body,
+		)
 	}
 
 	if result.Dst != k.localPairName(pair) {

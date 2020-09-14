@@ -107,9 +107,7 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 				})
 			}
 		} else {
-			for _, cr := range handler.Fetch(pairs) {
-				crs[origin] = append(crs[origin], cr)
-			}
+			crs[origin] = append(crs[origin], handler.Fetch(pairs)...)
 		}
 	}
 

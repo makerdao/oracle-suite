@@ -56,7 +56,7 @@ func Walk(node Node, fn func(Node)) {
 	}
 	recur(node)
 
-	for n, _ := range nodes {
+	for n := range nodes {
 		fn(n)
 	}
 }

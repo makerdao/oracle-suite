@@ -149,10 +149,7 @@ func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 				typedNode.OriginPair().Origin,
 			)
 		default:
-			s = fmt.Sprintf(
-				"%s",
-				reflect.TypeOf(node).Elem().String(),
-			)
+			s = reflect.TypeOf(node).Elem().String()
 		}
 
 		return []byte(s), c
@@ -197,13 +194,16 @@ func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) 
 	*ret = append(*ret, str)
 }
 
+//nolint:gocyclo
 func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []interface{}, level int) []byte {
-	const first = "┌──"
-	const middle = "├──"
-	const last = "└──"
-	const vline = "│  "
-	const hline = "───"
-	const empty = "   "
+	const (
+		first  = "┌──"
+		middle = "├──"
+		last   = "└──"
+		vline  = "│  "
+		hline  = "───"
+		empty  = "   "
+	)
 
 	s := bytes.Buffer{}
 	for i, node := range nodes {
@@ -211,27 +211,28 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 		isFirst := i == 0
 		isLast := i == len(nodes)-1
 		hasChild := len(nodeChildren) > 0
-
 		firstLinePrefix := ""
 		restLinesPrefix := ""
 
-		if level == 0 && isFirst && isLast {
+		switch {
+		case level == 0 && isFirst && isLast:
 			firstLinePrefix = hline
-		} else if level == 0 && isFirst {
+		case level == 0 && isFirst:
 			firstLinePrefix = first
-		} else if isLast {
+		case isLast:
 			firstLinePrefix = last
-		} else {
+		default:
 			firstLinePrefix = middle
 		}
 
-		if isLast && hasChild {
+		switch {
+		case isLast && hasChild:
 			restLinesPrefix = empty + vline
-		} else if !isLast && hasChild {
+		case !isLast && hasChild:
 			restLinesPrefix = vline + vline
-		} else if isLast && !hasChild {
+		case isLast && !hasChild:
 			restLinesPrefix = empty + empty
-		} else if !isLast && !hasChild {
+		case !isLast && !hasChild:
 			restLinesPrefix = vline + empty
 		}
 

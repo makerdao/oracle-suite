@@ -81,7 +81,7 @@ func (d *Ddex) callOne(pair Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse ddex response: %w", err)
 	}
 	// Check if response is successful
-	if resp.Desc != "success" || len(resp.Data.Orderbook.Asks) != 1 || 1 != len(resp.Data.Orderbook.Bids) {
+	if resp.Desc != "success" || len(resp.Data.Orderbook.Asks) != 1 || len(resp.Data.Orderbook.Bids) != 1 {
 		return nil, fmt.Errorf("response returned from ddex origin is invalid %s", res.Body)
 	}
 	// Parsing ask from string

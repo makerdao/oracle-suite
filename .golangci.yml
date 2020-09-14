@@ -41,7 +41,7 @@ linters-settings:
     max-blank-identifiers: 2
   dupl:
     # tokens count to trigger issue, 150 by default
-    threshold: 100
+    threshold: 150
   errcheck:
     # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
     # default is false: such cases aren't reported by default.
@@ -55,7 +55,7 @@ linters-settings:
     # see https://github.com/kisielk/errcheck#excluding-functions for details
     #exclude: /path/to/file.txt
   funlen:
-    lines: 60
+    lines: 100
     statements: 40
   gocyclo:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
@@ -75,6 +75,7 @@ linters-settings:
       mnd:
         # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
         checks: argument,case,condition,operation,return,assign
+        ignored-numbers: 0,1,2,3,4,5,6,7,8,9,10,1000
   govet:
     # report about shadowed variables
     check-shadowing: true
@@ -167,7 +168,6 @@ linters:
     - nakedret
     - nolintlint
     - rowserrcheck
-    - scopelint
     - staticcheck
     - structcheck
     - stylecheck

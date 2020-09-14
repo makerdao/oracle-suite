@@ -79,7 +79,7 @@ func (f *Folgory) callOne(pair Pair) (*Tick, error) {
 	var data *folgoryResponse
 	for _, symbol := range resp {
 		if symbol.Symbol == pairName {
-			data = &symbol
+			data = &symbol //nolint:gosec
 			break
 		}
 	}

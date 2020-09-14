@@ -20,14 +20,5 @@ import (
 	"fmt"
 )
 
-var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil OriginPair")
-
-//nolint:deadcode,varcheck,unused
-var errWrongPotentialPricePoint = fmt.Errorf("failed to make request using wrong OriginPair")
-
-//nolint:deadcode,varcheck,unused
-var errNoOriginInPotentialPricePoint = fmt.Errorf("failed to make request for nil origin in given OriginPair")
-
 var errEmptyOriginResponse = fmt.Errorf("empty origin response received")
-
 var errUnknownOrigin = errors.New("unknown origin")

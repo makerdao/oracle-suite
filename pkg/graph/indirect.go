@@ -106,6 +106,7 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 	}
 }
 
+//nolint:gocyclo,funlen
 func calcIndirectTick(t []Tick) (Tick, error) {
 	var err error
 
@@ -127,7 +128,7 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 
 		var pair Pair
 		var price, bid, ask float64
-		switch true {
+		switch {
 		case a.Pair.Quote == b.Pair.Quote: // A/C, B/C
 			pair.Base = a.Pair.Base
 			pair.Quote = b.Pair.Base
@@ -142,14 +143,12 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 			if b.Bid > 0 {
 				bid = a.Bid / b.Bid
 			} else {
-				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				bid = 0
 			}
 
 			if b.Ask > 0 {
 				ask = a.Ask / b.Ask
 			} else {
-				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				ask = 0
 			}
 		case a.Pair.Base == b.Pair.Base: // C/A, C/B
@@ -166,14 +165,12 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 			if a.Bid > 0 {
 				bid = b.Bid / a.Bid
 			} else {
-				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				bid = 0
 			}
 
 			if a.Ask > 0 {
 				ask = b.Ask / a.Ask
 			} else {
-				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				ask = 0
 			}
 		case a.Pair.Quote == b.Pair.Base: // A/C, C/B
@@ -196,19 +193,17 @@ func calcIndirectTick(t []Tick) (Tick, error) {
 			if a.Bid > 0 && b.Bid > 0 {
 				bid = (float64(1) / b.Bid) / a.Bid
 			} else {
-				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				bid = 0
 			}
 
 			if a.Ask > 0 && b.Ask > 0 {
 				ask = (float64(1) / b.Ask) / a.Ask
 			} else {
-				err = multierror.Append(err, divByZeroErr(a.Pair, b.Pair))
 				ask = 0
 			}
 		default:
 			err = multierror.Append(err, fmt.Errorf(
-				"unable to merge %s and %s pairs, becuase they don't have a common part",
+				"unable to merge %s and %s pairs, because they don't have a common part",
 				a.Pair,
 				b.Pair,
 			))

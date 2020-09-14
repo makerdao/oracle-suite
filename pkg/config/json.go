@@ -53,11 +53,10 @@ type JSONSources struct {
 
 func ParseJSONFile(path string) (*JSON, error) {
 	f, err := os.Open(path)
-	defer f.Close()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to load json config file: %w", err)
 	}
+	defer f.Close()
 
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
@@ -100,7 +99,7 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 	// because branches may refer to another root nodes
 	// instances.
 	for name, model := range j.PriceModels {
-		pair, err := graph.NewPair(name)
+		modelPair, err := graph.NewPair(name)
 		if err != nil {
 			return err
 		}
@@ -112,7 +111,7 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 			if err != nil {
 				return err
 			}
-			graphs[pair] = graph.NewMedianAggregatorNode(pair, params.MinSourceSuccess)
+			graphs[modelPair] = graph.NewMedianAggregatorNode(modelPair, params.MinSourceSuccess)
 		default:
 			return fmt.Errorf("unknown method: %s", model.Method)
 		}
@@ -125,15 +124,15 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	origins := map[graph.OriginPair]graph.Origin{}
 
 	for name, model := range j.PriceModels {
-		pair, _ := graph.NewPair(name)
+		modelPair, _ := graph.NewPair(name)
 
 		var parent graph.Parent
-		if typedNode, ok := graphs[pair].(graph.Parent); ok {
+		if typedNode, ok := graphs[modelPair].(graph.Parent); ok {
 			parent = typedNode
 		} else {
 			return fmt.Errorf(
 				"%s must implement graph.Parent interface",
-				reflect.TypeOf(graphs[pair]).Elem().String(),
+				reflect.TypeOf(graphs[modelPair]).Elem().String(),
 			)
 		}
 
@@ -178,7 +177,7 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 			if len(children) == 1 {
 				node = children[0]
 			} else {
-				indirectAggregator := graph.NewIndirectAggregatorNode(pair)
+				indirectAggregator := graph.NewIndirectAggregatorNode(modelPair)
 				for _, c := range children {
 					indirectAggregator.AddChild(c)
 				}

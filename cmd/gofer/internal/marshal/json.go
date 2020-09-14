@@ -39,7 +39,7 @@ func newJSON(ndjson bool) *json {
 
 		switch i := item.(type) {
 		case graph.IndirectTick:
-			err = jsonHandleTick(&ret, i, ierr)
+			err = jsonHandleTick(&ret, i)
 		case graph.Aggregator:
 			err = jsonHandleGraph(&ret, i)
 		case map[graph.Pair][]string:
@@ -67,7 +67,7 @@ func (j *json) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func jsonHandleTick(ret *[]marshalledItem, tick graph.IndirectTick, err error) error {
+func jsonHandleTick(ret *[]marshalledItem, tick graph.IndirectTick) error {
 	b, err := encodingJson.Marshal(tick)
 	if err != nil {
 		return err

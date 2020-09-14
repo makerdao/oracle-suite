@@ -32,8 +32,6 @@ type pricer interface {
 }
 
 func Price(args []string, l pricer, m ReadWriteCloser) error {
-	var err error
-
 	var pairs []graph.Pair
 
 	if len(args) > 0 {
@@ -54,7 +52,7 @@ func Price(args []string, l pricer, m ReadWriteCloser) error {
 	}
 
 	for _, t := range ticks {
-		err := m.Write(t, nil)
+		err = m.Write(t, nil)
 		if err != nil {
 			return err
 		}

@@ -116,7 +116,7 @@ func Test_calcIndirectTick(t *testing.T) {
 					Timestamp: time.Unix(10, 0),
 				},
 			},
-			want: Tick{},
+			want:    Tick{},
 			wantErr: true,
 		},
 		{
@@ -169,7 +169,7 @@ func Test_calcIndirectTick(t *testing.T) {
 					Timestamp: time.Unix(10, 0),
 				},
 			},
-			want: Tick{},
+			want:    Tick{},
 			wantErr: true,
 		},
 		{
@@ -252,7 +252,7 @@ func Test_calcIndirectTick(t *testing.T) {
 					Timestamp: time.Unix(10, 0),
 				},
 			},
-			want: Tick{},
+			want:    Tick{},
 			wantErr: true,
 		},
 		{
@@ -275,7 +275,7 @@ func Test_calcIndirectTick(t *testing.T) {
 					Timestamp: time.Unix(10, 0),
 				},
 			},
-			want: Tick{},
+			want:    Tick{},
 			wantErr: true,
 		},
 		{
