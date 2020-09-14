@@ -48,16 +48,18 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 	for _, c := range n.children {
 		switch typedNode := c.(type) {
 		case Origin:
-			originTicks = append(originTicks, typedNode.Tick())
-			ticks = append(ticks, typedNode.Tick().Tick)
-			if typedNode.Tick().Error != nil {
-				err = multierror.Append(err, typedNode.Tick().Error)
+			tick := typedNode.Tick()
+			originTicks = append(originTicks, tick)
+			ticks = append(ticks, tick.Tick)
+			if tick.Error != nil {
+				err = multierror.Append(err, tick.Error)
 			}
 		case Aggregator:
-			indirectTicks = append(indirectTicks, typedNode.Tick())
-			ticks = append(ticks, typedNode.Tick().Tick)
+			tick := typedNode.Tick()
+			indirectTicks = append(indirectTicks, tick)
+			ticks = append(ticks, tick.Tick)
 			if typedNode.Tick().Error != nil {
-				err = multierror.Append(err, typedNode.Tick().Error)
+				err = multierror.Append(err, tick.Error)
 			}
 		}
 	}
