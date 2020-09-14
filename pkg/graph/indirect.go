@@ -83,10 +83,10 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 	}
 
 	return IndirectTick{
-		Tick:         indirectTick,
-		OriginTicks:  originTicks,
-		IndirectTick: indirectTicks,
-		Error:        err,
+		Tick:          indirectTick,
+		OriginTicks:   originTicks,
+		IndirectTicks: indirectTicks,
+		Error:         err,
 	}
 }
 
