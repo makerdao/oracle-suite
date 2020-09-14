@@ -10,29 +10,24 @@ import (
 )
 
 type JSON struct {
-	Origins    JSONOrigin     `json:"origin"`
-	Aggregator JSONAggregator `json:"aggregator"`
+	Origins     map[string]JSONOrigin     `json:"origins"`
+	PriceModels map[string]JSONPriceModel `json:"priceModels"`
 }
 
 type JSONOrigin struct {
-	Type   string      `json:"type"`
-	Name   string      `json:"name"`
-	Config interface{} `json:"config"`
-}
-
-type JSONAggregator struct {
-	Name       string         `json:"name"`
-	Parameters JSONParameters `json:"parameters"`
-}
-
-type JSONParameters struct {
-	PriceModels map[string]JSONPriceModel `json:"pricemodels"`
+	Type   string          `json:"type"`
+	Name   string          `json:"name"`
+	Params json.RawMessage `json:"params"`
 }
 
 type JSONPriceModel struct {
-	Method           string          `json:"method"`
-	MinSourceSuccess int             `json:"minSourceSuccess"`
-	Sources          [][]JSONSources `json:"sources"`
+	Method  string          `json:"method"`
+	Sources [][]JSONSources `json:"sources"`
+	Params  json.RawMessage `json:"params"`
+}
+
+type MedianPriceModel struct {
+	MinSourceSuccess int `json:"minimumSuccessfulSources"`
 }
 
 type JSONSources struct {
@@ -69,9 +64,10 @@ func ParseJSON(b []byte) (*JSON, error) {
 func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	graphs := map[graph.Pair]graph.Aggregator{}
 
-	// Build roots. It's important to create root nodes before branches,
-	// because branches may refer to another root nodes.
-	for name, model := range j.Aggregator.Parameters.PriceModels {
+	// Build roots.
+	//   It's important to create root nodes before branches,
+	//   because branches may refer to another root nodes.
+	for name, model := range j.PriceModels {
 		pair, err := graph.NewPair(name)
 		if err != nil {
 			return nil, err
@@ -79,14 +75,19 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 
 		switch model.Method {
 		case "median":
-			graphs[pair] = graph.NewMedianAggregatorNode(pair, model.MinSourceSuccess)
+			var params MedianPriceModel
+			err := json.Unmarshal(model.Params, &params)
+			if err != nil {
+				return nil, err
+			}
+			graphs[pair] = graph.NewMedianAggregatorNode(pair, params.MinSourceSuccess)
 		default:
 			return nil, fmt.Errorf("unknown method: %s", model.Method)
 		}
 	}
 
 	// Build branches.
-	for name, model := range j.Aggregator.Parameters.PriceModels {
+	for name, model := range j.PriceModels {
 		pair, _ := graph.NewPair(name)
 		for _, sources := range model.Sources {
 			var children []graph.Node
