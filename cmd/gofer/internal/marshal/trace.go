@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
@@ -81,13 +82,14 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 		switch typedTick := node.(type) {
 		case graph.IndirectTick:
 			s = fmt.Sprintf(
-				"IndirectTick(%s, %f)",
+				"IndirectTick(%s, %f, %s)",
 				typedTick.Pair,
 				typedTick.Price,
+				typedTick.Timestamp.Format(time.RFC3339),
 			)
 
 			if typedTick.Error != nil {
-				s += fmt.Sprintf(
+				s = "[IGNORED] " + s + fmt.Sprintf(
 					"\nError: %s",
 					strings.TrimSpace(typedTick.Error.Error()),
 				)
@@ -101,14 +103,15 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			}
 		case graph.OriginTick:
 			s = fmt.Sprintf(
-				"OriginTick(%s, %s, %f)",
+				"OriginTick(%s, %s, %f, %s)",
 				typedTick.Pair,
 				typedTick.Origin,
 				typedTick.Price,
+				typedTick.Timestamp.Format(time.RFC3339),
 			)
 
 			if typedTick.Error != nil {
-				s += fmt.Sprintf(
+				s = "[IGNORED] " + s + fmt.Sprintf(
 					"\nError: %s",
 					strings.TrimSpace(typedTick.Error.Error()),
 				)

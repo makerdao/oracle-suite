@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -44,12 +45,13 @@ func (n *MedianAggregatorNode) Pair() Pair {
 }
 
 func (n *MedianAggregatorNode) Tick() IndirectTick {
+	var ts time.Time
 	var prices, bids, asks []float64
 	var originTicks []OriginTick
 	var indirectTicks []IndirectTick
 	var err error
 
-	for _, c := range n.children {
+	for i, c := range n.children {
 		var tick Tick
 		switch typedNode := c.(type) {
 		case Origin:
@@ -89,6 +91,9 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 		if tick.Ask > 0 {
 			asks = append(asks, tick.Ask)
 		}
+		if i == 0 || tick.Timestamp.Before(ts) {
+			ts = tick.Timestamp
+		}
 	}
 
 	if len(prices) < n.minSources {
@@ -105,6 +110,7 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			Bid:       median(bids),
 			Ask:       median(asks),
 			Volume24h: 0,
+			Timestamp: ts,
 		},
 		OriginTicks:   originTicks,
 		IndirectTicks: indirectTicks,
