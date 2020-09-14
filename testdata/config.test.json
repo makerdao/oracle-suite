@@ -1,32 +1,24 @@
 {
-  "aggregator": {
-    "name": "setzer",
-    "parameters": {
-      "origins": {
-        "e-c": {"a": "1"}
-      },
-      "pricemodels": {
-        "B/C": {
-          "method": "median",
-          "sources": [
-            [{"origin": "e-a", "pair": "B/C"}],
-            [{"origin": "e-b", "pair": "B/C"}]
-          ]
-        },
-        "A/C": {
-          "method": "median",
-          "sources": [
-            [{"origin": "e-c", "pair": "A/C"}],
-            [{"origin": "e-d", "pair": "A/B"}, {"origin": ".", "pair": "B/C"}]
-          ]
-        },
-        "D/E": {
-          "method": "median",
-          "sources": [
-            [{"origin": "e-e", "pair": "D/B"}, {"origin": "e-f", "pair": "E/B"}]
-          ]
-        }
-      }
+  "pricemodels": {
+    "B/C": {
+      "method": "median",
+      "sources": [
+        [{"origin": "e-a", "pair": "B/C"}],
+        [{"origin": "e-b", "pair": "B/C"}]
+      ]
+    },
+    "A/C": {
+      "method": "median",
+      "sources": [
+        [{"origin": "e-c", "pair": "A/C"}],
+        [{"origin": "e-d", "pair": "A/B"}, {"origin": ".", "pair": "B/C"}]
+      ]
+    },
+    "D/E": {
+      "method": "median",
+      "sources": [
+        [{"origin": "e-e", "pair": "D/B"}, {"origin": "e-f", "pair": "E/B"}]
+      ]
     }
   }
 }
