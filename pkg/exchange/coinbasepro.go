@@ -27,7 +27,7 @@ import (
 )
 
 // Coinbase URL
-const coinbaseProURL = "https://api.pro.coinbase.com/products//%s/ticker"
+const coinbaseProURL = "https://api.pro.coinbase.com/products/%s/ticker"
 
 type coinbaseProResponse struct {
 	Price  string `json:"price"`

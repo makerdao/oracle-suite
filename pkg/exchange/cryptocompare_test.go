@@ -51,20 +51,10 @@ func (suite *CryptoCompareSuite) TearDownTest() {
 }
 
 func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
-	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(cr[0].Error)
-
 	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(fmt.Errorf("no response for BTC/ETH from cryptocompare"), cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -97,19 +87,30 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 func (suite *CryptoCompareSuite) TestSuccessResponse() {
 	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"ETH":1.1}`),
+		Body: []byte(`{"RAW":{"BTC":{"ETH":{
+		"FROMSYMBOL": "BTC",
+		"TOSYMBOL": "ETH",
+		"PRICE": 0.04687,
+		"VOLUME24HOUR": 0,
+		"LASTUPDATE": 1599982420
+		}}}}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(cr[0].Error)
 	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
 	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.1, cr[0].PricePoint.Price)
+	suite.Equal(0.04687, cr[0].PricePoint.Price)
 	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {
 	testRealAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	var ppps []*model.PotentialPricePoint
+	for _, s := range []string{"BTC", "ETH", "MKR", "POLY"} {
+		ppps = append(ppps, newPotentialPricePoint("cryptocompare", s, "USD"))
+	}
+	testRealBatchAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, ppps)
 }
 
 // In order for 'go test' to run this suite, we need to create

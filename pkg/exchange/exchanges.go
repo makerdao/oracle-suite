@@ -29,19 +29,6 @@ type Handler interface {
 	Call(ppps []*model.PotentialPricePoint) []CallResult
 }
 
-type CallError struct {
-	PotentialPricePoint *model.PotentialPricePoint
-	Err                 error
-}
-
-func (e CallError) Error() string {
-	return fmt.Sprintf("Fetching %s gave error: %s", e.PotentialPricePoint, e.Err)
-}
-
-func (e CallError) Unwrap() error {
-	return e.Err
-}
-
 // CallResult is returned by Handler.Call method. It contains model.PricePoint
 // and optional error.
 type CallResult struct {
@@ -158,4 +145,27 @@ func callSinglePairExchange(e singlePairExchange, ppps []*model.PotentialPricePo
 	}
 
 	return cr
+}
+
+func validateResponse(ppps []*model.PotentialPricePoint, res *query.HTTPResponse) []CallResult {
+	results := make([]CallResult, 0)
+
+	if res == nil {
+		for _, ppp := range ppps {
+			results = append(results, newCallResult(
+				ppp,
+				nil,
+				fmt.Errorf("no response for %s from %s", ppp.Pair.String(), ppp.Exchange.Name),
+			))
+		}
+		return results
+	}
+	if res.Error != nil {
+		for _, ppp := range ppps {
+			results = append(results, newCallResult(ppp, nil, res.Error))
+		}
+		return results
+	}
+
+	return []CallResult{}
 }
