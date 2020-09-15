@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -129,7 +130,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 		},
 		OriginTicks:     originTicks,
 		AggregatorTicks: aggregatorTicks,
-		Method:          fmt.Sprintf("median,min:%d", n.minSources),
+		Parameters:      map[string]string{"method": "median", "min": strconv.Itoa(n.minSources)},
 		Error:           err,
 	}
 }
