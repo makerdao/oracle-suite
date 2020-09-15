@@ -56,15 +56,9 @@ func (suite *GateioSuite) TestLocalPair() {
 }
 
 func (suite *GateioSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
-	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(cr[0].Error)
+	// No PPPs.
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{})
+	suite.Len(cr, 0)
 
 	pp := newPotentialPricePoint("gateio", "BTC", "ETH")
 	// nil as response
@@ -114,24 +108,30 @@ func (suite *GateioSuite) TestFailOnWrongInput() {
 }
 
 func (suite *GateioSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("gateio", "BTC", "ETH")
+	pp := newPotentialPricePoint("gateio", "C", "D")
 	resp := &query.HTTPResponse{
-		Body: []byte(`[{"currency_pair":"BTC_ETH","last":"1","lowest_ask":"2","highest_bid":"3","quote_volume":"4"}]`),
+		Body: []byte(`[{"currency_pair":"A_B","last":"1","lowest_ask":"2","highest_bid":"3","quote_volume":"4"},{"currency_pair":"C_D","last":"5","lowest_ask":"6","highest_bid":"7","quote_volume":"8"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(cr[0].Error)
 	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
 	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Equal(2.0, cr[0].PricePoint.Ask)
-	suite.Equal(3.0, cr[0].PricePoint.Bid)
-	suite.Equal(4.0, cr[0].PricePoint.Volume)
+	suite.Equal(5.0, cr[0].PricePoint.Price)
+	suite.Equal(6.0, cr[0].PricePoint.Ask)
+	suite.Equal(7.0, cr[0].PricePoint.Bid)
+	suite.Equal(8.0, cr[0].PricePoint.Volume)
 	suite.Greater(cr[0].PricePoint.Timestamp, int64(2))
 }
 
 func (suite *GateioSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Gateio{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	gateio := &Gateio{Pool: query.NewHTTPWorkerPool(1)}
+	testRealAPICall(suite, gateio, "ETH", "BTC")
+	testRealBatchAPICall(suite, gateio, []*model.PotentialPricePoint{
+		newPotentialPricePoint("exchange", "ZEC", "USDT"),
+		newPotentialPricePoint("exchange", "WIN", "USDT"),
+		newPotentialPricePoint("exchange", "BAT", "BTC"),
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create

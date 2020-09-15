@@ -27,7 +27,8 @@ import (
 )
 
 // Gateio URL
-const gateioURL = "https://fx-api.gateio.ws/api/v4/spot/tickers?currency_pair=%s"
+const gateioSinglePairURL = "https://fx-api.gateio.ws/api/v4/spot/tickers?currency_pair=%s"
+const gateioURL = "https://fx-api.gateio.ws/api/v4/spot/tickers"
 
 // {"currency_pair":"LRC_USDT","last":"0.12176","lowest_ask":"0.12355","highest_bid":"0.12225",
 //"change_percentage":"7.87",
@@ -54,23 +55,23 @@ func (g *Gateio) localPairName(pair *model.Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
-func (g *Gateio) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(gateioURL, g.localPairName(pp.Pair))
-}
-
 func (g *Gateio) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	return callSinglePairExchange(g, ppps)
+	crs, err := g.call(ppps)
+	if err != nil {
+		return newCallResultErrors(ppps, err)
+	}
+	return crs
 }
 
-func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
+func (g *Gateio) call(ppps []*model.PotentialPricePoint) ([]CallResult, error) {
+	var url string
+	if len(ppps) == 1 {
+		url = fmt.Sprintf(gateioSinglePairURL, g.localPairName(ppps[0].Pair))
+	} else {
+		url = gateioURL
 	}
 
-	req := &query.HTTPRequest{
-		URL: g.getURL(pp),
-	}
+	req := &query.HTTPRequest{URL: url}
 
 	// make query
 	res := g.Pool.Query(req)
@@ -81,36 +82,66 @@ func (g *Gateio) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 		return nil, res.Error
 	}
 	// parsing JSON
-	var resp []gateioResponse
-	err = json.Unmarshal(res.Body, &resp)
+	var resps []gateioResponse
+	err := json.Unmarshal(res.Body, &resps)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse gateio response: %w", err)
 	}
-	if len(resp) < 1 {
+	if len(resps) < 1 {
 		return nil, fmt.Errorf("wrong gateio response: %s", res.Body)
 	}
+
+	respMap := map[string]gateioResponse{}
+	for _, resp := range resps {
+		respMap[resp.Pair] = resp
+	}
+
+	crs := make([]CallResult, len(ppps))
+	for i, ppp := range ppps {
+		symbol := g.localPairName(ppp.Pair)
+		if resp, has := respMap[symbol]; has {
+			p, err := g.newPricePoint(ppp, resp)
+			if err != nil {
+				crs[i] = newCallResultError(
+					ppp,
+					fmt.Errorf("failed to create price point from gateio response: %w: %s", err, res.Body),
+				)
+			} else {
+				crs[i] = newCallResultSuccess(p)
+			}
+		} else {
+			crs[i] = newCallResultError(
+				ppp,
+				fmt.Errorf("failed to find symbol %s in gateio response: %s", ppp.Pair, res.Body),
+			)
+		}
+	}
+	return crs, nil
+}
+
+func (g *Gateio) newPricePoint(pp *model.PotentialPricePoint, resp gateioResponse) (*model.PricePoint, error) {
 	// Check pair name
-	if resp[0].Pair != g.localPairName(pp.Pair) {
-		return nil, fmt.Errorf("wrong gateio pair returned %s: %s", resp[0].Pair, res.Body)
+	if resp.Pair != g.localPairName(pp.Pair) {
+		return nil, fmt.Errorf("wrong gateio pair returned: %s", resp.Pair)
 	}
 
 	// Parsing price from string
-	price, err := strconv.ParseFloat(resp[0].Price, 64)
+	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from gateio exchange")
 	}
 	// Parsing volume from string
-	volume, err := strconv.ParseFloat(resp[0].Volume, 64)
+	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from gateio exchange")
 	}
-	ask, err := strconv.ParseFloat(resp[0].Ask, 64)
+	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from gateio exchange")
 	}
-	bid, err := strconv.ParseFloat(resp[0].Bid, 64)
+	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from gateio exchange: %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from gateio exchange")
 	}
 
 	// building PricePoint
