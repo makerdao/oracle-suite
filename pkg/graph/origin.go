@@ -31,7 +31,7 @@ func (n *OriginNode) OriginPair() OriginPair {
 	return n.originPair
 }
 
-func (n *OriginNode) Feed(tick OriginTick) {
+func (n *OriginNode) Ingest(tick OriginTick) {
 	n.tick = tick
 }
 
