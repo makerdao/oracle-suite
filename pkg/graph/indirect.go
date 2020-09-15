@@ -67,14 +67,14 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 			originTicks = append(originTicks, tick)
 			ticks = append(ticks, tick.Tick)
 			if tick.Error != nil {
-				err = multierror.Append(err, fmt.Errorf("error in %s pair from %s", typedNode.Tick().Pair, typedNode.Tick().Origin))
+				err = multierror.Append(err, fmt.Errorf("error in %s pair from %s", tick.Pair, tick.Origin))
 			}
 		case Aggregator:
 			tick := typedNode.Tick()
 			aggregatorTicks = append(aggregatorTicks, tick)
 			ticks = append(ticks, tick.Tick)
-			if typedNode.Tick().Error != nil {
-				err = multierror.Append(err, fmt.Errorf("error in %s pair", typedNode.Tick().Pair))
+			if tick.Error != nil {
+				err = multierror.Append(err, fmt.Errorf("error in %s pair", tick.Pair))
 			}
 		}
 	}
