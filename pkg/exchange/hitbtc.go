@@ -27,9 +27,10 @@ import (
 )
 
 // Hitbtc URL
-const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker/%s"
+const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker?symbols=%s"
 
 type hitbtcResponse struct {
+	Symbol    string    `json:"symbol"`
 	Ask       string    `json:"ask"`
 	Volume    string    `json:"volume"`
 	Price     string    `json:"last"`
@@ -46,22 +47,26 @@ func (h *Hitbtc) localPairName(pair *model.Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
 }
 
-func (h *Hitbtc) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(hitbtcURL, h.localPairName(pp.Pair))
+func (h *Hitbtc) getURL(ppps []*model.PotentialPricePoint) string {
+	pairs := make([]string, len(ppps))
+	for i, ppp := range ppps {
+		pairs[i] = h.localPairName(ppp.Pair)
+	}
+	return fmt.Sprintf(hitbtcURL, strings.Join(pairs, ","))
 }
 
 func (h *Hitbtc) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	return callSinglePairExchange(h, ppps)
+	crs, err := h.call(ppps)
+	if err != nil {
+		return newCallResultErrors(ppps, err)
+	}
+	return crs
+
 }
 
-func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
+func (h *Hitbtc) call(ppps []*model.PotentialPricePoint) ([]CallResult, error) {
 	req := &query.HTTPRequest{
-		URL: h.getURL(pp),
+		URL: h.getURL(ppps),
 	}
 
 	// make query
@@ -73,32 +78,62 @@ func (h *Hitbtc) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, erro
 		return nil, res.Error
 	}
 	// parsing JSON
-	var resp hitbtcResponse
-	err = json.Unmarshal(res.Body, &resp)
+	var resps []hitbtcResponse
+	err := json.Unmarshal(res.Body, &resps)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse hitbtc response: %w", err)
 	}
-	// Parsing price from string
+
+	respMap := map[string]hitbtcResponse{}
+	for _, resp := range resps {
+		respMap[resp.Symbol] = resp
+	}
+
+	crs := make([]CallResult, len(ppps))
+	for i, ppp := range ppps {
+		symbol := h.localPairName(ppp.Pair)
+		if resp, has := respMap[symbol]; has {
+			p, err := h.newPricePoint(ppp, resp)
+			if err != nil {
+				crs[i] = newCallResultError(
+					ppp,
+					fmt.Errorf("failed to create price point from hitbtc response: %w: %s", err, res.Body),
+				)
+			} else {
+				crs[i] = newCallResultSuccess(p)
+			}
+		} else {
+			crs[i] = newCallResultError(
+				ppp,
+				fmt.Errorf("failed to find symbol %s in hitbtc response: %s", ppp.Pair, res.Body),
+			)
+		}
+	}
+	return crs, nil
+}
+
+func (h *Hitbtc) newPricePoint(pp *model.PotentialPricePoint, resp hitbtcResponse) (*model.PricePoint, error) {
+	// Parsing price from string.
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse price from hitbtc exchange")
 	}
-	// Parsing ask from string
+	// Parsing ask from string.
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse ask from hitbtc exchange")
 	}
-	// Parsing volume from string
+	// Parsing volume from string.
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse volume from hitbtc exchange")
 	}
-	// Parsing bid from string
+	// Parsing bid from string.
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from hitbtc exchange %s", res.Body)
+		return nil, fmt.Errorf("failed to parse bid from hitbtc exchange")
 	}
-	// building PricePoint
+	// Building PricePoint.
 	return &model.PricePoint{
 		Exchange:  pp.Exchange,
 		Pair:      pp.Pair,

@@ -56,19 +56,9 @@ func (suite *HitbtcSuite) TestLocalPair() {
 }
 
 func (suite *HitbtcSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
-	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(cr[0].Error)
-
 	pp := newPotentialPricePoint("hitbtc", "BTC", "ETH")
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
@@ -90,7 +80,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"last":"abc"}`),
+		Body: []byte(`[{"last":"abc"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
@@ -98,7 +88,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"last":"1","ask":"abc"}`),
+		Body: []byte(`[{"last":"1","ask":"abc"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
@@ -106,7 +96,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"last":"1","ask":"1","volume":"abc"}`),
+		Body: []byte(`[{"last":"1","ask":"1","volume":"abc"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
@@ -114,7 +104,23 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"last":"1","ask":"1","volume":"1","bid":"abc"}`),
+		Body: []byte(`[{"last":"1","ask":"1","volume":"1","bid":"abc"}]`),
+	}
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
+
+	// Error parsing
+	resp = &query.HTTPResponse{
+		Body: []byte(`[{"last":"1","ask":"1","volume":"1","bid":"abc","symbol":"abc"}]`),
+	}
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Error(cr[0].Error)
+
+	// Error parsing
+	resp = &query.HTTPResponse{
+		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","symbol":"BTCETH","timestamp":"2020-04-24T20:09:36.229Z"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
@@ -122,12 +128,16 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 }
 
 func (suite *HitbtcSuite) TestSuccessResponse() {
+	// Empty call.
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{})
+	suite.Len(cr, 0)
+
 	pp := newPotentialPricePoint("hitbtc", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","timestamp":"2020-04-24T20:09:36.229Z"}`),
+		Body: []byte(`[{"last":"1","ask":"2","volume":"3","bid":"4","symbol":"BTCETH","timestamp":"2020-04-24T20:09:36.229Z"}]`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(cr[0].Error)
 	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
 	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
@@ -139,7 +149,13 @@ func (suite *HitbtcSuite) TestSuccessResponse() {
 }
 
 func (suite *HitbtcSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Hitbtc{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	hitbtc := &Hitbtc{Pool: query.NewHTTPWorkerPool(1)}
+	testRealAPICall(suite, hitbtc, "ETH", "BTC")
+	testRealBatchAPICall(suite, hitbtc, []*model.PotentialPricePoint{
+		newPotentialPricePoint("exchange", "BTC", "USD"),
+		newPotentialPricePoint("exchange", "DOGE", "BTC"),
+		newPotentialPricePoint("exchange", "REP", "USDT"),
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create
