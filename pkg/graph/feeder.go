@@ -24,7 +24,7 @@ import (
 
 type Feedable interface {
 	OriginPair() OriginPair
-	Feed(tick OriginTick)
+	Ingest(tick OriginTick)
 	Tick() OriginTick
 }
 
@@ -44,7 +44,7 @@ func (i *Feeder) Feed(node Node) {
 	AsyncWalk(node, func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
 			if feedable.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
-				feedable.Feed(i.fetch(feedable.OriginPair()))
+				feedable.Ingest(i.fetch(feedable.OriginPair()))
 			}
 		}
 	})
@@ -53,7 +53,7 @@ func (i *Feeder) Feed(node Node) {
 func (i *Feeder) Clear(node Node) {
 	Walk(node, func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
-			feedable.Feed(OriginTick{})
+			feedable.Ingest(OriginTick{})
 		}
 	})
 }
