@@ -66,15 +66,25 @@ func (p pppList) groupByHandler() map[*model.Exchange]pppList {
 	return pppMap
 }
 
-// newCallResultWithError creates new CallResult instance with assigned error.
-//
-// The model.PricePoint is always assigned to the CallResult to track
-// information about a pair and an exchange for which an error was generated.
-func newCallResult(ppp *model.PotentialPricePoint, result *model.PricePoint, err error) CallResult {
-	if err != nil {
-		return CallResult{Error: &CallError{PotentialPricePoint: ppp, Err: err}}
-	}
+// newCallResultSuccess creates a new CallResult instance with a PricePoint.
+func newCallResultSuccess(result *model.PricePoint) CallResult {
 	return CallResult{PricePoint: result}
+}
+
+// newCallResultError creates a new CallResult instance with an assigned error
+// associated with the given PotentialPricePoint.
+func newCallResultError(ppp *model.PotentialPricePoint, err error) CallResult {
+	return CallResult{Error: &CallError{PotentialPricePoint: ppp, Err: err}}
+}
+
+// newCallResultErrors creates a new CallResult instance for each given
+// PotentialPricePoint all assigned the same error.
+func newCallResultErrors(ppps []*model.PotentialPricePoint, err error) []CallResult {
+	results := make([]CallResult, len(ppps))
+	for i, pp := range ppps {
+		results[i] = newCallResultError(pp, err)
+	}
+	return results
 }
 
 type Set struct {
@@ -127,16 +137,12 @@ func (e *Set) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	for exchange, ppps := range pppList(ppps).groupByHandler() {
 		err = model.ValidateExchange(exchange)
 		if err != nil {
-			for _, ppp := range ppps {
-				cr = append(cr, newCallResult(ppp, nil, err))
-			}
+			cr = append(cr, newCallResultErrors(ppps, err)...)
 		} else {
 			handler, ok := e.list[exchange.Name]
 			if !ok {
 				err = fmt.Errorf("%w (%s)", errUnknownExchange, exchange.Name)
-				for _, ppp := range ppps {
-					cr = append(cr, newCallResult(ppp, nil, err))
-				}
+				cr = append(cr, newCallResultErrors(ppps, err)...)
 			} else {
 				cr = append(cr, handler.Call(ppps)...)
 			}
@@ -151,11 +157,15 @@ type singlePairExchange interface {
 }
 
 func callSinglePairExchange(e singlePairExchange, ppps []*model.PotentialPricePoint) []CallResult {
-	cr := make([]CallResult, 0)
-	for _, ppp := range ppps {
-		pp, err := e.callOne(ppp)
-		cr = append(cr, newCallResult(ppp, pp, err))
+	crs := make([]CallResult, len(ppps))
+	for i, ppp := range ppps {
+		p, err := e.callOne(ppp)
+		if err != nil {
+			crs[i] = newCallResultError(ppp, err)
+		} else {
+			crs[i] = newCallResultSuccess(p)
+		}
 	}
 
-	return cr
+	return crs
 }

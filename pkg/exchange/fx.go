@@ -56,10 +56,7 @@ func (f *Fx) Call(ppps []*model.PotentialPricePoint) []CallResult {
 		if err != nil {
 			// If callByBase fails wholesale, create a CallResult per PPP with the same
 			// error.
-			crs = []CallResult{}
-			for _, pp := range ppps {
-				crs = append(crs, newCallResult(pp, nil, err))
-			}
+			crs = newCallResultErrors(ppps, err)
 		}
 		results = append(results, crs...)
 	}
@@ -116,21 +113,18 @@ func (f *Fx) callByBase(base string, ppps []*model.PotentialPricePoint) ([]CallR
 	for i, pp := range ppps {
 		if price, ok := resp.Rates[f.renameSymbol(pp.Pair.Quote)]; ok {
 			// Build PricePoint from exchange response.
-			results[i] = newCallResult(
-				pp,
+			results[i] = newCallResultSuccess(
 				&model.PricePoint{
 					Exchange:  pp.Exchange,
 					Pair:      pp.Pair,
 					Price:     price,
 					Timestamp: time.Now().Unix(),
 				},
-				nil,
 			)
 		} else {
 			// Missing quote in exchange response.
-			results[i] = newCallResult(
+			results[i] = newCallResultError(
 				pp,
-				nil,
 				fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body),
 			)
 		}
