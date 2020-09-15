@@ -68,10 +68,11 @@ type OriginTick struct {
 	Error  error
 }
 
-// IndirectTick represent Tick which was calculated using other ticks.
-type IndirectTick struct {
+// AggregatorTick represent Tick which was calculated using other ticks.
+type AggregatorTick struct {
 	Tick
-	OriginTicks   []OriginTick
-	IndirectTicks []IndirectTick
-	Error         error
+	OriginTicks     []OriginTick
+	AggregatorTicks []AggregatorTick
+	Method          string
+	Error           error
 }

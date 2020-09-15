@@ -15,40 +15,92 @@
 
 package graph
 
-import "encoding/json"
+//TODO: This is to be moved to a separate marshaling package
+import (
+	"encoding/json"
+	"time"
+)
 
 func (p OriginTick) MarshalJSON() ([]byte, error) {
 	var errStr string
+	ts := &p.Timestamp
 	if p.Error != nil {
 		errStr = p.Error.Error()
+		ts = nil
 	}
 
 	return json.Marshal(struct {
-		Tick
-		Origin string
-		Error  string
+		Type   string `json:"type,omitempty"`
+		Origin string `json:"origin,omitempty"`
+		// <Tick>
+		Base      string     `json:"base,omitempty"`
+		Quote     string     `json:"quote,omitempty"`
+		Price     float64    `json:"price,omitempty"`
+		Bid       float64    `json:"bid,omitempty"`
+		Ask       float64    `json:"ask,omitempty"`
+		Volume24h float64    `json:"vol24h,omitempty"`
+		Timestamp *time.Time `json:"ts,omitempty"`
+		// </Tick>
+		Error string `json:"error,omitempty"`
 	}{
-		Tick:   p.Tick,
+		Type:   "origin",
 		Origin: p.Origin,
-		Error:  errStr,
+		// <Tick>
+		Base:      p.Pair.Base,
+		Quote:     p.Pair.Quote,
+		Price:     p.Price,
+		Bid:       p.Bid,
+		Ask:       p.Ask,
+		Volume24h: p.Volume24h,
+		Timestamp: ts,
+		// </Tick>
+		Error: errStr,
 	})
 }
 
-func (p IndirectTick) MarshalJSON() ([]byte, error) {
+func (p AggregatorTick) MarshalJSON() ([]byte, error) {
 	var errStr string
+	ts := &p.Timestamp
 	if p.Error != nil {
 		errStr = p.Error.Error()
+		ts = nil
+	}
+
+	var ticks []interface{}
+	for _, v := range p.OriginTicks {
+		ticks = append(ticks, v)
+	}
+	for _, v := range p.AggregatorTicks {
+		ticks = append(ticks, v)
 	}
 
 	return json.Marshal(struct {
-		Tick
-		OriginTicks   []OriginTick
-		IndirectTicks []IndirectTick
-		Error         string
+		Type   string `json:"type,omitempty"`
+		Method string `json:"method,omitempty"`
+		// <Tick>
+		Base      string     `json:"base,omitempty"`
+		Quote     string     `json:"quote,omitempty"`
+		Price     float64    `json:"price,omitempty"`
+		Bid       float64    `json:"bid,omitempty"`
+		Ask       float64    `json:"ask,omitempty"`
+		Volume24h float64    `json:"vol24h,omitempty"`
+		Timestamp *time.Time `json:"ts,omitempty"`
+		// </Tick>
+		Ticks []interface{} `json:"ticks,omitempty"`
+		Error string        `json:"error,omitempty"`
 	}{
-		Tick:          p.Tick,
-		OriginTicks:   p.OriginTicks,
-		IndirectTicks: p.IndirectTicks,
-		Error:         errStr,
+		Type:   "aggregate",
+		Method: p.Method,
+		// <Tick>
+		Base:      p.Pair.Base,
+		Quote:     p.Pair.Quote,
+		Price:     p.Price,
+		Bid:       p.Bid,
+		Ask:       p.Ask,
+		Volume24h: p.Volume24h,
+		Timestamp: ts,
+		// </Tick>
+		Ticks: ticks,
+		Error: errStr,
 	})
 }

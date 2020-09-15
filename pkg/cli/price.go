@@ -27,7 +27,7 @@ type ReadWriteCloser interface {
 }
 
 type pricer interface {
-	Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error)
+	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
 	Pairs() []graph.Pair
 }
 

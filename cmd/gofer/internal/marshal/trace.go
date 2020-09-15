@@ -45,7 +45,7 @@ func newTrace() *trace {
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case graph.IndirectTick:
+		case graph.AggregatorTick:
 			traceHandleTick(&ret, i)
 		case graph.Aggregator:
 			traceHandleGraph(&ret, i)
@@ -74,18 +74,18 @@ func (j *trace) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
+func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
 		var s string
 
 		switch typedTick := node.(type) {
-		case graph.IndirectTick:
+		case graph.AggregatorTick:
 			s = fmt.Sprintf(
 				"IndirectTick(%s, %f, %s)",
 				typedTick.Pair,
 				typedTick.Price,
-				typedTick.Timestamp.Format(time.RFC3339),
+				typedTick.Timestamp.Format(time.RFC3339Nano),
 			)
 
 			if typedTick.Error != nil {
@@ -98,7 +98,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 			for _, t := range typedTick.OriginTicks {
 				c = append(c, t)
 			}
-			for _, t := range typedTick.IndirectTicks {
+			for _, t := range typedTick.AggregatorTicks {
 				c = append(c, t)
 			}
 		case graph.OriginTick:
@@ -107,7 +107,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.IndirectTick) {
 				typedTick.Pair,
 				typedTick.Origin,
 				typedTick.Price,
-				typedTick.Timestamp.Format(time.RFC3339),
+				typedTick.Timestamp.Format(time.RFC3339Nano),
 			)
 
 			if typedTick.Error != nil {
