@@ -82,10 +82,11 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 		switch typedTick := node.(type) {
 		case graph.AggregatorTick:
 			s = fmt.Sprintf(
-				"IndirectTick(%s, %f, %s)",
+				"AggregatorTick(pair:%s, price:%f, time:%s, %s)",
 				typedTick.Pair,
 				typedTick.Price,
 				typedTick.Timestamp.Format(time.RFC3339Nano),
+				printKVMap(typedTick.Parameters),
 			)
 
 			if typedTick.Error != nil {
@@ -103,7 +104,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 			}
 		case graph.OriginTick:
 			s = fmt.Sprintf(
-				"OriginTick(%s, %s, %f, %s)",
+				"OriginTick(pair:%s, origin:%s, price:%f, time:%s)",
 				typedTick.Pair,
 				typedTick.Origin,
 				typedTick.Price,
@@ -133,7 +134,7 @@ func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 		switch typedNode := node.(type) {
 		case graph.Aggregator:
 			s = fmt.Sprintf(
-				"%s(%s)",
+				"%s(pair: %s)",
 				reflect.TypeOf(node).Elem().String(),
 				typedNode.Pair(),
 			)
@@ -143,7 +144,7 @@ func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 			}
 		case graph.Origin:
 			s = fmt.Sprintf(
-				"%s(%s, %s)",
+				"%s(pair:%s, origin:%s)",
 				reflect.TypeOf(node).Elem().String(),
 				typedNode.OriginPair().Pair,
 				typedNode.OriginPair().Origin,
@@ -261,4 +262,23 @@ func prependLines(s []byte, first, rest string) []byte {
 	bts.WriteString(first)
 	bts.Write(bytes.ReplaceAll(bytes.TrimRight(s, "\n"), []byte{'\n'}, append([]byte{'\n'}, rest...)))
 	return bts.Bytes()
+}
+
+func printKVMap(kv map[string]string) string {
+	var ss []string
+	for _, k := range sortKeys(kv) {
+		ss = append(ss, k+":"+kv[k])
+	}
+	return strings.Join(ss, ", ")
+}
+
+func sortKeys(kv map[string]string) []string {
+	var ks []string
+	for k := range kv {
+		ks = append(ks, k)
+	}
+
+	sort.Strings(ks)
+
+	return ks
 }
