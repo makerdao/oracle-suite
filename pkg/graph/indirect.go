@@ -102,7 +102,7 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 		Tick:            indirectTick,
 		OriginTicks:     originTicks,
 		AggregatorTicks: aggregatorTicks,
-		Method:          "path",
+		Parameters:      map[string]string{"method": "indirect"},
 		Error:           err,
 	}
 }

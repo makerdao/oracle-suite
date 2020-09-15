@@ -22,8 +22,8 @@ import (
 )
 
 type Pair struct {
-	Quote string
 	Base  string
+	Quote string
 }
 
 func NewPair(s string) (Pair, error) {
@@ -40,7 +40,7 @@ func (p Pair) Empty() bool {
 }
 
 func (p Pair) Equal(c Pair) bool {
-	return p.Quote == c.Quote && p.Base == c.Base
+	return p.Base == c.Base && p.Quote == c.Quote
 }
 
 func (p Pair) String() string {
@@ -64,15 +64,15 @@ type Tick struct {
 // OriginTick represent Tick which was sourced directly from an origin.
 type OriginTick struct {
 	Tick
-	Origin string
-	Error  error
+	Origin string // Origin is a name of Tick source.
+	Error  error  // Error is optional error which may occur during fetching Tick.
 }
 
 // AggregatorTick represent Tick which was calculated using other ticks.
 type AggregatorTick struct {
 	Tick
-	OriginTicks     []OriginTick
-	AggregatorTicks []AggregatorTick
-	Method          string
-	Error           error
+	OriginTicks     []OriginTick      // OriginTicks is a list of all OriginTicks used to calculate Tick.
+	AggregatorTicks []AggregatorTick  // AggregatorTicks is a list of all OriginTicks used to calculate Tick.
+	Parameters      map[string]string // Parameters is a custom list of optional parameters returned by an aggregator.
+	Error           error             // Error is optional error which may occur during calculating Tick.
 }
