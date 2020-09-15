@@ -41,7 +41,7 @@ func newPlain() *plain {
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case graph.IndirectTick:
+		case graph.AggregatorTick:
 			plainHandleTick(&ret, i)
 		case graph.Aggregator:
 			plainHandleGraph(&ret, i)
@@ -70,7 +70,7 @@ func (j *plain) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func plainHandleTick(ret *[]marshalledItem, tick graph.IndirectTick) {
+func plainHandleTick(ret *[]marshalledItem, tick graph.AggregatorTick) {
 	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
 	if tick.Error != nil {
 		*ret = append(*ret, []byte("Error: "+strings.TrimSpace(tick.Error.Error())))

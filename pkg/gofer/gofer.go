@@ -49,8 +49,8 @@ func (g *Gofer) Pairs() []graph.Pair {
 	return pairs
 }
 
-func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error) {
-	var ticks []graph.IndirectTick
+func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
+	var ticks []graph.AggregatorTick
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
 			g.ingestor.Feed(pairGraph)

@@ -54,10 +54,10 @@ func (n *IndirectAggregatorNode) Pair() Pair {
 	return n.pair
 }
 
-func (n *IndirectAggregatorNode) Tick() IndirectTick {
+func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 	var ticks []Tick
 	var originTicks []OriginTick
-	var indirectTicks []IndirectTick
+	var aggregatorTicks []AggregatorTick
 	var err error
 
 	for _, c := range n.children {
@@ -71,7 +71,7 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 			}
 		case Aggregator:
 			tick := typedNode.Tick()
-			indirectTicks = append(indirectTicks, tick)
+			aggregatorTicks = append(aggregatorTicks, tick)
 			ticks = append(ticks, tick.Tick)
 			if typedNode.Tick().Error != nil {
 				err = multierror.Append(err, fmt.Errorf("error in %s pair", typedNode.Tick().Pair))
@@ -98,11 +98,12 @@ func (n *IndirectAggregatorNode) Tick() IndirectTick {
 		)
 	}
 
-	return IndirectTick{
-		Tick:          indirectTick,
-		OriginTicks:   originTicks,
-		IndirectTicks: indirectTicks,
-		Error:         err,
+	return AggregatorTick{
+		Tick:            indirectTick,
+		OriginTicks:     originTicks,
+		AggregatorTicks: aggregatorTicks,
+		Method:          "path",
+		Error:           err,
 	}
 }
 

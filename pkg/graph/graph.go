@@ -34,7 +34,7 @@ type Parent interface {
 type Aggregator interface {
 	Node
 	Pair() Pair
-	Tick() IndirectTick
+	Tick() AggregatorTick
 }
 
 // Origin represents a node which provides tick directly from an origin.

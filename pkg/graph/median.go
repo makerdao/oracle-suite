@@ -59,11 +59,11 @@ func (n *MedianAggregatorNode) Pair() Pair {
 	return n.pair
 }
 
-func (n *MedianAggregatorNode) Tick() IndirectTick {
+func (n *MedianAggregatorNode) Tick() AggregatorTick {
 	var ts time.Time
 	var prices, bids, asks []float64
 	var originTicks []OriginTick
-	var indirectTicks []IndirectTick
+	var aggregatorTicks []AggregatorTick
 	var err error
 
 	for i, c := range n.children {
@@ -77,10 +77,10 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 				continue
 			}
 		case Aggregator:
-			indirectTick := typedNode.Tick()
-			indirectTicks = append(indirectTicks, indirectTick)
-			tick = indirectTick.Tick
-			if indirectTick.Error != nil {
+			aggregatorTick := typedNode.Tick()
+			aggregatorTicks = append(aggregatorTicks, aggregatorTick)
+			tick = aggregatorTick.Tick
+			if aggregatorTick.Error != nil {
 				continue
 			}
 		}
@@ -118,7 +118,7 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 		)
 	}
 
-	return IndirectTick{
+	return AggregatorTick{
 		Tick: Tick{
 			Pair:      n.pair,
 			Price:     median(prices),
@@ -127,9 +127,10 @@ func (n *MedianAggregatorNode) Tick() IndirectTick {
 			Volume24h: 0,
 			Timestamp: ts,
 		},
-		OriginTicks:   originTicks,
-		IndirectTicks: indirectTicks,
-		Error:         err,
+		OriginTicks:     originTicks,
+		AggregatorTicks: aggregatorTicks,
+		Method:          fmt.Sprintf("median,min:%d", n.minSources),
+		Error:           err,
 	}
 }
 
