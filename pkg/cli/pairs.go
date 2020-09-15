@@ -16,33 +16,29 @@
 package cli
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
 	"sort"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Pairs(configFilePath string, m ReadWriteCloser) error {
-	conf, err := readConfig(configFilePath)
-	if err != nil {
-		return err
+type pairsLister interface {
+	Graphs() map[graph.Pair]graph.Aggregator
+}
+
+func Pairs(l pairsLister, m ReadWriteCloser) error {
+	var err error
+
+	var graphs []graph.Aggregator
+	for _, g := range l.Graphs() {
+		graphs = append(graphs, g)
 	}
 
-	pairs := make([]aggregator.Pair, 0)
-	for k := range conf.Aggregator.Parameters.PriceModels {
-		pairs = append(pairs, k)
-	}
-
-	sort.SliceStable(pairs, func(i, j int) bool {
-		return pairs[i].String() < pairs[j].String()
+	sort.SliceStable(graphs, func(i, j int) bool {
+		return graphs[i].Pair().String() < graphs[j].Pair().String()
 	})
 
-	for _, p := range pairs {
-		err = m.Write(aggregator.PriceModelMap{p: conf.Aggregator.Parameters.PriceModels[p]}, nil)
+	for _, g := range graphs {
+		err = m.Write(g, nil)
 		if err != nil {
 			return err
 		}
@@ -53,45 +49,5 @@ func Pairs(configFilePath string, m ReadWriteCloser) error {
 		return err
 	}
 
-	b, err := ioutil.ReadAll(m)
-	if err != nil {
-		return err
-	}
-
-	fmt.Print(string(b))
-
 	return nil
-}
-
-type config struct {
-	Aggregator struct {
-		Name       string
-		Parameters struct {
-			PriceModels aggregator.PriceModelMap `json:"pricemodels"`
-		}
-	}
-}
-
-func readConfig(path string) (*config, error) {
-	cf, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %s %w", path, err)
-	}
-	defer func() {
-		if err = cf.Close(); err != nil {
-			log.Printf("error closing config file: %s %s", path, err)
-		}
-	}()
-
-	b, err := ioutil.ReadAll(cf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %s %w", path, err)
-	}
-
-	var c config
-	if err := json.Unmarshal(b, &c); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON config file: %s %w", path, err)
-	}
-
-	return &c, nil
 }

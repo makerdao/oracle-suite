@@ -19,8 +19,7 @@ import (
 	encodingJson "encoding/json"
 	"fmt"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type json struct {
@@ -39,12 +38,12 @@ func newJSON(ndjson bool) *json {
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case *model.PriceAggregate:
-			err = jsonHandlePriceAggregate(&ret, i, ierr)
-		case *model.Exchange:
-			err = jsonHandleExchange(&ret, i)
-		case aggregator.PriceModelMap:
-			err = jsonHandlePriceModelMap(&ret, i)
+		case graph.IndirectTick:
+			err = jsonHandleTick(&ret, i, ierr)
+		case graph.Aggregator:
+			err = jsonHandleGraph(&ret, i)
+		case string:
+			err = jsonHandleString(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -68,8 +67,8 @@ func (j *json) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func jsonHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) error {
-	b, err := encodingJson.Marshal(newPriceAggregate(aggregate, err))
+func jsonHandleTick(ret *[]marshalledItem, tick graph.IndirectTick, err error) error {
+	b, err := encodingJson.Marshal(tick)
 	if err != nil {
 		return err
 	}
@@ -79,8 +78,8 @@ func jsonHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggre
 	return nil
 }
 
-func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) error {
-	b, err := encodingJson.Marshal(exchange.Name)
+func jsonHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) error {
+	b, err := encodingJson.Marshal(graph.Pair().String())
 	if err != nil {
 		return err
 	}
@@ -90,18 +89,13 @@ func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) error {
 	return nil
 }
 
-func jsonHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) error {
-	for pr, pm := range priceModelMap {
-		b, err := encodingJson.Marshal(struct {
-			Pair  aggregator.Pair
-			Model aggregator.PriceModel
-		}{pr, pm})
-		if err != nil {
-			return err
-		}
-
-		b = append(b, '\n')
-		*ret = append(*ret, b)
+func jsonHandleString(ret *[]marshalledItem, str string) error {
+	b, err := encodingJson.Marshal(str)
+	if err != nil {
+		return err
 	}
+
+	b = append(b, '\n')
+	*ret = append(*ret, b)
 	return nil
 }

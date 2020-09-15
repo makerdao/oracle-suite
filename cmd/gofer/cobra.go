@@ -16,14 +16,38 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
+	"github.com/makerdao/gofer/pkg/config"
+	"github.com/makerdao/gofer/pkg/exchange"
 	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/graph"
 )
+
+func newGofer(path string) (*gofer.Gofer, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	j, err := config.ParseJSONFile(absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := j.BuildGraphs()
+	if err != nil {
+		return nil, err
+	}
+
+	return gofer.NewGofer(g, graph.NewIngestor(exchange.DefaultSet(), 10)), nil
+}
 
 func NewPairsCmd(o *options) *cobra.Command {
 	return &cobra.Command{
@@ -37,7 +61,28 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			return cli.Pairs(o.ConfigFilePath, m)
+			absPath, err := filepath.Abs(o.ConfigFilePath)
+			if err != nil {
+				panic(err)
+			}
+
+			g, err := newGofer(absPath)
+			if err != nil {
+				panic(err)
+			}
+
+			err = cli.Pairs(g, m)
+			if err != nil {
+				return err
+			}
+
+			b, err := ioutil.ReadAll(m)
+			if err != nil {
+				return err
+			}
+
+			fmt.Print(string(b))
+			return nil
 		},
 	}
 }
@@ -59,12 +104,23 @@ or a subset of those, if at least one PAIR is provided.`,
 				panic(err)
 			}
 
-			l, err := gofer.ReadFile(absPath)
+			g, err := newGofer(absPath)
 			if err != nil {
 				panic(err)
 			}
 
-			return cli.Exchanges(args, l, m)
+			err = cli.Exchanges(args, g, m)
+			if err != nil {
+				return err
+			}
+
+			b, err := ioutil.ReadAll(m)
+			if err != nil {
+				return err
+			}
+
+			fmt.Print(string(b))
+			return nil
 		},
 	}
 }
@@ -86,12 +142,23 @@ func NewPriceCmd(o *options) *cobra.Command {
 				panic(err)
 			}
 
-			l, err := gofer.ReadFile(absPath)
+			g, err := newGofer(absPath)
 			if err != nil {
 				panic(err)
 			}
 
-			return cli.Price(args, l, m)
+			err = cli.Price(args, g, m)
+			if err != nil {
+				return err
+			}
+
+			b, err := ioutil.ReadAll(m)
+			if err != nil {
+				return err
+			}
+
+			fmt.Print(string(b))
+			return nil
 		},
 	}
 }

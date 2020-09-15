@@ -70,8 +70,8 @@ func NewMarshal(format FormatType) (*Marshal, error) {
 }
 
 // Write implements the Marshaller interface.
-func (m *Marshal) Write(aggregate interface{}, err error) error {
-	return m.marshaller.Write(aggregate, err)
+func (m *Marshal) Write(w interface{}, err error) error {
+	return m.marshaller.Write(w, err)
 }
 
 // Read implements the Marshaller interface.

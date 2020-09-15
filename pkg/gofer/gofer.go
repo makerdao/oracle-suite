@@ -17,109 +17,63 @@ package gofer
 
 import (
 	"fmt"
-	"log"
 
-	"github.com/makerdao/gofer/pkg/exchange"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type Aggregator interface {
-	// Return aggregated asset pair returning nil if pair not available
-	Aggregate(*model.Pair) *model.PriceAggregate
-}
-
-type Ingestor interface {
-	// Informs clients of the required data points
-	GetSources(...*model.Pair) []*model.PotentialPricePoint
-	// Allows for feeding data points to the IngestingAggregator
-	Ingest(*model.PriceAggregate)
-}
-
-type Fetcher interface {
-	Call([]*model.PotentialPricePoint) []exchange.CallResult
-}
-
-// An IngestingAggregator is a service that, when fed the required data points,
-// is able to return aggregated information derived from them in a way specific
-// to the embedded aggregation model.
-type IngestingAggregator interface {
-	Aggregator
-	Ingestor
-}
-
-func NewGofer(a IngestingAggregator, f Fetcher) *Gofer {
-	return &Gofer{
-		aggregator: a,
-		fetcher:    f,
-	}
-}
-
 type Gofer struct {
-	aggregator IngestingAggregator
-	fetcher    Fetcher
+	graphs   map[graph.Pair]graph.Aggregator
+	ingestor *graph.Ingestor
 }
 
-func (g *Gofer) Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error) {
-	f := func(agg IngestingAggregator, pairs ...*model.Pair) error {
-		if agg == nil {
-			return fmt.Errorf("no working agregator passed to processor")
-		}
-
-		for _, cr := range g.fetcher.Call(agg.GetSources(pairs...)) {
-			if cr.Error != nil {
-				log.Println(cr.Error)
-				continue
-			}
-
-			pa := &model.PriceAggregate{
-				PriceModelName: fmt.Sprintf("exchange[%s]", cr.PricePoint.Exchange.Name),
-				PricePoint:     cr.PricePoint,
-			}
-
-			agg.Ingest(pa)
-		}
-
-		return nil
+func NewGofer(graphs map[graph.Pair]graph.Aggregator, ingestor *graph.Ingestor) *Gofer {
+	return &Gofer{
+		graphs:   graphs,
+		ingestor: ingestor,
 	}
+}
 
-	if err := f(g.aggregator, pairs...); err != nil {
-		return nil, err
-	}
+func (g *Gofer) Graphs() map[graph.Pair]graph.Aggregator {
+	return g.graphs
+}
 
-	prices := make(map[model.Pair]*model.PriceAggregate)
+func (g *Gofer) Ingestor() *graph.Ingestor {
+	return g.ingestor
+}
+
+func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.IndirectTick, error) {
+	var ticks []graph.IndirectTick
 	for _, pair := range pairs {
-		prices[*pair] = g.aggregator.Aggregate(pair)
+		if pairGraph, ok := g.graphs[pair]; ok {
+			g.ingestor.Ingest(pairGraph)
+			ticks = append(ticks, pairGraph.Tick())
+		} else {
+			return nil, fmt.Errorf("unable to find %s pair", pair)
+		}
 	}
 
-	return prices, nil
+	return ticks, nil
 }
 
-func (g *Gofer) Exchanges(pairs ...*model.Pair) []*model.Exchange {
-	exchanges := make(map[string]*model.Exchange)
-
-	for _, ppp := range g.aggregator.GetSources(pairs...) {
-		exchanges[ppp.Exchange.Name] = ppp.Exchange
+func (g *Gofer) Exchanges(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
+	exchanges := map[graph.Pair][]string{}
+	for _, pair := range pairs {
+		if pairGraph, ok := g.graphs[pair]; ok {
+			graph.Walk(pairGraph, func(node graph.Node) {
+				if exchangeNode, ok := node.(*graph.ExchangeNode); ok {
+					name := exchangeNode.ExchangePair().Exchange
+					for _, n := range exchanges[pair] {
+						if name == n {
+							return
+						}
+					}
+					exchanges[pair] = append(exchanges[pair], name)
+				}
+			})
+		} else {
+			return nil, fmt.Errorf("unable to find %s pair", pair)
+		}
 	}
 
-	result := make([]*model.Exchange, 0)
-	for _, e := range exchanges {
-		result = append(result, e)
-	}
-
-	return result
-}
-
-func (g *Gofer) Pairs() []*model.Pair {
-	pairs := make(map[string]*model.Pair)
-
-	for _, ppp := range g.aggregator.GetSources() {
-		pairs[ppp.Pair.String()] = ppp.Pair
-	}
-
-	results := make([]*model.Pair, 0)
-	for _, p := range pairs {
-		results = append(results, p)
-	}
-
-	return results
+	return exchanges, nil
 }

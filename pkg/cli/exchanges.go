@@ -16,52 +16,52 @@
 package cli
 
 import (
-	"fmt"
-	"io/ioutil"
 	"sort"
 
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type exchangeLister interface {
-	Exchanges(pairs ...*model.Pair) []*model.Exchange
+	Exchanges(pairs ...graph.Pair) (map[graph.Pair][]string, error)
 }
 
 func Exchanges(args []string, l exchangeLister, m ReadWriteCloser) error {
-	var pairs []*model.Pair
+	var err error
+
+	var pairs []graph.Pair
 	for _, pair := range args {
-		p, err := model.NewPairFromString(pair)
+		p, err := graph.NewPair(pair)
 		if err != nil {
 			return err
 		}
-		pairs = append(pairs, model.NewPair(p.Base, p.Quote))
+		pairs = append(pairs, p)
 	}
 
-	exchanges := l.Exchanges(pairs...)
+	exchanges, err := l.Exchanges(pairs...)
+	if err != nil {
+		return err
+	}
 
-	sort.SliceStable(exchanges, func(i, j int) bool {
-		return exchanges[i].Name < exchanges[j].Name
+	var list []string
+	for _, e := range exchanges {
+		list = append(list, e...)
+	}
+
+	sort.SliceStable(list, func(i, j int) bool {
+		return list[i] < list[j]
 	})
 
-	var er error
-	for _, e := range exchanges {
-		err := m.Write(e, er)
+	for _, name := range list {
+		err := m.Write(name, nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := m.Close()
+	err = m.Close()
 	if err != nil {
 		return err
 	}
-
-	b, err := ioutil.ReadAll(m)
-	if err != nil {
-		return err
-	}
-
-	fmt.Print(string(b))
 
 	return nil
 }
