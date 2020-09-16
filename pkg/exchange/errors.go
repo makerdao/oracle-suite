@@ -18,6 +18,8 @@ package exchange
 import (
 	"errors"
 	"fmt"
+
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 var errNoPotentialPricePoint = fmt.Errorf("failed to make request to nil PotentialPricePoint")
@@ -31,3 +33,16 @@ var errNoExchangeInPotentialPricePoint = fmt.Errorf("failed to make request for 
 var errEmptyExchangeResponse = fmt.Errorf("empty exchange response received")
 
 var errUnknownExchange = errors.New("unknown exchange")
+
+type CallError struct {
+	PotentialPricePoint *model.PotentialPricePoint
+	Err                 error
+}
+
+func (e CallError) Error() string {
+	return fmt.Sprintf("Fetching %s gave error: %s", e.PotentialPricePoint, e.Err)
+}
+
+func (e CallError) Unwrap() error {
+	return e.Err
+}

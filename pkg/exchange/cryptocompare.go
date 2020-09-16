@@ -18,65 +18,95 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/makerdao/gofer/internal/query"
 	"github.com/makerdao/gofer/pkg/model"
 )
 
-// Exchange URL
-const cryptoCompareURL = "https://min-api.cryptocompare.com/data/price?fsym=%s&tsyms=%s"
+//nolint:lll
+const cryptoCompareMultiURL = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=%s&tsyms=%s&tryConversion=false&extraParams=gofer&relaxedValidation=true"
 
-type cryptoCompareResponse map[string]float64
+type cryptoCompareMultiResponse struct {
+	Raw map[string]map[string]struct {
+		Base  string  `json:"FROMSYMBOL"`
+		Query string  `json:"TOSYMBOL"`
+		Price float64 `json:"PRICE"`
+		TS    int64   `json:"LASTUPDATE"`
+		Vol24 float64 `json:"VOLUME24HOUR"`
+	} `json:"RAW"`
+}
 
-// Exchange handler
 type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-func (c *CryptoCompare) getURL(pp *model.PotentialPricePoint) string {
-	return fmt.Sprintf(cryptoCompareURL, pp.Pair.Base, pp.Pair.Quote)
-}
-
 func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	return callSinglePairExchange(c, ppps)
+	req := c.makeRequest(ppps)
+	res := c.Pool.Query(req)
+	if errorResponses := validateResponse(ppps, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return c.parseResponse(ppps, res)
 }
 
-func (c *CryptoCompare) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
+func (c *CryptoCompare) makeRequest(ppps []*model.PotentialPricePoint) *query.HTTPRequest {
+	var bList, qList []string
+
+	for _, ppp := range ppps {
+		bList = append(bList, ppp.Pair.Base)
+	}
+	for _, ppp := range ppps {
+		qList = append(qList, ppp.Pair.Quote)
 	}
 
 	req := &query.HTTPRequest{
-		URL: c.getURL(pp),
+		URL: fmt.Sprintf(cryptoCompareMultiURL, strings.Join(bList, ","), strings.Join(qList, ",")),
 	}
+	return req
+}
 
-	// make query
-	res := c.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyExchangeResponse
-	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	// parsing JSON
-	var resp cryptoCompareResponse
-	err = json.Unmarshal(res.Body, &resp)
+func (c *CryptoCompare) parseResponse(ppps []*model.PotentialPricePoint, res *query.HTTPResponse) []CallResult {
+	results := make([]CallResult, 0)
+
+	var resp cryptoCompareMultiResponse
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse CryptoCompare response: %w", err)
+		for _, ppp := range ppps {
+			results = append(results, newCallResult(
+				ppp,
+				nil,
+				fmt.Errorf("failed to parse CryptoCompare response: %w", err),
+			))
+		}
+		return results
 	}
 
-	price, ok := resp[pp.Pair.Quote]
-	if !ok {
-		return nil, fmt.Errorf("failed to get price for %s: %s", pp.Pair.Quote, res.Body)
+	for _, ppp := range ppps {
+		if bObj, is := resp.Raw[ppp.Pair.Base]; !is {
+			results = append(results, newCallResult(
+				ppp,
+				nil,
+				fmt.Errorf("no response for %s base from %s", ppp.Pair.Base, ppp.Exchange.Name),
+			))
+		} else {
+			if qObj, is := bObj[ppp.Pair.Quote]; !is {
+				results = append(results, newCallResult(
+					ppp,
+					nil,
+					fmt.Errorf("no response for %s quote from %s", ppp.Pair.Quote, ppp.Exchange.Name),
+				))
+			} else {
+				pp := &model.PricePoint{
+					Timestamp: qObj.TS,
+					Exchange:  ppp.Exchange,
+					Pair:      model.NewPair(qObj.Base, qObj.Query),
+					Price:     qObj.Price,
+					Volume:    qObj.Vol24,
+				}
+				results = append(results, newCallResult(ppp, pp, nil))
+			}
+		}
 	}
-
-	// building PricePoint
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
-		Price:     price,
-		Timestamp: time.Now().Unix(),
-	}, nil
+	return results
 }
