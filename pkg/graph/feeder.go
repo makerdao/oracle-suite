@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/makerdao/gofer/pkg/origins"
@@ -38,67 +37,120 @@ func NewFeeder(set *origins.Set, ttl int) *Feeder {
 	return &Feeder{set: set, ttl: ttl}
 }
 
-func (i *Feeder) Feed(node Node) {
-	t := time.Now()
-
-	AsyncWalk(node, func(node Node) {
-		if feedable, ok := node.(Feedable); ok {
-			if feedable.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
-				feedable.Ingest(i.fetch(feedable.OriginPair()))
-			}
-		}
-	})
+func (i *Feeder) Feed(nodes ...Node) {
+	i.fetchTicks(i.findFeedableNodes(nodes))
 }
 
-func (i *Feeder) Clear(node Node) {
-	Walk(node, func(node Node) {
+func (i *Feeder) Clear(nodes ...Node) {
+	Walk(func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
 			feedable.Ingest(OriginTick{})
 		}
-	})
+	}, nodes...)
 }
 
-func (i *Feeder) fetch(ep OriginPair) OriginTick {
-	// TODO: update for batch requests
-	crs := i.set.Fetch(map[string][]origins.Pair{
-		ep.Origin: {{
-			Quote: ep.Pair.Quote,
-			Base:  ep.Pair.Base,
-		}},
-	})
+func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
+	t := time.Now().Add(time.Second * time.Duration(-1*i.ttl))
 
-	if len(crs[ep.Origin]) != 1 {
-		return OriginTick{
-			Tick: Tick{
-				Pair: ep.Pair,
-			},
-			Origin: ep.Origin,
-			Error:  fmt.Errorf("unable to fetch tick for %s", ep.Pair),
+	var feedables []Feedable
+	Walk(func(node Node) {
+		if feedable, ok := node.(Feedable); ok {
+			if feedable.Tick().Timestamp.Before(t) {
+				feedables = append(feedables, feedable)
+			}
 		}
+	}, nodes...)
+
+	return feedables
+}
+
+func (i *Feeder) fetchTicks(nodes []Feedable) {
+	type originPair struct {
+		origin string
+		pair   origins.Pair
 	}
 
-	cr := crs[ep.Origin][0]
+	nodesMap := map[originPair][]Feedable{}
+	pairsMap := map[string][]origins.Pair{}
 
-	if cr.Error != nil {
-		return OriginTick{
-			Tick: Tick{
-				Pair: ep.Pair,
+	for _, node := range nodes {
+		originPair := originPair{
+			origin: node.OriginPair().Origin,
+			pair: origins.Pair{
+				Base:  node.OriginPair().Pair.Base,
+				Quote: node.OriginPair().Pair.Quote,
 			},
-			Origin: ep.Origin,
-			Error:  cr.Error,
 		}
+
+		nodesMap[originPair] = appendNodeIfUnique(
+			nodesMap[originPair],
+			node,
+		)
+
+		pairsMap[originPair.origin] = appendPairIfUnique(
+			pairsMap[originPair.origin],
+			originPair.pair,
+		)
 	}
 
+	for origin, frs := range i.set.Fetch(pairsMap) {
+		for _, fr := range frs {
+			originPair := originPair{
+				origin: origin,
+				pair:   fr.Tick.Pair,
+			}
+
+			for _, node := range nodesMap[originPair] {
+				node.Ingest(mapOriginResult(origin, fr))
+			}
+		}
+	}
+}
+
+func appendPairIfUnique(pairs []origins.Pair, pair origins.Pair) []origins.Pair {
+	exists := false
+	for _, p := range pairs {
+		if p.Equal(pair) {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		pairs = append(pairs, pair)
+	}
+
+	return pairs
+}
+
+func appendNodeIfUnique(nodes []Feedable, node Feedable) []Feedable {
+	exists := false
+	for _, n := range nodes {
+		if n == node {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
+}
+
+func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
 	return OriginTick{
 		Tick: Tick{
-			Pair:      ep.Pair,
-			Price:     cr.Tick.Price,
-			Bid:       cr.Tick.Bid,
-			Ask:       cr.Tick.Ask,
-			Volume24h: cr.Tick.Volume24h,
-			Timestamp: cr.Tick.Timestamp,
+			Pair: Pair{
+				Base:  fr.Tick.Pair.Base,
+				Quote: fr.Tick.Pair.Quote,
+			},
+			Price:     fr.Tick.Price,
+			Bid:       fr.Tick.Bid,
+			Ask:       fr.Tick.Ask,
+			Volume24h: fr.Tick.Volume24h,
+			Timestamp: fr.Tick.Timestamp,
 		},
-		Origin: ep.Origin,
-		Error:  cr.Error,
+		Origin: origin,
+		Error:  fr.Error,
 	}
 }

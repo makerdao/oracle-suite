@@ -51,13 +51,20 @@ func (g *Gofer) Pairs() []graph.Pair {
 
 func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
 	var ticks []graph.AggregatorTick
+	var graphs []graph.Node
+
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
-			g.feeder.Feed(pairGraph)
-			ticks = append(ticks, pairGraph.Tick())
+			graphs = append(graphs, pairGraph)
 		} else {
 			return nil, fmt.Errorf("unable to find %s pair", pair)
 		}
+	}
+
+	g.feeder.Feed(graphs...)
+
+	for _, pair := range pairs {
+		ticks = append(ticks, g.graphs[pair].Tick())
 	}
 
 	return ticks, nil
@@ -67,7 +74,7 @@ func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 	origins := map[graph.Pair][]string{}
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
-			graph.Walk(pairGraph, func(node graph.Node) {
+			graph.Walk(func(node graph.Node) {
 				if originNode, ok := node.(*graph.OriginNode); ok {
 					name := originNode.OriginPair().Origin
 					for _, n := range origins[pair] {
@@ -77,7 +84,7 @@ func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 					}
 					origins[pair] = append(origins[pair], name)
 				}
-			})
+			}, pairGraph)
 		} else {
 			return nil, fmt.Errorf("unable to find %s pair", pair)
 		}

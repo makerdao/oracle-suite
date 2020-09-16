@@ -17,6 +17,7 @@ package origins
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
@@ -36,6 +37,10 @@ type Pair struct {
 
 func (p Pair) String() string {
 	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
+}
+
+func (p Pair) Equal(c Pair) bool {
+	return p.Base == c.Base && p.Quote == c.Quote
 }
 
 type Tick struct {
@@ -124,25 +129,38 @@ func DefaultSet() *Set {
 
 // Fetch makes handler fetch using handlers from the Set structure.
 func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
-	var err error
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-	crs := map[string][]FetchResult{}
+	frs := map[string][]FetchResult{}
 	for origin, pairs := range originPairs {
+		origin := origin
+		pairs := pairs
 		handler, ok := e.list[origin]
-		if !ok {
-			err = fmt.Errorf("%w (%s)", errUnknownOrigin, origin)
-			for _, pair := range pairs {
-				crs[origin] = append(crs[origin], FetchResult{
-					Tick:  Tick{Pair: pair},
-					Error: err,
-				})
+
+		wg.Add(1)
+		go func() {
+			if !ok {
+				mu.Lock()
+				frs[origin] = fetchResultListWithErrors(
+					pairs,
+					fmt.Errorf("%w (%s)", errUnknownOrigin, origin),
+				)
+				mu.Unlock()
+			} else {
+				resp := handler.Fetch(pairs)
+				mu.Lock()
+				frs[origin] = append(frs[origin], resp...)
+				mu.Unlock()
 			}
-		} else {
-			crs[origin] = append(crs[origin], handler.Fetch(pairs)...)
-		}
+
+			wg.Done()
+		}()
 	}
 
-	return crs
+	wg.Wait()
+
+	return frs
 }
 
 type singlePairOrigin interface {
