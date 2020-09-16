@@ -28,18 +28,18 @@ import (
 // Uniswap URL
 const uniswapURL = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2"
 
-type uniswapPairResponse struct {
+type uniswapairairResponse struct {
 	Price0 string `json:"token0Price"`
 	Price  string `json:"token1Price"`
 }
 
 type uniswapResponse struct {
 	Data struct {
-		Pairs []*uniswapPairResponse
+		Pairs []*uniswapairairResponse
 	}
 }
 
-func getPriceByPair(pair Pair, res *uniswapPairResponse) string {
+func getPriceByPair(pair Pair, res *uniswapairairResponse) string {
 	p := Pair{Base: "KNC", Quote: "ETH"}
 	if pair == p {
 		return res.Price0

@@ -52,6 +52,37 @@ type FetchResult struct {
 	Error error
 }
 
+func fetchResult(tick Tick) FetchResult {
+	return FetchResult{
+		Tick:  tick,
+		Error: nil,
+	}
+}
+
+func fetchResultWithError(pair Pair, err error) FetchResult {
+	return FetchResult{
+		Tick: Tick{
+			Pair:      pair,
+			Timestamp: time.Now(),
+		},
+		Error: err,
+	}
+}
+
+func fetchResultListWithErrors(pairs []Pair, err error) []FetchResult {
+	r := make([]FetchResult, len(pairs))
+	for i, pair := range pairs {
+		r[i] = FetchResult{
+			Tick: Tick{
+				Pair:      pair,
+				Timestamp: time.Now(),
+			},
+			Error: err,
+		}
+	}
+	return r
+}
+
 type Set struct {
 	list map[string]Handler
 }
@@ -91,7 +122,7 @@ func DefaultSet() *Set {
 	})
 }
 
-// Fetch makes handler call using handlers from the Set structure.
+// Fetch makes handler fetch using handlers from the Set structure.
 func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var err error
 

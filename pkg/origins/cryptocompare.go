@@ -13,15 +13,15 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package exchange
+package origins
 
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 //nolint:lll
@@ -41,23 +41,23 @@ type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	req := c.makeRequest(ppps)
+func (c *CryptoCompare) Fetch(pairs []Pair) []FetchResult {
+	req := c.makeRequest(pairs)
 	res := c.Pool.Query(req)
-	if errorResponses := validateResponse(ppps, res); len(errorResponses) > 0 {
+	if errorResponses := c.validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}
-	return c.parseResponse(ppps, res)
+	return c.parseResponse(pairs, res)
 }
 
-func (c *CryptoCompare) makeRequest(ppps []*model.PotentialPricePoint) *query.HTTPRequest {
+func (c *CryptoCompare) makeRequest(pairs []Pair) *query.HTTPRequest {
 	var bList, qList []string
 
-	for _, ppp := range ppps {
-		bList = append(bList, ppp.Pair.Base)
+	for _, pair := range pairs {
+		bList = append(bList, pair.Base)
 	}
-	for _, ppp := range ppps {
-		qList = append(qList, ppp.Pair.Quote)
+	for _, pair := range pairs {
+		qList = append(qList, pair.Quote)
 	}
 
 	req := &query.HTTPRequest{
@@ -66,47 +66,70 @@ func (c *CryptoCompare) makeRequest(ppps []*model.PotentialPricePoint) *query.HT
 	return req
 }
 
-func (c *CryptoCompare) parseResponse(ppps []*model.PotentialPricePoint, res *query.HTTPResponse) []CallResult {
-	results := make([]CallResult, 0)
+func (c *CryptoCompare) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
 
 	var resp cryptoCompareMultiResponse
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		for _, ppp := range ppps {
-			results = append(results, newCallResult(
-				ppp,
-				nil,
-				fmt.Errorf("failed to parse CryptoCompare response: %w", err),
+		for _, pair := range pairs {
+			results = append(
+				results,
+				fetchResultWithError(pair, fmt.Errorf("failed to parse CryptoCompare response: %w", err)),
+			)
+		}
+		return results
+	}
+
+	for _, pair := range pairs {
+		if bObj, is := resp.Raw[pair.Base]; !is {
+			results = append(
+				results,
+				fetchResultWithError(pair, fmt.Errorf("no response for %s base from CryptoCompare", pair.Base)),
+			)
+		} else {
+			if qObj, is := bObj[pair.Quote]; !is {
+				results = append(
+					results,
+					fetchResultWithError(pair, fmt.Errorf("no response for %s quote from CryptoCompare", pair.Quote)),
+				)
+			} else {
+				results = append(results, FetchResult{
+					Tick: Tick{
+						Timestamp: time.Unix(qObj.TS, 0),
+						Pair:      pair,
+						Price:     qObj.Price,
+						Volume24h: qObj.Vol24,
+					},
+					Error: nil,
+				})
+			}
+		}
+	}
+	return results
+}
+
+func (c *CryptoCompare) validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+
+	if res == nil {
+		for _, pair := range pairs {
+			results = append(results, fetchResultWithError(
+				pair,
+				fmt.Errorf("no response for %s from CryptoCompare", pair.String()),
+			))
+		}
+		return results
+	}
+	if res.Error != nil {
+		for _, pair := range pairs {
+			results = append(results, fetchResultWithError(
+				pair,
+				res.Error,
 			))
 		}
 		return results
 	}
 
-	for _, ppp := range ppps {
-		if bObj, is := resp.Raw[ppp.Pair.Base]; !is {
-			results = append(results, newCallResult(
-				ppp,
-				nil,
-				fmt.Errorf("no response for %s base from %s", ppp.Pair.Base, ppp.Exchange.Name),
-			))
-		} else {
-			if qObj, is := bObj[ppp.Pair.Quote]; !is {
-				results = append(results, newCallResult(
-					ppp,
-					nil,
-					fmt.Errorf("no response for %s quote from %s", ppp.Pair.Quote, ppp.Exchange.Name),
-				))
-			} else {
-				pp := &model.PricePoint{
-					Timestamp: qObj.TS,
-					Exchange:  ppp.Exchange,
-					Pair:      model.NewPair(qObj.Base, qObj.Query),
-					Price:     qObj.Price,
-					Volume:    qObj.Vol24,
-				}
-				results = append(results, newCallResult(ppp, pp, nil))
-			}
-		}
-	}
-	return results
+	return []FetchResult{}
 }

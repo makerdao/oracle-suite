@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package exchange
+package origins
 
 import (
 	"encoding/json"
@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Hitbtc URL
@@ -43,36 +42,35 @@ type Hitbtc struct {
 	Pool query.WorkerPool
 }
 
-func (h *Hitbtc) localPairName(pair *model.Pair) string {
+func (h *Hitbtc) localPairName(pair Pair) string {
 	return strings.ToUpper(pair.Base + pair.Quote)
 }
 
-func (h *Hitbtc) getURL(ppps []*model.PotentialPricePoint) string {
-	pairs := make([]string, len(ppps))
-	for i, ppp := range ppps {
-		pairs[i] = h.localPairName(ppp.Pair)
+func (h *Hitbtc) getURL(pairs []Pair) string {
+	pairsStr := make([]string, len(pairs))
+	for i, pair := range pairs {
+		pairsStr[i] = h.localPairName(pair)
 	}
-	return fmt.Sprintf(hitbtcURL, strings.Join(pairs, ","))
+	return fmt.Sprintf(hitbtcURL, strings.Join(pairsStr, ","))
 }
 
-func (h *Hitbtc) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	crs, err := h.call(ppps)
+func (h *Hitbtc) Fetch(pairs []Pair) []FetchResult {
+	crs, err := h.fetch(pairs)
 	if err != nil {
-		return newCallResultErrors(ppps, err)
+		return fetchResultListWithErrors(pairs, err)
 	}
 	return crs
-
 }
 
-func (h *Hitbtc) call(ppps []*model.PotentialPricePoint) ([]CallResult, error) {
+func (h *Hitbtc) fetch(pairs []Pair) ([]FetchResult, error) {
 	req := &query.HTTPRequest{
-		URL: h.getURL(ppps),
+		URL: h.getURL(pairs),
 	}
 
 	// make query
 	res := h.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -89,58 +87,57 @@ func (h *Hitbtc) call(ppps []*model.PotentialPricePoint) ([]CallResult, error) {
 		respMap[resp.Symbol] = resp
 	}
 
-	crs := make([]CallResult, len(ppps))
-	for i, ppp := range ppps {
-		symbol := h.localPairName(ppp.Pair)
+	crs := make([]FetchResult, len(pairs))
+	for i, pair := range pairs {
+		symbol := h.localPairName(pair)
 		if resp, has := respMap[symbol]; has {
-			p, err := h.newPricePoint(ppp, resp)
+			p, err := h.newTick(pair, resp)
 			if err != nil {
-				crs[i] = newCallResultError(
-					ppp,
+				crs[i] = fetchResultWithError(
+					pair,
 					fmt.Errorf("failed to create price point from hitbtc response: %w: %s", err, res.Body),
 				)
 			} else {
-				crs[i] = newCallResultSuccess(p)
+				crs[i] = fetchResult(p)
 			}
 		} else {
-			crs[i] = newCallResultError(
-				ppp,
-				fmt.Errorf("failed to find symbol %s in hitbtc response: %s", ppp.Pair, res.Body),
+			crs[i] = fetchResultWithError(
+				pair,
+				fmt.Errorf("failed to find symbol %s in hitbtc response: %s", pair, res.Body),
 			)
 		}
 	}
 	return crs, nil
 }
 
-func (h *Hitbtc) newPricePoint(pp *model.PotentialPricePoint, resp hitbtcResponse) (*model.PricePoint, error) {
+func (h *Hitbtc) newTick(pair Pair, resp hitbtcResponse) (Tick, error) {
 	// Parsing price from string.
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from hitbtc exchange")
+		return Tick{}, fmt.Errorf("failed to parse price from hitbtc exchange")
 	}
 	// Parsing ask from string.
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from hitbtc exchange")
+		return Tick{}, fmt.Errorf("failed to parse ask from hitbtc exchange")
 	}
 	// Parsing volume from string.
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from hitbtc exchange")
+		return Tick{}, fmt.Errorf("failed to parse volume from hitbtc exchange")
 	}
 	// Parsing bid from string.
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from hitbtc exchange")
+		return Tick{}, fmt.Errorf("failed to parse bid from hitbtc exchange")
 	}
-	// Building PricePoint.
-	return &model.PricePoint{
-		Exchange:  pp.Exchange,
-		Pair:      pp.Pair,
+	// Building Tick.
+	return Tick{
+		Pair:      pair,
 		Price:     price,
-		Volume:    volume,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: resp.Timestamp.Unix(),
+		Volume24h: volume,
+		Timestamp: resp.Timestamp,
 	}, nil
 }

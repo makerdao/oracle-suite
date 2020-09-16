@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package exchange
+package origins
 
 import (
 	"encoding/json"
@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Fx URL
@@ -41,22 +40,22 @@ func (f *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (f *Fx) Call(ppps []*model.PotentialPricePoint) []CallResult {
-	// Group PPPs by asset pair base.
-	bases := map[string][]*model.PotentialPricePoint{}
-	for _, pp := range ppps {
-		base := pp.Pair.Base
-		bases[base] = append(bases[base], pp)
+func (f *Fx) Fetch(pairs []Pair) []FetchResult {
+	// Group pairs by asset pair base.
+	bases := map[string][]Pair{}
+	for _, pair := range pairs {
+		base := pair.Base
+		bases[base] = append(bases[base], pair)
 	}
 
-	results := []CallResult{}
-	for base, ppps := range bases {
+	var results []FetchResult
+	for base, pairs := range bases {
 		// Make one request per asset pair base.
-		crs, err := f.callByBase(base, ppps)
+		crs, err := f.callByBase(base, pairs)
 		if err != nil {
-			// If callByBase fails wholesale, create a CallResult per PPP with the same
+			// If callByBase fails wholesale, create a FetchResult per pair with the same
 			// error.
-			crs = newCallResultErrors(ppps, err)
+			crs = fetchResultListWithErrors(pairs, err)
 		}
 		results = append(results, crs...)
 	}
@@ -64,37 +63,23 @@ func (f *Fx) Call(ppps []*model.PotentialPricePoint) []CallResult {
 	return results
 }
 
-func (f *Fx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
-	err := model.ValidatePotentialPricePoint(pp)
-	if err != nil {
-		return nil, err
-	}
-
-	crs, err := f.callByBase(pp.Pair.Base, []*model.PotentialPricePoint{pp})
-	if err != nil {
-		return nil, err
-	}
-
-	return crs[0].PricePoint, crs[0].Error
-}
-
-func (f *Fx) getURL(base string, quotes []*model.PotentialPricePoint) string {
+func (f *Fx) getURL(base string, quotes []Pair) string {
 	symbols := []string{}
-	for _, pp := range quotes {
-		symbols = append(symbols, f.renameSymbol(pp.Pair.Quote))
+	for _, pair := range quotes {
+		symbols = append(symbols, f.renameSymbol(pair.Quote))
 	}
 	return fmt.Sprintf(fxURL, strings.Join(symbols, ","), f.renameSymbol(base))
 }
 
-func (f *Fx) callByBase(base string, ppps []*model.PotentialPricePoint) ([]CallResult, error) {
+func (f *Fx) callByBase(base string, pairs []Pair) ([]FetchResult, error) {
 	req := &query.HTTPRequest{
-		URL: f.getURL(base, ppps),
+		URL: f.getURL(base, pairs),
 	}
 
 	// Make query.
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyExchangeResponse
+		return nil, errEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
@@ -109,23 +94,23 @@ func (f *Fx) callByBase(base string, ppps []*model.PotentialPricePoint) ([]CallR
 		return nil, fmt.Errorf("failed to parse FX response: %+v", resp)
 	}
 
-	results := make([]CallResult, len(ppps))
-	for i, pp := range ppps {
-		if price, ok := resp.Rates[f.renameSymbol(pp.Pair.Quote)]; ok {
-			// Build PricePoint from exchange response.
-			results[i] = newCallResultSuccess(
-				&model.PricePoint{
-					Exchange:  pp.Exchange,
-					Pair:      pp.Pair,
+	results := make([]FetchResult, len(pairs))
+	for i, pair := range pairs {
+		if price, ok := resp.Rates[f.renameSymbol(pair.Quote)]; ok {
+			// Build Tick from exchange response.
+			results[i] = FetchResult{
+				Tick: Tick{
+					Pair:      pair,
 					Price:     price,
-					Timestamp: time.Now().Unix(),
+					Timestamp: time.Now(),
 				},
-			)
+				Error: nil,
+			}
 		} else {
 			// Missing quote in exchange response.
-			results[i] = newCallResultError(
-				pp,
-				fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body),
+			results[i] = fetchResultWithError(
+				pair,
+				fmt.Errorf("no price for %s quote exist in response %s", pair.Quote, res.Body),
 			)
 		}
 	}
