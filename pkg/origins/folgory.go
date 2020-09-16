@@ -18,89 +18,67 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Folgory URL
-const folgoryURL = "https://folgory.com/api/v1"
-
-type folgoryResponse struct {
-	Symbol string `json:"symbol"`
-	Price  string `json:"last"`
-	Volume string `json:"volume"`
-}
-
-// Folgory origin handler
 type Folgory struct {
 	Pool query.WorkerPool
 }
 
-func (f *Folgory) renameSymbol(symbol string) string {
-	return strings.ToUpper(symbol)
-}
-
-func (f *Folgory) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s/%s", f.renameSymbol(pair.Base), f.renameSymbol(pair.Quote))
-}
-
-func (f *Folgory) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(f, pairs)
-}
-
-func (f *Folgory) callOne(pair Pair) (*Tick, error) {
-	var err error
+func (o *Folgory) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
 		URL: folgoryURL,
 	}
-
-	pairName := f.localPairName(pair)
-
-	// make query
-	res := f.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
 	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	// parsing JSON
-	var resp []folgoryResponse
-	body := strings.TrimSpace(string(res.Body))
+	return o.parseResponse(pairs, res)
+}
 
-	err = json.Unmarshal([]byte(body), &resp)
+const folgoryURL = "https://folgory.com/api/v1"
+
+type folgoryTicker struct {
+	Symbol string          `json:"symbol"`
+	Price  stringAsFloat64 `json:"last"`
+	Volume stringAsFloat64 `json:"volume"`
+}
+
+func (o *Folgory) localPairName(pair Pair) string {
+	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
+}
+
+func (o *Folgory) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+	var resp []folgoryTicker
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse folgory response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 
-	var data *folgoryResponse
-	for _, symbol := range resp {
-		if symbol.Symbol == pairName {
-			data = &symbol //nolint:gosec
-			break
+	tickers := make(map[string]folgoryTicker)
+	for _, t := range resp {
+		tickers[t.Symbol] = t
+	}
+
+	for _, pair := range pairs {
+		if t, is := tickers[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("no response for %s", pair.String()),
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.Price.val(),
+					Volume24h: t.Volume.val(),
+					Timestamp: time.Now(),
+				},
+			})
 		}
 	}
-	if data == nil {
-		return nil, fmt.Errorf("wrong response from folgory. no %s pair exist", pair)
-	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(data.Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from folgory origin %v", data)
-	}
-	// Parsing volume from string
-	volume, err := strconv.ParseFloat(data.Volume, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from folgory origin %v", data)
-	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Volume24h: volume,
-		Timestamp: time.Now(),
-	}, nil
+	return results
 }

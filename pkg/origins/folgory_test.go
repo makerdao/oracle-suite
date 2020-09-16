@@ -55,14 +55,12 @@ func (suite *FolgorySuite) TestLocalPair() {
 }
 
 func (suite *FolgorySuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
 	pair := Pair{Base: "BTC", Quote: "ETH"}
+	var cr []FetchResult
+
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(fmt.Errorf("no response for %s", pair.String()), cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -71,7 +69,7 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response for %s: %w", pair.String(), ourErr), cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
@@ -121,6 +119,14 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 
 func (suite *FolgorySuite) TestRealAPICall() {
 	testRealAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	pairs := []Pair{
+		{Base: "ETH", Quote: "USDT"},
+		{Base: "ETH", Quote: "USDC"},
+		{Base: "ETH", Quote: "DAI"},
+		{Base: "WBTC", Quote: "USDT"},
+		{Base: "ETH", Quote: "SAI"},
+	}
+	testRealBatchAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

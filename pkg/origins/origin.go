@@ -126,23 +126,23 @@ func DefaultSet() *Set {
 func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var err error
 
-	crs := map[string][]FetchResult{}
+	frs := map[string][]FetchResult{}
 	for origin, pairs := range originPairs {
 		handler, ok := e.list[origin]
 		if !ok {
 			err = fmt.Errorf("%w (%s)", errUnknownOrigin, origin)
 			for _, pair := range pairs {
-				crs[origin] = append(crs[origin], FetchResult{
+				frs[origin] = append(frs[origin], FetchResult{
 					Tick:  Tick{Pair: pair},
 					Error: err,
 				})
 			}
 		} else {
-			crs[origin] = append(crs[origin], handler.Fetch(pairs)...)
+			frs[origin] = append(frs[origin], handler.Fetch(pairs)...)
 		}
 	}
 
-	return crs
+	return frs
 }
 
 type singlePairOrigin interface {
