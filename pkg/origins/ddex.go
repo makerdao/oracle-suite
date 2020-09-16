@@ -18,88 +18,86 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Ddex URL
-const ddexURL = "https://api.ddex.io/v4/markets/%s/orderbook?level=1"
-
-type ddexResponse struct {
-	Desc string `json:"desc"`
-	Data struct {
-		Orderbook struct {
-			Bids []struct {
-				Price  string `json:"price"`
-				Amount string `json:"amount"`
-			} `json:"bids"`
-			Asks []struct {
-				Price  string `json:"price"`
-				Amount string `json:"amount"`
-			} `json:"asks"`
-		} `json:"orderbook"`
-	} `json:"data"`
-}
-
-// Ddex origin handler
 type Ddex struct {
 	Pool query.WorkerPool
 }
 
-func (d *Ddex) localPairName(pair Pair) string {
+const ddexTickersURL = "https://api.ddex.io/v4/markets/tickers"
+
+func (o *Ddex) Fetch(pairs []Pair) []FetchResult {
+	req := &query.HTTPRequest{
+		URL: ddexTickersURL,
+	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
+
+func (o *Ddex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (d *Ddex) getURL(pair Pair) string {
-	return fmt.Sprintf(ddexURL, d.localPairName(pair))
+type ddexTicker struct {
+	Ask      stringAsFloat      `json:"ask"`
+	Bid      stringAsFloat      `json:"bid"`
+	High     stringAsFloat      `json:"high"`
+	Low      stringAsFloat      `json:"low"`
+	MarketID string             `json:"marketId"`
+	Price    stringAsFloat      `json:"price"`
+	UpdateAt intAsUnixTimestamp `json:"updateAt"`
+	Volume   stringAsFloat      `json:"volume"`
+}
+type ddexTickersResponse struct {
+	Desc   string `json:"desc"`
+	Status int    `json:"status"`
+	Data   struct {
+		Tickers []ddexTicker `json:"tickers"`
+	} `json:"data"`
 }
 
-func (d *Ddex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(d, pairs)
-}
+func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+	var resp ddexTickersResponse
+	err := json.Unmarshal(res.Body, &resp)
+	if err != nil {
+		for _, pair := range pairs {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("failed to parse DDEX response: %w", err),
+			})
+		}
+		return results
+	}
 
-func (d *Ddex) callOne(pair Pair) (*Tick, error) {
-	var err error
-	req := &query.HTTPRequest{
-		URL: d.getURL(pair),
+	tickers := make(map[string]ddexTicker)
+	for _, t := range resp.Data.Tickers {
+		tickers[t.MarketID] = t
 	}
 
-	// make query
-	res := d.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
+	for _, pair := range pairs {
+		if t, is := tickers[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("no response for %s from DDEX ", pair.String()),
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.Price.val(),
+					Bid:       t.Bid.val(),
+					Ask:       t.Ask.val(),
+					Volume24h: t.Volume.val(),
+					Timestamp: t.UpdateAt.val(),
+				},
+			})
+		}
 	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	// parsing JSON
-	var resp ddexResponse
-	err = json.Unmarshal(res.Body, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ddex response: %w", err)
-	}
-	// Check if response is successful
-	if resp.Desc != "success" || len(resp.Data.Orderbook.Asks) != 1 || len(resp.Data.Orderbook.Bids) != 1 {
-		return nil, fmt.Errorf("response returned from ddex origin is invalid %s", res.Body)
-	}
-	// Parsing ask from string
-	ask, err := strconv.ParseFloat(resp.Data.Orderbook.Asks[0].Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from ddex origin %s", res.Body)
-	}
-	// Parsing bid from string
-	bid, err := strconv.ParseFloat(resp.Data.Orderbook.Bids[0].Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from ddex origin %s", res.Body)
-	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Ask:       ask,
-		Bid:       bid,
-		Price:     bid,
-		Timestamp: time.Now(),
-	}, nil
+	return results
 }

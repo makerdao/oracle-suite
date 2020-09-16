@@ -168,3 +168,28 @@ func callSinglePairOrigin(e singlePairOrigin, pairs []Pair) []FetchResult {
 
 	return crs
 }
+
+func validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+
+	if res == nil {
+		for _, pair := range pairs {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("no response for %s", pair.String()),
+			})
+		}
+		return results
+	}
+	if res.Error != nil {
+		for _, pair := range pairs {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("bad response for %s: %w", pair.String(), res.Error),
+			})
+		}
+		return results
+	}
+
+	return []FetchResult{}
+}
