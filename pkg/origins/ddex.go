@@ -1,0 +1,103 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package origins
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/makerdao/gofer/internal/query"
+)
+
+type Ddex struct {
+	Pool query.WorkerPool
+}
+
+const ddexTickersURL = "https://api.ddex.io/v4/markets/tickers"
+
+func (o *Ddex) Fetch(pairs []Pair) []FetchResult {
+	req := &query.HTTPRequest{
+		URL: ddexTickersURL,
+	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
+
+func (o *Ddex) localPairName(pair Pair) string {
+	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
+}
+
+type ddexTicker struct {
+	Ask      stringAsFloat      `json:"ask"`
+	Bid      stringAsFloat      `json:"bid"`
+	High     stringAsFloat      `json:"high"`
+	Low      stringAsFloat      `json:"low"`
+	MarketID string             `json:"marketId"`
+	Price    stringAsFloat      `json:"price"`
+	UpdateAt intAsUnixTimestamp `json:"updateAt"`
+	Volume   stringAsFloat      `json:"volume"`
+}
+type ddexTickersResponse struct {
+	Desc   string `json:"desc"`
+	Status int    `json:"status"`
+	Data   struct {
+		Tickers []ddexTicker `json:"tickers"`
+	} `json:"data"`
+}
+
+func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+	var resp ddexTickersResponse
+	err := json.Unmarshal(res.Body, &resp)
+	if err != nil {
+		for _, pair := range pairs {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("failed to parse DDEX response: %w", err),
+			})
+		}
+		return results
+	}
+
+	tickers := make(map[string]ddexTicker)
+	for _, t := range resp.Data.Tickers {
+		tickers[t.MarketID] = t
+	}
+
+	for _, pair := range pairs {
+		if t, is := tickers[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("no response for %s from DDEX ", pair.String()),
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.Price.val(),
+					Bid:       t.Bid.val(),
+					Ask:       t.Ask.val(),
+					Volume24h: t.Volume.val(),
+					Timestamp: t.UpdateAt.val(),
+				},
+			})
+		}
+	}
+	return results
+}

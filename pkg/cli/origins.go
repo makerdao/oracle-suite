@@ -21,24 +21,32 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
+type originsLister interface {
+	Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error)
+	Pairs() []graph.Pair
 }
 
-func Pairs(l pairsLister, m ReadWriteCloser) error {
-	var err error
-
-	var graphs []graph.Aggregator
-	for _, g := range l.Graphs() {
-		graphs = append(graphs, g)
+func Origins(args []string, l originsLister, m ReadWriteCloser) error {
+	var pairs []graph.Pair
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
+		}
+	} else {
+		pairs = l.Pairs()
 	}
 
-	sort.SliceStable(graphs, func(i, j int) bool {
-		return graphs[i].Pair().String() < graphs[j].Pair().String()
-	})
+	origins, err := l.Origins(pairs...)
+	if err != nil {
+		return err
+	}
 
-	for _, g := range graphs {
-		err = m.Write(g, nil)
+	for _, p := range sortMapKeys(origins) {
+		err = m.Write(map[graph.Pair][]string{p: origins[p]}, nil)
 		if err != nil {
 			return err
 		}
@@ -50,4 +58,17 @@ func Pairs(l pairsLister, m ReadWriteCloser) error {
 	}
 
 	return nil
+}
+
+func sortMapKeys(m map[graph.Pair][]string) []graph.Pair {
+	var pairs []graph.Pair
+	for p := range m {
+		pairs = append(pairs, p)
+	}
+
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].String() < pairs[j].Quote
+	})
+
+	return pairs
 }

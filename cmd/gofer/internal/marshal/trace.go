@@ -16,11 +16,14 @@
 package marshal
 
 import (
+	"bytes"
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
+	"time"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type trace struct {
@@ -35,19 +38,19 @@ func newTrace() *trace {
 				strs[n] = string(s)
 			}
 
-			return []marshalledItem{[]byte(strings.Join(strs, "\n") + "\n")}, nil
+			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
 		}
 
 		var err error
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case *model.PriceAggregate:
-			traceHandlePriceAggregate(&ret, i, ierr)
-		case *model.Exchange:
-			traceHandleExchange(&ret, i)
-		case aggregator.PriceModelMap:
-			traceHandlePriceModelMap(&ret, i)
+		case graph.AggregatorTick:
+			traceHandleTick(&ret, i)
+		case graph.Aggregator:
+			traceHandleGraph(&ret, i)
+		case map[graph.Pair][]string:
+			traceHandleOrigins(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -71,16 +74,211 @@ func (j *trace) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func traceHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) {
-	*ret = append(*ret, []byte(newPriceAggregate(aggregate, err).toString(0)))
+func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
+	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+		var c []interface{}
+		var s string
+
+		switch typedTick := node.(type) {
+		case graph.AggregatorTick:
+			s = fmt.Sprintf(
+				"AggregatorTick(pair:%s, price:%f, time:%s, %s)",
+				typedTick.Pair,
+				typedTick.Price,
+				typedTick.Timestamp.Format(time.RFC3339Nano),
+				printKVMap(typedTick.Parameters),
+			)
+
+			if typedTick.Error != nil {
+				s = "[IGNORED] " + s + fmt.Sprintf(
+					"\nError: %s",
+					strings.TrimSpace(typedTick.Error.Error()),
+				)
+			}
+
+			for _, t := range typedTick.OriginTicks {
+				c = append(c, t)
+			}
+			for _, t := range typedTick.AggregatorTicks {
+				c = append(c, t)
+			}
+		case graph.OriginTick:
+			s = fmt.Sprintf(
+				"OriginTick(pair:%s, origin:%s, price:%f, time:%s)",
+				typedTick.Pair,
+				typedTick.Origin,
+				typedTick.Price,
+				typedTick.Timestamp.Format(time.RFC3339Nano),
+			)
+
+			if typedTick.Error != nil {
+				s = "[IGNORED] " + s + fmt.Sprintf(
+					"\nError: %s",
+					strings.TrimSpace(typedTick.Error.Error()),
+				)
+			}
+		}
+
+		return []byte(s), c
+	}, []interface{}{t}, 0)
+
+	*ret = append(*ret, []byte(fmt.Sprintf("Price for %s:", t.Pair)))
+	*ret = append(*ret, str)
 }
 
-func traceHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) {
-	*ret = append(*ret, []byte(fmt.Sprintf("exchange[%s]", exchange.Name)))
+func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
+	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+		var c []interface{}
+		var s string
+
+		switch typedNode := node.(type) {
+		case graph.Aggregator:
+			s = fmt.Sprintf(
+				"%s(pair: %s)",
+				reflect.TypeOf(node).Elem().String(),
+				typedNode.Pair(),
+			)
+
+			for _, n := range typedNode.Children() {
+				c = append(c, n)
+			}
+		case graph.Origin:
+			s = fmt.Sprintf(
+				"%s(pair:%s, origin:%s)",
+				reflect.TypeOf(node).Elem().String(),
+				typedNode.OriginPair().Pair,
+				typedNode.OriginPair().Origin,
+			)
+		default:
+			s = reflect.TypeOf(node).Elem().String()
+		}
+
+		return []byte(s), c
+	}, []interface{}{g}, 0)
+
+	*ret = append(*ret, []byte(fmt.Sprintf("Graph for %s:", g.Pair())))
+	*ret = append(*ret, str)
 }
 
-func traceHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) {
-	for pr, pm := range priceModelMap {
-		*ret = append(*ret, []byte(fmt.Sprintf("%s:%s", pr.String(), pm.String())))
+func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
+	type originPair struct {
+		pair    graph.Pair
+		origins []string
 	}
+
+	var s []interface{}
+	for p, o := range origins {
+		s = append(s, originPair{pair: p, origins: o})
+	}
+
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].(originPair).pair.String() > s[j].(originPair).pair.String()
+	})
+
+	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+		var c []interface{}
+		var s string
+
+		switch typedNode := node.(type) {
+		case originPair:
+			s = typedNode.pair.String()
+			for _, o := range typedNode.origins {
+				c = append(c, o)
+			}
+		case string:
+			s = typedNode
+		}
+
+		return []byte(s), c
+	}, s, 0)
+
+	*ret = append(*ret, str)
+}
+
+//nolint:gocyclo
+func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []interface{}, level int) []byte {
+	const (
+		first  = "┌──"
+		middle = "├──"
+		last   = "└──"
+		vline  = "│  "
+		hline  = "───"
+		empty  = "   "
+	)
+
+	s := bytes.Buffer{}
+	for i, node := range nodes {
+		nodeStr, nodeChildren := printer(node)
+		isFirst := i == 0
+		isLast := i == len(nodes)-1
+		hasChild := len(nodeChildren) > 0
+		firstLinePrefix := ""
+		restLinesPrefix := ""
+
+		switch {
+		case level == 0 && isFirst && isLast:
+			firstLinePrefix = hline
+		case level == 0 && isFirst:
+			firstLinePrefix = first
+		case isLast:
+			firstLinePrefix = last
+		default:
+			firstLinePrefix = middle
+		}
+
+		switch {
+		case isLast && hasChild:
+			restLinesPrefix = empty + vline
+		case !isLast && hasChild:
+			restLinesPrefix = vline + vline
+		case isLast && !hasChild:
+			restLinesPrefix = empty + empty
+		case !isLast && !hasChild:
+			restLinesPrefix = vline + empty
+		}
+
+		s.Write(prependLines(nodeStr, firstLinePrefix, restLinesPrefix))
+		s.WriteByte('\n')
+
+		if len(nodeChildren) > 0 {
+			subTree := renderTree(printer, nodeChildren, level+1)
+
+			if isLast {
+				subTree = prependLines(subTree, empty, empty)
+			} else {
+				subTree = prependLines(subTree, vline, vline)
+			}
+
+			s.Write(subTree)
+			s.WriteByte('\n')
+		}
+	}
+
+	return s.Bytes()
+}
+
+func prependLines(s []byte, first, rest string) []byte {
+	bts := bytes.Buffer{}
+	bts.WriteString(first)
+	bts.Write(bytes.ReplaceAll(bytes.TrimRight(s, "\n"), []byte{'\n'}, append([]byte{'\n'}, rest...)))
+	return bts.Bytes()
+}
+
+func printKVMap(kv map[string]string) string {
+	var ss []string
+	for _, k := range sortKeys(kv) {
+		ss = append(ss, k+":"+kv[k])
+	}
+	return strings.Join(ss, ", ")
+}
+
+func sortKeys(kv map[string]string) []string {
+	var ks []string
+	for k := range kv {
+		ks = append(ks, k)
+	}
+
+	sort.Strings(ks)
+
+	return ks
 }

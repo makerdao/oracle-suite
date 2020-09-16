@@ -19,8 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type plain struct {
@@ -35,19 +34,19 @@ func newPlain() *plain {
 				strs[n] = string(s)
 			}
 
-			return []marshalledItem{[]byte(strings.Join(strs, "\n") + "\n")}, nil
+			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
 		}
 
 		var err error
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case *model.PriceAggregate:
-			plainHandlePriceAggregate(&ret, i)
-		case *model.Exchange:
-			plainHandleExchange(&ret, i)
-		case aggregator.PriceModelMap:
-			plainHandlePriceModelMap(&ret, i)
+		case graph.AggregatorTick:
+			plainHandleTick(&ret, i)
+		case graph.Aggregator:
+			plainHandleGraph(&ret, i)
+		case map[graph.Pair][]string:
+			plainHandleOrigins(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -71,16 +70,23 @@ func (j *plain) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func plainHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate) {
-	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", aggregate.Pair.String(), aggregate.Price)))
+func plainHandleTick(ret *[]marshalledItem, tick graph.AggregatorTick) {
+	*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
+	if tick.Error != nil {
+		*ret = append(*ret, []byte("Error: "+strings.TrimSpace(tick.Error.Error())))
+	}
 }
 
-func plainHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) {
-	*ret = append(*ret, []byte(exchange.Name))
+func plainHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) {
+	*ret = append(*ret, []byte(graph.Pair().String()))
 }
 
-func plainHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) {
-	for pr := range priceModelMap {
-		*ret = append(*ret, []byte(pr.String()))
+func plainHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
+	for p, os := range origins {
+		*ret = append(*ret, []byte(p.String()+":"))
+		for _, o := range os {
+			*ret = append(*ret, []byte(o))
+		}
+		*ret = append(*ret, []byte{})
 	}
 }

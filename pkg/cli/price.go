@@ -16,12 +16,9 @@
 package cli
 
 import (
-	"fmt"
 	"io"
-	"os"
-	"sort"
 
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type ReadWriteCloser interface {
@@ -30,53 +27,38 @@ type ReadWriteCloser interface {
 }
 
 type pricer interface {
-	Prices(pairs ...*model.Pair) (map[model.Pair]*model.PriceAggregate, error)
+	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
+	Pairs() []graph.Pair
 }
 
 func Price(args []string, l pricer, m ReadWriteCloser) error {
-	var pairs []*model.Pair
-	for _, pair := range args {
-		p, err := model.NewPairFromString(pair)
-		if err != nil {
-			return err
+	var pairs []graph.Pair
+
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
 		}
-		pairs = append(pairs, model.NewPair(p.Base, p.Quote))
+	} else {
+		pairs = l.Pairs()
 	}
 
-	prices, err := l.Prices(pairs...)
+	ticks, err := l.Ticks(pairs...)
 	if err != nil {
 		return err
 	}
 
-	keys := make([]model.Pair, 0)
-	for k := range prices {
-		keys = append(keys, k)
-	}
-
-	sort.SliceStable(keys, func(i, j int) bool {
-		return keys[i].String() < keys[j].String()
-	})
-
-	for _, p := range keys {
-		var e error
-		if prices[p] == nil {
-			e = fmt.Errorf("no price aggregate available for %s available", p.String())
-		} else if prices[p].Price == 0 {
-			e = fmt.Errorf("invalid price for %s", p.String())
-		}
-
-		err = m.Write(prices[p], e)
+	for _, t := range ticks {
+		err = m.Write(t, nil)
 		if err != nil {
 			return err
 		}
 	}
 
 	err = m.Close()
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(os.Stdout, m)
 	if err != nil {
 		return err
 	}

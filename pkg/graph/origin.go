@@ -13,41 +13,32 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cli
+package graph
 
-import (
-	"sort"
-
-	"github.com/makerdao/gofer/pkg/graph"
-)
-
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
+// OriginNode contains a Tick fetched directly from an origin.
+type OriginNode struct {
+	originPair OriginPair
+	tick       OriginTick
 }
 
-func Pairs(l pairsLister, m ReadWriteCloser) error {
-	var err error
-
-	var graphs []graph.Aggregator
-	for _, g := range l.Graphs() {
-		graphs = append(graphs, g)
+func NewOriginNode(originPair OriginPair) *OriginNode {
+	return &OriginNode{
+		originPair: originPair,
 	}
+}
 
-	sort.SliceStable(graphs, func(i, j int) bool {
-		return graphs[i].Pair().String() < graphs[j].Pair().String()
-	})
+func (n *OriginNode) OriginPair() OriginPair {
+	return n.originPair
+}
 
-	for _, g := range graphs {
-		err = m.Write(g, nil)
-		if err != nil {
-			return err
-		}
-	}
+func (n *OriginNode) Ingest(tick OriginTick) {
+	n.tick = tick
+}
 
-	err = m.Close()
-	if err != nil {
-		return err
-	}
+func (n *OriginNode) Tick() OriginTick {
+	return n.tick
+}
 
-	return nil
+func (n OriginNode) Children() []Node {
+	return []Node{}
 }

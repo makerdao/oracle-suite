@@ -13,41 +13,12 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cli
+package origins
 
 import (
-	"sort"
-
-	"github.com/makerdao/gofer/pkg/graph"
+	"errors"
+	"fmt"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
-}
-
-func Pairs(l pairsLister, m ReadWriteCloser) error {
-	var err error
-
-	var graphs []graph.Aggregator
-	for _, g := range l.Graphs() {
-		graphs = append(graphs, g)
-	}
-
-	sort.SliceStable(graphs, func(i, j int) bool {
-		return graphs[i].Pair().String() < graphs[j].Pair().String()
-	})
-
-	for _, g := range graphs {
-		err = m.Write(g, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = m.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+var errEmptyOriginResponse = fmt.Errorf("empty origin response received")
+var errUnknownOrigin = errors.New("unknown origin")

@@ -18,9 +18,9 @@ package marshal
 import (
 	encodingJson "encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/makerdao/gofer/pkg/aggregator"
-	"github.com/makerdao/gofer/pkg/model"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
 type json struct {
@@ -39,12 +39,12 @@ func newJSON(ndjson bool) *json {
 		var ret []marshalledItem
 
 		switch i := item.(type) {
-		case *model.PriceAggregate:
-			err = jsonHandlePriceAggregate(&ret, i, ierr)
-		case *model.Exchange:
-			err = jsonHandleExchange(&ret, i)
-		case aggregator.PriceModelMap:
-			err = jsonHandlePriceModelMap(&ret, i)
+		case graph.AggregatorTick:
+			err = jsonHandleTick(&ret, i)
+		case graph.Aggregator:
+			err = jsonHandleGraph(&ret, i)
+		case map[graph.Pair][]string:
+			err = jsonHandleOrigins(&ret, i)
 		default:
 			return nil, fmt.Errorf("unsupported data type")
 		}
@@ -68,8 +68,8 @@ func (j *json) Close() error {
 	return j.bufferedMarshaller.Close()
 }
 
-func jsonHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggregate, err error) error {
-	b, err := encodingJson.Marshal(newPriceAggregate(aggregate, err))
+func jsonHandleTick(ret *[]marshalledItem, tick graph.AggregatorTick) error {
+	b, err := encodingJson.Marshal(jsonTickFromAggregatorTick(tick))
 	if err != nil {
 		return err
 	}
@@ -79,8 +79,8 @@ func jsonHandlePriceAggregate(ret *[]marshalledItem, aggregate *model.PriceAggre
 	return nil
 }
 
-func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) error {
-	b, err := encodingJson.Marshal(exchange.Name)
+func jsonHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) error {
+	b, err := encodingJson.Marshal(graph.Pair().String())
 	if err != nil {
 		return err
 	}
@@ -90,18 +90,83 @@ func jsonHandleExchange(ret *[]marshalledItem, exchange *model.Exchange) error {
 	return nil
 }
 
-func jsonHandlePriceModelMap(ret *[]marshalledItem, priceModelMap aggregator.PriceModelMap) error {
-	for pr, pm := range priceModelMap {
-		b, err := encodingJson.Marshal(struct {
-			Pair  aggregator.Pair
-			Model aggregator.PriceModel
-		}{pr, pm})
-		if err != nil {
-			return err
-		}
-
-		b = append(b, '\n')
-		*ret = append(*ret, b)
+func jsonHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) error {
+	r := make(map[string][]string)
+	for p, o := range origins {
+		r[p.String()] = o
 	}
+
+	b, err := encodingJson.Marshal(r)
+	if err != nil {
+		return err
+	}
+
+	b = append(b, '\n')
+	*ret = append(*ret, b)
 	return nil
+}
+
+type jsonTick struct {
+	Type       string            `json:"type,omitempty"`
+	Parameters map[string]string `json:"params,omitempty"`
+	Origin     string            `json:"origin,omitempty"`
+	Base       string            `json:"base,omitempty"`
+	Quote      string            `json:"quote,omitempty"`
+	Price      float64           `json:"price,omitempty"`
+	Bid        float64           `json:"bid,omitempty"`
+	Ask        float64           `json:"ask,omitempty"`
+	Volume24h  float64           `json:"vol24h,omitempty"`
+	Timestamp  time.Time         `json:"ts,omitempty"`
+	Ticks      []jsonTick        `json:"ticks,omitempty"`
+	Error      string            `json:"error,omitempty"`
+}
+
+func jsonTickFromOriginTick(t graph.OriginTick) jsonTick {
+	var errStr string
+	if t.Error != nil {
+		errStr = t.Error.Error()
+	}
+
+	return jsonTick{
+		Type:       "origin",
+		Parameters: nil,
+		Origin:     t.Origin,
+		Base:       t.Pair.Base,
+		Quote:      t.Pair.Quote,
+		Price:      t.Price,
+		Bid:        t.Bid,
+		Ask:        t.Ask,
+		Volume24h:  t.Volume24h,
+		Timestamp:  t.Timestamp,
+		Error:      errStr,
+	}
+}
+
+func jsonTickFromAggregatorTick(t graph.AggregatorTick) jsonTick {
+	var errStr string
+	if t.Error != nil {
+		errStr = t.Error.Error()
+	}
+
+	var ticks []jsonTick
+	for _, v := range t.OriginTicks {
+		ticks = append(ticks, jsonTickFromOriginTick(v))
+	}
+	for _, v := range t.AggregatorTicks {
+		ticks = append(ticks, jsonTickFromAggregatorTick(v))
+	}
+
+	return jsonTick{
+		Type:       "aggregate",
+		Parameters: t.Parameters,
+		Base:       t.Pair.Base,
+		Quote:      t.Pair.Quote,
+		Price:      t.Price,
+		Bid:        t.Bid,
+		Ask:        t.Ask,
+		Volume24h:  t.Volume24h,
+		Timestamp:  t.Timestamp,
+		Ticks:      ticks,
+		Error:      errStr,
+	}
 }
