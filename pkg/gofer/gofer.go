@@ -22,14 +22,14 @@ import (
 )
 
 type Gofer struct {
-	graphs   map[graph.Pair]graph.Aggregator
-	ingestor *graph.Feeder
+	graphs map[graph.Pair]graph.Aggregator
+	feeder *graph.Feeder
 }
 
-func NewGofer(graphs map[graph.Pair]graph.Aggregator, ingestor *graph.Feeder) *Gofer {
+func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *graph.Feeder) *Gofer {
 	return &Gofer{
-		graphs:   graphs,
-		ingestor: ingestor,
+		graphs: graphs,
+		feeder: feeder,
 	}
 }
 
@@ -37,8 +37,8 @@ func (g *Gofer) Graphs() map[graph.Pair]graph.Aggregator {
 	return g.graphs
 }
 
-func (g *Gofer) Ingestor() *graph.Feeder {
-	return g.ingestor
+func (g *Gofer) Feeder() *graph.Feeder {
+	return g.feeder
 }
 
 func (g *Gofer) Pairs() []graph.Pair {
@@ -53,7 +53,7 @@ func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
 	var ticks []graph.AggregatorTick
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
-			g.ingestor.Feed(pairGraph)
+			g.feeder.Feed(pairGraph)
 			ticks = append(ticks, pairGraph.Tick())
 		} else {
 			return nil, fmt.Errorf("unable to find %s pair", pair)
