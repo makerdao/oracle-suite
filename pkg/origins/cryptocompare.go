@@ -13,64 +13,100 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package origins
+package exchange
 
 import (
 	"encoding/json"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
-// Origin URL
-const cryptoCompareURL = "https://min-api.cryptocompare.com/data/price?fsym=%s&tsyms=%s"
+//nolint:lll
+const cryptoCompareMultiURL = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=%s&tsyms=%s&tryConversion=false&extraParams=gofer&relaxedValidation=true"
 
-type cryptoCompareResponse map[string]float64
+type cryptoCompareMultiResponse struct {
+	Raw map[string]map[string]struct {
+		Base  string  `json:"FROMSYMBOL"`
+		Query string  `json:"TOSYMBOL"`
+		Price float64 `json:"PRICE"`
+		TS    int64   `json:"LASTUPDATE"`
+		Vol24 float64 `json:"VOLUME24HOUR"`
+	} `json:"RAW"`
+}
 
-// Origin handler
 type CryptoCompare struct {
 	Pool query.WorkerPool
 }
 
-func (c *CryptoCompare) getURL(pair Pair) string {
-	return fmt.Sprintf(cryptoCompareURL, pair.Base, pair.Quote)
-}
-
-func (c *CryptoCompare) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(c, pairs)
-}
-
-func (c *CryptoCompare) callOne(pair Pair) (*Tick, error) {
-	var err error
-	req := &query.HTTPRequest{
-		URL: c.getURL(pair),
-	}
-
-	// make query
+func (c *CryptoCompare) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	req := c.makeRequest(ppps)
 	res := c.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
+	if errorResponses := validateResponse(ppps, res); len(errorResponses) > 0 {
+		return errorResponses
 	}
-	if res.Error != nil {
-		return nil, res.Error
+	return c.parseResponse(ppps, res)
+}
+
+func (c *CryptoCompare) makeRequest(ppps []*model.PotentialPricePoint) *query.HTTPRequest {
+	var bList, qList []string
+
+	for _, ppp := range ppps {
+		bList = append(bList, ppp.Pair.Base)
 	}
-	// parsing JSON
-	var resp cryptoCompareResponse
-	err = json.Unmarshal(res.Body, &resp)
+	for _, ppp := range ppps {
+		qList = append(qList, ppp.Pair.Quote)
+	}
+
+	req := &query.HTTPRequest{
+		URL: fmt.Sprintf(cryptoCompareMultiURL, strings.Join(bList, ","), strings.Join(qList, ",")),
+	}
+	return req
+}
+
+func (c *CryptoCompare) parseResponse(ppps []*model.PotentialPricePoint, res *query.HTTPResponse) []CallResult {
+	results := make([]CallResult, 0)
+
+	var resp cryptoCompareMultiResponse
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse CryptoCompare response: %w", err)
+		for _, ppp := range ppps {
+			results = append(results, newCallResult(
+				ppp,
+				nil,
+				fmt.Errorf("failed to parse CryptoCompare response: %w", err),
+			))
+		}
+		return results
 	}
 
-	price, ok := resp[pair.Quote]
-	if !ok {
-		return nil, fmt.Errorf("failed to get price for %s: %s", pair.Quote, res.Body)
+	for _, ppp := range ppps {
+		if bObj, is := resp.Raw[ppp.Pair.Base]; !is {
+			results = append(results, newCallResult(
+				ppp,
+				nil,
+				fmt.Errorf("no response for %s base from %s", ppp.Pair.Base, ppp.Exchange.Name),
+			))
+		} else {
+			if qObj, is := bObj[ppp.Pair.Quote]; !is {
+				results = append(results, newCallResult(
+					ppp,
+					nil,
+					fmt.Errorf("no response for %s quote from %s", ppp.Pair.Quote, ppp.Exchange.Name),
+				))
+			} else {
+				pp := &model.PricePoint{
+					Timestamp: qObj.TS,
+					Exchange:  ppp.Exchange,
+					Pair:      model.NewPair(qObj.Base, qObj.Query),
+					Price:     qObj.Price,
+					Volume:    qObj.Vol24,
+				}
+				results = append(results, newCallResult(ppp, pp, nil))
+			}
+		}
 	}
-
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Timestamp: time.Now(),
-	}, nil
+	return results
 }

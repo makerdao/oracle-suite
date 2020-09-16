@@ -13,13 +13,14 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package origins
+package exchange
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -29,17 +30,17 @@ import (
 // returns the current testing context
 type GateioSuite struct {
 	suite.Suite
-	pool   query.WorkerPool
-	origin *Gateio
+	pool     query.WorkerPool
+	exchange *Gateio
 }
 
-func (suite *GateioSuite) Origin() Handler {
-	return suite.origin
+func (suite *GateioSuite) Exchange() Handler {
+	return suite.exchange
 }
 
-// Setup origin
+// Setup exchange
 func (suite *GateioSuite) SetupSuite() {
-	suite.origin = &Gateio{Pool: query.NewMockWorkerPool()}
+	suite.exchange = &Gateio{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *GateioSuite) TearDownTest() {
@@ -50,79 +51,87 @@ func (suite *GateioSuite) TearDownTest() {
 }
 
 func (suite *GateioSuite) TestLocalPair() {
-	suite.EqualValues("BTC_ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC_USD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("BTC_ETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
+	suite.EqualValues("BTC_USD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
 }
 
 func (suite *GateioSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
+	// No PPPs.
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{})
+	suite.Len(cr, 0)
 
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pp := newPotentialPricePoint("gateio", "BTC", "ETH")
 	// nil as response
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte("[{}]"),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","currency_pair":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *GateioSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pp := newPotentialPricePoint("gateio", "C", "D")
 	resp := &query.HTTPResponse{
-		Body: []byte(`[{"currency_pair":"BTC_ETH","last":"1","lowest_ask":"2","highest_bid":"3","quote_volume":"4"}]`),
+		Body: []byte(`[{"currency_pair":"A_B","last":"1","lowest_ask":"2","highest_bid":"3","quote_volume":"4"},{"currency_pair":"C_D","last":"5","lowest_ask":"6","highest_bid":"7","quote_volume":"8"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Equal(2.0, cr[0].Tick.Ask)
-	suite.Equal(3.0, cr[0].Tick.Bid)
-	suite.Equal(4.0, cr[0].Tick.Volume24h)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
+	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
+	suite.Equal(5.0, cr[0].PricePoint.Price)
+	suite.Equal(6.0, cr[0].PricePoint.Ask)
+	suite.Equal(7.0, cr[0].PricePoint.Bid)
+	suite.Equal(8.0, cr[0].PricePoint.Volume)
+	suite.Greater(cr[0].PricePoint.Timestamp, int64(2))
 }
 
 func (suite *GateioSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Gateio{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	gateio := &Gateio{Pool: query.NewHTTPWorkerPool(1)}
+	testRealAPICall(suite, gateio, "ETH", "BTC")
+	testRealBatchAPICall(suite, gateio, []*model.PotentialPricePoint{
+		newPotentialPricePoint("exchange", "ZEC", "USDT"),
+		newPotentialPricePoint("exchange", "WIN", "USDT"),
+		newPotentialPricePoint("exchange", "BAT", "BTC"),
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create

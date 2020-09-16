@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package origins
+package exchange
 
 import (
 	"encoding/json"
@@ -22,16 +22,17 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Fx URL
-const fxURL = "https://api.exchangeratesapi.io/latest?base=%s"
+const fxURL = "https://api.exchangeratesapi.io/latest?symbols=%s&base=%s"
 
 type fxResponse struct {
 	Rates map[string]float64 `json:"rates"`
 }
 
-// Fx origin handler
+// Fx exchange handler
 type Fx struct {
 	Pool query.WorkerPool
 }
@@ -40,49 +41,93 @@ func (f *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (f *Fx) localPairName(pair Pair) string {
-	return f.renameSymbol(pair.Base)
-}
-
-func (f *Fx) getURL(pair Pair) string {
-	return fmt.Sprintf(fxURL, f.localPairName(pair))
-}
-
-func (f *Fx) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(f, pairs)
-}
-
-func (f *Fx) callOne(pair Pair) (*Tick, error) {
-	var err error
-	req := &query.HTTPRequest{
-		URL: f.getURL(pair),
+func (f *Fx) Call(ppps []*model.PotentialPricePoint) []CallResult {
+	// Group PPPs by asset pair base.
+	bases := map[string][]*model.PotentialPricePoint{}
+	for _, pp := range ppps {
+		base := pp.Pair.Base
+		bases[base] = append(bases[base], pp)
 	}
 
-	// make query
+	results := []CallResult{}
+	for base, ppps := range bases {
+		// Make one request per asset pair base.
+		crs, err := f.callByBase(base, ppps)
+		if err != nil {
+			// If callByBase fails wholesale, create a CallResult per PPP with the same
+			// error.
+			crs = newCallResultErrors(ppps, err)
+		}
+		results = append(results, crs...)
+	}
+
+	return results
+}
+
+func (f *Fx) callOne(pp *model.PotentialPricePoint) (*model.PricePoint, error) {
+	err := model.ValidatePotentialPricePoint(pp)
+	if err != nil {
+		return nil, err
+	}
+
+	crs, err := f.callByBase(pp.Pair.Base, []*model.PotentialPricePoint{pp})
+	if err != nil {
+		return nil, err
+	}
+
+	return crs[0].PricePoint, crs[0].Error
+}
+
+func (f *Fx) getURL(base string, quotes []*model.PotentialPricePoint) string {
+	symbols := []string{}
+	for _, pp := range quotes {
+		symbols = append(symbols, f.renameSymbol(pp.Pair.Quote))
+	}
+	return fmt.Sprintf(fxURL, strings.Join(symbols, ","), f.renameSymbol(base))
+}
+
+func (f *Fx) callByBase(base string, ppps []*model.PotentialPricePoint) ([]CallResult, error) {
+	req := &query.HTTPRequest{
+		URL: f.getURL(base, ppps),
+	}
+
+	// Make query.
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return nil, errEmptyExchangeResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
 	}
-	// parsing JSON
+	// Parse JSON.
 	var resp fxResponse
-	err = json.Unmarshal(res.Body, &resp)
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse fx response: %w", err)
+		return nil, fmt.Errorf("failed to parse FX response: %w", err)
 	}
 	if resp.Rates == nil {
-		return nil, fmt.Errorf("failed to parse FX response %+v", resp)
+		return nil, fmt.Errorf("failed to parse FX response: %+v", resp)
 	}
-	price, ok := resp.Rates[f.renameSymbol(pair.Quote)]
-	if !ok {
-		return nil, fmt.Errorf("no price for %s quote exist in response %s", pair.Quote, res.Body)
+
+	results := make([]CallResult, len(ppps))
+	for i, pp := range ppps {
+		if price, ok := resp.Rates[f.renameSymbol(pp.Pair.Quote)]; ok {
+			// Build PricePoint from exchange response.
+			results[i] = newCallResultSuccess(
+				&model.PricePoint{
+					Exchange:  pp.Exchange,
+					Pair:      pp.Pair,
+					Price:     price,
+					Timestamp: time.Now().Unix(),
+				},
+			)
+		} else {
+			// Missing quote in exchange response.
+			results[i] = newCallResultError(
+				pp,
+				fmt.Errorf("no price for %s quote exist in response %s", pp.Pair.Quote, res.Body),
+			)
+		}
 	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Timestamp: time.Now(),
-	}, nil
+	return results, nil
 }

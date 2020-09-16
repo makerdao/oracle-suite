@@ -44,3 +44,18 @@ func testRealAPICall(suite Suite, origin Handler, base, quote string) {
 	suite.Assert().NoError(cr[0].Error)
 	suite.Assert().Greater(cr[0].Tick.Price, float64(0))
 }
+
+func testRealBatchAPICall(suite Suite, exchange Handler, ppps []*model.PotentialPricePoint) {
+	if !*testAPICalls {
+		suite.T().SkipNow()
+	}
+
+	suite.Assert().IsType(suite.Exchange(), exchange)
+
+	crs := exchange.Call(ppps)
+
+	for _, cr := range crs {
+		suite.Assert().NoError(cr.Error)
+		suite.Assert().Greater(cr.PricePoint.Price, float64(0))
+	}
+}

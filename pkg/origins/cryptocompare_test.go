@@ -13,13 +13,14 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package origins
+package exchange
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -29,17 +30,17 @@ import (
 // returns the current testing context
 type CryptoCompareSuite struct {
 	suite.Suite
-	pool   query.WorkerPool
-	origin *CryptoCompare
+	pool     query.WorkerPool
+	exchange *CryptoCompare
 }
 
-func (suite *CryptoCompareSuite) Origin() Handler {
-	return suite.origin
+func (suite *CryptoCompareSuite) Exchange() Handler {
+	return suite.exchange
 }
 
-// Setup origin
+// Setup exchange
 func (suite *CryptoCompareSuite) SetupSuite() {
-	suite.origin = &CryptoCompare{Pool: query.NewMockWorkerPool()}
+	suite.exchange = &CryptoCompare{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *CryptoCompareSuite) TearDownTest() {
@@ -50,23 +51,19 @@ func (suite *CryptoCompareSuite) TearDownTest() {
 }
 
 func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
 	// nil as response
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(fmt.Errorf("no response for BTC/ETH from cryptocompare"), cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
 
 	for n, r := range [][]byte{
 		// invalid response
@@ -80,27 +77,40 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-			cr = suite.origin.Fetch([]Pair{pair})
+			suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+			cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 			suite.Error(cr[0].Error)
 		})
 	}
 }
 
 func (suite *CryptoCompareSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pp := newPotentialPricePoint("cryptocompare", "BTC", "ETH")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"ETH":1.1}`),
+		Body: []byte(`{"RAW":{"BTC":{"ETH":{
+		"FROMSYMBOL": "BTC",
+		"TOSYMBOL": "ETH",
+		"PRICE": 0.04687,
+		"VOLUME24HOUR": 0,
+		"LASTUPDATE": 1599982420
+		}}}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.1, cr[0].Tick.Price)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
+	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
+	suite.Equal(0.04687, cr[0].PricePoint.Price)
+	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {
 	testRealAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	var ppps []*model.PotentialPricePoint
+	for _, s := range []string{"BTC", "ETH", "MKR", "POLY"} {
+		ppps = append(ppps, newPotentialPricePoint("cryptocompare", s, "USD"))
+	}
+	testRealBatchAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, ppps)
 }
 
 // In order for 'go test' to run this suite, we need to create

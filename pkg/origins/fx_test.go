@@ -13,13 +13,14 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package origins
+package exchange
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/gofer/pkg/model"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -29,17 +30,17 @@ import (
 // returns the current testing context
 type FxSuite struct {
 	suite.Suite
-	pool   query.WorkerPool
-	origin *Fx
+	pool     query.WorkerPool
+	exchange *Fx
 }
 
-func (suite *FxSuite) Origin() Handler {
-	return suite.origin
+func (suite *FxSuite) Exchange() Handler {
+	return suite.exchange
 }
 
-// Setup origin
+// Setup exchange
 func (suite *FxSuite) SetupSuite() {
-	suite.origin = &Fx{Pool: query.NewMockWorkerPool()}
+	suite.exchange = &Fx{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *FxSuite) TearDownTest() {
@@ -49,68 +50,74 @@ func (suite *FxSuite) TearDownTest() {
 	}
 }
 
-func (suite *FxSuite) TestLocalPair() {
-	suite.EqualValues("BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-}
-
 func (suite *FxSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pp := newPotentialPricePoint("fx", "BTC", "ETH")
 	// nil as response
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 
 	// Error convert price to number
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 
 	// Error convert price to number
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{"ETH":"abcd"}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *FxSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pp := newPotentialPricePoint("fx", "A", "B")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"rates":{"ETH":1}}`),
+		Body: []byte(`{"rates":{"B":1,"C":2},"base":"A"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.origin.Fetch([]Pair{pair})
+	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
+	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
+	suite.Equal(1.0, cr[0].PricePoint.Price)
+	suite.Greater(cr[0].PricePoint.Timestamp, int64(0))
 }
 
 func (suite *FxSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Fx{Pool: query.NewHTTPWorkerPool(1)}, "USD", "EUR")
+	fx := &Fx{Pool: query.NewHTTPWorkerPool(1)}
+	testRealAPICall(suite, fx, "USD", "EUR")
+	testRealBatchAPICall(suite, fx, []*model.PotentialPricePoint{
+		newPotentialPricePoint("exchange", "EUR", "USD"),
+		newPotentialPricePoint("exchange", "EUR", "PHP"),
+		newPotentialPricePoint("exchange", "EUR", "CAD"),
+		newPotentialPricePoint("exchange", "EUR", "SEK"),
+
+		newPotentialPricePoint("exchange", "USD", "SEK"),
+
+		newPotentialPricePoint("exchange", "SEK", "EUR"),
+		newPotentialPricePoint("exchange", "SEK", "USD"),
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create
