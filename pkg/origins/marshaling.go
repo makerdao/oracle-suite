@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package exchange
+package origins
 
 import (
 	"encoding/json"
@@ -30,8 +30,11 @@ func (s *stringAsFloat) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 	f, err := strconv.ParseFloat(ss, 64)
+	if err != nil {
+		return err
+	}
 	*s = stringAsFloat(f)
-	return err
+	return nil
 }
 
 func (s *stringAsFloat) val() float64 {
@@ -47,8 +50,11 @@ func (s *stringAsUnixTimestamp) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 	i, err := strconv.ParseInt(ss, 10, 64)
+	if err != nil {
+		return err
+	}
 	*s = stringAsUnixTimestamp(time.Unix(i, 0))
-	return err
+	return nil
 }
 func (s *stringAsUnixTimestamp) val() time.Time {
 	return time.Time(*s)
@@ -63,10 +69,27 @@ func (s *stringAsInt64) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 	i, err := strconv.ParseInt(ss, 10, 64)
+	if err != nil {
+		return err
+	}
 	*s = stringAsInt64(i)
-	return err
+	return nil
 }
 
 func (s *stringAsInt64) val() int64 {
 	return int64(*s)
+}
+
+type intAsUnixTimestamp time.Time
+
+func (s *intAsUnixTimestamp) UnmarshalJSON(bytes []byte) error {
+	var i int64
+	if err := json.Unmarshal(bytes, &i); err != nil {
+		return err
+	}
+	*s = intAsUnixTimestamp(time.Unix(i, 0))
+	return nil
+}
+func (s *intAsUnixTimestamp) val() time.Time {
+	return time.Time(*s)
 }

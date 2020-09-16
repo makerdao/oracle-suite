@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package exchange
+package origins
 
 import (
 	"fmt"
@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/makerdao/gofer/internal/query"
-	"github.com/makerdao/gofer/pkg/model"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -30,17 +29,17 @@ import (
 // returns the current testing context
 type HitbtcSuite struct {
 	suite.Suite
-	pool     query.WorkerPool
-	exchange *Hitbtc
+	pool   query.WorkerPool
+	origin *Hitbtc
 }
 
-func (suite *HitbtcSuite) Exchange() Handler {
-	return suite.exchange
+func (suite *HitbtcSuite) Origin() Handler {
+	return suite.origin
 }
 
 // Setup exchange
 func (suite *HitbtcSuite) SetupSuite() {
-	suite.exchange = &Hitbtc{Pool: query.NewMockWorkerPool()}
+	suite.origin = &Hitbtc{Pool: query.NewMockWorkerPool()}
 }
 
 func (suite *HitbtcSuite) TearDownTest() {
@@ -51,110 +50,108 @@ func (suite *HitbtcSuite) TearDownTest() {
 }
 
 func (suite *HitbtcSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-	suite.EqualValues("BTCUSD", suite.exchange.localPairName(model.NewPair("BTC", "USD")))
+	suite.EqualValues("BTCETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *HitbtcSuite) TestFailOnWrongInput() {
-	pp := newPotentialPricePoint("hitbtc", "BTC", "ETH")
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
+	cr := suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
-	suite.Equal(ourErr, cr[0].Error.(*CallError).Unwrap())
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(ourErr, cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"1","volume":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"1","volume":"1","bid":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"1","volume":"1","bid":"abc","symbol":"abc"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
 	// Error parsing
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","symbol":"BTCETH","timestamp":"2020-04-24T20:09:36.229Z"}`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
 func (suite *HitbtcSuite) TestSuccessResponse() {
-	// Empty call.
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{})
+	// Empty fetch.
+	cr := suite.origin.Fetch([]Pair{})
 	suite.Len(cr, 0)
 
-	pp := newPotentialPricePoint("hitbtc", "BTC", "ETH")
+	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"2","volume":"3","bid":"4","symbol":"BTCETH","timestamp":"2020-04-24T20:09:36.229Z"}]`),
 	}
-	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	cr = suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(pp.Exchange, cr[0].PricePoint.Exchange)
-	suite.Equal(pp.Pair, cr[0].PricePoint.Pair)
-	suite.Equal(1.0, cr[0].PricePoint.Price)
-	suite.Equal(2.0, cr[0].PricePoint.Ask)
-	suite.Equal(3.0, cr[0].PricePoint.Volume)
-	suite.Equal(4.0, cr[0].PricePoint.Bid)
-	suite.Greater(cr[0].PricePoint.Timestamp, int64(2))
+	suite.Equal(1.0, cr[0].Tick.Price)
+	suite.Equal(2.0, cr[0].Tick.Ask)
+	suite.Equal(3.0, cr[0].Tick.Volume24h)
+	suite.Equal(4.0, cr[0].Tick.Bid)
+	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(1587758976))
 }
 
 func (suite *HitbtcSuite) TestRealAPICall() {
 	hitbtc := &Hitbtc{Pool: query.NewHTTPWorkerPool(1)}
 	testRealAPICall(suite, hitbtc, "ETH", "BTC")
-	testRealBatchAPICall(suite, hitbtc, []*model.PotentialPricePoint{
-		newPotentialPricePoint("exchange", "BTC", "USD"),
-		newPotentialPricePoint("exchange", "DOGE", "BTC"),
-		newPotentialPricePoint("exchange", "REP", "USDT"),
+	testRealBatchAPICall(suite, hitbtc, []Pair{
+		{Base: "BTC", Quote: "USD"},
+		{Base: "DOGE", Quote: "BTC"},
+		{Base: "REP", Quote: "USDT"},
 	})
 }
 

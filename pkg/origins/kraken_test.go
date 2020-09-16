@@ -99,7 +99,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 
 	// Error
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}}}`),
+		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}})`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
