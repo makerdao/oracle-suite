@@ -50,24 +50,10 @@ func (suite *FxSuite) TearDownTest() {
 	}
 }
 
-func (suite *FxSuite) TestLocalPair() {
-	suite.EqualValues("BTC", suite.exchange.localPairName(model.NewPair("BTC", "ETH")))
-}
-
 func (suite *FxSuite) TestFailOnWrongInput() {
-	// empty pp
-	cr := suite.exchange.Call([]*model.PotentialPricePoint{nil})
-	suite.Len(cr, 1)
-	suite.Nil(cr[0].PricePoint)
-	suite.Error(cr[0].Error)
-
-	// wrong pp
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{{}})
-	suite.Error(cr[0].Error)
-
 	pp := newPotentialPricePoint("fx", "BTC", "ETH")
 	// nil as response
-	cr = suite.exchange.Call([]*model.PotentialPricePoint{pp})
+	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
 	suite.Equal(errEmptyExchangeResponse, cr[0].Error.(*CallError).Unwrap())
 
 	// error in response
@@ -105,9 +91,9 @@ func (suite *FxSuite) TestFailOnWrongInput() {
 }
 
 func (suite *FxSuite) TestSuccessResponse() {
-	pp := newPotentialPricePoint("fx", "BTC", "ETH")
+	pp := newPotentialPricePoint("fx", "A", "B")
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"rates":{"ETH":1}}`),
+		Body: []byte(`{"rates":{"B":1,"C":2},"base":"A"}`),
 	}
 	suite.exchange.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.exchange.Call([]*model.PotentialPricePoint{pp})
@@ -119,7 +105,19 @@ func (suite *FxSuite) TestSuccessResponse() {
 }
 
 func (suite *FxSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Fx{Pool: query.NewHTTPWorkerPool(1)}, "USD", "EUR")
+	fx := &Fx{Pool: query.NewHTTPWorkerPool(1)}
+	testRealAPICall(suite, fx, "USD", "EUR")
+	testRealBatchAPICall(suite, fx, []*model.PotentialPricePoint{
+		newPotentialPricePoint("exchange", "EUR", "USD"),
+		newPotentialPricePoint("exchange", "EUR", "PHP"),
+		newPotentialPricePoint("exchange", "EUR", "CAD"),
+		newPotentialPricePoint("exchange", "EUR", "SEK"),
+
+		newPotentialPricePoint("exchange", "USD", "SEK"),
+
+		newPotentialPricePoint("exchange", "SEK", "EUR"),
+		newPotentialPricePoint("exchange", "SEK", "USD"),
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create
