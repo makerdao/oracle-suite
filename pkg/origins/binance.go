@@ -18,18 +18,21 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
 // Binance URL
-const binanceURL = "https://www.binance.com/api/v3/ticker/price?symbol=%s"
+const binanceURL = "https://www.binance.com/api/v3/ticker/24hr"
 
 type binanceResponse struct {
-	Price string `json:"price"`
+	Symbol    string             `json:"symbol"`
+	LastPrice stringAsFloat64    `json:"lastPrice"`
+	BidPrice  stringAsFloat64    `json:"bidPrice"`
+	AskPrice  stringAsFloat64    `json:"askPrice"`
+	Volume    stringAsFloat64    `json:"volume"`
+	CloseTime intAsUnixTimestamp `json:"closeTime"` // TODO: replace intAsUnixTimestampMs
 }
 
 // Binance origin handler
@@ -37,51 +40,59 @@ type Binance struct {
 	Pool query.WorkerPool
 }
 
-func (b *Binance) renameSymbol(symbol string) string {
-	return strings.ToUpper(symbol)
-}
-
 func (b *Binance) localPairName(pair Pair) string {
-	return b.renameSymbol(pair.Base) + b.renameSymbol(pair.Quote)
-}
-
-func (b *Binance) getURL(pair Pair) string {
-	return fmt.Sprintf(binanceURL, b.localPairName(pair))
+	return strings.ToUpper(pair.Base) + strings.ToUpper(pair.Quote)
 }
 
 func (b *Binance) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(b, pairs)
-}
-
-func (b *Binance) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: b.getURL(pair),
+		URL: binanceURL,
 	}
 
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		return fetchResultListWithErrors(pairs, res.Error)
 	}
-	// parsing JSON
-	var resp binanceResponse
+
+	// parse JSON
+	var resp []binanceResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse binance response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse Binance response: %w", err))
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(resp.Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from binance origin %s", res.Body)
+
+	// convert response from a slice to a map
+	respMap := map[string]binanceResponse{}
+	for _, symbolResp := range resp {
+		respMap[symbolResp.Symbol] = symbolResp
 	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Timestamp: time.Now(),
-	}, nil
+
+	// prepare result
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		if r, ok := respMap[b.localPairName(pair)]; !ok {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     r.LastPrice.val(),
+					Bid:       r.BidPrice.val(),
+					Ask:       r.AskPrice.val(),
+					Volume24h: r.Volume.val(),
+					Timestamp: r.CloseTime.val(),
+				},
+			})
+		}
+	}
+
+	return results
 }

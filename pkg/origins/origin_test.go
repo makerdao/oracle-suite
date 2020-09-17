@@ -71,7 +71,7 @@ func (suite *OriginsSuite) TestFailWithNilResponseForBinance() {
 
 func (suite *OriginsSuite) TestSuccessBinance() {
 	price := 0.024361
-	json := fmt.Sprintf(`{"symbol":"ETHBTC","price":"%f"}`, price)
+	json := fmt.Sprintf(`[{"symbol":"ETHBTC","lastPrice":"%f"}]`, price)
 	resp := &query.HTTPResponse{
 		Body:  []byte(json),
 		Error: nil,
