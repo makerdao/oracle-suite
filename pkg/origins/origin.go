@@ -159,7 +159,6 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	}
 
 	wg.Wait()
-
 	return frs
 }
 
@@ -188,26 +187,11 @@ func callSinglePairOrigin(e singlePairOrigin, pairs []Pair) []FetchResult {
 }
 
 func validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
-	results := make([]FetchResult, 0)
-
 	if res == nil {
-		for _, pair := range pairs {
-			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
-				Error: fmt.Errorf("no response for %s", pair.String()),
-			})
-		}
-		return results
+		return fetchResultListWithErrors(pairs, errInvalidResponseStatus)
 	}
 	if res.Error != nil {
-		for _, pair := range pairs {
-			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
-				Error: fmt.Errorf("bad response for %s: %w", pair.String(), res.Error),
-			})
-		}
-		return results
+		return fetchResultListWithErrors(pairs, fmt.Errorf("bad response: %w", res.Error))
 	}
-
-	return []FetchResult{}
+	return nil
 }

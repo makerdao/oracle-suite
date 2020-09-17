@@ -44,14 +44,14 @@ func (o *Ddex) localPairName(pair Pair) string {
 }
 
 type ddexTicker struct {
-	Ask      stringAsFloat      `json:"ask"`
-	Bid      stringAsFloat      `json:"bid"`
-	High     stringAsFloat      `json:"high"`
-	Low      stringAsFloat      `json:"low"`
+	Ask      stringAsFloat64    `json:"ask"`
+	Bid      stringAsFloat64    `json:"bid"`
+	High     stringAsFloat64    `json:"high"`
+	Low      stringAsFloat64    `json:"low"`
 	MarketID string             `json:"marketId"`
-	Price    stringAsFloat      `json:"price"`
+	Price    stringAsFloat64    `json:"price"`
 	UpdateAt intAsUnixTimestamp `json:"updateAt"`
-	Volume   stringAsFloat      `json:"volume"`
+	Volume   stringAsFloat64    `json:"volume"`
 }
 type ddexTickersResponse struct {
 	Desc   string `json:"desc"`
@@ -66,13 +66,10 @@ func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResul
 	var resp ddexTickersResponse
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		for _, pair := range pairs {
-			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
-				Error: fmt.Errorf("failed to parse DDEX response: %w", err),
-			})
-		}
-		return results
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
+	}
+	if resp.Status != 0 {
+		return fetchResultListWithErrors(pairs, errInvalidResponseStatus)
 	}
 
 	tickers := make(map[string]ddexTicker)
@@ -84,7 +81,7 @@ func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResul
 		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: fmt.Errorf("no response for %s from DDEX ", pair.String()),
+				Error: errMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{

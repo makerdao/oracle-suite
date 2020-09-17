@@ -18,108 +18,68 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
-
-const kyberURL = "https://api.kyber.network/buy_rate?id=%s&qty=%g"
-
-type kyberDataResponse struct {
-	Src    string    `json:"src_id"`
-	Dst    string    `json:"dst_id"`
-	SrcQty []float64 `json:"src_qty"`
-	DstQty []float64 `json:"dst_qty"`
-}
-
-type kyberResponse struct {
-	Error          bool                 `json:"error"`
-	Reason         string               `json:"reason"`
-	AdditionalData string               `json:"additional_data"`
-	Result         []*kyberDataResponse `json:"data"`
-}
 
 type Kyber struct {
 	Pool query.WorkerPool
 }
 
-func (k *Kyber) localPairName(pair Pair) string {
-	var addrList = map[Pair]string{
-		{Base: "DGX", Quote: "ETH"}:  "0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf",
-		{Base: "KNC", Quote: "ETH"}:  "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
-		{Base: "LEND", Quote: "ETH"}: "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
-		{Base: "MKR", Quote: "ETH"}:  "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
-		{Base: "WBTC", Quote: "ETH"}: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
-	}
-	return addrList[pair]
-}
-
-const refQty = 2.5
-
-func (k *Kyber) getURL(pair Pair) string {
-	return fmt.Sprintf(kyberURL, k.localPairName(pair), refQty)
-}
-
-func (k *Kyber) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(k, pairs)
-}
-
-func (k *Kyber) callOne(pair Pair) (*Tick, error) {
-	var err error
+func (o *Kyber) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: k.getURL(pair),
+		URL: kyberURL,
 	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
 
-	// make query
-	res := k.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
-	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	// parsing JSON
-	var resp kyberResponse
-	err = json.Unmarshal(res.Body, &resp)
+const kyberURL = "https://api.kyber.network/change24h"
+
+type kyberTicker struct {
+	Timestamp    intAsUnixTimestamp `json:"timestamp"`
+	TokenName    string             `json:"token_name"`
+	TokenSymbol  string             `json:"token_symbol"`
+	TokenDecimal int                `json:"token_decimal"`
+	TokenAddress string             `json:"token_address"`
+	RateEthNow   float64            `json:"rate_eth_now"`
+	ChangeEth24H float64            `json:"change_eth_24h"`
+	ChangeUsd24H float64            `json:"change_usd_24h"`
+	RateUsdNow   float64            `json:"rate_usd_now"`
+}
+
+func (o *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+	var tickers map[string]kyberTicker
+	err := json.Unmarshal(res.Body, &tickers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse kyber response: %w", err)
-	}
-	if resp.Error {
-		return nil, fmt.Errorf("kyber API error: %s (%s)", resp.Reason, resp.AdditionalData)
-	}
-	if len(resp.Result) == 0 {
-		return nil, fmt.Errorf("wrong kyber origin response. No resulting data %+v", resp)
-	}
-	result := resp.Result[0]
-
-	if len(result.SrcQty) == 0 || len(result.DstQty) == 0 {
-		return nil, fmt.Errorf("wrong kyber origin response. No resulting pair %s data %+v", pair.String(), result)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 
-	if result.SrcQty[0] <= 0 {
-		return nil, fmt.Errorf("failed to parse price from kyber origin (needs to be gtreater than 0) %s", res.Body)
+	for _, pair := range pairs {
+		//nolint:gocritic
+		if t, is := tickers[pair.Quote+"_"+pair.Base]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else if t.TokenSymbol != pair.Base {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errInvalidTick,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.RateEthNow,
+					Timestamp: t.Timestamp.val(),
+				},
+			})
+		}
 	}
-
-	if result.DstQty[0] != refQty {
-		return nil, fmt.Errorf("failed to parse volume from kyber origin (it needs to be %f) %s", refQty, res.Body)
-	}
-
-	if result.Src != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" {
-		return nil, fmt.Errorf(
-			"failed to parse price from kyber origin (src needs to be 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee) %s",
-			res.Body,
-		)
-	}
-
-	if result.Dst != k.localPairName(pair) {
-		return nil, fmt.Errorf("failed to parse volume from kyber origin (it needs to be %f) %s", refQty, res.Body)
-	}
-
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     result.SrcQty[0] / result.DstQty[0],
-		Volume24h: result.DstQty[0],
-		Timestamp: time.Now(),
-	}, nil
+	return results
 }

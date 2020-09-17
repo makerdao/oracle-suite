@@ -55,14 +55,11 @@ func (suite *FtxSuite) TestLocalPair() {
 }
 
 func (suite *FtxSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
 	pair := Pair{Base: "BTC", Quote: "ETH"}
+	var cr []FetchResult
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(errInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -71,7 +68,7 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
 	for n, r := range [][]byte{
 		// invalid response
@@ -84,18 +81,19 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 		[]byte(`{"success":true}`),
 		// invalid response
 		[]byte(`{"success":true,"result":{}}`),
+		[]byte(`{"success":true,"result":[]}`),
 		// invalid name
-		[]byte(`{"success":true,"result":{"name":"SOME/ANOTHER"}}`),
+		[]byte(`{"success":true,"result":[{"name":"SOME/ANOTHER"}]}`),
 		// invalid price (string)
-		[]byte(`{"success":true,"result":{"name":"BTC/ETH","last":"1"}}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":"1"}]}`),
 		// invalid ask (string)
-		[]byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":"2"}}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":1,"ask":"2"}]}`),
 		// invalid bid (string)
-		[]byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":"3"}}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":1,"ask":2,"bid":"3"}]}`),
 		// invalid volume (string)
-		[]byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":"4"}}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":"4"}]}`),
 		// invalid success with normal result
-		[]byte(`{"success":false,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":4}}`),
+		[]byte(`{"success":false,"result":[{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":4}]}`),
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
@@ -107,22 +105,51 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 }
 
 func (suite *FtxSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "ETH", Quote: "USD"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"success":true,"result":{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":4}}`),
+		Body: []byte(`{"result": [{
+"ask": 380.38,
+"baseCurrency": "ETH",
+"bid": 380.25,
+"change1h": 0.004915563307698406,
+"change24h": 0.04470025825594813,
+"changeBod": 0.04550453670607644,
+"enabled": true,
+"last": 380.23,
+"minProvideSize": 0.001,
+"name": "ETH/USD",
+"postOnly": false,
+"price": 380.25,
+"priceIncrement": 0.01,
+"quoteCurrency": "USD",
+"quoteVolume24h": 12467473.8244,
+"restricted": false,
+"sizeIncrement": 0.001,
+"type": "spot",
+"underlying": null,
+"volumeUsd24h": 12467473.8244
+}],"success":true}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Equal(2.0, cr[0].Tick.Ask)
-	suite.Equal(3.0, cr[0].Tick.Bid)
-	suite.Equal(4.0, cr[0].Tick.Volume24h)
+	suite.Equal(380.23, cr[0].Tick.Price)
+	suite.Equal(380.38, cr[0].Tick.Ask)
+	suite.Equal(380.25, cr[0].Tick.Bid)
+	suite.Equal(12467473.8244, cr[0].Tick.Volume24h)
 	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *FtxSuite) TestRealAPICall() {
 	testRealAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	pairs := []Pair{
+		{Base: "ETH", Quote: "USDT"},
+		{Base: "ETH", Quote: "USDC"},
+		{Base: "ETH", Quote: "DAI"},
+		{Base: "WBTC", Quote: "USDT"},
+		{Base: "ETH", Quote: "SAI"},
+	}
+	testRealBatchAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create
