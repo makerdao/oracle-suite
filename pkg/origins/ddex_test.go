@@ -168,6 +168,18 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 			  }
 		   }
 		}`),
+		[]byte(`{"status":1,"desc":"failure","template":"","params":null,"data":
+		{"tickers":[
+		{"marketId":"ETH-USDT","price":"362.64","volume":"6.75",
+		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":1600239124811},
+		{"marketId":"ETH-USDC","price":"364.96","volume":"11.9853",
+		"bid":"363.76","ask":"364.96","low":"364.96","high":"364.96","updateAt":1600250097975},
+		{"marketId":"ETH-DAI","price":"322.28","volume":"4.5",
+		"bid":"322.53","ask":"322.63","low":"322.63","high":"322.53","updateAt":1599331939832},
+		{"marketId":"WBTC-USDT","price":"10039.8","volume":"0.8867",
+		"bid":"10039.8","ask":"10048.6","low":"10048.6","high":"10109","updateAt":1599369255015},
+		{"marketId":"ETH-SAI","price":"145.48","volume":"3.6783",
+		"bid":"145.48","ask":"149.41","low":"149.41","high":"149.35","updateAt":1575188948775}]}}`),
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
