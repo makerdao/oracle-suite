@@ -45,14 +45,12 @@ func (suite *KyberSuite) TearDownTest() {
 }
 
 func (suite *KyberSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
 	pair := Pair{Base: "WBTC", Quote: "ETH"}
+	var cr []FetchResult
+
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(errInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -61,118 +59,128 @@ func (suite *KyberSuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
-	// Error unmarshal
-	resp = &query.HTTPResponse{
-		Body: []byte(""),
+	for n, r := range [][]byte{
+		[]byte(""),
+		[]byte("{}"),
+		[]byte("[]"),
+		[]byte(`[ {
+		"timestamp": 1600331875531,
+		"token_symbol": "WBTC",
+		"token_name": "Wrapped BTC",
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 8,
+		"rate_eth_now": 30.11825982131223,
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}]`),
+		[]byte(`{"ETH_WBTC": {
+		"timestamp": "",
+		"token_symbol": "WBTC",
+		"token_name": "Wrapped BTC",
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 8,
+		"rate_eth_now": 30.11825982131223,
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}}`),
+		[]byte(`{"ETH_WBTC": {
+		"timestamp": 1600331875531,
+		"token_symbol": 0,
+		"token_name": "Wrapped BTC",
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 8,
+		"rate_eth_now": 30.11825982131223,
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}}`),
+		[]byte(`{"ETH_WBTC": {
+		"timestamp": 1600331875531,
+		"token_symbol": "",
+		"token_name": "Wrapped BTC",
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 8,
+		"rate_eth_now": 30.11825982131223,
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}}`),
+		[]byte(`{"ETH_WBTC": {
+		"timestamp": 1600331875531,
+		"token_symbol": "WBTC",
+		"token_name": 0,
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 8,
+		"rate_eth_now": 30.11825982131223,
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}}`),
+		[]byte(`{"ETH_WBTC": {
+		"timestamp": 1600331875531,
+		"token_symbol": "WBTC",
+		"token_name": "Wrapped BTC",
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 1.1,
+		"rate_eth_now": 30.11825982131223,
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}}`),
+		[]byte(`{"ETH_WBTC": {
+		"timestamp": 1600331875531,
+		"token_symbol": "WBTC",
+		"token_name": "Wrapped BTC",
+		"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+		"token_decimal": 8,
+		"rate_eth_now": "",
+		"change_eth_24h": -2.17,
+		"rate_usd_now": 11375.32395734396,
+		"change_usd_24h": 2.27
+		}}`),
+	} {
+		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
+			resp = &query.HTTPResponse{Body: r}
+			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			cr = suite.origin.Fetch([]Pair{pair})
+			suite.Error(cr[0].Error)
+		})
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error unmarshal
-	resp = &query.HTTPResponse{
-		Body: []byte("{}"),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":{}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[]`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[],"error":true,"reason":"yes","additional_data":"sir"}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[],"dst_qty":[2.5]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[1]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[0],"dst_qty":[2.5]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[-1.5],"dst_qty":[2.5]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xe","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[2.5]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0xe","src_qty":[25.0],"dst_qty":[2.5]}],"error":false}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
 }
 
 func (suite *KyberSuite) TestSuccessResponse() {
 	pair := Pair{Base: "WBTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"data":[{"src_id":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","dst_id":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","src_qty":[25.0],"dst_qty":[2.5]}],"error":false}`),
+		Body: []byte(`{"ETH_WBTC": {
+"timestamp": 1600331875531,
+"token_symbol": "WBTC",
+"token_name": "Wrapped BTC",
+"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+"token_decimal": 8,
+"rate_eth_now": 30.11825982131223,
+"change_eth_24h": -2.17,
+"rate_usd_now": 11375.32395734396,
+"change_usd_24h": 2.27
+}}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(10.0, cr[0].Tick.Price)
+	suite.Equal(30.11825982131223, cr[0].Tick.Price)
 }
 
 func (suite *KyberSuite) TestRealAPICall() {
 	testRealAPICall(suite, &Kyber{Pool: query.NewHTTPWorkerPool(1)}, "WBTC", "ETH")
+	pairs := []Pair{
+		{Base: "WBTC", Quote: "ETH"},
+		{Base: "WETH", Quote: "ETH"},
+		{Base: "DAI", Quote: "ETH"},
+	}
+	testRealBatchAPICall(suite, &Kyber{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

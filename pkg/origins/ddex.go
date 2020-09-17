@@ -17,7 +17,6 @@ package origins
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/makerdao/gofer/internal/query"
@@ -70,7 +69,7 @@ func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResul
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 	if resp.Status != 0 {
-		return fetchResultListWithErrors(pairs, errors.New("invalid status"))
+		return fetchResultListWithErrors(pairs, errInvalidResponseStatus)
 	}
 
 	tickers := make(map[string]ddexTicker)
@@ -82,7 +81,7 @@ func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResul
 		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: fmt.Errorf("no response for %s", pair.String()),
+				Error: errMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{

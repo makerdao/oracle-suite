@@ -58,7 +58,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
 	cr := suite.origin.Fetch([]Pair{pair})
-	suite.Equal(fmt.Errorf("no response for %s", pair.String()), cr[0].Error)
+	suite.Equal(errInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -67,7 +67,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(fmt.Errorf("bad response for %s: %w", pair.String(), ourErr), cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
