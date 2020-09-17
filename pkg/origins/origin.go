@@ -140,13 +140,14 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
+	wg.Add(len(originPairs))
+
 	frs := map[string][]FetchResult{}
 	for origin, pairs := range originPairs {
 		origin := origin
 		pairs := pairs
 		handler, ok := e.list[origin]
 
-		wg.Add(1)
 		go func() {
 			if !ok {
 				mu.Lock()
