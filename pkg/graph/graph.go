@@ -50,6 +50,10 @@ func Walk(fn func(Node), nodes ...Node) {
 	for _, node := range nodes {
 		var recur func(Node)
 		recur = func(node Node) {
+			if _, ok := r[node]; ok {
+				return
+			}
+
 			r[node] = struct{}{}
 			for _, n := range node.Children() {
 				recur(n)

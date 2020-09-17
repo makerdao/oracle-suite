@@ -27,20 +27,25 @@ type Feedable interface {
 	Tick() OriginTick
 }
 
-// Feeder sets data to the Feedable nodes.
+// Feeder sets ticks from origins to the Feedable nodes.
 type Feeder struct {
 	set *origins.Set
 	ttl int
 }
 
+// NewFeeder creates new Feeder instance.
 func NewFeeder(set *origins.Set, ttl int) *Feeder {
 	return &Feeder{set: set, ttl: ttl}
 }
 
+// Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
+// and sets Ticks to all of their children that implements the Feedable interface.
 func (i *Feeder) Feed(nodes ...Node) {
 	i.fetchTicks(i.findFeedableNodes(nodes))
 }
 
+// Feed clears Ticks from Feedable nodes. This method takes list of root Nodes
+// and clears Ticks from all of their children that implements the Feedable interface.
 func (i *Feeder) Clear(nodes ...Node) {
 	Walk(func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
@@ -49,6 +54,9 @@ func (i *Feeder) Clear(nodes ...Node) {
 	}, nodes...)
 }
 
+// findFeedableNodes returns a list of children nodes from given root nodes
+// which implements Feedable interface and have empty Tick or with Tick older
+// than i.ttl.
 func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	t := time.Now().Add(time.Second * time.Duration(-1*i.ttl))
 
@@ -65,6 +73,8 @@ func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 }
 
 func (i *Feeder) fetchTicks(nodes []Feedable) {
+	// originPair is used as a key in a map to easily find
+	// Feedable nodes for given origin and pair
 	type originPair struct {
 		origin string
 		pair   origins.Pair
