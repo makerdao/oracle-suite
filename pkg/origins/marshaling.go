@@ -21,10 +21,9 @@ import (
 	"time"
 )
 
-//nolint:unused
-type stringAsFloat float64
+type stringAsFloat64 float64
 
-func (s *stringAsFloat) UnmarshalJSON(bytes []byte) error {
+func (s *stringAsFloat64) UnmarshalJSON(bytes []byte) error {
 	var ss string
 	if err := json.Unmarshal(bytes, &ss); err != nil {
 		return err
@@ -33,11 +32,11 @@ func (s *stringAsFloat) UnmarshalJSON(bytes []byte) error {
 	if err != nil {
 		return err
 	}
-	*s = stringAsFloat(f)
+	*s = stringAsFloat64(f)
 	return nil
 }
 
-func (s *stringAsFloat) val() float64 {
+func (s *stringAsFloat64) val() float64 {
 	return float64(*s)
 }
 
