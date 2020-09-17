@@ -240,3 +240,49 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 	assert.Equal(t, 10.0, o.tick.Volume24h)
 	assert.Equal(t, time.Unix(10000, 0), o.tick.Timestamp)
 }
+
+func TestFeeder_Feed_TTL(t *testing.T) {
+	s := originsSetMock(map[string][]origins.Tick{
+		"test": {
+			origins.Tick{
+				Pair:      origins.Pair{Base: "A", Quote: "B"},
+				Price:     11,
+				Bid:       10,
+				Ask:       12,
+				Volume24h: 11,
+				Timestamp: time.Unix(10000, 0),
+			},
+		},
+	})
+
+	f := NewFeeder(s, 10)
+
+	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
+	o := NewOriginNode(OriginPair{
+		Origin: "test",
+		Pair:   Pair{Base: "A", Quote: "B"},
+	})
+
+	o.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      Pair{Base: "A", Quote: "B"},
+			Price:     10,
+			Bid:       9,
+			Ask:       11,
+			Volume24h: 10,
+			Timestamp: time.Now().Add(-5 * time.Second),
+		},
+		Origin: "test",
+		Error:  nil,
+	})
+
+	g.AddChild(o)
+	f.Feed(g)
+
+	// OriginNode shouldn't be updated because of TTL setting:
+	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
+	assert.Equal(t, 10.0, o.tick.Price)
+	assert.Equal(t, 9.0, o.tick.Bid)
+	assert.Equal(t, 11.0, o.tick.Ask)
+	assert.Equal(t, 10.0, o.tick.Volume24h)
+}
