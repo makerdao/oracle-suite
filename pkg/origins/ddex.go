@@ -44,14 +44,14 @@ func (o *Ddex) localPairName(pair Pair) string {
 }
 
 type ddexTicker struct {
-	Ask      stringAsFloat64    `json:"ask"`
-	Bid      stringAsFloat64    `json:"bid"`
-	High     stringAsFloat64    `json:"high"`
-	Low      stringAsFloat64    `json:"low"`
-	MarketID string             `json:"marketId"`
-	Price    stringAsFloat64    `json:"price"`
-	UpdateAt intAsUnixTimestamp `json:"updateAt"`
-	Volume   stringAsFloat64    `json:"volume"`
+	Ask      stringAsFloat64      `json:"ask"`
+	Bid      stringAsFloat64      `json:"bid"`
+	High     stringAsFloat64      `json:"high"`
+	Low      stringAsFloat64      `json:"low"`
+	MarketID string               `json:"marketId"`
+	Price    stringAsFloat64      `json:"price"`
+	UpdateAt intAsUnixTimestampMs `json:"updateAt"`
+	Volume   stringAsFloat64      `json:"volume"`
 }
 type ddexTickersResponse struct {
 	Desc   string `json:"desc"`
