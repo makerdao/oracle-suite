@@ -17,75 +17,96 @@ package origins
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Origin URL
-const ftxURL = "https://ftx.com/api/markets/%s"
-
-type ftxResponse struct {
-	Result struct {
-		Ask    float64 `json:"ask"`
-		Bid    float64 `json:"bid"`
-		Price  float64 `json:"last"`
-		Volume float64 `json:"quoteVolume24h"`
-		Name   string  `json:"name"`
-	}
-	Success bool `json:"success"`
-}
-
-// Origin handler
 type Ftx struct {
 	Pool query.WorkerPool
 }
 
-func (f *Ftx) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
-}
-
-func (f *Ftx) getURL(pair Pair) string {
-	return fmt.Sprintf(ftxURL, f.localPairName(pair))
-}
-
-func (f *Ftx) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(f, pairs)
-}
-
-func (f *Ftx) callOne(pair Pair) (*Tick, error) {
-	var err error
+func (o *Ftx) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: f.getURL(pair),
+		URL: ftxURL,
 	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
 
-	// make query
-	res := f.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
-	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	// parsing JSON
+const ftxURL = "https://ftx.com/api/markets"
+
+type ftxResponse struct {
+	Results []ftxTicker `json:"result"`
+	Success bool        `json:"success"`
+}
+
+type ftxTicker struct {
+	Ask            float64 `json:"ask"`
+	BaseCurrency   string  `json:"baseCurrency"`
+	Bid            float64 `json:"bid"`
+	Change1H       float64 `json:"change1h"`
+	Change24H      float64 `json:"change24h"`
+	ChangeBod      float64 `json:"changeBod"`
+	Enabled        bool    `json:"enabled"`
+	Last           float64 `json:"last"`
+	MinProvideSize float64 `json:"minProvideSize"`
+	Name           string  `json:"name"`
+	PostOnly       bool    `json:"postOnly"`
+	Price          float64 `json:"price"`
+	PriceIncrement float64 `json:"priceIncrement"`
+	QuoteCurrency  string  `json:"quoteCurrency"`
+	QuoteVolume24H float64 `json:"quoteVolume24h"`
+	Restricted     bool    `json:"restricted"`
+	SizeIncrement  float64 `json:"sizeIncrement"`
+	Type           string  `json:"type"`
+	Underlying     string  `json:"underlying"`
+	VolumeUsd24H   float64 `json:"volumeUsd24h"`
+}
+
+func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
 	var resp ftxResponse
-	err = json.Unmarshal(res.Body, &resp)
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ftx response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
+	}
+	if !resp.Success {
+		return fetchResultListWithErrors(pairs, errors.New("incorrect response status"))
 	}
 
-	if !resp.Success || resp.Result.Name != f.localPairName(pair) {
-		return nil, fmt.Errorf("failed to get correct response from ftx: %s", res.Body)
+	tickers := make(map[string]ftxTicker)
+	for _, t := range resp.Results {
+		tickers[t.Name] = t
 	}
 
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     resp.Result.Price,
-		Ask:       resp.Result.Ask,
-		Bid:       resp.Result.Bid,
-		Volume24h: resp.Result.Volume,
-		Timestamp: time.Now(),
-	}, nil
+	for _, pair := range pairs {
+		if t, is := tickers[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: fmt.Errorf("no response for %s", pair.String()),
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.Last,
+					Bid:       t.Bid,
+					Ask:       t.Ask,
+					Volume24h: t.QuoteVolume24H,
+					Timestamp: time.Now(),
+				},
+			})
+		}
+	}
+	return results
+}
+
+func (o *Ftx) localPairName(pair Pair) string {
+	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }
