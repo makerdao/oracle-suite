@@ -198,7 +198,8 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	assert.Equal(t, 30.0, o4.tick.Volume24h)
 	assert.Equal(t, time.Unix(30000, 0), o4.tick.Timestamp)
 
-	// check if pairs was properly grouped per origin:
+	// Check if pairs was properly grouped per origins and check if the E/F pair
+	// appeared only once:
 	testPairs := s.Handlers()["test"].(*mockHandler).fetchPairs
 	test2Pairs := s.Handlers()["test2"].(*mockHandler).fetchPairs
 	assert.Equal(t, []origins.Pair{{Base: "A", Quote: "B"}, {Base: "C", Quote: "D"}}, testPairs)
