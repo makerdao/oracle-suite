@@ -99,7 +99,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"status":"success","vol":"1","ts":"abc"}`),
+		Body: []byte(`{"status":"success","data":[],"ts":"abc"}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
@@ -107,7 +107,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 
 	// Error parsing
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"status":"success","vol":"1","ts":2,"tick":{"bid":["abc"]}}`),
+		Body: []byte(`{"status":"success","ts":2,"data":[{"bid":"abc"}]}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
@@ -117,19 +117,25 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 func (suite *HuobiSuite) TestSuccessResponse() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"status":"success","vol":1.3,"ts":2000,"tick":{"bid":[2.1,3.4]}}`),
+		Body: []byte(`{"status":"success","ts":2000,"data":[{"symbol":"btceth","ask":1,"bid":2.1,"vol":1.3}]}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.3, cr[0].Tick.Volume24h)
-	suite.Equal(2.1, cr[0].Tick.Price)
+	suite.Equal(1.0, cr[0].Tick.Ask)
+	suite.Equal(2.1, cr[0].Tick.Bid)
 	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *HuobiSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Huobi{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	huobi := &Huobi{Pool: query.NewHTTPWorkerPool(1)}
+	testRealAPICall(suite, huobi, "ETH", "BTC")
+	testRealBatchAPICall(suite, huobi, []Pair{
+		{Base: "BOT", Quote: "ETH"},
+		{Base: "ETH", Quote: "BTC"},
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create
