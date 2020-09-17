@@ -44,16 +44,6 @@ func (i *Feeder) Feed(nodes ...Node) {
 	i.fetchTicks(i.findFeedableNodes(nodes))
 }
 
-// Feed clears Ticks from Feedable nodes. This method takes list of root Nodes
-// and clears Ticks from all of their children that implements the Feedable interface.
-func (i *Feeder) Clear(nodes ...Node) {
-	Walk(func(node Node) {
-		if feedable, ok := node.(Feedable); ok {
-			feedable.Ingest(OriginTick{})
-		}
-	}, nodes...)
-}
-
 // findFeedableNodes returns a list of children nodes from given root nodes
 // which implements Feedable interface and have empty Tick or with Tick older
 // than i.ttl.

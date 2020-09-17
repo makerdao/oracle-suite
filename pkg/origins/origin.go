@@ -127,6 +127,14 @@ func DefaultSet() *Set {
 	})
 }
 
+func (e *Set) Handlers() map[string]Handler {
+	c := map[string]Handler{}
+	for k, v := range e.list {
+		c[k] = v
+	}
+	return c
+}
+
 // Fetch makes handler fetch using handlers from the Set structure.
 func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var mu sync.Mutex
