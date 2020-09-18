@@ -24,56 +24,45 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// Define the suite, and absorb the built-in basic suite
-// functionality from testify - including a T() method which
-// returns the current testing context
-type BitTrexSuite struct {
+type BittrexSuite struct {
 	suite.Suite
-	pool   query.WorkerPool
-	origin *BitTrex
+	origin *Bittrex
 }
 
-func (suite *BitTrexSuite) Origin() Handler {
+func (suite *BittrexSuite) Origin() Handler {
 	return suite.origin
 }
 
-// Setup origin
-func (suite *BitTrexSuite) SetupSuite() {
-	suite.origin = &BitTrex{Pool: query.NewMockWorkerPool()}
+func (suite *BittrexSuite) SetupSuite() {
+	suite.origin = &Bittrex{Pool: query.NewMockWorkerPool()}
 }
 
-func (suite *BitTrexSuite) TearDownTest() {
-	// cleanup created pool from prev test
-	if suite.pool != nil {
-		suite.pool = nil
-	}
-}
-
-func (suite *BitTrexSuite) TestLocalPair() {
+func (suite *BittrexSuite) TestLocalPair() {
 	suite.EqualValues("ETH-BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("USD-BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
-func (suite *BitTrexSuite) TestFailOnWrongInput() {
-	// wrong pair
+func (suite *BittrexSuite) TestFailOnWrongInput() {
+	pair := Pair{Base: "BTC", Quote: "ETH"}
+
+	// Wrong pair
 	cr := suite.origin.Fetch([]Pair{{}})
 	suite.Error(cr[0].Error)
 
-	pair := Pair{Base: "BTC", Quote: "ETH"}
-	// nil as response
+	// Nil as a response
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
-	// error in response
+	// Error in a response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
+
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
-	// Error unmarshal
+	// Error during unmarshalling
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
@@ -81,57 +70,117 @@ func (suite *BitTrexSuite) TestFailOnWrongInput() {
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
-	// Error parsing
+	// Price as string
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"success":false}`),
+		Body: []byte(`
+			{
+			   "success":true,
+			   "message":"",
+			   "result":[
+				  {
+					 "MarketName":"BTC-ETH",
+					 "Volume":10.1,
+					 "Last":"1.1",
+					 "TimeStamp":"2020-09-18T12:10:59.29",
+					 "Bid":1.0,
+					 "Ask":1.3
+				  },
+			   ]
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
-	// Error parsing
+	// Unable to find pair
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"success":true,"result":{Last":"abc"}}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"success":true,"result":{"Last":1,"Ask":"abc"}}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"success":true,"result":{"Last":1,"Ask":1,"Bid":"abc"}}`),
+		Body: []byte(`
+			{
+			   "success":true,
+			   "message":"",
+			   "result":[
+				  {
+					 "MarketName":"AAA-BBB",
+					 "Volume":10.1,
+					 "Last":"1.1",
+					 "TimeStamp":"2020-09-18T12:10:59.29",
+					 "Bid":1.0,
+					 "Ask":1.3
+				  },
+			   ]
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
 
-func (suite *BitTrexSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+func (suite *BittrexSuite) TestSuccessResponse() {
+	pairBTCETH := Pair{Base: "BTC", Quote: "ETH"}
+	pairBTCUSD := Pair{Base: "BTC", Quote: "USD"}
+
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"success":true,"result":{"Last":1,"Ask":1,"Bid":1}}`),
+		Body: []byte(`
+			{
+			   "success":true,
+			   "message":"",
+			   "result":[
+				  {
+					 "MarketName":"ETH-BTC",
+					 "Volume":10.1,
+					 "Last":1.1,
+					 "TimeStamp":"2020-09-18T12:10:59.29",
+					 "Bid":1.0,
+					 "Ask":1.3
+				  },
+				  {
+					 "MarketName":"USD-BTC",
+					 "Volume":20.1,
+					 "Last":2.1,
+					 "TimeStamp":"2020-09-18T12:10:59.29",
+					 "Bid":2.0,
+					 "Ask":2.3
+				  },
+				  {
+					 "MarketName":"EUR-BTC",
+					 "Volume":30.1,
+					 "Last":3.1,
+					 "TimeStamp":"2020-09-18T12:10:59.29",
+					 "Bid":3.0,
+					 "Ask":3.3
+				  }
+			   ]
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.origin.Fetch([]Pair{pair})
+	cr := suite.origin.Fetch([]Pair{pairBTCETH, pairBTCUSD})
+
+	// BTC/ETH
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
+	suite.Equal(pairBTCETH, cr[0].Tick.Pair)
+	suite.Equal(1.1, cr[0].Tick.Price)
+	suite.Equal(1.0, cr[0].Tick.Bid)
+	suite.Equal(1.3, cr[0].Tick.Ask)
+	suite.Equal(10.1, cr[0].Tick.Volume24h)
 	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
+
+	// BTC/USD
+	suite.NoError(cr[1].Error)
+	suite.Equal(pairBTCUSD, cr[1].Tick.Pair)
+	suite.Equal(2.1, cr[1].Tick.Price)
+	suite.Equal(2.0, cr[1].Tick.Bid)
+	suite.Equal(2.3, cr[1].Tick.Ask)
+	suite.Equal(20.1, cr[1].Tick.Volume24h)
+	suite.Greater(cr[1].Tick.Timestamp.Unix(), int64(0))
 }
 
-func (suite *BitTrexSuite) TestRealAPICall() {
-	testRealAPICall(suite, &BitTrex{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+func (suite *BittrexSuite) TestRealAPICall() {
+	testRealAPICall(suite, &Bittrex{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
-func TestBitTrexSuite(t *testing.T) {
-	suite.Run(t, new(BitTrexSuite))
+func TestBittrexSuite(t *testing.T) {
+	suite.Run(t, new(BittrexSuite))
 }
