@@ -35,8 +35,26 @@ func (s *stringAsFloat64) UnmarshalJSON(bytes []byte) error {
 	*s = stringAsFloat64(f)
 	return nil
 }
-
 func (s *stringAsFloat64) val() float64 {
+	return float64(*s)
+}
+
+type firstStringFromSliceAsFloat64 float64
+
+func (s *firstStringFromSliceAsFloat64) UnmarshalJSON(bytes []byte) error {
+	var ss []string
+	if err := json.Unmarshal(bytes, &ss); err != nil {
+		return err
+	}
+	f, err := strconv.ParseFloat(ss[0], 64)
+	if err != nil {
+		return err
+	}
+	*s = firstStringFromSliceAsFloat64(f)
+	return nil
+}
+
+func (s *firstStringFromSliceAsFloat64) val() float64 {
 	return float64(*s)
 }
 

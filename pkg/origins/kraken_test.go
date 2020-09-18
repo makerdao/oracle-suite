@@ -50,8 +50,8 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("XXBTXETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("XXBTZUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("BTC/ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTC/USD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
@@ -62,7 +62,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "DAI", Quote: "USD"}
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(errInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -71,7 +71,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
 	// Error unmarshal
 	resp = &query.HTTPResponse{
@@ -109,7 +109,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 func (suite *KrakenSuite) TestSuccessResponse() {
 	pair := Pair{Base: "DAI", Quote: "USD"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"error":[],"result":{"DAIZUSD":{"c":["1"],"v":["2"]}}}`),
+		Body: []byte(`{"error":[],"result":{"DAI/USD":{"c":["1"],"v":["2"]}}}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
@@ -120,11 +120,17 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 }
 
 func (suite *KrakenSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Kraken{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	pairs := []Pair{
+		{Base: "ETH", Quote: "BTC"},
+		{Base: "ETH", Quote: "USD"},
+		{Base: "BTC", Quote: "USD"},
+		{Base: "LINK", Quote: "ETH"},
+		{Base: "REP", Quote: "EUR"},
+		{Base: "USDT", Quote: "USD"},
+	}
+	testRealBatchAPICall(suite, &Kraken{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
 func TestKrakenSuite(t *testing.T) {
 	suite.Run(t, new(KrakenSuite))
 }
