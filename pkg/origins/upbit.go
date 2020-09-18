@@ -19,70 +19,91 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Upbit URL
-const upbitURL = "https://api.upbit.com/v1/ticker?markets=%s"
-
-type upbitResponse struct {
-	Price     float64 `json:"trade_price"`
-	Volume    float64 `json:"acc_trade_volume"`
-	Timestamp int64   `json:"timestamp"`
-}
-
-// Upbit origin handler
 type Upbit struct {
 	Pool query.WorkerPool
 }
 
-func (u *Upbit) renameSymbol(symbol string) string {
-	return strings.ToUpper(symbol)
-}
-
-func (u *Upbit) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s-%s", u.renameSymbol(pair.Quote), u.renameSymbol(pair.Base))
-}
-
-func (u *Upbit) getURL(pair Pair) string {
-	return fmt.Sprintf(upbitURL, u.localPairName(pair))
-}
-
-func (u *Upbit) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(u, pairs)
-}
-
-func (u *Upbit) callOne(pair Pair) (*Tick, error) {
-	var err error
+func (o *Upbit) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: u.getURL(pair),
+		URL: fmt.Sprintf(upbitURL, o.localPairName(pairs...)),
+	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
+
+const upbitURL = "https://api.upbit.com/v1/ticker?markets=%s"
+
+type upbitTicker struct {
+	Market             string               `json:"market"`
+	TradeDate          string               `json:"trade_date"`
+	TradeTime          string               `json:"trade_time"`
+	TradeTimestamp     int64                `json:"trade_timestamp"`
+	OpeningPrice       float64              `json:"opening_price"`
+	HighPrice          float64              `json:"high_price"`
+	LowPrice           float64              `json:"low_price"`
+	TradePrice         float64              `json:"trade_price"`
+	PrevClosingPrice   float64              `json:"prev_closing_price"`
+	Change             string               `json:"change"`
+	ChangePrice        float64              `json:"change_price"`
+	ChangeRate         float64              `json:"change_rate"`
+	SignedChangePrice  float64              `json:"signed_change_price"`
+	SignedChangeRate   float64              `json:"signed_change_rate"`
+	TradeVolume        float64              `json:"trade_volume"`
+	AccTradePrice      float64              `json:"acc_trade_price"`
+	AccTradePrice24H   float64              `json:"acc_trade_price_24h"`
+	AccTradeVolume     float64              `json:"acc_trade_volume"`
+	AccTradeVolume24H  float64              `json:"acc_trade_volume_24h"`
+	Highest52WeekPrice float64              `json:"highest_52_week_price"`
+	Highest52WeekDate  string               `json:"highest_52_week_date"`
+	Lowest52WeekPrice  float64              `json:"lowest_52_week_price"`
+	Lowest52WeekDate   string               `json:"lowest_52_week_date"`
+	Timestamp          intAsUnixTimestampMs `json:"timestamp"`
+}
+
+func (o *Upbit) localPairName(pairs ...Pair) string {
+	var l []string
+	for _, pair := range pairs {
+		l = append(l, fmt.Sprintf("%s-%s", pair.Quote, pair.Base))
+	}
+	return strings.Join(l, ",")
+}
+
+func (o *Upbit) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	var resp []upbitTicker
+	err := json.Unmarshal(res.Body, &resp)
+	if err != nil {
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 
-	// make query
-	res := u.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
+	tickers := make(map[string]upbitTicker)
+	for _, t := range resp {
+		tickers[t.Market] = t
 	}
-	if res.Error != nil {
-		return nil, res.Error
+
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		if t, is := tickers[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.TradePrice,
+					Volume24h: t.AccTradeVolume24H,
+					Timestamp: t.Timestamp.val(),
+				},
+			})
+		}
 	}
-	// parsing JSON
-	var resp []upbitResponse
-	err = json.Unmarshal(res.Body, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse upbit response: %w", err)
-	}
-	if len(resp) < 1 {
-		return nil, fmt.Errorf("wrong upbit response: %s", res.Body)
-	}
-	data := resp[0]
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     data.Price,
-		Volume24h: data.Volume,
-		Timestamp: time.Unix(data.Timestamp/1000, 0),
-	}, nil
+	return results
 }

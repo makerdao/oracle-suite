@@ -196,7 +196,9 @@ func (suite *DdexSuite) TestSuccessResponse() {
 		Body: []byte(`{"status":0,"desc":"success","template":"","params":null,"data":
 		{"tickers":[
 		{"marketId":"ETH-USDT","price":"362.64","volume":"6.75",
-		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":1600239124811},
+		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":2000},
+		{"marketId":"USDT-ETH","price":"1","volume":"2",
+		"bid":"3","ask":"4","low":"5","high":"6","updateAt":123},
 		{"marketId":"ETH-USDC","price":"364.96","volume":"11.9853",
 		"bid":"363.76","ask":"364.96","low":"364.96","high":"364.96","updateAt":1600250097975},
 		{"marketId":"ETH-DAI","price":"322.28","volume":"4.5",
@@ -212,6 +214,8 @@ func (suite *DdexSuite) TestSuccessResponse() {
 	suite.Equal(362.64, cr[0].Tick.Ask)
 	suite.Equal(362.57, cr[0].Tick.Bid)
 	suite.Equal(362.64, cr[0].Tick.Price)
+	suite.Equal(6.75, cr[0].Tick.Volume24h)
+	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *DdexSuite) TestRealAPICall() {

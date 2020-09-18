@@ -55,14 +55,12 @@ func (suite *UpbitSuite) TestLocalPair() {
 }
 
 func (suite *UpbitSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
+	var cr []FetchResult
 	pair := Pair{Base: "BTC", Quote: "ETH"}
+
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(errInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -71,56 +69,105 @@ func (suite *UpbitSuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
-	// Error unmarshal
-	resp = &query.HTTPResponse{
-		Body: []byte(""),
+	for n, r := range [][]byte{
+		[]byte(``),
+		[]byte(`{}`),
+		[]byte(`[]`),
+		[]byte(`{"success":true}`),
+		[]byte(`{"success":true,"result":{}}`),
+		[]byte(`{"success":true,"result":[]}`),
+		[]byte(`{"success":true,"result":[{"name":"SOME/ANOTHER"}]}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":"1"}]}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":1,"ask":"2"}]}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":1,"ask":2,"bid":"3"}]}`),
+		[]byte(`{"success":true,"result":[{"name":"BTC/ETH","last":1,"ask":2,"bid":3,"quoteVolume24h":"4"}]}`),
+		[]byte(`[{
+					"market": "BTC-ETH",
+					"trade_date": "20200917",
+					"trade_time": "100909",
+					"trade_timestamp": 1600337349000,
+					"opening_price": 0.0334175,
+					"high_price": 0.03539946,
+					"low_price": 0.0334175,
+					"trade_price": 0.03527794,
+					"prev_closing_price": 0.0333,
+					"change": "RISE",
+					"change_price": 0.00197794,
+					"change_rate": 0.0593975976,
+					"signed_change_price": 0.00197794,
+					"signed_change_rate": 0.0593975976,
+					"trade_volume": 0.47239852,
+					"acc_trade_price": 1.16721813,
+					"acc_trade_price_24h": 1.5688811943216596,
+					"acc_trade_volume": 33.40917363,
+					"acc_trade_volume_24h": 45.24091194,
+					"highest_52_week_price": 0.0414002,
+					"highest_52_week_date": "2020-09-02",
+					"lowest_52_week_price": 0.0170001,
+					"lowest_52_week_date": "2020-01-08",
+					"timestamp": 2000
+				}]`),
+	} {
+		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
+			resp = &query.HTTPResponse{Body: r}
+			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			cr = suite.origin.Fetch([]Pair{pair})
+			suite.Error(cr[0].Error)
+		})
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error unmarshal
-	resp = &query.HTTPResponse{
-		Body: []byte("[]"),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`[{"trade_price":"abc"}]`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`[{"trade_price":1,"acc_trade_volume":"abc"}]`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
 }
 
 func (suite *UpbitSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pair := Pair{Base: "ETH", Quote: "BTC"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`[{"trade_price":1,"acc_trade_volume":3,"timestamp":2000}]`),
+		Body: []byte(`[{
+						"market": "BTC-ETH",
+						"trade_date": "20200917",
+						"trade_time": "100909",
+						"trade_timestamp": 1600337349000,
+						"opening_price": 0.0334175,
+						"high_price": 0.03539946,
+						"low_price": 0.0334175,
+						"trade_price": 0.03527794,
+						"prev_closing_price": 0.0333,
+						"change": "RISE",
+						"change_price": 0.00197794,
+						"change_rate": 0.0593975976,
+						"signed_change_price": 0.00197794,
+						"signed_change_rate": 0.0593975976,
+						"trade_volume": 0.47239852,
+						"acc_trade_price": 1.16721813,
+						"acc_trade_price_24h": 1.5688811943216596,
+						"acc_trade_volume": 33.40917363,
+						"acc_trade_volume_24h": 45.24091194,
+						"highest_52_week_price": 0.0414002,
+						"highest_52_week_date": "2020-09-02",
+						"lowest_52_week_price": 0.0170001,
+						"lowest_52_week_date": "2020-01-08",
+						"timestamp": 2000
+					}]`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Equal(3.0, cr[0].Tick.Volume24h)
+	suite.Equal(0.03527794, cr[0].Tick.Price)
+	suite.Equal(45.24091194, cr[0].Tick.Volume24h)
 	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *UpbitSuite) TestRealAPICall() {
 	testRealAPICall(suite, &Upbit{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	pairs := []Pair{
+		{Base: "KNC", Quote: "KRW"},
+		{Base: "MANA", Quote: "KRW"},
+		{Base: "OMG", Quote: "KRW"},
+		{Base: "REP", Quote: "KRW"},
+		{Base: "SNT", Quote: "KRW"},
+		{Base: "ZRX", Quote: "KRW"},
+	}
+	testRealBatchAPICall(suite, &Upbit{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create
