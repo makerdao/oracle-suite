@@ -18,13 +18,11 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Bittrex URL
 const bittrexURL = "https://api.bittrex.com/api/v1.1/public/getmarketsummaries"
 
 type bittrexResponse struct {
@@ -47,7 +45,7 @@ type Bittrex struct {
 }
 
 func (b *Bittrex) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
+	return fmt.Sprintf("%s-%s", pair.Quote, pair.Base)
 }
 
 func (b *Bittrex) Fetch(pairs []Pair) []FetchResult {
