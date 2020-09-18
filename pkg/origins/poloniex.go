@@ -18,7 +18,6 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
@@ -40,7 +39,7 @@ type Poloniex struct {
 }
 
 func (p *Poloniex) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s_%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
+	return fmt.Sprintf("%s_%s", pair.Quote, pair.Base)
 }
 
 func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
