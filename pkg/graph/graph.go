@@ -44,33 +44,39 @@ type Origin interface {
 	Tick() OriginTick
 }
 
-func Walk(node Node, fn func(Node)) {
-	nodes := map[Node]struct{}{}
+func Walk(fn func(Node), nodes ...Node) {
+	r := map[Node]struct{}{}
 
-	var recur func(Node)
-	recur = func(node Node) {
-		nodes[node] = struct{}{}
-		for _, n := range node.Children() {
-			recur(n)
+	for _, node := range nodes {
+		var recur func(Node)
+		recur = func(node Node) {
+			if _, ok := r[node]; ok {
+				return
+			}
+
+			r[node] = struct{}{}
+			for _, n := range node.Children() {
+				recur(n)
+			}
 		}
+		recur(node)
 	}
-	recur(node)
 
-	for n := range nodes {
+	for n := range r {
 		fn(n)
 	}
 }
 
-func AsyncWalk(node Node, fn func(Node)) {
+func AsyncWalk(fn func(Node), node ...Node) {
 	wg := sync.WaitGroup{}
 
-	Walk(node, func(node Node) {
+	Walk(func(node Node) {
 		wg.Add(1)
 		go func() {
 			fn(node)
 			wg.Done()
 		}()
-	})
+	}, node...)
 
 	wg.Wait()
 }

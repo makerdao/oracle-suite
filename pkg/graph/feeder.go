@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/makerdao/gofer/pkg/origins"
@@ -28,77 +27,130 @@ type Feedable interface {
 	Tick() OriginTick
 }
 
-// Feeder sets data to the Feedable nodes.
+// Feeder sets ticks from origins to the Feedable nodes.
 type Feeder struct {
 	set *origins.Set
 	ttl int
 }
 
+// NewFeeder creates new Feeder instance.
 func NewFeeder(set *origins.Set, ttl int) *Feeder {
 	return &Feeder{set: set, ttl: ttl}
 }
 
-func (i *Feeder) Feed(node Node) {
-	t := time.Now()
+// Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
+// and sets Ticks to all of their children that implements the Feedable interface.
+func (i *Feeder) Feed(nodes ...Node) {
+	i.fetchTicks(i.findFeedableNodes(nodes))
+}
 
-	AsyncWalk(node, func(node Node) {
+// findFeedableNodes returns a list of children nodes from given root nodes
+// which implements Feedable interface and have empty Tick or with Tick older
+// than i.ttl.
+func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
+	t := time.Now().Add(time.Second * time.Duration(-1*i.ttl))
+
+	var feedables []Feedable
+	Walk(func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
-			if feedable.Tick().Timestamp.Before(t.Add(time.Second * time.Duration(-1*i.ttl))) {
-				feedable.Ingest(i.fetch(feedable.OriginPair()))
+			if feedable.Tick().Timestamp.Before(t) {
+				feedables = append(feedables, feedable)
 			}
 		}
-	})
+	}, nodes...)
+
+	return feedables
 }
 
-func (i *Feeder) Clear(node Node) {
-	Walk(node, func(node Node) {
-		if feedable, ok := node.(Feedable); ok {
-			feedable.Ingest(OriginTick{})
+func (i *Feeder) fetchTicks(nodes []Feedable) {
+	// originPair is used as a key in a map to easily find
+	// Feedable nodes for given origin and pair
+	type originPair struct {
+		origin string
+		pair   origins.Pair
+	}
+
+	nodesMap := map[originPair][]Feedable{}
+	pairsMap := map[string][]origins.Pair{}
+
+	for _, node := range nodes {
+		originPair := originPair{
+			origin: node.OriginPair().Origin,
+			pair: origins.Pair{
+				Base:  node.OriginPair().Pair.Base,
+				Quote: node.OriginPair().Pair.Quote,
+			},
 		}
-	})
+
+		nodesMap[originPair] = appendNodeIfUnique(
+			nodesMap[originPair],
+			node,
+		)
+
+		pairsMap[originPair.origin] = appendPairIfUnique(
+			pairsMap[originPair.origin],
+			originPair.pair,
+		)
+	}
+
+	for origin, frs := range i.set.Fetch(pairsMap) {
+		for _, fr := range frs {
+			originPair := originPair{
+				origin: origin,
+				pair:   fr.Tick.Pair,
+			}
+
+			for _, node := range nodesMap[originPair] {
+				node.Ingest(mapOriginResult(origin, fr))
+			}
+		}
+	}
 }
 
-func (i *Feeder) fetch(ep OriginPair) OriginTick {
-	// TODO: update for batch requests
-	crs := i.set.Fetch(map[string][]origins.Pair{
-		ep.Origin: {{
-			Quote: ep.Pair.Quote,
-			Base:  ep.Pair.Base,
-		}},
-	})
-
-	if len(crs[ep.Origin]) != 1 {
-		return OriginTick{
-			Tick: Tick{
-				Pair: ep.Pair,
-			},
-			Origin: ep.Origin,
-			Error:  fmt.Errorf("unable to fetch tick for %s", ep.Pair),
+func appendPairIfUnique(pairs []origins.Pair, pair origins.Pair) []origins.Pair {
+	exists := false
+	for _, p := range pairs {
+		if p.Equal(pair) {
+			exists = true
+			break
 		}
 	}
-
-	cr := crs[ep.Origin][0]
-
-	if cr.Error != nil {
-		return OriginTick{
-			Tick: Tick{
-				Pair: ep.Pair,
-			},
-			Origin: ep.Origin,
-			Error:  cr.Error,
-		}
+	if !exists {
+		pairs = append(pairs, pair)
 	}
 
+	return pairs
+}
+
+func appendNodeIfUnique(nodes []Feedable, node Feedable) []Feedable {
+	exists := false
+	for _, n := range nodes {
+		if n == node {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
+}
+
+func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
 	return OriginTick{
 		Tick: Tick{
-			Pair:      ep.Pair,
-			Price:     cr.Tick.Price,
-			Bid:       cr.Tick.Bid,
-			Ask:       cr.Tick.Ask,
-			Volume24h: cr.Tick.Volume24h,
-			Timestamp: cr.Tick.Timestamp,
+			Pair: Pair{
+				Base:  fr.Tick.Pair.Base,
+				Quote: fr.Tick.Pair.Quote,
+			},
+			Price:     fr.Tick.Price,
+			Bid:       fr.Tick.Bid,
+			Ask:       fr.Tick.Ask,
+			Volume24h: fr.Tick.Volume24h,
+			Timestamp: fr.Tick.Timestamp,
 		},
-		Origin: ep.Origin,
-		Error:  cr.Error,
+		Origin: origin,
+		Error:  fr.Error,
 	}
 }
