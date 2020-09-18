@@ -32,17 +32,7 @@ type Suite interface {
 }
 
 func testRealAPICall(suite Suite, origin Handler, base, quote string) {
-	if !*testAPICalls {
-		suite.T().SkipNow()
-	}
-
-	suite.Assert().IsType(suite.Origin(), origin)
-
-	pair := Pair{Base: base, Quote: quote}
-	cr := origin.Fetch([]Pair{pair})
-
-	suite.Assert().NoError(cr[0].Error)
-	suite.Assert().Greater(cr[0].Tick.Price, float64(0))
+	testRealBatchAPICall(suite, origin, []Pair{{Base: base, Quote: quote}})
 }
 
 func testRealBatchAPICall(suite Suite, origin Handler, pairs []Pair) {
@@ -55,7 +45,7 @@ func testRealBatchAPICall(suite Suite, origin Handler, pairs []Pair) {
 	crs := origin.Fetch(pairs)
 
 	for _, cr := range crs {
-		suite.Assert().NoError(cr.Error)
+		suite.Assert().NoErrorf(cr.Error, "%q", cr.Tick.Pair)
 		suite.Assert().Greater(cr.Tick.Price, float64(0))
 	}
 }

@@ -50,20 +50,17 @@ func (suite *BitfinexSuite) TearDownTest() {
 }
 
 func (suite *BitfinexSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
-	suite.EqualValues("BTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USDT"}))
+	suite.EqualValues("tBTCETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("tBTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("tBTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USDT"}))
 }
 
 func (suite *BitfinexSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
 	pair := Pair{Base: "BTC", Quote: "ETH"}
+	cr := suite.origin.Fetch([]Pair{pair})
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(errInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")
@@ -72,39 +69,57 @@ func (suite *BitfinexSuite) TestFailOnWrongInput() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
+	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
-	// Error unmarshal
-	resp = &query.HTTPResponse{
-		Body: []byte(""),
+	for n, r := range [][]byte{
+		[]byte(``),
+		[]byte(`{}`),
+		[]byte(`["x",1,1,1,1,1,1,1,1,1,1]`),
+		[]byte(`[[1,1,1,1,1,1,1,1,1,1,1]]`),
+		[]byte(`[[true,1,1,1,1,1,1,1,1,1,1]]`),
+		[]byte(`[["x",1,1,1,1,1,1,1,1,1,1]]`),
+		[]byte(`[["x",1,1,1,1,1,1,1,1,1]]`),
+		[]byte(`[["x",1,1,1,1,1,1,1,1,1,1,1]]`),
+		[]byte(`[[1,"tBTCETH",1,1,1,1,1,1,1,1,1]]`),
+	} {
+		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
+			resp = &query.HTTPResponse{Body: r}
+			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			cr = suite.origin.Fetch([]Pair{pair})
+			suite.Errorf(cr[0].Error, fmt.Sprintf("Case-%d", n+1))
+		})
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`[0,0]`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
 }
 
 func (suite *BitfinexSuite) TestSuccessResponse() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`[1,1,1,1,1,1,1,1]`),
+		Body: []byte(`[["tBTCETH",1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.10]]`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
+	suite.Equal(1.01, cr[0].Tick.Bid)
+	suite.Equal(1.03, cr[0].Tick.Ask)
+	suite.Equal(1.07, cr[0].Tick.Price)
+	suite.Equal(1.08, cr[0].Tick.Volume24h)
 	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *BitfinexSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Bitfinex{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	bak := *testAPICalls
+	*testAPICalls = true
+	pairs := []Pair{
+		{Base: "USDT", Quote: "USD"},
+		{Base: "ETH", Quote: "BTC"},
+		{Base: "MKR", Quote: "ETH"},
+		{Base: "ZRX", Quote: "USD"},
+		{Base: "ETH", Quote: "USD"},
+		{Base: "DGX", Quote: "USDT"},
+		{Base: "OMG", Quote: "USDT"},
+	}
+	testRealBatchAPICall(suite, &Bitfinex{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	*testAPICalls = bak
 }
 
 // In order for 'go test' to run this suite, we need to create
