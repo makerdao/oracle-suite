@@ -27,12 +27,12 @@ import (
 const binanceURL = "https://www.binance.com/api/v3/ticker/24hr"
 
 type binanceResponse struct {
-	Symbol    string             `json:"symbol"`
-	LastPrice stringAsFloat64    `json:"lastPrice"`
-	BidPrice  stringAsFloat64    `json:"bidPrice"`
-	AskPrice  stringAsFloat64    `json:"askPrice"`
-	Volume    stringAsFloat64    `json:"volume"`
-	CloseTime intAsUnixTimestamp `json:"closeTime"` // TODO: replace intAsUnixTimestampMs
+	Symbol    string               `json:"symbol"`
+	LastPrice stringAsFloat64      `json:"lastPrice"`
+	BidPrice  stringAsFloat64      `json:"bidPrice"`
+	AskPrice  stringAsFloat64      `json:"askPrice"`
+	Volume    stringAsFloat64      `json:"volume"`
+	CloseTime intAsUnixTimestampMs `json:"closeTime"`
 }
 
 // Binance origin handler
