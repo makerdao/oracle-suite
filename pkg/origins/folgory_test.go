@@ -114,7 +114,7 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Tick.Price)
 	suite.Equal(2.0, cr[0].Tick.Volume24h)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *FolgorySuite) TestRealAPICall() {

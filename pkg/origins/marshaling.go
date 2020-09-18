@@ -92,3 +92,17 @@ func (s *intAsUnixTimestamp) UnmarshalJSON(bytes []byte) error {
 func (s *intAsUnixTimestamp) val() time.Time {
 	return time.Time(*s)
 }
+
+type intAsUnixTimestampMs time.Time
+
+func (s *intAsUnixTimestampMs) UnmarshalJSON(bytes []byte) error {
+	var i int64
+	if err := json.Unmarshal(bytes, &i); err != nil {
+		return err
+	}
+	*s = intAsUnixTimestampMs(time.Unix(i/1000, 0))
+	return nil
+}
+func (s *intAsUnixTimestampMs) val() time.Time {
+	return time.Time(*s)
+}
