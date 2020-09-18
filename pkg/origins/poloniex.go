@@ -43,14 +43,14 @@ func (p *Poloniex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
 }
 
-func (b *Poloniex) Fetch(pairs []Pair) []FetchResult {
+func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
 		URL: poloniexURL,
 	}
 
 	// make query
-	res := b.Pool.Query(req)
+	res := p.Pool.Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
 	}
@@ -68,7 +68,7 @@ func (b *Poloniex) Fetch(pairs []Pair) []FetchResult {
 	// prepare result
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
-		if r, ok := resp[b.localPairName(pair)]; !ok {
+		if r, ok := resp[p.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
 				Error: errMissingResponseForPair,
