@@ -146,7 +146,7 @@ func (suite *BinanceSuite) TestSuccessResponse() {
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairBTCETH, pairBTCUSD})
-	
+
 	suite.Len(fr, 2)
 
 	// BTC/ETH
