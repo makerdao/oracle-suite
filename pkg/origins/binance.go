@@ -18,12 +18,10 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Binance URL
 const binanceURL = "https://www.binance.com/api/v3/ticker/24hr"
 
 type binanceResponse struct {
@@ -41,7 +39,7 @@ type Binance struct {
 }
 
 func (b *Binance) localPairName(pair Pair) string {
-	return strings.ToUpper(pair.Base) + strings.ToUpper(pair.Quote)
+	return pair.Base + pair.Quote
 }
 
 func (b *Binance) Fetch(pairs []Pair) []FetchResult {
