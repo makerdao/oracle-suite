@@ -16,13 +16,11 @@
 package origins
 
 import (
-	"flag"
+	"os"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
-
-var testAPICalls = flag.Bool("gofer.test-api-calls", false, "enable tests on real origins API")
 
 type Suite interface {
 	suite.TestingSuite
@@ -36,7 +34,7 @@ func testRealAPICall(suite Suite, origin Handler, base, quote string) {
 }
 
 func testRealBatchAPICall(suite Suite, origin Handler, pairs []Pair) {
-	if !*testAPICalls {
+	if os.Getenv("GOFER_TEST_API_CALLS") == "" {
 		suite.T().SkipNow()
 	}
 
