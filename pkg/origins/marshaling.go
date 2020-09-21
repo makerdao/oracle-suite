@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+//nolint:unused
 type stringAsFloat64 float64
 
 func (s *stringAsFloat64) UnmarshalJSON(bytes []byte) error {
@@ -79,6 +80,7 @@ func (s *stringAsInt64) val() int64 {
 	return int64(*s)
 }
 
+//nolint:unused
 type intAsUnixTimestamp time.Time
 
 func (s *intAsUnixTimestamp) UnmarshalJSON(bytes []byte) error {
@@ -93,6 +95,7 @@ func (s *intAsUnixTimestamp) val() time.Time {
 	return time.Time(*s)
 }
 
+//nolint:unused
 type intAsUnixTimestampMs time.Time
 
 func (s *intAsUnixTimestampMs) UnmarshalJSON(bytes []byte) error {
