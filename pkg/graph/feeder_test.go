@@ -202,8 +202,8 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	// appeared only once:
 	testPairs := s.Handlers()["test"].(*mockHandler).fetchPairs
 	test2Pairs := s.Handlers()["test2"].(*mockHandler).fetchPairs
-	assert.Equal(t, []origins.Pair{{Base: "A", Quote: "B"}, {Base: "C", Quote: "D"}}, testPairs)
-	assert.Equal(t, []origins.Pair{{Base: "E", Quote: "F"}}, test2Pairs)
+	assert.ElementsMatch(t, []origins.Pair{{Base: "A", Quote: "B"}, {Base: "C", Quote: "D"}}, testPairs)
+	assert.ElementsMatch(t, []origins.Pair{{Base: "E", Quote: "F"}}, test2Pairs)
 }
 
 func TestFeeder_Feed_NestedOriginNode(t *testing.T) {

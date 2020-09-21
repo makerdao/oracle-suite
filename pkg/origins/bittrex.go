@@ -18,70 +18,94 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// BitTrex URL
-const bittrexURL = "https://api.bittrex.com/api/v1.1/public/getticker?market=%s"
+const bittrexURL = "https://api.bittrex.com/api/v1.1/public/getmarketsummaries"
 
 type bittrexResponse struct {
-	Success bool `json:"success"`
-	Result  struct {
-		Ask  float64 `json:"Ask"`
-		Bid  float64 `json:"Bid"`
-		Last float64 `json:"Last"`
-	} `json:"result"`
+	Success bool                    `json:"success"`
+	Result  []bittrexSymbolResponse `json:"result"`
 }
 
-// BitTrex origin handler
-type BitTrex struct {
+type bittrexSymbolResponse struct {
+	MarketName string  `json:"MarketName"`
+	Ask        float64 `json:"Ask"`
+	Bid        float64 `json:"Bid"`
+	Last       float64 `json:"Last"`
+	Volume     float64 `json:"Volume"`
+	TimeStamp  string  `json:"TimeStamp"`
+}
+
+// Bittrex origin handler
+type Bittrex struct {
 	Pool query.WorkerPool
 }
 
-func (b *BitTrex) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Quote), strings.ToUpper(pair.Base))
+func (b *Bittrex) localPairName(pair Pair) string {
+	return fmt.Sprintf("%s-%s", pair.Quote, pair.Base)
 }
 
-func (b *BitTrex) getURL(pair Pair) string {
-	return fmt.Sprintf(bittrexURL, b.localPairName(pair))
-}
-
-func (b *BitTrex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(b, pairs)
-}
-
-func (b *BitTrex) callOne(pair Pair) (*Tick, error) {
+func (b *Bittrex) Fetch(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
-		URL: b.getURL(pair),
+		URL: bittrexURL,
 	}
 
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		return fetchResultListWithErrors(pairs, res.Error)
 	}
-	// parsing JSON
+
+	// parse JSON
 	var resp bittrexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bittrex response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse Bittrex response: %w", err))
 	}
 	if !resp.Success {
-		return nil, fmt.Errorf("wrong response from bittrex %v", resp)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("wrong response from Bittrex %v", resp))
 	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     resp.Result.Last,
-		Ask:       resp.Result.Ask,
-		Bid:       resp.Result.Bid,
-		Timestamp: time.Now(),
-	}, nil
+
+	// convert response from a slice to a map
+	respMap := map[string]bittrexSymbolResponse{}
+	for _, symbolResp := range resp.Result {
+		respMap[symbolResp.MarketName] = symbolResp
+	}
+
+	// prepare result
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		if r, ok := respMap[b.localPairName(pair)]; !ok {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else {
+			// parse timestamp
+			ts, err := time.Parse("2006-01-02T15:04:05", r.TimeStamp)
+			if err != nil {
+				ts = time.Unix(0, 0)
+			}
+
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     r.Last,
+					Bid:       r.Bid,
+					Ask:       r.Ask,
+					Volume24h: r.Volume,
+					Timestamp: ts,
+				},
+			})
+		}
+	}
+
+	return results
 }

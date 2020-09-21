@@ -104,7 +104,7 @@ func DefaultSet() *Set {
 		"binance":       &Binance{Pool: httpWorkerPool},
 		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
 		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},
-		"bittrex":       &BitTrex{Pool: httpWorkerPool},
+		"bittrex":       &Bittrex{Pool: httpWorkerPool},
 		"coinbase":      &Coinbase{Pool: httpWorkerPool},
 		"coinbasepro":   &CoinbasePro{Pool: httpWorkerPool},
 		"cryptocompare": &CryptoCompare{Pool: httpWorkerPool},
