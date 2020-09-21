@@ -25,7 +25,8 @@ import (
 )
 
 func Server(args []string, l pricer) error {
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+	http.HandleFunc("/", http.FileServer(http.Dir("web")).ServeHTTP)
+	http.HandleFunc("/pair", func(writer http.ResponseWriter, request *http.Request) {
 		var err error
 
 		srvErr := func(srvErr error) {
