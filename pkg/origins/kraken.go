@@ -17,128 +17,79 @@ package origins
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Kraken URL
-const krakenURL = "https://api.kraken.com/0/public/Ticker?pair=%s"
-
-type krakenPairResponse struct {
-	Price  []string `json:"c"`
-	Volume []string `json:"v"`
-}
-
-type krakenResponse struct {
-	Errors []string `json:"error"`
-	Result map[string]*krakenPairResponse
-}
-
-// Kraken origin handler
 type Kraken struct {
 	Pool query.WorkerPool
 }
 
-func (k *Kraken) getSymbol(symbol string) string {
-	symbol = strings.ToUpper(symbol)
+const krakenURL = "https://api.kraken.com/0/public/Ticker?pair=%s"
 
-	// https://supairort.kraken.com/hc/en-us/articles/360001185506-How-to-interpret-asset-codes
-	switch symbol {
-	case "BTC":
-		return "XXBT"
-	case "DOGE":
-		return "XXDG"
-	default:
-		prefixedSymbols := []string{
-			"XETC",
-			"XETH",
-			"XLTC",
-			"XMLN",
-			"XREP",
-			"XREPV2",
-			"XXLM",
-			"XXMR",
-			"XXRP",
-			"XXTZ",
-			"XZEC",
-			"ZCAD",
-			"ZEUR",
-			"ZGBP",
-			"ZJPY",
-			"ZUSD",
-		}
-
-		for _, s := range prefixedSymbols {
-			if s == "X"+symbol || s == "Z"+symbol {
-				return s
-			}
-		}
-
-		return symbol
-	}
-}
-
-func (k *Kraken) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s%s", k.getSymbol(pair.Base), k.getSymbol(pair.Quote))
-}
-
-func (k *Kraken) getURL(pair Pair) string {
-	return fmt.Sprintf(krakenURL, k.localPairName(pair))
-}
-
-func (k *Kraken) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(k, pairs)
-}
-
-func (k *Kraken) callOne(pair Pair) (*Tick, error) {
-	var err error
+func (o *Kraken) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: k.getURL(pair),
+		URL: fmt.Sprintf(krakenURL, o.localPairName(pairs...)),
 	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
 
-	// make query
-	res := k.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
-	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	// parsing JSON
+type krakenResponse struct {
+	Errors []string `json:"error"`
+	Result map[string]krakenPairResponse
+}
+
+type krakenPairResponse struct {
+	Price  firstStringFromSliceAsFloat64 `json:"c"`
+	Volume firstStringFromSliceAsFloat64 `json:"v"`
+	Ask    firstStringFromSliceAsFloat64 `json:"a"`
+	Bid    firstStringFromSliceAsFloat64 `json:"b"`
+}
+
+func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	var resp krakenResponse
-	err = json.Unmarshal(res.Body, &resp)
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse kraken response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 	if len(resp.Errors) > 0 {
-		return nil, fmt.Errorf("kraken API error: %s", strings.Join(resp.Errors, " "))
+		return fetchResultListWithErrors(pairs, errors.New(strings.Join(resp.Errors, ", ")))
 	}
-	result, ok := resp.Result[k.localPairName(pair)]
-	if !ok || result == nil {
-		return nil, fmt.Errorf("wrong kraken origin response. No resulting data %+v", resp)
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		if t, is := resp.Result[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.Price.val(),
+					Ask:       t.Ask.val(),
+					Bid:       t.Bid.val(),
+					Volume24h: t.Volume.val(),
+					Timestamp: time.Now(),
+				},
+			})
+		}
 	}
-	if len(result.Price) == 0 || len(result.Volume) == 0 {
-		return nil, fmt.Errorf("wrong kraken origin response. No resulting pair %s data %+v", pair, result)
+	return results
+}
+
+func (o *Kraken) localPairName(pairs ...Pair) string {
+	var l []string
+	for _, pair := range pairs {
+		l = append(l, pair.String())
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(result.Price[0], 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from kraken origin %s", res.Body)
-	}
-	// Parsing volume from string
-	volume, err := strconv.ParseFloat(result.Volume[0], 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from kraken origin %s", res.Body)
-	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Volume24h: volume,
-		Timestamp: time.Now(),
-	}, nil
+	return strings.Join(l, ",")
 }
