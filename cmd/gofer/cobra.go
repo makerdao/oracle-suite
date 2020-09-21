@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
+	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/config"
 	"github.com/makerdao/gofer/pkg/gofer"
@@ -158,6 +158,33 @@ func NewPriceCmd(o *options) *cobra.Command {
 			}
 
 			fmt.Println(string(b))
+			return nil
+		},
+	}
+}
+
+func NewServerCmd(o *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "server",
+		Args:  cobra.ExactArgs(0),
+		Short: "",
+		Long:  ``,
+		RunE: func(_ *cobra.Command, args []string) error {
+			absPath, err := filepath.Abs(o.ConfigFilePath)
+			if err != nil {
+				panic(err)
+			}
+
+			g, err := newGofer(absPath)
+			if err != nil {
+				panic(err)
+			}
+
+			err = cli.Server(args, g)
+			if err != nil {
+				return err
+			}
+
 			return nil
 		},
 	}

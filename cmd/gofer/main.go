@@ -27,6 +27,7 @@ func main() {
 		NewExchangesCmd(&opts),
 		NewPairsCmd(&opts),
 		NewPriceCmd(&opts),
+		NewServerCmd(&opts),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
