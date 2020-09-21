@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<title>Gofer price model graph</title>
 <style>
+	body, html {
+		padding: 0;
+		margin: 0;
+	}
 
 	.links line {
 		stroke: #999;
@@ -12,16 +17,25 @@
 		stroke-width: 1.5px;
 	}
 
-	text {
+	.label {
+		margin: 0;
+		padding: 0;
+		width: 100px;
+		height: 100px;
+		display: flex;
+		justify-content: center;
+		align-content: center;
+		flex-direction: column;
+		text-align: center;
 		font-family: sans-serif;
+		font-size: 10px;
 	}
 
 </style>
 <div id="svg"></div>
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script>
-  drag = simulation => {
-
+  let drag = simulation => {
     function dragstarted (event) {
       if (!event.active) simulation.alphaTarget(0.3).restart()
       event.subject.fx = event.subject.x
@@ -46,52 +60,105 @@
       .on('end', dragended)
   }
 
-  color = function () {
-    const scale = d3.scaleOrdinal(d3.schemeCategory10)
-    return d => scale(d.group)
+  let color = function () {
+    return d => d3.interpolateYlGnBu((d.level % 10) / 10)
   }
 
-  width = 800
-  height = 600
+  let nodeBuilder = function (data) {
+    let links = []
+    let nodes = []
 
-  d3.json('/pair?pair=COMP/USD').then(function (data) {
-    console.log(data)
+    let label = (node) => {
+	  if (node.type === 'aggregate') {
+        source = node["params"]["method"] + "<br>"
+	  } else {
+        source = node["origin"] + "<br>"
+	  }
 
-    var links = []
-    var nodes = []
-    //const links = data.links.map(d => Object.create(d));
-    //const nodes = data.nodes.map(d => Object.create(d));
+	  let symbol = '<b>' + node['base'] + '/' + node['quote'] + '</b><br>'
+	  let price = node["price"]
 
-	// TODO, convert graphs
-
-    nodes.push({
-      id: 'root',
-      group: 1
-    })
-
-    nodes.push({
-      id: 'child',
-      group: 2
-    })
-
-    links.push({ 'source': 'root', 'target': 'child', 'value': 5 })
-
-    for (const node of data) {
-      nodes.push({
-        id: node.base + '/' + node.quote,
-        group: 1
-      })
+      return  symbol + source + price
     }
 
+    let uid = 1
+    let recur = function (node, parent, level) {
+      node.uid = uid++
+
+      let distance = 0
+      if (level === 1) {
+        distance = 150
+	  }
+
+      let charge = 0
+      if (node.type === 'aggregate') {
+        charge = -200
+      } else {
+        charge = -30
+      }
+
+      nodes.push({
+        id: node.uid,
+        label: label(node),
+		charge: charge,
+        level: level,
+      })
+
+      if (parent) {
+        links.push({
+          source: node.uid,
+          target: parent.uid,
+          distance: distance,
+          level: level
+        })
+      }
+
+      if ('ticks' in node) {
+        for (const child of node['ticks']) {
+          recur(child, node, level+1)
+        }
+      }
+    }
+
+    for (const i in data) {
+      recur(data[i], null, 0)
+    }
+
+    return [nodes, links]
+  }
+
+  d3.json('/pair?pair=COMP/USD').then(function (data) {
+    let width = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+    let height = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+
+    let [nodes, links] = nodeBuilder(data)
+
     const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id(d => d.id).distance(100).strength(0.1))
-      .force('charge', d3.forceManyBody())
+      .force("charge", d3.forceManyBody()
+		.strength(d => d.charge)
+		.distanceMin(10)
+	  )
+      .force('link', d3.forceLink(links)
+        .id(d => d.id)
+        .distance(d => d.distance)
+		.strength(1)
+      )
+      .force('collide', d3.forceCollide()
+        .radius(40)
+      )
       .force('center', d3.forceCenter(width / 2, height / 2))
 
     const svg = d3.select('#svg')
       .append('svg')
       .attr('width', width)
       .attr('height', height)
+
+    var background = svg.append("g")
+      .attr("class", "rect")
+      .append("rect")
+      .attr("width", width)
+      .attr("height", height)
+      .style("fill", "#fff")
 
     const link = svg.append('g')
       .attr('stroke', '#999')
@@ -107,19 +174,29 @@
       .selectAll('circle')
       .data(nodes)
       .join('circle')
-      .attr('r', 40)
-      .attr('fill', '#aaa')
-      .call(drag(simulation))
+      .attr('r', 30)
+      .attr('fill', color())
 
-    const labels = svg.selectAll('text')
+    const labels = svg.append('g')
+      .selectAll('text')
       .data(nodes)
-      .enter().append('text')
-      .attr('x', 0)
-      .attr('y', '.31em')
-      .attr('text-anchor', 'middle')
-	  .attr('pointer-events', 'none')
-	  .attr('font-size', '12px')
-      .text(d => d.id)
+      .join('foreignObject')
+	  .attr("pointer-events", "none")
+	  .attr("width", 100)
+      .attr("height", 100)
+      .html(d => '<p class="label">' + d.label + '</p>')
+
+    const zoom = d3.zoom()
+      .scaleExtent([1/4, 64])
+      .on("zoom", (event) => {
+        transform = event.transform;
+        node.attr("transform", event.transform);
+        link.attr("transform", event.transform);
+        labels.attr("transform", event.transform);
+      });
+
+    background.call(zoom)
+	node.call(drag(simulation))
 
     simulation.on('tick', () => {
       link
@@ -133,8 +210,8 @@
         .attr('cy', d => d.y)
 
       labels
-        .attr('x', d => d.x)
-        .attr('y', d => d.y+(12/4))
+        .attr('x', d => d.x - 50)
+        .attr('y', d => d.y - 50)
     })
 
     document.getElementById('svg').replaceWith(svg.node())
