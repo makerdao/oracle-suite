@@ -24,12 +24,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// Define the suite, and absorb the built-in basic suite
-// functionality from testify - including a T() method which
-// returns the current testing context
 type PoloniexSuite struct {
 	suite.Suite
-	pool   query.WorkerPool
 	origin *Poloniex
 }
 
@@ -37,129 +33,166 @@ func (suite *PoloniexSuite) Origin() Handler {
 	return suite.origin
 }
 
-// Setup origin
 func (suite *PoloniexSuite) SetupSuite() {
 	suite.origin = &Poloniex{Pool: query.NewMockWorkerPool()}
 }
 
-func (suite *PoloniexSuite) TearDownTest() {
-	// cleanup created pool from prev test
-	if suite.pool != nil {
-		suite.pool = nil
-	}
-}
-
 func (suite *PoloniexSuite) TestLocalPair() {
 	suite.EqualValues("ETH_BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.NotEqual("USDC_BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *PoloniexSuite) TestFailOnWrongInput() {
-	// wrong pair
-	cr := suite.origin.Fetch([]Pair{{}})
-	suite.Error(cr[0].Error)
-
 	pair := Pair{Base: "BTC", Quote: "ETH"}
-	// nil as response
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
 
-	// error in response
+	// Wrong pair
+	fr := suite.origin.Fetch([]Pair{{}})
+	suite.Error(fr[0].Error)
+
+	// Nil as a response
+	fr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(errEmptyOriginResponse, fr[0].Error)
+
+	// Error in a response
 	ourErr := fmt.Errorf("error")
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(ourErr, cr[0].Error)
 
-	// Error unmarshal
+	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	fr = suite.origin.Fetch([]Pair{pair})
+	suite.Equal(ourErr, fr[0].Error)
+
+	// Error during unmarshalling
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
+	fr = suite.origin.Fetch([]Pair{pair})
+	suite.Error(fr[0].Error)
 
-	// Error unmarshal
+	// Error during converting price to a number
 	resp = &query.HTTPResponse{
-		Body: []byte("{}"),
+		Body: []byte(`
+			{
+				"ETH_BTC":{
+					"last":"abc",
+					"lowestAsk":"1.3",
+					"highestBid":"1.0",
+					"baseVolume":"10.1",
+					"isFrozen": "0"
+				}
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
+	fr = suite.origin.Fetch([]Pair{pair})
+	suite.Error(fr[0].Error)
 
-	// Error unmarshal
+	// Frozen pair
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"BBB_EEE":{}}`),
+		Body: []byte(`
+			{
+				"ETH_BTC":{
+					"last":"abc",
+					"lowestAsk":"1.3",
+					"highestBid":"1.0",
+					"baseVolume":"10.1",
+					"isFrozen": "1"
+				}
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
+	fr = suite.origin.Fetch([]Pair{pair})
+	suite.Error(fr[0].Error)
 
-	// Error parsing
+	// Unable to find pair
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"ETH_BTC":{"last":"abc"}}`),
+		Body: []byte(`
+			{
+				"AAA_BBB":{
+					"last":"1.1",
+					"lowestAsk":"1.3",
+					"highestBid":"1.0",
+					"baseVolume":"10.1",
+					"isFrozen": "0"
+				}
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"abc"}}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"1","baseVolume":"abc"}}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"1","baseVolume":"1","highestBid":"abc"}}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
-
-	// Error parsing
-	resp = &query.HTTPResponse{
-		Body: []byte(`{"BBB_ETT":{"last":"1","lowestAsk":"1","baseVolume":"1","highestBid":"1"}}`),
-	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Error(cr[0].Error)
+	fr = suite.origin.Fetch([]Pair{pair})
+	suite.Error(fr[0].Error)
 }
 
 func (suite *PoloniexSuite) TestSuccessResponse() {
-	pair := Pair{Base: "BTC", Quote: "ETH"}
+	pairBTCETH := Pair{Base: "BTC", Quote: "ETH"}
+	pairBTCUSD := Pair{Base: "BTC", Quote: "USD"}
+
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"ETH_BTC":{"last":"1","lowestAsk":"2","baseVolume":"3","highestBid":"4"}}`),
+		Body: []byte(`
+			{
+				"ETH_BTC":{
+					"last":"1.1",
+					"lowestAsk":"1.3",
+					"highestBid":"1.0",
+					"baseVolume":"10.1",
+					"isFrozen": "0"
+				},
+				"USD_BTC":{
+					"last":"2.1",
+					"lowestAsk":"2.3",
+					"highestBid":"2.0",
+					"baseVolume":"20.1",
+					"isFrozen": "0"
+				},
+				"EUR_BTC":{
+					"last":"3.1",
+					"lowestAsk":"3.3",
+					"highestBid":"3.0",
+					"baseVolume":"30.1",
+					"isFrozen": "0"
+				}
+			}
+		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.origin.Fetch([]Pair{pair})
+	fr := suite.origin.Fetch([]Pair{pairBTCETH, pairBTCUSD})
 
-	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Equal(2.0, cr[0].Tick.Ask)
-	suite.Equal(3.0, cr[0].Tick.Volume24h)
-	suite.Equal(4.0, cr[0].Tick.Bid)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Len(fr, 2)
+
+	// BTC/ETH
+	suite.NoError(fr[0].Error)
+	suite.Equal(pairBTCETH, fr[0].Tick.Pair)
+	suite.Equal(1.1, fr[0].Tick.Price)
+	suite.Equal(1.0, fr[0].Tick.Bid)
+	suite.Equal(1.3, fr[0].Tick.Ask)
+	suite.Equal(10.1, fr[0].Tick.Volume24h)
+	suite.Greater(fr[0].Tick.Timestamp.Unix(), int64(0))
+
+	// BTC/USD
+	suite.NoError(fr[1].Error)
+	suite.Equal(pairBTCUSD, fr[1].Tick.Pair)
+	suite.Equal(2.1, fr[1].Tick.Price)
+	suite.Equal(2.0, fr[1].Tick.Bid)
+	suite.Equal(2.3, fr[1].Tick.Ask)
+	suite.Equal(20.1, fr[1].Tick.Volume24h)
+	suite.Greater(fr[1].Tick.Timestamp.Unix(), int64(0))
 }
 
 func (suite *PoloniexSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Poloniex{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealBatchAPICall(
+		suite,
+		&Poloniex{Pool: query.NewHTTPWorkerPool(1)},
+		[]Pair{
+			{Base: "ETH", Quote: "BTC"},
+			{Base: "GNT", Quote: "BTC"},
+			{Base: "REP", Quote: "BTC"},
+			{Base: "BTC", Quote: "USDT"},
+		},
+	)
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
 func TestPoloniexSuite(t *testing.T) {
 	suite.Run(t, new(PoloniexSuite))
 }

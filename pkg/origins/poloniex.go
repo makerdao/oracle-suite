@@ -18,21 +18,19 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Poloniex URL
 const poloniexURL = "https://poloniex.com/public?command=returnTicker"
 
 type poloniexResponse struct {
-	Price  string `json:"last"`
-	Ask    string `json:"lowestAsk"`
-	Bid    string `json:"highestBid"`
-	Volume string `json:"baseVolume"`
+	Last       stringAsFloat64 `json:"Last"`
+	HidPrice   stringAsFloat64 `json:"highestBid"`
+	LowestAsk  stringAsFloat64 `json:"lowestAsk"`
+	BaseVolume stringAsFloat64 `json:"baseVolume"`
+	IsFrozen   string          `json:"isFrozen"`
 }
 
 // Poloniex origin handler
@@ -40,75 +38,60 @@ type Poloniex struct {
 	Pool query.WorkerPool
 }
 
-func (p *Poloniex) renameSymbol(symbol string) string {
-	return strings.ToUpper(symbol)
-}
-
 func (p *Poloniex) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s_%s", p.renameSymbol(pair.Quote), p.renameSymbol(pair.Base))
-}
-
-func (p *Poloniex) getURL(pair Pair) string {
-	return poloniexURL
+	return fmt.Sprintf("%s_%s", pair.Quote, pair.Base)
 }
 
 func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(p, pairs)
-}
-
-func (p *Poloniex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: p.getURL(pair),
+		URL: poloniexURL,
 	}
-
-	pairName := p.localPairName(pair)
 
 	// make query
 	res := p.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		return fetchResultListWithErrors(pairs, res.Error)
 	}
-	// parsing JSON
+
+	// parse JSON
 	var resp map[string]poloniexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse poloniex response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse Poloniex response: %w", err))
 	}
-	pairResp, ok := resp[pairName]
-	if !ok {
-		return nil, fmt.Errorf("failed to get correct response from origin (no %s exist) %s", pair, res.Body)
+
+	// prepare result
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		if r, ok := resp[p.localPairName(pair)]; !ok {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else {
+			if r.IsFrozen == "0" {
+				results = append(results, FetchResult{
+					Tick: Tick{
+						Pair:      pair,
+						Price:     r.Last.val(),
+						Bid:       r.HidPrice.val(),
+						Ask:       r.LowestAsk.val(),
+						Volume24h: r.BaseVolume.val(),
+						Timestamp: time.Now(),
+					},
+				})
+			} else {
+				results = append(results, FetchResult{
+					Tick:  Tick{Pair: pair},
+					Error: fmt.Errorf("pair is indicated as a frozen"),
+				})
+			}
+		}
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(pairResp.Price, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from bitstamp origin %s", res.Body)
-	}
-	// Parsing ask from string
-	ask, err := strconv.ParseFloat(pairResp.Ask, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from bitstamp origin %s", res.Body)
-	}
-	// Parsing volume from string
-	volume, err := strconv.ParseFloat(pairResp.Volume, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from bitstamp origin %s", res.Body)
-	}
-	// Parsing bid from string
-	bid, err := strconv.ParseFloat(pairResp.Bid, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from bitstamp origin %s", res.Body)
-	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Volume24h: volume,
-		Ask:       ask,
-		Bid:       bid,
-		Timestamp: time.Now(),
-	}, nil
+
+	return results
 }
