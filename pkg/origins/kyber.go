@@ -40,15 +40,15 @@ func (o *Kyber) Fetch(pairs []Pair) []FetchResult {
 const kyberURL = "https://api.kyber.network/change24h"
 
 type kyberTicker struct {
-	Timestamp    intAsUnixTimestamp `json:"timestamp"`
-	TokenName    string             `json:"token_name"`
-	TokenSymbol  string             `json:"token_symbol"`
-	TokenDecimal int                `json:"token_decimal"`
-	TokenAddress string             `json:"token_address"`
-	RateEthNow   float64            `json:"rate_eth_now"`
-	ChangeEth24H float64            `json:"change_eth_24h"`
-	ChangeUsd24H float64            `json:"change_usd_24h"`
-	RateUsdNow   float64            `json:"rate_usd_now"`
+	Timestamp    intAsUnixTimestampMs `json:"timestamp"`
+	TokenName    string               `json:"token_name"`
+	TokenSymbol  string               `json:"token_symbol"`
+	TokenDecimal int                  `json:"token_decimal"`
+	TokenAddress string               `json:"token_address"`
+	RateEthNow   float64              `json:"rate_eth_now"`
+	ChangeEth24H float64              `json:"change_eth_24h"`
+	ChangeUsd24H float64              `json:"change_usd_24h"`
+	RateUsdNow   float64              `json:"rate_usd_now"`
 }
 
 func (o *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {

@@ -18,6 +18,7 @@ package origins
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -156,21 +157,24 @@ func (suite *KyberSuite) TestSuccessResponse() {
 	pair := Pair{Base: "WBTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"ETH_WBTC": {
-"timestamp": 1600331875531,
-"token_symbol": "WBTC",
-"token_name": "Wrapped BTC",
-"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
-"token_decimal": 8,
-"rate_eth_now": 30.11825982131223,
-"change_eth_24h": -2.17,
-"rate_usd_now": 11375.32395734396,
-"change_usd_24h": 2.27
-}}`),
+			"timestamp": 1600331875531,
+			"token_symbol": "WBTC",
+			"token_name": "Wrapped BTC",
+			"token_address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+			"token_decimal": 8,
+			"rate_eth_now": 30.11825982131223,
+			"change_eth_24h": -2.17,
+			"rate_usd_now": 11375.32395734396,
+			"change_usd_24h": 2.27
+			}}
+		`),
 	}
+
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(30.11825982131223, cr[0].Tick.Price)
+	suite.Equal(time.Unix(1600331875, 0).Unix(), cr[0].Tick.Timestamp.Unix())
 }
 
 func (suite *KyberSuite) TestRealAPICall() {
