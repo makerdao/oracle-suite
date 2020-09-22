@@ -69,16 +69,16 @@
     let nodes = []
 
     let label = (node) => {
-	  if (node.type === 'aggregate') {
-        source = node["params"]["method"] + "<br>"
-	  } else {
-        source = node["origin"] + "<br>"
-	  }
+      if (node.type === 'aggregate') {
+        source = node['params']['method'] + '<br>'
+      } else {
+        source = node['origin'] + '<br>'
+      }
 
-	  let symbol = '<b>' + node['base'] + '/' + node['quote'] + '</b><br>'
-	  let price = node["price"]
+      let symbol = '<b>' + node['base'] + '/' + node['quote'] + '</b><br>'
+      let price = node['price']
 
-      return  symbol + source + price
+      return symbol + source + price
     }
 
     let uid = 1
@@ -88,7 +88,7 @@
       let distance = 0
       if (level === 1) {
         distance = 150
-	  }
+      }
 
       let charge = 0
       if (node.type === 'aggregate') {
@@ -100,7 +100,7 @@
       nodes.push({
         id: node.uid,
         label: label(node),
-		charge: charge,
+        charge: charge,
         level: level,
       })
 
@@ -115,7 +115,7 @@
 
       if ('ticks' in node) {
         for (const child of node['ticks']) {
-          recur(child, node, level+1)
+          recur(child, node, level + 1)
         }
       }
     }
@@ -127,21 +127,24 @@
     return [nodes, links]
   }
 
-  d3.json('/pair?pair=COMP/USD').then(function (data) {
+  const urlParams = new URLSearchParams(window.location.search)
+  const pair = urlParams.get('pair')
+
+  d3.json('/pair?pair=' + pair).then(function (data) {
     let width = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
     let height = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 
     let [nodes, links] = nodeBuilder(data)
 
     const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody()
-		.strength(d => d.charge)
-		.distanceMin(10)
-	  )
+      .force('charge', d3.forceManyBody()
+        .strength(d => d.charge)
+        .distanceMin(10)
+      )
       .force('link', d3.forceLink(links)
         .id(d => d.id)
         .distance(d => d.distance)
-		.strength(1)
+        .strength(1)
       )
       .force('collide', d3.forceCollide()
         .radius(40)
@@ -153,20 +156,20 @@
       .attr('width', width)
       .attr('height', height)
 
-    var background = svg.append("g")
-      .attr("class", "rect")
-      .append("rect")
-      .attr("width", width)
-      .attr("height", height)
-      .style("fill", "#fff")
+    var background = svg.append('g')
+      .attr('class', 'rect')
+      .append('rect')
+      .attr('width', width)
+      .attr('height', height)
+      .style('fill', '#fff')
 
     const link = svg.append('g')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6)
+      .attr('marker-end', 'url(#arrow)')
+      .attr('stroke', '#aaa')
+      .attr('stroke-width', 2)
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke-width', d => Math.sqrt(d.value))
 
     const node = svg.append('g')
       .attr('stroke', '#fff')
@@ -181,22 +184,33 @@
       .selectAll('text')
       .data(nodes)
       .join('foreignObject')
-	  .attr("pointer-events", "none")
-	  .attr("width", 100)
-      .attr("height", 100)
+      .attr('pointer-events', 'none')
+      .attr('width', 100)
+      .attr('height', 100)
       .html(d => '<p class="label">' + d.label + '</p>')
 
     const zoom = d3.zoom()
-      .scaleExtent([1/4, 64])
-      .on("zoom", (event) => {
-        transform = event.transform;
-        node.attr("transform", event.transform);
-        link.attr("transform", event.transform);
-        labels.attr("transform", event.transform);
-      });
+      .scaleExtent([1 / 4, 64])
+      .on('zoom', (event) => {
+        transform = event.transform
+        node.attr('transform', event.transform)
+        link.attr('transform', event.transform)
+        labels.attr('transform', event.transform)
+      })
+
+    svg.append('svg:defs').append('svg:marker')
+      .attr('id', 'arrow')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 40)
+      .attr('markerWidth', 5)
+      .attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('svg:path')
+	  .attr('fill', '#aaa')
+      .attr('d', 'M0,-5L10,0L0,5')
 
     background.call(zoom)
-	node.call(drag(simulation))
+    node.call(drag(simulation))
 
     simulation.on('tick', () => {
       link

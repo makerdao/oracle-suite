@@ -21,10 +21,11 @@ import (
 	"net/http"
 
 	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Server(args []string, l pricer) error {
+func Server(args []string, l *gofer.Gofer) error {
 	http.HandleFunc("/", http.FileServer(http.Dir("web")).ServeHTTP)
 	http.HandleFunc("/pair", func(writer http.ResponseWriter, request *http.Request) {
 		var err error
@@ -35,13 +36,21 @@ func Server(args []string, l pricer) error {
 		}
 
 		pairStr := request.URL.Query().Get("pair")
-		pair, err := graph.NewPair(pairStr)
-		if err != nil {
-			srvErr(err)
-			return
+		var pairs []graph.Pair
+
+		if pairStr != "" {
+			pair, err := graph.NewPair(pairStr)
+			if err != nil {
+				srvErr(err)
+				return
+			}
+
+			pairs = []graph.Pair{pair}
+		} else {
+			pairs = l.Pairs()
 		}
 
-		ticks, err := l.Ticks(pair)
+		ticks, err := l.Ticks(pairs...)
 		if err != nil {
 			srvErr(err)
 			return
