@@ -21,15 +21,9 @@ import "strings"
 type colorCode string
 
 const (
-	reset   colorCode = "\033[0m"
-	black   colorCode = "\033[30m"
-	red     colorCode = "\033[31m"
-	green   colorCode = "\033[32m"
-	yellow  colorCode = "\033[33m"
-	blue    colorCode = "\033[34m"
-	magenta colorCode = "\033[35m"
-	cyan    colorCode = "\033[36m"
-	white   colorCode = "\033[37m"
+	reset colorCode = "\033[0m"
+	red   colorCode = "\033[31m"
+	green colorCode = "\033[32m"
 )
 
 // color adds given ANSII escape code at beginning of every line.

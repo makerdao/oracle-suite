@@ -228,7 +228,7 @@ func renderNode(typ string, params []param, err error) []byte {
 	str.WriteString(")")
 	if err != nil {
 		str.WriteString("\n")
-		str.WriteString(color("Error: " + strings.TrimSpace(err.Error()), red))
+		str.WriteString(color("Error: "+strings.TrimSpace(err.Error()), red))
 	}
 
 	return str.Bytes()
