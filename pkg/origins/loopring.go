@@ -18,7 +18,6 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -29,10 +28,10 @@ import (
 const loopringURL = "https://api.loopring.io/api/v2/overview"
 
 type pairResponse struct {
-	Price  string `json:"last"`
-	Ask    string `json:"lowestAsk"`
-	Bid    string `json:"highestBid"`
-	Volume string `json:"quoteVolume"`
+	Price  stringAsFloat64 `json:"last"`
+	Ask    stringAsFloat64 `json:"lowestAsk"`
+	Bid    stringAsFloat64 `json:"highestBid"`
+	Volume stringAsFloat64 `json:"quoteVolume"`
 }
 
 type loopringResponse struct {
@@ -95,31 +94,13 @@ func (l *Loopring) pickPairDetails(response loopringResponse, pair Pair) FetchRe
 	if !ok {
 		return fetchResultWithError(pair, fmt.Errorf("no %s pair exist in loopring response", pair))
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(pairRes.Price, 64)
-	if err != nil {
-		return fetchResultWithError(pair, fmt.Errorf("failed to parse price from loopring origin"))
-	}
-	// Parsing price from string
-	volume, err := strconv.ParseFloat(pairRes.Volume, 64)
-	if err != nil {
-		return fetchResultWithError(pair, fmt.Errorf("failed to parse volume from loopring origin"))
-	}
-	ask, err := strconv.ParseFloat(pairRes.Ask, 64)
-	if err != nil {
-		return fetchResultWithError(pair, fmt.Errorf("failed to parse ask from loopring origin"))
-	}
-	bid, err := strconv.ParseFloat(pairRes.Bid, 64)
-	if err != nil {
-		return fetchResultWithError(pair, fmt.Errorf("failed to parse bid from loopring origin"))
-	}
 	// building Tick
 	return fetchResult(Tick{
 		Pair:      pair,
-		Price:     price,
-		Volume24h: volume,
-		Ask:       ask,
-		Bid:       bid,
+		Price:     pairRes.Price.val(),
+		Volume24h: pairRes.Volume.val(),
+		Ask:       pairRes.Ask.val(),
+		Bid:       pairRes.Bid.val(),
 		Timestamp: time.Now(),
 	})
 }
