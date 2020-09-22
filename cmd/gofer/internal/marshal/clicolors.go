@@ -2,20 +2,22 @@ package marshal
 
 import "strings"
 
-type clicolor string
+// colorCode represents ANSII escape code for color formatting.
+type colorCode string
 
 const (
-	reset   clicolor = "\033[0m"
-	black   clicolor = "\033[30m"
-	red     clicolor = "\033[31m"
-	green   clicolor = "\033[32m"
-	yellow  clicolor = "\033[33m"
-	blue    clicolor = "\033[34m"
-	magenta clicolor = "\033[35m"
-	cyan    clicolor = "\033[36m"
-	white   clicolor = "\033[37m"
+	reset   colorCode = "\033[0m"
+	black   colorCode = "\033[30m"
+	red     colorCode = "\033[31m"
+	green   colorCode = "\033[32m"
+	yellow  colorCode = "\033[33m"
+	blue    colorCode = "\033[34m"
+	magenta colorCode = "\033[35m"
+	cyan    colorCode = "\033[36m"
+	white   colorCode = "\033[37m"
 )
 
-func color(str string, color clicolor) string {
+// color adds given ANSII escape code at beginning of every line.
+func color(str string, color colorCode) string {
 	return string(color) + strings.ReplaceAll(str, "\n", "\n"+string(reset+color)) + string(reset)
 }

@@ -191,11 +191,24 @@ func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) 
 	*ret = append(*ret, str)
 }
 
+// param is used to work with lists of sorted key/value pairs.
 type param struct {
 	key   string
 	value interface{}
 }
 
+// mergeKVMap merges map[string]string into []param.
+func mergeKVMap(target []param, kv map[string]string) []param {
+	for _, k := range sortKeys(kv) {
+		target = append(target, param{key: k, value: kv[k]})
+	}
+	return target
+}
+
+// renderNode renders graph node which may be used as nodes for renderTree
+// method. An example node may look like this: Type(param:value, param2:value2).
+// If an err argument is provided, the node will be prepended with an [ERROR]
+// label and a message will be printed in a new line.
 func renderNode(typ string, params []param, err error) []byte {
 	str := bytes.Buffer{}
 	if err != nil {
@@ -221,6 +234,13 @@ func renderNode(typ string, params []param, err error) []byte {
 	return str.Bytes()
 }
 
+// renderTree renders graphical tree for the CLI output.
+//
+// The printer argument defines a function which returns node name and list of
+// child nodes.
+// The nodes arguments is a initial list of nodes to render.
+// The level is used internally and needs to be always 0.
+//
 //nolint:gocyclo
 func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []interface{}, level int) []byte {
 	const (
@@ -283,6 +303,7 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 	return s.Bytes()
 }
 
+// prependLines prepends all lines in given bytes slice.
 func prependLines(s []byte, first, rest string) []byte {
 	bts := bytes.Buffer{}
 	bts.WriteString(first)
@@ -290,13 +311,7 @@ func prependLines(s []byte, first, rest string) []byte {
 	return bts.Bytes()
 }
 
-func mergeKVMap(target []param, kv map[string]string) []param {
-	for _, k := range sortKeys(kv) {
-		target = append(target, param{key: k, value: kv[k]})
-	}
-	return target
-}
-
+// sortKeys returns keys from given map sorted alphabetically.
 func sortKeys(kv map[string]string) []string {
 	var ks []string
 	for k := range kv {
