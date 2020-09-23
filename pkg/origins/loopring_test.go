@@ -154,17 +154,27 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 
 func (suite *LoopringSuite) TestSuccessResponse() {
 	pair := Pair{Base: "LRC", Quote: "USDT"}
+	pair2 := Pair{Base: "USDC", Quote: "USDT"}
+
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	cr := suite.origin.Fetch([]Pair{pair})
+	cr := suite.origin.Fetch([]Pair{pair, pair2})
+
 	suite.NoError(cr[0].Error)
 	suite.Equal(0.1221, cr[0].Tick.Price)
 	suite.Equal(181251.50, cr[0].Tick.Volume24h)
 	suite.Equal(0.1221, cr[0].Tick.Ask)
 	suite.Equal(0.1215, cr[0].Tick.Bid)
 	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
+
+	suite.NoError(cr[1].Error)
+	suite.Equal(0.9997, cr[1].Tick.Price)
+	suite.Equal(36053.99, cr[1].Tick.Volume24h)
+	suite.Equal(1.0, cr[1].Tick.Ask)
+	suite.Equal(0.9998, cr[1].Tick.Bid)
+	suite.Greater(cr[1].Tick.Timestamp.Unix(), int64(2))
 }
 
 func (suite *LoopringSuite) TestRealAPICall() {
