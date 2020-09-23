@@ -17,70 +17,184 @@ package origins
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Bitfinex URL
-const bitfinexURL = "https://api-pub.bitfinex.com/v2/ticker/t%s"
-
-// Bitfinex origin handler
 type Bitfinex struct {
 	Pool query.WorkerPool
 }
 
-func (b *Bitfinex) localPairName(pair Pair) string {
-	const USDT = "USDT"
-	const USD = "USD"
-	if pair.Base == USDT && pair.Quote == USD {
-		return "USTUSD"
-	}
-	if pair.Quote == USDT {
-		return pair.Base + USD
-	}
-	return pair.Base + pair.Quote
-}
+const bitfinexURL = "https://api-pub.bitfinex.com/v2/tickers?symbols=%s"
 
-func (b *Bitfinex) getURL(pair Pair) string {
-	return fmt.Sprintf(bitfinexURL, b.localPairName(pair))
-}
-
-func (b *Bitfinex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(b, pairs)
-}
-
-func (b *Bitfinex) callOne(pair Pair) (*Tick, error) {
-	var err error
+func (o *Bitfinex) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: b.getURL(pair),
+		URL: fmt.Sprintf(bitfinexURL, o.localPairName(pairs...)),
 	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
 
-	// make query
-	res := b.Pool.Query(req)
-	if res == nil {
-		return nil, errEmptyOriginResponse
-	}
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	// parsing JSON
-	var resp []float64
-	err = json.Unmarshal(res.Body, &resp)
+func (o *Bitfinex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	var resp [][]interface{}
+	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bitfinex response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
-	if len(resp) < 8 {
-		return nil, fmt.Errorf("wrong bitfinex response")
+	return o.mapResults(pairs, o.mapTickers(resp))
+}
+
+func (o *Bitfinex) mapResults(pairs []Pair, tickers map[string]bitfinexTicker) []FetchResult {
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		//nolint:gocritic
+		if t, is := tickers[o.localPairName(pair)]; !is {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else if t.Error != nil {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: t.Error,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     t.LastPrice,
+					Ask:       t.Ask,
+					Bid:       t.Bid,
+					Volume24h: t.Volume,
+					Timestamp: time.Now(),
+				},
+			})
+		}
+	}
+	return results
+}
+
+func (o *Bitfinex) mapTickers(resp [][]interface{}) map[string]bitfinexTicker {
+	tickers := make(map[string]bitfinexTicker)
+	for _, tt := range resp {
+		t := o.parseTicker(tt)
+		tickers[t.Symbol] = t
+	}
+	return tickers
+}
+
+type bitfinexTicker struct {
+	Symbol              string  //  [0]: SYMBOL
+	Bid                 float64 //  [1]: BID
+	BidSize             float64 //  [2]: BID_SIZE
+	Ask                 float64 //  [3]: ASK
+	AskSize             float64 //  [4]: ASK_SIZE
+	DailyChange         float64 //  [5]: DAILY_CHANGE
+	DailyChangeRelative float64 //  [6]: DAILY_CHANGE_RELATIVE
+	LastPrice           float64 //  [7]: LAST_PRICE
+	Volume              float64 //  [8]: VOLUME
+	High                float64 //  [9]: HIGH
+	Low                 float64 // [10]: LOW
+	Error               error
+}
+
+//nolint:funlen,gocyclo
+func (*Bitfinex) parseTicker(tt []interface{}) bitfinexTicker {
+	var t bitfinexTicker
+	crc := make(map[int]bool)
+	for i, a := range tt {
+		switch x := a.(type) {
+		case string:
+			t.Symbol = x
+			if i != 0 {
+				t.Error = errors.New("market symbol is not at index 0")
+				return t
+			}
+			crc[i] = true
+		case float64:
+			switch i {
+			case 1:
+				t.Bid = x
+			case 2:
+				t.BidSize = x
+			case 3:
+				t.Ask = x
+			case 4:
+				t.AskSize = x
+			case 5:
+				t.DailyChange = x
+			case 6:
+				t.DailyChangeRelative = x
+			case 7:
+				t.LastPrice = x
+			case 8:
+				t.Volume = x
+			case 9:
+				t.High = x
+			case 10:
+				t.Low = x
+			}
+			crc[i] = true
+		default:
+			t.Error = fmt.Errorf("item at index %d is unexpexted (Type: %T)", i, x)
+			return t
+		}
+	}
+	expectedItemCount := 11
+	if len(crc) > expectedItemCount {
+		t.Error = fmt.Errorf("too many (%d) items", len(crc)+1)
+		return t
+	}
+	for i := 0; i <= 10; i++ {
+		if v, ok := crc[i]; !ok || !v {
+			t.Error = fmt.Errorf("item at index %d is missing", i)
+			return t
+		}
+	}
+	return t
+}
+
+//nolint:lll
+const bitfinexConfig = `[[["AAA","TESTAAA"],["ABS","ABYSS"],["AIO","AION"],["ALG","ALGO"],["AMP","AMPL"],["AMPF0","AMPLF0"],["ATO","ATOM"],["BAB","BCH"],["BBB","TESTBBB"],["CNHT","CNHt"],["CSX","CS"],["CTX","CTXC"],["DAT","DATA"],["DOG","MDOGE"],["DRN","DRGN"],["DSH","DASH"],["DTX","DT"],["EDO","PNT"],["EUS","EURS"],["EUT","EURt"],["GSD","GUSD"],["IOS","IOST"],["IOT","IOTA"],["LBT","LBTC"],["LES","LEO-EOS"],["LET","LEO-ERC20"],["MIT","MITH"],["MNA","MANA"],["NCA","NCASH"],["OMN","OMNI"],["PAS","PASS"],["POY","POLY"],["QSH","QASH"],["QTM","QTUM"],["RBT","RBTC"],["REP","REP2"],["SCR","XD"],["SNG","SNGLS"],["SPK","SPANK"],["STJ","STORJ"],["TSD","TUSD"],["UDC","USDC"],["USK","USDK"],["UST","USDt"],["USTF0","USDt0"],["UTN","UTNP"],["VSY","VSYS"],["WBT","WBTC"],["XAUT","XAUt"],["XCH","XCHF"],["YGG","YEED"],["YYW","YOYOW"]]]`
+
+func (*Bitfinex) localPairName(pairs ...Pair) string {
+	c := bitfinexConfigMap([]byte(bitfinexConfig))
+	var l []string
+	for _, pair := range pairs {
+		b, ok := c[pair.Base]
+		if !ok {
+			b = pair.Base
+		}
+		q, ok := c[pair.Quote]
+		if !ok {
+			q = pair.Quote
+		}
+		// Hack to treat prices with USD quotes from Bitfinex as if they were with USDT quotes
+		if pair.Quote == "USDT" {
+			q = "USD"
+		}
+		l = append(l, fmt.Sprintf("t%s%s", b, q))
+	}
+	return strings.Join(l, ",")
+}
+
+func bitfinexConfigMap(j []byte) map[string]string {
+	var a [][][]string
+	err := json.Unmarshal(j, &a)
+	if err != nil {
+		panic(err)
 	}
 
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     resp[6],
-		Volume24h: resp[7],
-		Timestamp: time.Now(),
-	}, nil
+	c := make(map[string]string)
+	for _, v := range a[0] {
+		c[strings.ToUpper(v[1])] = strings.ToUpper(v[0])
+	}
+	return c
 }
