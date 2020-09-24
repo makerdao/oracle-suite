@@ -18,21 +18,20 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Okex URL
-const okexURL = "https://www.okex.com/api/spot/v3/instruments/%s/ticker"
+const okexURL = "https://www.okex.com/api/spot/v3/instruments/ticker"
 
 type okexResponse struct {
-	Last          string    `json:"last"`
-	Ask           string    `json:"ask"`
-	Bid           string    `json:"bid"`
-	BaseVolume24H string    `json:"base_volume_24h"`
-	Timestamp     time.Time `json:"timestamp"`
+	InstrumentID  string          `json:"instrument_id"`
+	Last          stringAsFloat64 `json:"last"`
+	BestAsk       stringAsFloat64 `json:"best_ask"`
+	BestBid       stringAsFloat64 `json:"best_bid"`
+	BaseVolume24H stringAsFloat64 `json:"base_volume_24h"`
+	Timestamp     time.Time       `json:"timestamp"`
 }
 
 // Okex origin handler
@@ -44,61 +43,55 @@ func (o *Okex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (o *Okex) getURL(pair Pair) string {
-	return fmt.Sprintf(okexURL, o.localPairName(pair))
-}
-
 func (o *Okex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(o, pairs)
-}
-
-func (o *Okex) callOne(pair Pair) (*Tick, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: o.getURL(pair),
+		URL: okexURL,
 	}
 
 	// make query
 	res := o.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		return fetchResultListWithErrors(pairs, res.Error)
 	}
-	// parsing JSON
-	var resp okexResponse
+
+	// parse JSON
+	var resp []okexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse okex response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse Okex response: %w", err))
 	}
-	// parsing price from string
-	price, err := strconv.ParseFloat(resp.Last, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from okex origin %s", res.Body)
+
+	// convert response from a slice to a map
+	respMap := map[string]okexResponse{}
+	for _, symbolResp := range resp {
+		respMap[symbolResp.InstrumentID] = symbolResp
 	}
-	// parsing ask price from string
-	ask, err := strconv.ParseFloat(resp.Ask, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ask from okex origin %s", res.Body)
+
+	// prepare result
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		if r, ok := respMap[o.localPairName(pair)]; !ok {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     r.Last.val(),
+					Bid:       r.BestBid.val(),
+					Ask:       r.BestAsk.val(),
+					Volume24h: r.BaseVolume24H.val(),
+					Timestamp: r.Timestamp,
+				},
+			})
+		}
 	}
-	// parsing bid price from string
-	bid, err := strconv.ParseFloat(resp.Bid, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse bid from okex origin %s", res.Body)
-	}
-	// parsing volume from string
-	volume, err := strconv.ParseFloat(resp.BaseVolume24H, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse volume from okex origin %s", res.Body)
-	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Timestamp: resp.Timestamp,
-		Price:     price,
-		Ask:       ask,
-		Bid:       bid,
-		Volume24h: volume,
-	}, nil
+
+	return results
 }
