@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -24,6 +23,32 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 )
+
+type NotEnoughSources struct {
+	Given int
+	Min   int
+}
+
+func (e NotEnoughSources) Error() string {
+	return fmt.Sprintf(
+		"not enough sources to calculate median, %d given but at least %d required",
+		e.Given,
+		e.Min,
+	)
+}
+
+type IncompatiblePairs struct {
+	Given    Pair
+	Expected Pair
+}
+
+func (e IncompatiblePairs) Error() string {
+	return fmt.Sprintf(
+		"unable to calculate median for different pairs, %s given but %s was expected",
+		e.Given,
+		e.Expected,
+	)
+}
 
 // MedianAggregatorNode gets Ticks from all of its children and calculates
 // median price.
@@ -89,11 +114,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 		if !n.pair.Equal(tick.Pair) {
 			err = multierror.Append(
 				err,
-				fmt.Errorf(
-					"unable to calculate median for different pairs, %s given but %s was expected",
-					tick.Pair,
-					n.pair,
-				),
+				IncompatiblePairs{Given: tick.Pair, Expected: n.pair},
 			)
 			continue
 		}
@@ -115,7 +136,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 	if len(prices) < n.minSources {
 		err = multierror.Append(
 			err,
-			errors.New("not enough sources to calculate median"),
+			NotEnoughSources{Given: len(prices), Min: n.minSources},
 		)
 	}
 
