@@ -110,7 +110,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 								"symbol": "LRC"
 							},
 							"token1": {
-								"symbol": "WETH"
+								"symbol": "WBTC"
 							}
 						}
 					]
