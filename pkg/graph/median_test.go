@@ -436,29 +436,29 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 
 func Test_median(t *testing.T) {
 	tests := []struct {
-		name    string
-		prices  []float64
-		want    float64
+		name   string
+		prices []float64
+		want   float64
 	}{
 		{
-			name:    "no-prices",
-			prices:   []float64{},
-			want:    float64(0),
+			name:   "no-prices",
+			prices: []float64{},
+			want:   float64(0),
 		},
 		{
-			name:    "one-price",
-			prices:   []float64{10},
-			want:    float64(10),
+			name:   "one-price",
+			prices: []float64{10},
+			want:   float64(10),
 		},
 		{
-			name:    "three-prices",
-			prices:   []float64{-20, 10, 20},
-			want:    float64(10),
+			name:   "three-prices",
+			prices: []float64{-20, 10, 20},
+			want:   float64(10),
 		},
 		{
-			name:    "four-prices",
-			prices:   []float64{10, 20, 30, 40},
-			want:    float64(25),
+			name:   "four-prices",
+			prices: []float64{10, 20, 30, 40},
+			want:   float64(25),
 		},
 	}
 
