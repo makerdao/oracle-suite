@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
@@ -37,7 +38,7 @@ type uniswapTokenResponse struct {
 }
 
 type uniswapPairResponse struct {
-	Id      string               `json:"id"`
+	ID      string               `json:"id"`
 	Price0  stringAsFloat64      `json:"token0Price"`
 	Price1  stringAsFloat64      `json:"token1Price"`
 	Volume0 stringAsFloat64      `json:"volumeToken0"`
@@ -99,10 +100,24 @@ func (u *Uniswap) renameSymbol(symbol string) string {
 func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 	var err error
 
-	pairsJson, _ := json.Marshal(u.pairsToContractAddresses(pairs))
+	pairsJSON, _ := json.Marshal(u.pairsToContractAddresses(pairs))
+	gql := `
+		query($ids:[String]) {
+			pairs(where:{id_in:$ids}) {
+				id
+				token0Price
+				token1Price
+				volumeToken0
+				volumeToken1
+				token0 { symbol }
+				token1 { symbol }
+			}
+		}
+	`
 	body := fmt.Sprintf(
-		`{"query":"query($ids:[String]){pairs(where:{id_in:$ids}){id token0Price token1Price volumeToken0 volumeToken1 token0 { symbol } token1 { symbol }}}","variables":{"ids":%s}}`,
-		pairsJson,
+		`{"query":"%s","variables":{"ids":%s}}`,
+		strings.ReplaceAll(strings.ReplaceAll(gql, "\n", " "), "\t", ""),
+		pairsJSON,
 	)
 
 	req := &query.HTTPRequest{
@@ -130,7 +145,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 	// convert response from a slice to a map
 	respMap := map[string]uniswapPairResponse{}
 	for _, pairResp := range resp.Data.Pairs {
-		respMap[pairResp.Token0.Symbol + "/" + pairResp.Token1.Symbol] = pairResp
+		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
 
 	// prepare result
