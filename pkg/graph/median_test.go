@@ -263,7 +263,7 @@ func TestMedianAggregatorNode_Tick_NotEnoughSources(t *testing.T) {
 
 	tick := m.Tick()
 
-	assert.True(t, errors.As(tick.Error, &NotEnoughSources{}))
+	assert.True(t, errors.As(tick.Error, &NotEnoughSourcesErr{}))
 
 	// If possible, the median should be calculated for the rest of the prices:
 	assert.Equal(t, float64(10), tick.Price)
@@ -310,7 +310,7 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 
 	tick := m.Tick()
 
-	assert.True(t, errors.As(tick.Error, &NotEnoughSources{}))
+	assert.True(t, errors.As(tick.Error, &NotEnoughSourcesErr{}))
 
 	// If possible, the median should be calculated for the rest of the prices:
 	assert.Equal(t, float64(10), tick.Price)
@@ -358,7 +358,7 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 
 	tick := m.Tick()
 
-	assert.True(t, errors.As(tick.Error, &IncompatiblePairs{}))
+	assert.True(t, errors.As(tick.Error, &IncompatiblePairsErr{}))
 
 	// If possible, the median should be calculated for the rest of the prices:
 	assert.Equal(t, float64(10), tick.Price)
@@ -372,7 +372,7 @@ func TestMedianAggregatorNode_Tick_NoChildrenNodes(t *testing.T) {
 
 	tick := m.Tick()
 
-	assert.True(t, errors.As(tick.Error, &NotEnoughSources{}))
+	assert.True(t, errors.As(tick.Error, &NotEnoughSourcesErr{}))
 }
 
 func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {

@@ -24,12 +24,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type NotEnoughSources struct {
+type NotEnoughSourcesErr struct {
 	Given int
 	Min   int
 }
 
-func (e NotEnoughSources) Error() string {
+func (e NotEnoughSourcesErr) Error() string {
 	return fmt.Sprintf(
 		"not enough sources to calculate median, %d given but at least %d required",
 		e.Given,
@@ -37,12 +37,12 @@ func (e NotEnoughSources) Error() string {
 	)
 }
 
-type IncompatiblePairs struct {
+type IncompatiblePairsErr struct {
 	Given    Pair
 	Expected Pair
 }
 
-func (e IncompatiblePairs) Error() string {
+func (e IncompatiblePairsErr) Error() string {
 	return fmt.Sprintf(
 		"unable to calculate median for different pairs, %s given but %s was expected",
 		e.Given,
@@ -55,9 +55,11 @@ func (e IncompatiblePairs) Error() string {
 //
 //                           -- [Origin A/B]
 //                          /
-//  [MedianAggregatorNode] ---- [Origin A/B]
-//                          \
-//                           -- [Aggregator A/B]
+//  [MedianAggregatorNode] ---- [Origin B/C]       -- ...
+//                          \                     /
+//                           -- [Aggregator C/D] ---- ...
+//                                                \
+//                                                 -- ...
 //
 // All children of this node must return tick for the same pair.
 type MedianAggregatorNode struct {
@@ -93,6 +95,9 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 	var err error
 
 	for i, c := range n.children {
+		// There is no need to copy errors from ticks to the MedianAggregatorNode
+		// because there may be enough remaining ticks to calculate median tick.
+
 		var tick Tick
 		switch typedNode := c.(type) {
 		case Origin:
@@ -114,7 +119,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 		if !n.pair.Equal(tick.Pair) {
 			err = multierror.Append(
 				err,
-				IncompatiblePairs{Given: tick.Pair, Expected: n.pair},
+				IncompatiblePairsErr{Given: tick.Pair, Expected: n.pair},
 			)
 			continue
 		}
@@ -136,7 +141,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 	if len(prices) < n.minSources {
 		err = multierror.Append(
 			err,
-			NotEnoughSources{Given: len(prices), Min: n.minSources},
+			NotEnoughSourcesErr{Given: len(prices), Min: n.minSources},
 		)
 	}
 
