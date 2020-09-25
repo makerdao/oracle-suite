@@ -136,6 +136,8 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 }
 
 func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
+	// Map of all created origin nodes. Used to reuse instances of the nodes
+	// whenever possible.
 	origins := map[graph.OriginPair]graph.Origin{}
 
 	for name, model := range j.PriceModels {
@@ -162,7 +164,8 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 				}
 
 				if source.Origin == "." {
-					// The reference to an other root node.
+					// If the origin is set to "." it means, that it's
+					// a reference to an other root node.
 					if _, ok := graphs[sourcePair]; !ok {
 						return fmt.Errorf(
 							"unable to find price model for the %s pair",
@@ -215,15 +218,15 @@ func (j *JSON) detectCycles(graphs map[graph.Pair]graph.Aggregator) error {
 	for _, p := range sortGraphs(graphs) {
 		if c := graph.DetectCycles(graphs[p]); len(c) > 0 {
 			errMsg := strings.Builder{}
-			errMsg.WriteString(fmt.Sprintf("cyclic reference was detected for %s pair: ", p))
+			errMsg.WriteString(fmt.Sprintf("cyclic reference was detected for the %s pair: ", p))
 			for i, n := range c {
 				switch typedNode := n.(type) {
-				case interface{Pair() graph.Pair}:
+				case interface{ Pair() graph.Pair }:
 					errMsg.WriteString(typedNode.Pair().String())
 				default:
 					errMsg.WriteString(reflect.TypeOf(typedNode).String())
 				}
-				if i != len(c) - 1 {
+				if i != len(c)-1 {
 					errMsg.WriteString(" -> ")
 				}
 			}
@@ -236,7 +239,7 @@ func (j *JSON) detectCycles(graphs map[graph.Pair]graph.Aggregator) error {
 
 func sortGraphs(graphs map[graph.Pair]graph.Aggregator) []graph.Pair {
 	var pairs []graph.Pair
-	for p, _ := range graphs {
+	for p := range graphs {
 		pairs = append(pairs, p)
 	}
 	sort.SliceStable(pairs, func(i, j int) bool {
