@@ -184,12 +184,11 @@ func (suite *BittrexSuite) TestRealAPICall() {
 		suite,
 		&Bittrex{Pool: query.NewHTTPWorkerPool(1)},
 		[]Pair{
-			{Base: "ETH", Quote: "BTC"},
-			{Base: "DGX", Quote: "USDT"},
-			{Base: "MKR", Quote: "ETH"},
-			{Base: "OMG", Quote: "USDT"},
-			{Base: "USDT", Quote: "USD"},
-			{Base: "ZRX", Quote: "USD"},
+			{Base: "GNT", Quote: "BTC"},
+			{Base: "MANA", Quote: "BTC"},
+			{Base: "REP", Quote: "BTC"},
+			{Base: "BAT", Quote: "BTC"},
+			{Base: "BTC", Quote: "USD"},
 		},
 	)
 }

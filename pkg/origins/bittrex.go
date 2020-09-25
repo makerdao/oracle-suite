@@ -45,6 +45,14 @@ type Bittrex struct {
 }
 
 func (b *Bittrex) localPairName(pair Pair) string {
+	if pair.Quote == "REP" {
+		pair.Quote = "REPV2"
+	}
+
+	if pair.Base == "REP" {
+		pair.Base = "REPV2"
+	}
+
 	return fmt.Sprintf("%s-%s", pair.Quote, pair.Base)
 }
 
