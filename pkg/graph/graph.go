@@ -81,7 +81,9 @@ func AsyncWalk(fn func(Node), node ...Node) {
 	wg.Wait()
 }
 
-func DetectCycles(node Node) []Node {
+// DetectCycle detects cycle in given graph. If cycle is
+// detected then path is returned, otherwise empty slice.
+func DetectCycle(node Node) []Node {
 	visited := map[Node]struct{}{}
 
 	var recur func(Node, []Node) []Node

@@ -104,7 +104,7 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 		return nil, JSONConfigErr{err}
 	}
 
-	err = j.detectCycles(graphs)
+	err = j.detectCycle(graphs)
 	if err != nil {
 		return nil, JSONConfigErr{err}
 	}
@@ -214,9 +214,9 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (j *JSON) detectCycles(graphs map[graph.Pair]graph.Aggregator) error {
+func (j *JSON) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
 	for _, p := range sortGraphs(graphs) {
-		if c := graph.DetectCycles(graphs[p]); len(c) > 0 {
+		if c := graph.DetectCycle(graphs[p]); len(c) > 0 {
 			errMsg := strings.Builder{}
 			errMsg.WriteString(fmt.Sprintf("cyclic reference was detected for the %s pair: ", p))
 			for i, n := range c {

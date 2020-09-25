@@ -57,7 +57,7 @@ func TestDetectCycles(t *testing.T) {
 	c2.AddChild(nonCyclic)
 	c2.AddChild(cyclic)
 
-	assert.Len(t, DetectCycles(nonCyclic), 0)
-	assert.Equal(t, []Node{cyclic, cyclicC3}, DetectCycles(cyclic))
-	assert.Equal(t, []Node{r, c2, cyclic, cyclicC3}, DetectCycles(r))
+	assert.Len(t, DetectCycle(nonCyclic), 0)
+	assert.Equal(t, []Node{cyclic, cyclicC3}, DetectCycle(cyclic))
+	assert.Equal(t, []Node{r, c2, cyclic, cyclicC3}, DetectCycle(r))
 }
