@@ -80,3 +80,36 @@ func AsyncWalk(fn func(Node), node ...Node) {
 
 	wg.Wait()
 }
+
+func DetectCycles(node Node) []Node {
+	visited := map[Node]struct{}{}
+
+	var recur func(Node, []Node) []Node
+	recur = func(node Node, parents []Node) []Node {
+		// If node already appeared in the parents list, it means that given
+		// graph is cyclic.
+		for _, n := range parents {
+			if n == node {
+				return parents
+			}
+		}
+		// Skip checking for already visited nodes.
+		if _, ok := visited[node]; ok {
+			return nil
+		}
+		visited[node] = struct{}{}
+		parents = append(parents, node)
+		for _, n := range node.Children() {
+			// We have to copy list for each child, because each node
+			// have different list of parents.
+			parentsCpy := make([]Node, len(parents))
+			copy(parentsCpy, parents)
+			if p := recur(n, parentsCpy); p != nil {
+				return p
+			}
+		}
+		return nil
+	}
+
+	return recur(node, nil)
+}
