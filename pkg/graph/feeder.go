@@ -18,12 +18,14 @@ package graph
 import (
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/makerdao/gofer/pkg/origins"
 )
 
 type Feedable interface {
 	OriginPair() OriginPair
-	Ingest(tick OriginTick)
+	Ingest(tick OriginTick) error
 	Tick() OriginTick
 }
 
@@ -40,8 +42,8 @@ func NewFeeder(set *origins.Set, ttl int) *Feeder {
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
 // and sets Ticks to all of their children that implements the Feedable interface.
-func (i *Feeder) Feed(nodes ...Node) {
-	i.fetchTicks(i.findFeedableNodes(nodes))
+func (i *Feeder) Feed(nodes ...Node) error {
+	return i.fetchTicks(i.findFeedableNodes(nodes))
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
@@ -62,7 +64,9 @@ func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	return feedables
 }
 
-func (i *Feeder) fetchTicks(nodes []Feedable) {
+func (i *Feeder) fetchTicks(nodes []Feedable) error {
+	var err error
+
 	// originPair is used as a key in a map to easily find
 	// Feedable nodes for given origin and pair
 	type originPair struct {
@@ -101,10 +105,12 @@ func (i *Feeder) fetchTicks(nodes []Feedable) {
 			}
 
 			for _, node := range nodesMap[originPair] {
-				node.Ingest(mapOriginResult(origin, fr))
+				err = multierror.Append(err, node.Ingest(mapOriginResult(origin, fr)))
 			}
 		}
 	}
+
+	return err
 }
 
 func appendPairIfUnique(pairs []origins.Pair, pair origins.Pair) []origins.Pair {
