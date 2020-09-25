@@ -40,7 +40,7 @@ func TestOriginNode_Ingest_Valid(t *testing.T) {
 	}
 
 	ot := OriginTick{
-		Tick:   Tick{
+		Tick: Tick{
 			Pair:      Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
@@ -67,7 +67,7 @@ func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 	}
 
 	ot := OriginTick{
-		Tick:   Tick{
+		Tick: Tick{
 			Pair:      Pair{Base: "A", Quote: "C"},
 			Price:     10,
 			Bid:       10,
@@ -93,7 +93,7 @@ func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 	}
 
 	ot := OriginTick{
-		Tick:   Tick{
+		Tick: Tick{
 			Pair:      Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
@@ -119,7 +119,7 @@ func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
 	}
 
 	ot := OriginTick{
-		Tick:   Tick{
+		Tick: Tick{
 			Pair:      Pair{Base: "A", Quote: "C"},
 			Price:     10,
 			Bid:       10,
@@ -148,7 +148,7 @@ func TestOriginNode_Ingest_TickWithError(t *testing.T) {
 	}
 
 	ot := OriginTick{
-		Tick:   Tick{
+		Tick: Tick{
 			Pair:      Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
