@@ -105,7 +105,9 @@ func (i *Feeder) fetchTicks(nodes []Feedable) error {
 			}
 
 			for _, node := range nodesMap[originPair] {
-				err = multierror.Append(err, node.Ingest(mapOriginResult(origin, fr)))
+				if inErr := node.Ingest(mapOriginResult(origin, fr)); inErr != nil {
+					err = multierror.Append(err, inErr)
+				}
 			}
 		}
 	}
