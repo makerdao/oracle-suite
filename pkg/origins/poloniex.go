@@ -39,12 +39,17 @@ type Poloniex struct {
 }
 
 func (p *Poloniex) localPairName(pair Pair) string {
-	if pair.Quote == "REP" {
-		pair.Quote = "REPV2"
+	const (
+		REP   = "REP"
+		REPV2 = "REPV2"
+	)
+
+	if pair.Quote == REP {
+		pair.Quote = REPV2
 	}
 
-	if pair.Base == "REP" {
-		pair.Base = "REPV2"
+	if pair.Base == REP {
+		pair.Base = REPV2
 	}
 
 	return fmt.Sprintf("%s_%s", pair.Quote, pair.Base)
