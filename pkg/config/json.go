@@ -17,10 +17,13 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
@@ -51,16 +54,24 @@ type JSONSources struct {
 	Pair   string `json:"pair"`
 }
 
+type JSONConfigErr struct {
+	Err error
+}
+
+func (e JSONConfigErr) Error() string {
+	return e.Err.Error()
+}
+
 func ParseJSONFile(path string) (*JSON, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load json config file: %w", err)
+		return nil, fmt.Errorf("failed to load JSON config file: %w", err)
 	}
 	defer f.Close()
 
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load json config file: %w", err)
+		return nil, JSONConfigErr{fmt.Errorf("failed to load JSON config file: %w", err)}
 	}
 
 	return ParseJSON(b)
@@ -70,7 +81,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	j := &JSON{}
 	err := json.Unmarshal(b, j)
 	if err != nil {
-		return nil, err
+		return nil, JSONConfigErr{err}
 	}
 
 	return j, nil
@@ -81,23 +92,27 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 
 	graphs := map[graph.Pair]graph.Aggregator{}
 
+	// It's important to create root nodes before branches, because branches
+	// may refer to another root nodes instances.
 	err = j.buildRoots(graphs)
 	if err != nil {
-		return nil, err
+		return nil, JSONConfigErr{err}
 	}
 
 	err = j.buildBranches(graphs)
 	if err != nil {
-		return nil, err
+		return nil, JSONConfigErr{err}
+	}
+
+	err = j.detectCycle(graphs)
+	if err != nil {
+		return nil, JSONConfigErr{err}
 	}
 
 	return graphs, nil
 }
 
 func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
-	// It's important to create root nodes before branches,
-	// because branches may refer to another root nodes
-	// instances.
 	for name, model := range j.PriceModels {
 		modelPair, err := graph.NewPair(name)
 		if err != nil {
@@ -121,9 +136,13 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 }
 
 func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
+	// Map of all created origin nodes. Used to reuse instances of the nodes
+	// whenever possible.
 	origins := map[graph.OriginPair]graph.Origin{}
 
 	for name, model := range j.PriceModels {
+		// We can ignore error here, because it was checked already
+		// in buildRoots method.
 		modelPair, _ := graph.NewPair(name)
 
 		var parent graph.Parent
@@ -131,7 +150,7 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 			parent = typedNode
 		} else {
 			return fmt.Errorf(
-				"%s must implement graph.Parent interface",
+				"%s must implement the graph.Parent interface",
 				reflect.TypeOf(graphs[modelPair]).Elem().String(),
 			)
 		}
@@ -145,9 +164,13 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 				}
 
 				if source.Origin == "." {
-					// The reference to an other root node.
+					// If the origin is set to "." it means, that it's
+					// a reference to an other root node.
 					if _, ok := graphs[sourcePair]; !ok {
-						return fmt.Errorf("unable to find price model for %s pair", sourcePair)
+						return fmt.Errorf(
+							"unable to find price model for the %s pair",
+							sourcePair,
+						)
 					}
 					children = append(children, graphs[sourcePair].(graph.Node))
 				} else {
@@ -189,4 +212,38 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	}
 
 	return nil
+}
+
+func (j *JSON) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
+	for _, p := range sortGraphs(graphs) {
+		if c := graph.DetectCycle(graphs[p]); len(c) > 0 {
+			errMsg := strings.Builder{}
+			errMsg.WriteString(fmt.Sprintf("cyclic reference was detected for the %s pair: ", p))
+			for i, n := range c {
+				switch typedNode := n.(type) {
+				case interface{ Pair() graph.Pair }:
+					errMsg.WriteString(typedNode.Pair().String())
+				default:
+					errMsg.WriteString(reflect.TypeOf(typedNode).String())
+				}
+				if i != len(c)-1 {
+					errMsg.WriteString(" -> ")
+				}
+			}
+			return errors.New(errMsg.String())
+		}
+	}
+
+	return nil
+}
+
+func sortGraphs(graphs map[graph.Pair]graph.Aggregator) []graph.Pair {
+	var pairs []graph.Pair
+	for p := range graphs {
+		pairs = append(pairs, p)
+	}
+	sort.SliceStable(pairs, func(i, j int) bool {
+		return pairs[i].String() < pairs[j].String()
+	})
+	return pairs
 }

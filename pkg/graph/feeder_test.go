@@ -61,7 +61,9 @@ func originsSetMock(ticks map[string][]origins.Tick) *origins.Set {
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil), 0)
-	f.Feed()
+	err := f.Feed()
+
+	assert.Nil(t, err)
 
 	// Feed method shouldn't panic
 }
@@ -69,7 +71,9 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil), 0)
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
-	f.Feed(g)
+	err := f.Feed(g)
+
+	assert.Nil(t, err)
 
 	// Feed method shouldn't panic
 }
@@ -97,8 +101,9 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	f.Feed(g)
+	err := f.Feed(g)
 
+	assert.Nil(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
 	assert.Equal(t, 10.0, o.tick.Price)
 	assert.Equal(t, 9.0, o.tick.Bid)
@@ -168,7 +173,9 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	g.AddChild(o3)
 	g.AddChild(o3) // intentionally
 	g.AddChild(o4)
-	f.Feed(g)
+	err := f.Feed(g)
+
+	assert.Nil(t, err)
 
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o1.tick.Pair)
 	assert.Equal(t, 10.0, o1.tick.Price)
@@ -231,8 +238,9 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 
 	g.AddChild(i)
 	i.AddChild(o)
-	f.Feed(g)
+	err := f.Feed(g)
 
+	assert.Nil(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
 	assert.Equal(t, 10.0, o.tick.Price)
 	assert.Equal(t, 9.0, o.tick.Bid)
@@ -263,7 +271,7 @@ func TestFeeder_Feed_TTL(t *testing.T) {
 		Pair:   Pair{Base: "A", Quote: "B"},
 	})
 
-	o.Ingest(OriginTick{
+	_ = o.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      Pair{Base: "A", Quote: "B"},
 			Price:     10,
@@ -277,9 +285,10 @@ func TestFeeder_Feed_TTL(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	f.Feed(g)
+	err := f.Feed(g)
 
 	// OriginNode shouldn't be updated because of TTL setting:
+	assert.Nil(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
 	assert.Equal(t, 10.0, o.tick.Price)
 	assert.Equal(t, 9.0, o.tick.Bid)
