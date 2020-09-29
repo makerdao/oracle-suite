@@ -84,12 +84,12 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 		err = multierror.Append(err, e)
 	}
 
-	// if indirectTick.Price <= 0 {
-	// 	err = multierror.Append(
-	// 		err,
-	// 		fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair),
-	// 	)
-	// }
+	if indirectTick.Price <= 0 {
+		err = multierror.Append(
+			err,
+			fmt.Errorf("calculated price for %s is zero or lower", indirectTick.Pair),
+		)
+	}
 
 	if !indirectTick.Pair.Equal(n.pair) {
 		err = multierror.Append(
