@@ -60,7 +60,7 @@ func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
 	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -73,7 +73,7 @@ func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     20,
@@ -86,7 +86,7 @@ func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c3.Ingest(OriginTick{
+	_ = c3.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p3,
 			Price:     30,
@@ -143,7 +143,7 @@ func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 	i3 := NewIndirectAggregatorNode(p3)
 	i3.AddChild(c3)
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -156,7 +156,7 @@ func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     20,
@@ -169,7 +169,7 @@ func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c3.Ingest(OriginTick{
+	_ = c3.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p3,
 			Price:     30,
@@ -258,7 +258,7 @@ func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -271,7 +271,7 @@ func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     20,
@@ -302,7 +302,7 @@ func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -315,7 +315,7 @@ func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     20,
@@ -346,7 +346,7 @@ func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -359,7 +359,7 @@ func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     20,
@@ -390,7 +390,7 @@ func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -403,7 +403,7 @@ func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     0,
