@@ -19,32 +19,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
 )
 
-// Uniswap URL
 const uniswapURL = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2"
-
-type uniswapairairResponse struct {
-	Price0 string `json:"token0Price"`
-	Price  string `json:"token1Price"`
-}
 
 type uniswapResponse struct {
 	Data struct {
-		Pairs []*uniswapairairResponse
+		Pairs []uniswapPairResponse
 	}
 }
 
-func getPriceByPair(pair Pair, res *uniswapairairResponse) string {
-	p := Pair{Base: "KNC", Quote: "ETH"}
-	if pair == p {
-		return res.Price0
-	}
-	return res.Price
+type uniswapTokenResponse struct {
+	Symbol string `json:"symbol"`
+}
+
+type uniswapPairResponse struct {
+	ID      string               `json:"id"`
+	Price0  stringAsFloat64      `json:"token0Price"`
+	Price1  stringAsFloat64      `json:"token1Price"`
+	Volume0 stringAsFloat64      `json:"volumeToken0"`
+	Volume1 stringAsFloat64      `json:"volumeToken1"`
+	Token0  uniswapTokenResponse `json:"token0"`
+	Token1  uniswapTokenResponse `json:"token1"`
 }
 
 // Uniswap origin handler
@@ -52,37 +52,76 @@ type Uniswap struct {
 	Pool query.WorkerPool
 }
 
-func (u *Uniswap) localPairName(pair Pair) string {
-	switch pair {
-	case Pair{Base: "COMP", Quote: "ETH"}:
-		return "0xcffdded873554f362ac02f8fb1f02e5ada10516f"
-	case Pair{Base: "LRC", Quote: "ETH"}:
-		return "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70"
-	case Pair{Base: "KNC", Quote: "ETH"}:
-		return "0xf49c43ae0faf37217bdcb00df478cf793edd6687"
-	default:
-		return pair.String()
+func (u *Uniswap) pairsToContractAddresses(pairs []Pair) []string {
+	var names []string
+
+	// We're checking for reverse pairs because the same contract is used to
+	// trade in both directions.
+	match := func(a, b Pair) bool {
+		if a.Quote == b.Quote && a.Base == b.Base {
+			return true
+		}
+
+		if a.Quote == b.Base && a.Base == b.Quote {
+			return true
+		}
+
+		return false
 	}
+
+	for _, pair := range pairs {
+		p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
+
+		switch {
+		case match(p, Pair{Base: "COMP", Quote: "WETH"}):
+			names = append(names, "0xcffdded873554f362ac02f8fb1f02e5ada10516f")
+		case match(p, Pair{Base: "LRC", Quote: "WETH"}):
+			names = append(names, "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70")
+		case match(p, Pair{Base: "KNC", Quote: "WETH"}):
+			names = append(names, "0xf49c43ae0faf37217bdcb00df478cf793edd6687")
+		}
+	}
+
+	return names
 }
 
-func (u *Uniswap) getURL(_ Pair) string {
-	return uniswapURL
+// TODO: We should find better solution for this.
+func (u *Uniswap) renameSymbol(symbol string) string {
+	switch symbol {
+	case "ETH":
+		return "WETH"
+	case "BTC":
+		return "WBTC"
+	}
+
+	return symbol
 }
 
 func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(u, pairs)
-}
-
-func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
 	var err error
-	pairName := u.localPairName(pair)
+
+	pairsJSON, _ := json.Marshal(u.pairsToContractAddresses(pairs))
+	gql := `
+		query($ids:[String]) {
+			pairs(where:{id_in:$ids}) {
+				id
+				token0Price
+				token1Price
+				volumeToken0
+				volumeToken1
+				token0 { symbol }
+				token1 { symbol }
+			}
+		}
+	`
 	body := fmt.Sprintf(
-		`{"query":"query($id:String){pairs(where:{id:$id}){token0Price token1Price}}","variables":{"id":"%s"}}`,
-		pairName,
+		`{"query":"%s","variables":{"ids":%s}}`,
+		strings.ReplaceAll(strings.ReplaceAll(gql, "\n", " "), "\t", ""),
+		pairsJSON,
 	)
 
 	req := &query.HTTPRequest{
-		URL:    u.getURL(pair),
+		URL:    uniswapURL,
 		Method: "POST",
 		Body:   bytes.NewBuffer([]byte(body)),
 	}
@@ -90,34 +129,63 @@ func (u *Uniswap) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := u.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
 	}
 	if res.Error != nil {
-		return nil, res.Error
+		return fetchResultListWithErrors(pairs, res.Error)
 	}
-	// parsing JSON
+
+	// parse JSON
 	var resp uniswapResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse uniswap response: %w", err)
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse Uniswap response: %w", err))
 	}
-	if len(resp.Data.Pairs) == 0 {
-		return nil, fmt.Errorf("failed to parse uniswap response: no pairs %s", res.Body)
+
+	// convert response from a slice to a map
+	respMap := map[string]uniswapPairResponse{}
+	for _, pairResp := range resp.Data.Pairs {
+		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
-	// Due to API for some pairs like `KNC/ETH` we have to take `token0Price` field rather than `token1Price`
-	priceStr := getPriceByPair(pair, resp.Data.Pairs[0])
-	if priceStr == "" {
-		return nil, fmt.Errorf("failed to parse uniswap price: %s", res.Body)
+
+	// prepare result
+	results := make([]FetchResult, 0)
+	for _, pair := range pairs {
+		b := u.renameSymbol(pair.Base)
+		q := u.renameSymbol(pair.Quote)
+
+		pair0 := b + "/" + q
+		pair1 := q + "/" + b
+
+		if r, ok := respMap[pair0]; ok {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     r.Price1.val(),
+					Bid:       r.Price1.val(),
+					Ask:       r.Price1.val(),
+					Volume24h: r.Volume0.val(),
+					Timestamp: time.Now(),
+				},
+			})
+		} else if r, ok := respMap[pair1]; ok {
+			results = append(results, FetchResult{
+				Tick: Tick{
+					Pair:      pair,
+					Price:     r.Price0.val(),
+					Bid:       r.Price0.val(),
+					Ask:       r.Price0.val(),
+					Volume24h: r.Volume1.val(),
+					Timestamp: time.Now(),
+				},
+			})
+		} else {
+			results = append(results, FetchResult{
+				Tick:  Tick{Pair: pair},
+				Error: errMissingResponseForPair,
+			})
+		}
 	}
-	// Parsing price from string
-	price, err := strconv.ParseFloat(priceStr, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price from uniswap origin %s", res.Body)
-	}
-	// building Tick
-	return &Tick{
-		Pair:      pair,
-		Price:     price,
-		Timestamp: time.Now(),
-	}, nil
+
+	return results
 }
