@@ -77,24 +77,22 @@ func (j *trace) Close() error {
 func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
-		var s string
+		var s []byte
 
 		switch typedTick := node.(type) {
 		case graph.AggregatorTick:
-			s = fmt.Sprintf(
-				"AggregatorTick(pair:%s, price:%f, time:%s, %s)",
-				typedTick.Pair,
-				typedTick.Price,
-				typedTick.Timestamp.Format(time.RFC3339Nano),
-				printKVMap(typedTick.Parameters),
+			s = renderNode(
+				"AggregatorTick",
+				mergeKVMap(
+					[]param{
+						{key: "pair", value: typedTick.Pair.String()},
+						{key: "price", value: typedTick.Price},
+						{key: "timestamp", value: typedTick.Timestamp.Format(time.RFC3339Nano)},
+					},
+					typedTick.Parameters,
+				),
+				typedTick.Error,
 			)
-
-			if typedTick.Error != nil {
-				s = "[IGNORED] " + s + fmt.Sprintf(
-					"\nError: %s",
-					strings.TrimSpace(typedTick.Error.Error()),
-				)
-			}
 
 			for _, t := range typedTick.OriginTicks {
 				c = append(c, t)
@@ -103,23 +101,19 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 				c = append(c, t)
 			}
 		case graph.OriginTick:
-			s = fmt.Sprintf(
-				"OriginTick(pair:%s, origin:%s, price:%f, time:%s)",
-				typedTick.Pair,
-				typedTick.Origin,
-				typedTick.Price,
-				typedTick.Timestamp.Format(time.RFC3339Nano),
+			s = renderNode(
+				"OriginTick",
+				[]param{
+					{key: "pair", value: typedTick.Pair.String()},
+					{key: "origin", value: typedTick.Origin},
+					{key: "price", value: typedTick.Price},
+					{key: "timestamp", value: typedTick.Timestamp.Format(time.RFC3339Nano)},
+				},
+				typedTick.Error,
 			)
-
-			if typedTick.Error != nil {
-				s = "[IGNORED] " + s + fmt.Sprintf(
-					"\nError: %s",
-					strings.TrimSpace(typedTick.Error.Error()),
-				)
-			}
 		}
 
-		return []byte(s), c
+		return s, c
 	}, []interface{}{t}, 0)
 
 	*ret = append(*ret, []byte(fmt.Sprintf("Price for %s:", t.Pair)))
@@ -129,31 +123,33 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
-		var s string
+		var s []byte
 
 		switch typedNode := node.(type) {
 		case graph.Aggregator:
-			s = fmt.Sprintf(
-				"%s(pair: %s)",
+			s = renderNode(
 				reflect.TypeOf(node).Elem().String(),
-				typedNode.Pair(),
+				[]param{
+					{key: "pair", value: typedNode.Pair().String()},
+				},
+				nil,
 			)
 
 			for _, n := range typedNode.Children() {
 				c = append(c, n)
 			}
 		case graph.Origin:
-			s = fmt.Sprintf(
-				"%s(pair:%s, origin:%s)",
+			s = renderNode(
 				reflect.TypeOf(node).Elem().String(),
-				typedNode.OriginPair().Pair,
-				typedNode.OriginPair().Origin,
+				[]param{
+					{key: "pair", value: typedNode.OriginPair().Pair},
+					{key: "origin", value: typedNode.OriginPair().Origin},
+				},
+				nil,
 			)
-		default:
-			s = reflect.TypeOf(node).Elem().String()
 		}
 
-		return []byte(s), c
+		return s, c
 	}, []interface{}{g}, 0)
 
 	*ret = append(*ret, []byte(fmt.Sprintf("Graph for %s:", g.Pair())))
@@ -195,15 +191,65 @@ func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) 
 	*ret = append(*ret, str)
 }
 
+// param is used to work with lists of sorted key/value pairs.
+type param struct {
+	key   string
+	value interface{}
+}
+
+// mergeKVMap merges map[string]string into []param.
+func mergeKVMap(target []param, kv map[string]string) []param {
+	for _, k := range sortKeys(kv) {
+		target = append(target, param{key: k, value: kv[k]})
+	}
+	return target
+}
+
+// renderNode renders graph node which may be used as nodes for renderTree
+// method. An example node may look like this: Type(param:value, param2:value2).
+// If an err argument is provided, the node will be prepended with an [ERROR]
+// label and a message will be printed in a new line.
+func renderNode(typ string, params []param, err error) []byte {
+	str := bytes.Buffer{}
+	if err != nil {
+		str.WriteString(color("[ERROR] ", red))
+	}
+
+	str.WriteString(typ)
+	str.WriteString("(")
+	for i, p := range params {
+		str.WriteString(color(p.key, green))
+		str.WriteString(":")
+		str.WriteString(fmt.Sprintf("%v", p.value))
+		if i != len(params)-1 {
+			str.WriteString(", ")
+		}
+	}
+	str.WriteString(")")
+	if err != nil {
+		str.WriteString("\n")
+		str.WriteString(color("Error: "+strings.TrimSpace(err.Error()), red))
+	}
+
+	return str.Bytes()
+}
+
+// renderTree renders graphical tree for the CLI output.
+//
+// The printer argument defines a function which returns node name and list of
+// child nodes.
+// The nodes arguments is a initial list of nodes to render.
+// The level is used internally and needs to be always 0.
+//
 //nolint:gocyclo
 func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []interface{}, level int) []byte {
 	const (
-		first  = "┌──"
-		middle = "├──"
-		last   = "└──"
-		vline  = "│  "
-		hline  = "───"
-		empty  = "   "
+		first  = string(green + "┌──" + reset)
+		middle = string(green + "├──" + reset)
+		last   = string(green + "└──" + reset)
+		vline  = string(green + "│  " + reset)
+		hline  = string(green + "───" + reset)
+		empty  = string(green + "   " + reset)
 	)
 
 	s := bytes.Buffer{}
@@ -212,29 +258,29 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 		isFirst := i == 0
 		isLast := i == len(nodes)-1
 		hasChild := len(nodeChildren) > 0
-		firstLinePrefix := ""
-		restLinesPrefix := ""
+		firstLinePrefix := string(reset)
+		restLinesPrefix := string(reset)
 
 		switch {
 		case level == 0 && isFirst && isLast:
-			firstLinePrefix = hline
+			firstLinePrefix += hline
 		case level == 0 && isFirst:
-			firstLinePrefix = first
+			firstLinePrefix += first
 		case isLast:
-			firstLinePrefix = last
+			firstLinePrefix += last
 		default:
-			firstLinePrefix = middle
+			firstLinePrefix += middle
 		}
 
 		switch {
 		case isLast && hasChild:
-			restLinesPrefix = empty + vline
+			restLinesPrefix += empty + vline
 		case !isLast && hasChild:
-			restLinesPrefix = vline + vline
+			restLinesPrefix += vline + vline
 		case isLast && !hasChild:
-			restLinesPrefix = empty + empty
+			restLinesPrefix += empty + empty
 		case !isLast && !hasChild:
-			restLinesPrefix = vline + empty
+			restLinesPrefix += vline + empty
 		}
 
 		s.Write(prependLines(nodeStr, firstLinePrefix, restLinesPrefix))
@@ -257,6 +303,7 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 	return s.Bytes()
 }
 
+// prependLines prepends all lines in given bytes slice.
 func prependLines(s []byte, first, rest string) []byte {
 	bts := bytes.Buffer{}
 	bts.WriteString(first)
@@ -264,14 +311,7 @@ func prependLines(s []byte, first, rest string) []byte {
 	return bts.Bytes()
 }
 
-func printKVMap(kv map[string]string) string {
-	var ss []string
-	for _, k := range sortKeys(kv) {
-		ss = append(ss, k+":"+kv[k])
-	}
-	return strings.Join(ss, ", ")
-}
-
+// sortKeys returns keys from given map sorted alphabetically.
 func sortKeys(kv map[string]string) []string {
 	var ks []string
 	for k := range kv {
