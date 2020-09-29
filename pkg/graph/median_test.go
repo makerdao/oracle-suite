@@ -419,7 +419,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 			Volume24h: 0,
 			Timestamp: n,
 		},
-		Origin: "b",
+		Origin: "c",
 		Error:  nil,
 	})
 
