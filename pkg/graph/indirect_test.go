@@ -16,13 +16,415 @@
 package graph
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_calcIndirectTick(t *testing.T) {
+func TestIndirectAggregatorNode_Children(t *testing.T) {
+	m := NewIndirectAggregatorNode(Pair{Base: "A", Quote: "B"})
+
+	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"})
+	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"})
+
+	m.AddChild(c1)
+	m.AddChild(c2)
+	m.AddChild(c3)
+
+	assert.Len(t, m.Children(), 3)
+	assert.Same(t, c1, m.Children()[0])
+	assert.Same(t, c2, m.Children()[1])
+	assert.Same(t, c3, m.Children()[2])
+}
+
+func TestIndirectAggregatorNode_Pair(t *testing.T) {
+	p := Pair{Base: "A", Quote: "B"}
+	m := NewIndirectAggregatorNode(p)
+
+	assert.Equal(t, m.Pair(), p)
+}
+
+func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
+	p1 := Pair{Base: "A", Quote: "B"}
+	p2 := Pair{Base: "B", Quote: "C"}
+	p3 := Pair{Base: "C", Quote: "D"}
+	pf := Pair{Base: "A", Quote: "D"}
+
+	n := time.Now()
+	m := NewIndirectAggregatorNode(pf)
+
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"})
+
+	_ = c1.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p1,
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: n,
+		},
+		Origin: "a",
+		Error:  nil,
+	})
+
+	_ = c2.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p2,
+			Price:     20,
+			Bid:       20,
+			Ask:       20,
+			Volume24h: 20,
+			Timestamp: n,
+		},
+		Origin: "b",
+		Error:  nil,
+	})
+
+	_ = c3.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p3,
+			Price:     30,
+			Bid:       30,
+			Ask:       30,
+			Volume24h: 30,
+			Timestamp: n,
+		},
+		Origin: "c",
+		Error:  nil,
+	})
+
+	m.AddChild(c1)
+	m.AddChild(c2)
+	m.AddChild(c3)
+
+	expected := AggregatorTick{
+		Tick: Tick{
+			Pair:      pf,
+			Price:     6000,
+			Bid:       6000,
+			Ask:       6000,
+			Volume24h: 0,
+			Timestamp: n,
+		},
+		OriginTicks:     []OriginTick{c1.Tick(), c2.Tick(), c3.Tick()},
+		AggregatorTicks: nil,
+		Parameters:      map[string]string{"method": "indirect"},
+		Error:           nil,
+	}
+
+	assert.Equal(t, expected, m.Tick())
+}
+
+func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
+	p1 := Pair{Base: "A", Quote: "B"}
+	p2 := Pair{Base: "B", Quote: "C"}
+	p3 := Pair{Base: "C", Quote: "D"}
+	pf := Pair{Base: "A", Quote: "D"}
+
+	n := time.Now()
+	m := NewIndirectAggregatorNode(pf)
+
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"})
+
+	i1 := NewIndirectAggregatorNode(p1)
+	i1.AddChild(c1)
+
+	i2 := NewIndirectAggregatorNode(p2)
+	i2.AddChild(c2)
+
+	i3 := NewIndirectAggregatorNode(p3)
+	i3.AddChild(c3)
+
+	_ = c1.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p1,
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: n,
+		},
+		Origin: "a",
+		Error:  nil,
+	})
+
+	_ = c2.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p2,
+			Price:     20,
+			Bid:       20,
+			Ask:       20,
+			Volume24h: 20,
+			Timestamp: n,
+		},
+		Origin: "b",
+		Error:  nil,
+	})
+
+	_ = c3.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p3,
+			Price:     30,
+			Bid:       30,
+			Ask:       30,
+			Volume24h: 30,
+			Timestamp: n,
+		},
+		Origin: "c",
+		Error:  nil,
+	})
+
+	m.AddChild(i1)
+	m.AddChild(i2)
+	m.AddChild(i3)
+
+	expected := AggregatorTick{
+		Tick: Tick{
+			Pair:      pf,
+			Price:     6000,
+			Bid:       6000,
+			Ask:       6000,
+			Volume24h: 0,
+			Timestamp: n,
+		},
+		OriginTicks: nil,
+		AggregatorTicks: []AggregatorTick{
+			{
+				Tick: Tick{
+					Pair:      p1,
+					Price:     10,
+					Bid:       10,
+					Ask:       10,
+					Volume24h: 10,
+					Timestamp: n,
+				},
+				OriginTicks:     []OriginTick{c1.Tick()},
+				AggregatorTicks: nil,
+				Parameters:      map[string]string{"method": "indirect"},
+				Error:           nil,
+			},
+			{
+				Tick: Tick{
+					Pair:      p2,
+					Price:     20,
+					Bid:       20,
+					Ask:       20,
+					Volume24h: 20,
+					Timestamp: n,
+				},
+				OriginTicks:     []OriginTick{c2.Tick()},
+				AggregatorTicks: nil,
+				Parameters:      map[string]string{"method": "indirect"},
+				Error:           nil,
+			},
+			{
+				Tick: Tick{
+					Pair:      p3,
+					Price:     30,
+					Bid:       30,
+					Ask:       30,
+					Volume24h: 30,
+					Timestamp: n,
+				},
+				OriginTicks:     []OriginTick{c3.Tick()},
+				AggregatorTicks: nil,
+				Parameters:      map[string]string{"method": "indirect"},
+				Error:           nil,
+			},
+		},
+		Parameters: map[string]string{"method": "indirect"},
+		Error:      nil,
+	}
+
+	assert.Equal(t, expected, m.Tick())
+}
+
+func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
+	p1 := Pair{Base: "A", Quote: "B"}
+	p2 := Pair{Base: "B", Quote: "C"}
+	pf := Pair{Base: "A", Quote: "C"}
+
+	n := time.Now()
+	m := NewIndirectAggregatorNode(pf)
+
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+
+	_ = c1.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p1,
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: n,
+		},
+		Origin: "a",
+		Error:  nil,
+	})
+
+	_ = c2.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p2,
+			Price:     20,
+			Bid:       20,
+			Ask:       20,
+			Volume24h: 20,
+			Timestamp: n,
+		},
+		Origin: "b",
+		Error:  errors.New("something"),
+	})
+
+	m.AddChild(c1)
+	m.AddChild(c2)
+
+	assert.True(t, errors.As(m.Tick().Error, &TickErr{}))
+}
+
+func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
+	// Below pairs will be resolved resolve to the A/D but the A/C is expected:
+	p1 := Pair{Base: "A", Quote: "B"}
+	p2 := Pair{Base: "B", Quote: "D"}
+	pf := Pair{Base: "A", Quote: "C"}
+
+	n := time.Now()
+	m := NewIndirectAggregatorNode(pf)
+
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+
+	_ = c1.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p1,
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: n,
+		},
+		Origin: "a",
+		Error:  nil,
+	})
+
+	_ = c2.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p2,
+			Price:     20,
+			Bid:       20,
+			Ask:       20,
+			Volume24h: 20,
+			Timestamp: n,
+		},
+		Origin: "b",
+		Error:  nil,
+	})
+
+	m.AddChild(c1)
+	m.AddChild(c2)
+
+	assert.True(t, errors.As(m.Tick().Error, &ResolveErr{}))
+}
+
+func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
+	// It's impossible to resolve below pairs, because the A/B and C/D have no common part:
+	p1 := Pair{Base: "A", Quote: "B"}
+	p2 := Pair{Base: "C", Quote: "D"}
+	pf := Pair{Base: "A", Quote: "C"}
+
+	n := time.Now()
+	m := NewIndirectAggregatorNode(pf)
+
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+
+	_ = c1.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p1,
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: n,
+		},
+		Origin: "a",
+		Error:  nil,
+	})
+
+	_ = c2.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p2,
+			Price:     20,
+			Bid:       20,
+			Ask:       20,
+			Volume24h: 20,
+			Timestamp: n,
+		},
+		Origin: "b",
+		Error:  nil,
+	})
+
+	m.AddChild(c1)
+	m.AddChild(c2)
+
+	// Resolved to the A/D pair but the A/C pair was expected:
+	assert.True(t, errors.As(m.Tick().Error, &NoCommonPartErr{}))
+}
+
+func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
+	p1 := Pair{Base: "A", Quote: "B"}
+	p2 := Pair{Base: "C", Quote: "B"}
+	pf := Pair{Base: "A", Quote: "C"}
+
+	n := time.Now()
+	m := NewIndirectAggregatorNode(pf)
+
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+
+	_ = c1.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p1,
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: n,
+		},
+		Origin: "a",
+		Error:  nil,
+	})
+
+	_ = c2.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      p2,
+			Price:     0,
+			Bid:       0,
+			Ask:       0,
+			Volume24h: 0,
+			Timestamp: n,
+		},
+		Origin: "b",
+		Error:  nil,
+	})
+
+	m.AddChild(c1)
+	m.AddChild(c2)
+
+	// Conversion between the A/B and the C/B requires division. The C/B pair
+	// reports 0 as its price so the DivByZeroErr error should be returned:
+	assert.True(t, errors.As(m.Tick().Error, &DivByZeroErr{}))
+}
+
+func Test_crossRate(t *testing.T) {
 	tests := []struct {
 		name    string
 		ticks   []Tick
@@ -374,7 +776,7 @@ func Test_calcIndirectTick(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := calcIndirectTick(tt.ticks)
+			got, err := crossRate(tt.ticks)
 
 			if err != nil {
 				if tt.wantErr {

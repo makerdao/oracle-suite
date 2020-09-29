@@ -56,7 +56,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
 	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     10,
@@ -69,7 +69,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     20,
@@ -82,7 +82,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c3.Ingest(OriginTick{
+	_ = c3.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     30,
@@ -135,7 +135,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 	i3 := NewMedianAggregatorNode(p, 1)
 	i3.AddChild(c3)
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     10,
@@ -148,7 +148,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     20,
@@ -161,7 +161,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 		Error:  nil,
 	})
 
-	c3.Ingest(OriginTick{
+	_ = c3.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     30,
@@ -246,7 +246,7 @@ func TestMedianAggregatorNode_Tick_NotEnoughSources(t *testing.T) {
 
 	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     10,
@@ -279,7 +279,7 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
 	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     10,
@@ -292,7 +292,7 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     20,
@@ -327,7 +327,7 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p1,
 			Price:     10,
@@ -340,7 +340,7 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p2,
 			Price:     20,
@@ -384,7 +384,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
 	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"})
 
-	c1.Ingest(OriginTick{
+	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     10,
@@ -397,7 +397,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 		Error:  nil,
 	})
 
-	c2.Ingest(OriginTick{
+	_ = c2.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     0,
@@ -410,7 +410,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 		Error:  nil,
 	})
 
-	c3.Ingest(OriginTick{
+	_ = c3.Ingest(OriginTick{
 		Tick: Tick{
 			Pair:      p,
 			Price:     0,
@@ -419,7 +419,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 			Volume24h: 0,
 			Timestamp: n,
 		},
-		Origin: "b",
+		Origin: "c",
 		Error:  nil,
 	})
 
