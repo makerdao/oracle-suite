@@ -144,10 +144,7 @@ func (suite *FtxSuite) TestRealAPICall() {
 	testRealAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 	pairs := []Pair{
 		{Base: "ETH", Quote: "USDT"},
-		{Base: "ETH", Quote: "USDC"},
-		{Base: "ETH", Quote: "DAI"},
-		{Base: "WBTC", Quote: "USDT"},
-		{Base: "ETH", Quote: "SAI"},
+		{Base: "BTC", Quote: "USDT"},
 	}
 	testRealBatchAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }

@@ -120,11 +120,10 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 func (suite *FolgorySuite) TestRealAPICall() {
 	testRealAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
 	pairs := []Pair{
-		{Base: "ETH", Quote: "USDT"},
-		{Base: "ETH", Quote: "USDC"},
-		{Base: "ETH", Quote: "DAI"},
-		{Base: "WBTC", Quote: "USDT"},
-		{Base: "ETH", Quote: "SAI"},
+		{Base: "ETH", Quote: "USDF"},
+		{Base: "BTC", Quote: "USDT"},
+		{Base: "USDF", Quote: "DAI"},
+		{Base: "BTC", Quote: "TUSD"},
 	}
 	testRealBatchAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }
