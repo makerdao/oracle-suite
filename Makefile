@@ -32,8 +32,13 @@ lint:
 .PHONY: lint
 
 test:
-	$(GO) test -tags $(TEST_FLAGS) ./...
+	$(GO) test ./... -tags $(TEST_FLAGS)
 .PHONY: test
+
+test-api: export GOFER_TEST_API_CALLS = 1
+test-api:
+	$(GO) test ./pkg/origins/... -tags $(TEST_FLAGS) -testify.m TestRealAPICall
+.PHONY: test-api
 
 test-license: $(LICENSED_FILES)
 	@grep -vlz "$$(tr '\n' . < LICENSE_HEADER)" $^ && exit 1 || exit 0

@@ -201,6 +201,7 @@ issues:
         - lll
         - scopelint
         - unused
+        - errcheck
     - path: exchange/
       linters:
         - dupl
