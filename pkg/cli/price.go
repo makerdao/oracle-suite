@@ -27,6 +27,7 @@ type ReadWriteCloser interface {
 }
 
 type pricer interface {
+	Populate(pairs ...graph.Pair) error
 	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
 	Pairs() []graph.Pair
 }
@@ -46,6 +47,10 @@ func Price(args []string, l pricer, m ReadWriteCloser) error {
 		pairs = l.Pairs()
 	}
 
+	if err := l.Populate(pairs...); err != nil {
+		return err
+	}
+
 	ticks, err := l.Ticks(pairs...)
 	if err != nil {
 		return err
@@ -61,6 +66,12 @@ func Price(args []string, l pricer, m ReadWriteCloser) error {
 	err = m.Close()
 	if err != nil {
 		return err
+	}
+
+	for _, t := range ticks {
+		if t.Error != nil {
+			return t.Error
+		}
 	}
 
 	return nil

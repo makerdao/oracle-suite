@@ -49,21 +49,21 @@ func (g *Gofer) Pairs() []graph.Pair {
 	return pairs
 }
 
-func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
-	var ticks []graph.AggregatorTick
+func (g *Gofer) Populate(pairs ...graph.Pair) error {
 	var graphs []graph.Node
-
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
 			graphs = append(graphs, pairGraph)
 		} else {
-			return nil, fmt.Errorf("unable to find %s pair", pair)
+			return fmt.Errorf("unable to find %s pair", pair)
 		}
 	}
-
 	// We can ignore error, because graph.Feeder errors are assigned to the nodes.
 	_ = g.feeder.Feed(graphs...)
-
+	return nil
+}
+func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
+	var ticks []graph.AggregatorTick
 	for _, pair := range pairs {
 		ticks = append(ticks, g.graphs[pair].Tick())
 	}
