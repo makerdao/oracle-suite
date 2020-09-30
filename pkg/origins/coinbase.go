@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/query"
@@ -42,8 +41,16 @@ type Coinbase struct {
 	Pool query.WorkerPool
 }
 
+// TODO: We should find better solution for this.
+func (c *Coinbase) renameSymbol(symbol string) string {
+	if symbol == "USD" {
+		return "USDC"
+	}
+	return symbol
+}
+
 func (c *Coinbase) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
+	return fmt.Sprintf("%s-%s", c.renameSymbol(pair.Base), c.renameSymbol(pair.Quote))
 }
 
 func (c *Coinbase) getURL(pair Pair) string {

@@ -178,6 +178,7 @@ func (*Bitfinex) localPairName(pairs ...Pair) string {
 		}
 		// Hack to treat prices with USD quotes from Bitfinex as if they were with USDT quotes
 		if pair.Quote == "USDT" {
+			//nolint:goconst
 			q = "USD"
 		}
 		l = append(l, fmt.Sprintf("t%s%s", b, q))

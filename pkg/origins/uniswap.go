@@ -47,7 +47,6 @@ type uniswapPairResponse struct {
 	Token1  uniswapTokenResponse `json:"token1"`
 }
 
-// Uniswap origin handler
 type Uniswap struct {
 	Pool query.WorkerPool
 }
@@ -75,13 +74,20 @@ func (u *Uniswap) pairsToContractAddresses(pairs []Pair) []string {
 		switch {
 		case match(p, Pair{Base: "COMP", Quote: "WETH"}):
 			names = append(names, "0xcffdded873554f362ac02f8fb1f02e5ada10516f")
-		case match(p, Pair{Base: "LRC", Quote: "WETH"}):
-			names = append(names, "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70")
+		case match(p, Pair{Base: "WETH", Quote: "USDC"}):
+			names = append(names, "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc")
 		case match(p, Pair{Base: "KNC", Quote: "WETH"}):
 			names = append(names, "0xf49c43ae0faf37217bdcb00df478cf793edd6687")
+		case match(p, Pair{Base: "LEND", Quote: "WETH"}):
+			names = append(names, "0xab3f9bf1d81ddb224a2014e98b238638824bcf20")
+		case match(p, Pair{Base: "LRC", Quote: "WETH"}):
+			names = append(names, "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70")
+		case match(p, Pair{Base: "PAXG", Quote: "WETH"}):
+			names = append(names, "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c")
+		case match(p, Pair{Base: "YFI", Quote: "WETH"}):
+			names = append(names, "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28")
 		}
 	}
-
 	return names
 }
 
@@ -92,8 +98,9 @@ func (u *Uniswap) renameSymbol(symbol string) string {
 		return "WETH"
 	case "BTC":
 		return "WBTC"
+	case "USD":
+		return "USDC"
 	}
-
 	return symbol
 }
 
