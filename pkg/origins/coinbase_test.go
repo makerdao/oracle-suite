@@ -51,7 +51,7 @@ func (suite *CoinbaseSuite) TearDownTest() {
 
 func (suite *CoinbaseSuite) TestLocalPair() {
 	suite.EqualValues("BTC-ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC-USD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("BTC-USDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *CoinbaseSuite) TestFailOnWrongInput() {
