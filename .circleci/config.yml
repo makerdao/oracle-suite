@@ -42,6 +42,10 @@ jobs:
           command: make lint
 
       - run:
+          name: Build binary
+          command: make build
+
+      - run:
           name: Run unit tests
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
