@@ -60,8 +60,10 @@ func (g *Gofer) Populate(pairs ...graph.Pair) error {
 	}
 	// We can ignore error, because graph.Feeder errors are assigned to the nodes.
 	_ = g.feeder.Feed(graphs...)
+
 	return nil
 }
+
 func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
 	var ticks []graph.AggregatorTick
 	for _, pair := range pairs {

@@ -24,6 +24,7 @@ func BadRequest(w http.ResponseWriter, srvErr ...error) {
 	log.Println(srvErr)
 	w.WriteHeader(http.StatusBadRequest)
 }
+
 func AsJSON(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }

@@ -68,11 +68,5 @@ func Price(args []string, l pricer, m ReadWriteCloser) error {
 		return err
 	}
 
-	for _, t := range ticks {
-		if t.Error != nil {
-			return t.Error
-		}
-	}
-
 	return nil
 }
