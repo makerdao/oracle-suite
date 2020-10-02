@@ -2,7 +2,7 @@ PACKAGE ?= gofer
 GO_FILES := $(shell { git ls-files; } | grep ".go$$")
 LICENSED_FILES := $(shell { git ls-files; } | grep ".go$$")
 
-BUILD_SOURCE := cmd/gofer/main.go
+BUILD_SOURCES := cmd/gofer/*.go
 BUILD_DIR := bin
 BUILD_TARGET := $(BUILD_DIR)/gofer
 BUILD_FLAGS ?= all
@@ -19,9 +19,9 @@ build: $(BUILD_TARGET)
 $(BUILD_TARGET): export GOOS ?= linux
 $(BUILD_TARGET): export GOARCH ?= amd64
 $(BUILD_TARGET): export CGO_ENABLED ?= 0
-$(BUILD_TARGET): $(BUILD_SOURCE) $(GO_FILES)
+$(BUILD_TARGET): $(GO_FILES)
 	mkdir -p $(@D)
-	$(GO) build -tags $(BUILD_FLAGS) -o $@ $<
+	$(GO) build -tags $(BUILD_FLAGS) -o $@ $(BUILD_SOURCES)
 
 clean:
 	rm -rf $(OUT_DIR) $(BUILD_DIR)
