@@ -17,7 +17,6 @@ package origins
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -59,9 +58,6 @@ func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchRes
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
-	}
-	if len(resp.Errors) > 0 {
-		return fetchResultListWithErrors(pairs, errors.New(strings.Join(resp.Errors, ", ")))
 	}
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
