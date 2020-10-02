@@ -18,16 +18,19 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/cmd/gofer/internal/marshal"
+	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/config"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
 	"github.com/makerdao/gofer/pkg/origins"
+	"github.com/makerdao/gofer/pkg/web"
 )
 
 func newGofer(path string) (*gofer.Gofer, error) {
@@ -89,8 +92,9 @@ func NewPairsCmd(o *options) *cobra.Command {
 
 func NewExchangesCmd(o *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "exchanges [PAIR...]",
-		Short: "List supported exchanges",
+		Use:     "sources [PAIR...]",
+		Aliases: []string{"exchanges", "origins"},
+		Short:   "List supported exchanges",
 		Long: `Lists exchanges that will be queried for all of the supported pairs
 or a subset of those, if at least one PAIR is provided.`,
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -159,6 +163,36 @@ func NewPriceCmd(o *options) *cobra.Command {
 
 			fmt.Println(string(b))
 			return nil
+		},
+	}
+}
+
+func NewServerCmd(o *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "server",
+		Args:  cobra.ExactArgs(0),
+		Short: "",
+		Long:  ``,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			absPath, err := filepath.Abs(o.ConfigFilePath)
+			if err != nil {
+				panic(err)
+			}
+
+			g, err := newGofer(absPath)
+			if err != nil {
+				panic(err)
+			}
+
+			log.Println("Populating graph")
+			if err := g.Populate(g.Pairs()...); err != nil {
+				return err
+			}
+
+			http.HandleFunc("/pairs/", web.PairsHandler(g))
+
+			log.Println("Starting server at http://localhost:8080")
+			return http.ListenAndServe(":8080", nil)
 		},
 	}
 }

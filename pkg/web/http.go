@@ -13,24 +13,17 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package web
 
 import (
 	"log"
+	"net/http"
 )
 
-func main() {
-	var opts options
-	rootCmd := NewRootCommand(&opts)
-
-	rootCmd.AddCommand(
-		NewExchangesCmd(&opts),
-		NewPairsCmd(&opts),
-		NewPriceCmd(&opts),
-		NewServerCmd(&opts),
-	)
-
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
-	}
+func BadRequest(w http.ResponseWriter, srvErr ...error) {
+	log.Println(srvErr)
+	w.WriteHeader(http.StatusBadRequest)
+}
+func AsJSON(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 }
