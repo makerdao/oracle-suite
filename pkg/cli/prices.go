@@ -16,31 +16,51 @@
 package cli
 
 import (
-	"sort"
+	"errors"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
+type pricer interface {
+	Feed(pairs ...graph.Pair) error
+	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
+	Pairs() []graph.Pair
 }
 
-func Pairs(l pairsLister, m readWriter) error {
-	var err error
+func Prices(args []string, l pricer, m readWriter) error {
+	var pairs []graph.Pair
 
-	var graphs []graph.Aggregator
-	for _, g := range l.Graphs() {
-		graphs = append(graphs, g)
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
+		}
+	} else {
+		pairs = l.Pairs()
 	}
 
-	sort.SliceStable(graphs, func(i, j int) bool {
-		return graphs[i].Pair().String() < graphs[j].Pair().String()
-	})
+	if err := l.Feed(pairs...); err != nil {
+		return err
+	}
 
-	for _, g := range graphs {
-		err = m.Write(g, nil)
+	ticks, err := l.Ticks(pairs...)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range ticks {
+		err = m.Write(t, nil)
 		if err != nil {
 			return err
+		}
+	}
+
+	for _, t := range ticks {
+		if t.Error != nil {
+			return errors.New("some of the prices was returned with an error")
 		}
 	}
 

@@ -49,7 +49,7 @@ func (g *Gofer) Pairs() []graph.Pair {
 	return pairs
 }
 
-func (g *Gofer) Populate(pairs ...graph.Pair) error {
+func (g *Gofer) Feed(pairs ...graph.Pair) error {
 	var graphs []graph.Node
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
@@ -58,7 +58,8 @@ func (g *Gofer) Populate(pairs ...graph.Pair) error {
 			return fmt.Errorf("unable to find %s pair", pair)
 		}
 	}
-	// We can ignore error, because graph.Feeder errors are assigned to the nodes.
+
+	// We can ignore error, because all errors are assigned to nodes.
 	_ = g.feeder.Feed(graphs...)
 
 	return nil

@@ -17,56 +17,9 @@ package cli
 
 import (
 	"io"
-
-	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type ReadWriteCloser interface {
-	io.ReadCloser
+type readWriter interface {
+	io.Reader
 	Write(item interface{}, err error) error
-}
-
-type pricer interface {
-	Populate(pairs ...graph.Pair) error
-	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
-	Pairs() []graph.Pair
-}
-
-func Price(args []string, l pricer, m ReadWriteCloser) error {
-	var pairs []graph.Pair
-
-	if len(args) > 0 {
-		for _, pair := range args {
-			p, err := graph.NewPair(pair)
-			if err != nil {
-				return err
-			}
-			pairs = append(pairs, p)
-		}
-	} else {
-		pairs = l.Pairs()
-	}
-
-	if err := l.Populate(pairs...); err != nil {
-		return err
-	}
-
-	ticks, err := l.Ticks(pairs...)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range ticks {
-		err = m.Write(t, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = m.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
