@@ -122,9 +122,11 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 		switch model.Method {
 		case "median":
 			var params MedianPriceModel
-			err := json.Unmarshal(model.Params, &params)
-			if err != nil {
-				return err
+			if model.Params != nil {
+				err := json.Unmarshal(model.Params, &params)
+				if err != nil {
+					return err
+				}
 			}
 			graphs[modelPair] = graph.NewMedianAggregatorNode(modelPair, params.MinSourceSuccess)
 		default:
@@ -221,8 +223,10 @@ func (j *JSON) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
 			errMsg.WriteString(fmt.Sprintf("cyclic reference was detected for the %s pair: ", p))
 			for i, n := range c {
 				switch typedNode := n.(type) {
-				case interface{ Pair() graph.Pair }:
-					errMsg.WriteString(typedNode.Pair().String())
+				case *graph.MedianAggregatorNode:
+					errMsg.WriteString("median:" + typedNode.Pair().String())
+				case *graph.IndirectAggregatorNode:
+					errMsg.WriteString("indirect:" + typedNode.Pair().String())
 				default:
 					errMsg.WriteString(reflect.TypeOf(typedNode).String())
 				}
