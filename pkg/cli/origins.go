@@ -26,7 +26,7 @@ type originsLister interface {
 	Pairs() []graph.Pair
 }
 
-func Origins(args []string, l originsLister, m ReadWriteCloser) error {
+func Origins(args []string, l originsLister, m readWriter) error {
 	var pairs []graph.Pair
 	if len(args) > 0 {
 		for _, pair := range args {
@@ -50,11 +50,6 @@ func Origins(args []string, l originsLister, m ReadWriteCloser) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	err = m.Close()
-	if err != nil {
-		return err
 	}
 
 	return nil

@@ -16,11 +16,12 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/spf13/cobra"
 
@@ -52,26 +53,57 @@ func newGofer(path string) (*gofer.Gofer, error) {
 	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet(), 10)), nil
 }
 
+// asyncCopy asynchronously copies from src to dst using the io.Copy.
+// The returned function will block the current goroutine until
+// the io.Copy finished.
+func asyncCopy(dst io.Writer, src io.Reader) func() {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		_, err := io.Copy(dst, src)
+		wg.Done()
+
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
+
+	return func() {
+		wg.Wait()
+	}
+}
+
 func NewPairsCmd(o *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "pairs",
-		Args:  cobra.NoArgs,
-		Short: "List all supported pairs",
-		Long:  `List all supported asset pairs.`,
+		Use:     "pairs",
+		Aliases: []string{"pair"},
+		Args:    cobra.NoArgs,
+		Short:   "List all supported pairs",
+		Long:    `List all supported asset pairs.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(o.OutputFormat.format)
 			if err != nil {
 				return err
 			}
 
+			wait := asyncCopy(os.Stdout, m)
+
+			defer func() {
+				_ = m.Close()
+				wait()
+			}()
+
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			g, err := newGofer(absPath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			err = cli.Pairs(g, m)
@@ -79,23 +111,17 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			b, err := ioutil.ReadAll(m)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(b))
 			return nil
 		},
 	}
 }
 
-func NewExchangesCmd(o *options) *cobra.Command {
+func NewOriginsCmd(o *options) *cobra.Command {
 	return &cobra.Command{
-		Use:     "sources [PAIR...]",
-		Aliases: []string{"exchanges", "origins"},
-		Short:   "List supported exchanges",
-		Long: `Lists exchanges that will be queried for all of the supported pairs
+		Use:     "origins [PAIR...]",
+		Aliases: []string{"origin", "exchanges", "exchange"},
+		Short:   "List supported origins",
+		Long: `Lists origins that will be queried for all of the supported pairs
 or a subset of those, if at least one PAIR is provided.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(o.OutputFormat.format)
@@ -103,14 +129,21 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
+			wait := asyncCopy(os.Stdout, m)
+
+			defer func() {
+				_ = m.Close()
+				wait()
+			}()
+
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			g, err := newGofer(absPath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			err = cli.Origins(args, g, m)
@@ -118,50 +151,46 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			b, err := ioutil.ReadAll(m)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(b))
 			return nil
 		},
 	}
 }
 
-func NewPriceCmd(o *options) *cobra.Command {
+func NewPricesCmd(o *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "price [PAIR...]",
-		Args:  cobra.MinimumNArgs(0),
-		Short: "Return price for given PAIRs",
-		Long:  `Print the price of given PAIRs`,
+		Use:     "prices [PAIR...]",
+		Aliases: []string{"price"},
+		Args:    cobra.MinimumNArgs(0),
+		Short:   "Return price for given PAIRs",
+		Long:    `Print the price of given PAIRs`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(o.OutputFormat.format)
 			if err != nil {
 				return err
 			}
 
+			wait := asyncCopy(os.Stdout, m)
+
+			defer func() {
+				_ = m.Close()
+				wait()
+			}()
+
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			g, err := newGofer(absPath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
-			err = cli.Price(args, g, m)
+			err = cli.Prices(args, g, m)
 			if err != nil {
 				return err
 			}
 
-			b, err := ioutil.ReadAll(m)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(b))
 			return nil
 		},
 	}
@@ -176,16 +205,16 @@ func NewServerCmd(o *options) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			g, err := newGofer(absPath)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			log.Println("Populating graph")
-			if err := g.Populate(g.Pairs()...); err != nil {
+			if err := g.Feed(g.Pairs()...); err != nil {
 				return err
 			}
 
@@ -207,6 +236,8 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
+		SilenceErrors: false,
+		SilenceUsage:  true,
 	}
 
 	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./gofer.json", "config file")

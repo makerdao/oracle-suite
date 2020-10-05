@@ -16,7 +16,7 @@
 package main
 
 import (
-	"log"
+	"os"
 )
 
 func main() {
@@ -24,13 +24,13 @@ func main() {
 	rootCmd := NewRootCommand(&opts)
 
 	rootCmd.AddCommand(
-		NewExchangesCmd(&opts),
+		NewOriginsCmd(&opts),
 		NewPairsCmd(&opts),
-		NewPriceCmd(&opts),
+		NewPricesCmd(&opts),
 		NewServerCmd(&opts),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
+		os.Exit(1)
 	}
 }

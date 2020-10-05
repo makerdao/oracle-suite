@@ -25,7 +25,7 @@ type pairsLister interface {
 	Graphs() map[graph.Pair]graph.Aggregator
 }
 
-func Pairs(l pairsLister, m ReadWriteCloser) error {
+func Pairs(l pairsLister, m readWriter) error {
 	var err error
 
 	var graphs []graph.Aggregator
@@ -42,11 +42,6 @@ func Pairs(l pairsLister, m ReadWriteCloser) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	err = m.Close()
-	if err != nil {
-		return err
 	}
 
 	return nil

@@ -13,18 +13,13 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package web
+package cli
 
 import (
-	"log"
-	"net/http"
+	"io"
 )
 
-func BadRequest(w http.ResponseWriter, srvErr ...error) {
-	log.Println(srvErr)
-	w.WriteHeader(http.StatusBadRequest)
-}
-
-func AsJSON(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+type readWriter interface {
+	io.Reader
+	Write(item interface{}, err error) error
 }

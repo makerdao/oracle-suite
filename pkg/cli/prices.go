@@ -16,23 +16,18 @@
 package cli
 
 import (
-	"io"
+	"errors"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type ReadWriteCloser interface {
-	io.ReadCloser
-	Write(item interface{}, err error) error
-}
-
 type pricer interface {
-	Populate(pairs ...graph.Pair) error
+	Feed(pairs ...graph.Pair) error
 	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
 	Pairs() []graph.Pair
 }
 
-func Price(args []string, l pricer, m ReadWriteCloser) error {
+func Prices(args []string, l pricer, m readWriter) error {
 	var pairs []graph.Pair
 
 	if len(args) > 0 {
@@ -47,7 +42,7 @@ func Price(args []string, l pricer, m ReadWriteCloser) error {
 		pairs = l.Pairs()
 	}
 
-	if err := l.Populate(pairs...); err != nil {
+	if err := l.Feed(pairs...); err != nil {
 		return err
 	}
 
@@ -63,14 +58,9 @@ func Price(args []string, l pricer, m ReadWriteCloser) error {
 		}
 	}
 
-	err = m.Close()
-	if err != nil {
-		return err
-	}
-
 	for _, t := range ticks {
 		if t.Error != nil {
-			return t.Error
+			return errors.New("some of the prices was returned with an error")
 		}
 	}
 
