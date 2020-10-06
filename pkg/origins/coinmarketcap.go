@@ -51,7 +51,7 @@ type CoinMarketCap struct {
 }
 
 // GetURL implementation
-func (c *CoinMarketCap) getUrl(uriPairs []string) string {
+func (c *CoinMarketCap) getURL(uriPairs []string) string {
 	return fmt.Sprintf(coinMarketCapURL, strings.Join(uriPairs, ","))
 }
 
@@ -77,7 +77,7 @@ func (c *CoinMarketCap) Fetch(pairs []Pair) []FetchResult {
 
 	var err error
 	req := &query.HTTPRequest{
-		URL: c.getUrl(uriPairs),
+		URL: c.getURL(uriPairs),
 		Headers: map[string]string{
 			"CMC_PRO_API_KEY": c.APIKey,
 			"Accept":          "application/json",
