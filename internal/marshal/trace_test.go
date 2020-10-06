@@ -71,13 +71,13 @@ func TestTrace_Ticks(t *testing.T) {
 
 	expected := `
 Price for A/B:
-───AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T01:00:10+01:00, method:median, min:1)
-   ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T01:00:10+01:00)
-   ├──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T01:00:10+01:00, method:indirect)
-   │  └──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T01:00:10+01:00)
-   └──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T01:00:10+01:00, method:median, min:1)
-      ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T01:00:10+01:00)
-      └──[ERROR] OriginTick(pair:A/B, origin:b, price:20, timestamp:1970-01-01T01:00:20+01:00)
+───AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z, method:median, min:1)
+   ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
+   ├──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z, method:indirect)
+   │  └──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
+   └──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z, method:median, min:1)
+      ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
+      └──[ERROR] OriginTick(pair:A/B, origin:b, price:20, timestamp:1970-01-01T00:00:20Z)
             Error: something
 `
 

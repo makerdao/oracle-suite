@@ -87,7 +87,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 					[]param{
 						{key: "pair", value: typedTick.Pair.String()},
 						{key: "price", value: typedTick.Price},
-						{key: "timestamp", value: typedTick.Timestamp.Format(time.RFC3339Nano)},
+						{key: "timestamp", value: typedTick.Timestamp.In(time.UTC).Format(time.RFC3339Nano)},
 					},
 					typedTick.Parameters,
 				),
@@ -107,7 +107,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 					{key: "pair", value: typedTick.Pair.String()},
 					{key: "origin", value: typedTick.Origin},
 					{key: "price", value: typedTick.Price},
-					{key: "timestamp", value: typedTick.Timestamp.Format(time.RFC3339Nano)},
+					{key: "timestamp", value: typedTick.Timestamp.In(time.UTC).Format(time.RFC3339Nano)},
 				},
 				typedTick.Error,
 			)

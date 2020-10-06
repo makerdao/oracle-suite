@@ -138,7 +138,7 @@ func jsonTickFromOriginTick(t graph.OriginTick) jsonTick {
 		Bid:        t.Bid,
 		Ask:        t.Ask,
 		Volume24h:  t.Volume24h,
-		Timestamp:  t.Timestamp,
+		Timestamp:  t.Timestamp.In(time.UTC),
 		Error:      errStr,
 	}
 }
@@ -166,7 +166,7 @@ func jsonTickFromAggregatorTick(t graph.AggregatorTick) jsonTick {
 		Bid:        t.Bid,
 		Ask:        t.Ask,
 		Volume24h:  t.Volume24h,
-		Timestamp:  t.Timestamp,
+		Timestamp:  t.Timestamp.In(time.UTC),
 		Ticks:      ticks,
 		Error:      errStr,
 	}

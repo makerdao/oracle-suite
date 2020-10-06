@@ -95,7 +95,7 @@ func TestJSON_Ticks(t *testing.T) {
 			  "price":10,
 			  "bid":10,
 			  "ask":10,
-			  "ts":"1970-01-01T01:00:10+01:00",
+			  "ts":"1970-01-01T00:00:10Z",
 			  "ticks":[
 				 {
 					"type":"origin",
@@ -106,7 +106,7 @@ func TestJSON_Ticks(t *testing.T) {
 					"bid":10,
 					"ask":10,
 					"vol24h":10,
-					"ts":"1970-01-01T01:00:10+01:00"
+					"ts":"1970-01-01T00:00:10Z"
 				 },
 				 {
 					"type":"aggregate",
@@ -119,7 +119,7 @@ func TestJSON_Ticks(t *testing.T) {
 					"bid":10,
 					"ask":10,
 					"vol24h":10,
-					"ts":"1970-01-01T01:00:10+01:00",
+					"ts":"1970-01-01T00:00:10Z",
 					"ticks":[
 					   {
 						  "type":"origin",
@@ -130,7 +130,7 @@ func TestJSON_Ticks(t *testing.T) {
 						  "bid":10,
 						  "ask":10,
 						  "vol24h":10,
-						  "ts":"1970-01-01T01:00:10+01:00"
+						  "ts":"1970-01-01T00:00:10Z"
 					   }
 					]
 				 },
@@ -145,7 +145,7 @@ func TestJSON_Ticks(t *testing.T) {
 					"price":10,
 					"bid":10,
 					"ask":10,
-					"ts":"1970-01-01T01:00:10+01:00",
+					"ts":"1970-01-01T00:00:10Z",
 					"ticks":[
 					   {
 						  "type":"origin",
@@ -156,7 +156,7 @@ func TestJSON_Ticks(t *testing.T) {
 						  "bid":10,
 						  "ask":10,
 						  "vol24h":10,
-						  "ts":"1970-01-01T01:00:10+01:00"
+						  "ts":"1970-01-01T00:00:10Z"
 					   },
 					   {
 						  "type":"origin",
@@ -167,7 +167,7 @@ func TestJSON_Ticks(t *testing.T) {
 						  "bid":20,
 						  "ask":20,
 						  "vol24h":20,
-						  "ts":"1970-01-01T01:00:20+01:00",
+						  "ts":"1970-01-01T00:00:20Z",
 						  "error": "something"
 					   }
 					]
