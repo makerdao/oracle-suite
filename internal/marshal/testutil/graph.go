@@ -38,7 +38,7 @@ func Graph(p graph.Pair) *graph.MedianAggregatorNode {
 	mn.AddChild(on1)
 	mn.AddChild(on2)
 
-	on1.Ingest(graph.OriginTick{
+	_ = on1.Ingest(graph.OriginTick{
 		Tick: graph.Tick{
 			Pair:      p,
 			Price:     10,
@@ -51,7 +51,7 @@ func Graph(p graph.Pair) *graph.MedianAggregatorNode {
 		Error:  nil,
 	})
 
-	on2.Ingest(graph.OriginTick{
+	_ = on2.Ingest(graph.OriginTick{
 		Tick: graph.Tick{
 			Pair:      p,
 			Price:     20,

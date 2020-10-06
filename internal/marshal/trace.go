@@ -274,13 +274,13 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 
 		switch {
 		case isLast && hasChild:
-			restLinesPrefix += color(empty + vline, green)
+			restLinesPrefix += color(empty+vline, green)
 		case !isLast && hasChild:
-			restLinesPrefix += color(vline + vline, green)
+			restLinesPrefix += color(vline+vline, green)
 		case isLast && !hasChild:
-			restLinesPrefix += color(empty + empty, green)
+			restLinesPrefix += color(empty+empty, green)
 		case !isLast && !hasChild:
-			restLinesPrefix += color(vline + empty, green)
+			restLinesPrefix += color(vline+empty, green)
 		}
 
 		s.Write(prependLines(nodeStr, firstLinePrefix, restLinesPrefix))
