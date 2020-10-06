@@ -31,16 +31,16 @@ func TestPlain_Graph(t *testing.T) {
 	j := newPlain()
 
 	err = j.Write(testutil.Graph(graph.Pair{Base: "A", Quote: "B"}))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `
 A/B
@@ -57,18 +57,18 @@ func TestPlain_Ticks(t *testing.T) {
 	j := newPlain()
 
 	err = j.Write(ab.Tick())
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	cdt := cd.Tick()
 	cdt.Error = errors.New("something")
 	err = j.Write(cdt)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `
 A/B 10.000000
@@ -86,10 +86,10 @@ func TestPlain_Origins(t *testing.T) {
 		p: {"a", "b", "c"},
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
 

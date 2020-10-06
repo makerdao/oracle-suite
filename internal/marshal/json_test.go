@@ -31,16 +31,16 @@ func TestJSON_Graph(t *testing.T) {
 	j := newJSON(false)
 
 	err = j.Write(testutil.Graph(graph.Pair{Base: "A", Quote: "B"}))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `["A/B", "C/D"]`
 
@@ -52,16 +52,16 @@ func TestNDJSON_Graph(t *testing.T) {
 	j := newJSON(true)
 
 	err = j.Write(testutil.Graph(graph.Pair{Base: "A", Quote: "B"}))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	result := bytes.Split(b, []byte("\n"))
 
@@ -74,13 +74,13 @@ func TestJSON_Ticks(t *testing.T) {
 	j := newJSON(false)
 
 	err := j.Write(g.Tick())
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `
 		[
@@ -192,13 +192,13 @@ func TestJSON_Origins(t *testing.T) {
 		cd: {"x", "y", "z"},
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `[{"A/B":["a","b","c"], "C/D":["x","y","z"]}]`
 
@@ -215,18 +215,18 @@ func TestNDJSON_Origins(t *testing.T) {
 	err = j.Write(map[graph.Pair][]string{
 		ab: {"a", "b", "c"},
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Write(map[graph.Pair][]string{
 		cd: {"x", "y", "z"},
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	result := bytes.Split(b, []byte("\n"))
 

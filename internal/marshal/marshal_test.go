@@ -41,7 +41,7 @@ func TestNewMarshaller(t *testing.T) {
 		t.Run(st, func(t *testing.T) {
 			m, err := NewMarshal(ct)
 
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			assert.Implements(t, (*Marshaller)(nil), m)
 			assert.IsType(t, m, &Marshal{})
 			assert.IsType(t, m.marshaller, expectedMap[ct])
@@ -74,7 +74,7 @@ func TestBufferedMarshaller_RW(t *testing.T) {
 				assert.Equal(t, "foobarnotlive", string(r))
 			}
 
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -119,7 +119,7 @@ func TestBufferedMarshaller_RW_Async(t *testing.T) {
 				assert.Equal(t, "foobarnotlive", string(r))
 			}
 
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }

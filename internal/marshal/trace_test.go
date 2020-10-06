@@ -32,13 +32,13 @@ func TestTrace_Graph(t *testing.T) {
 	j := newTrace()
 
 	err := j.Write(g)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `
 Graph for A/B:
@@ -61,13 +61,13 @@ func TestTrace_Ticks(t *testing.T) {
 	j := newTrace()
 
 	err := j.Write(g.Tick())
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `
 Price for A/B:
@@ -94,13 +94,13 @@ func TestTrace_Origins(t *testing.T) {
 		p: {"a", "b", "c"},
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = j.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(j)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	expected := `
 ───A/B
