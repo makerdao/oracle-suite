@@ -99,6 +99,7 @@ func (c *CoinMarketCap) Fetch(pairs []Pair) []FetchResult {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse loopring response: %w", err))
 	}
 	if resp.Status.ErrorCode != 0 || resp.Status.ErrorMessage != "" {
+		//nolint:lll
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to get data from coinmarketcap: %s %s", resp.Status.ErrorMessage, res.Body))
 	}
 	if resp.Data == nil {
