@@ -25,7 +25,7 @@ import (
 
 func TestParseJSONFile_ValidConfig(t *testing.T) {
 	_, err := ParseJSONFile("./testdata/config.valid.json")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestParseJSONFile_MissingFile(t *testing.T) {
