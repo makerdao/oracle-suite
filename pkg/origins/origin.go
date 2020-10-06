@@ -108,6 +108,7 @@ func DefaultSet() *Set {
 		"coinbase":      &Coinbase{Pool: httpWorkerPool},
 		"coinbasepro":   &CoinbasePro{Pool: httpWorkerPool},
 		"cryptocompare": &CryptoCompare{Pool: httpWorkerPool},
+		"coinmarketcap": &CoinMarketCap{Pool: httpWorkerPool, APIKey: "KEY_HERE"},
 		"ddex":          &Ddex{Pool: httpWorkerPool},
 		"folgory":       &Folgory{Pool: httpWorkerPool},
 		"ftx":           &Ftx{Pool: httpWorkerPool},
