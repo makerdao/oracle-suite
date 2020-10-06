@@ -41,7 +41,7 @@ func PairsHandler(l pairsLister) http.HandlerFunc {
 
 		m, _ := marshal.NewMarshal(marshal.JSON)
 		for _, g := range graphs {
-			if err := m.Write(g, nil); err != nil {
+			if err := m.Write(g); err != nil {
 				BadRequest(w, err)
 				return
 			}

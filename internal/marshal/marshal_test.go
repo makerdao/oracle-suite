@@ -52,7 +52,7 @@ func TestNewMarshaller(t *testing.T) {
 func TestBufferedMarshaller_RW(t *testing.T) {
 	for _, live := range []bool{false, true} {
 		t.Run("live:"+strconv.FormatBool(live), func(t *testing.T) {
-			bm := newBufferedMarshaller(live, func(i interface{}, err error) ([]marshalledItem, error) {
+			bm := newBufferedMarshaller(live, func(i interface{}) ([]marshalledItem, error) {
 				if s, ok := i.([]marshalledItem); ok {
 					// this code should be called only when the live var is set to false
 					s = append(s, []byte("notlive"))
@@ -62,8 +62,8 @@ func TestBufferedMarshaller_RW(t *testing.T) {
 				return []marshalledItem{marshalledItem(i.(string))}, nil
 			})
 
-			assert.Nil(t, bm.Write("foo", nil))
-			assert.Nil(t, bm.Write("bar", nil))
+			assert.Nil(t, bm.Write("foo"))
+			assert.Nil(t, bm.Write("bar"))
 			assert.Nil(t, bm.Close())
 
 			r, err := ioutil.ReadAll(bm)
@@ -82,7 +82,7 @@ func TestBufferedMarshaller_RW(t *testing.T) {
 func TestBufferedMarshaller_RW_Async(t *testing.T) {
 	for _, live := range []bool{false, true} {
 		t.Run("live:"+strconv.FormatBool(live), func(t *testing.T) {
-			bm := newBufferedMarshaller(live, func(i interface{}, err error) ([]marshalledItem, error) {
+			bm := newBufferedMarshaller(live, func(i interface{}) ([]marshalledItem, error) {
 				if s, ok := i.([]marshalledItem); ok {
 					// this code should be called only when the live var is set to false
 					s = append(s, []byte("notlive"))
@@ -105,8 +105,8 @@ func TestBufferedMarshaller_RW_Async(t *testing.T) {
 
 			wg.Add(1)
 			go func() {
-				assert.Nil(t, bm.Write("foo", nil))
-				assert.Nil(t, bm.Write("bar", nil))
+				assert.Nil(t, bm.Write("foo"))
+				assert.Nil(t, bm.Write("bar"))
 				assert.Nil(t, bm.Close())
 				wg.Done()
 			}()

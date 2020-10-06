@@ -1,0 +1,113 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package marshal
+
+import (
+	"io/ioutil"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/internal/marshal/testutil"
+	"github.com/makerdao/gofer/pkg/graph"
+)
+
+func TestTrace_Graph(t *testing.T) {
+	disableColors()
+
+	g := testutil.Graph(graph.Pair{Base: "A", Quote: "B"})
+	j := newTrace()
+
+	err := j.Write(g)
+	assert.Nil(t, err)
+
+	err = j.Close()
+	assert.Nil(t, err)
+
+	b, err := ioutil.ReadAll(j)
+	assert.Nil(t, err)
+
+	expected := `
+Graph for A/B:
+───graph.MedianAggregatorNode(pair:A/B)
+   ├──graph.OriginNode(pair:A/B, origin:a)
+   ├──graph.IndirectAggregatorNode(pair:A/B)
+   │  └──graph.OriginNode(pair:A/B, origin:a)
+   └──graph.MedianAggregatorNode(pair:A/B)
+      ├──graph.OriginNode(pair:A/B, origin:a)
+      └──graph.OriginNode(pair:A/B, origin:b)
+`
+
+	assert.Equal(t, expected[1:], string(b))
+}
+
+func TestTrace_Ticks(t *testing.T) {
+	disableColors()
+
+	g := testutil.Graph(graph.Pair{Base: "A", Quote: "B"})
+	j := newTrace()
+
+	err := j.Write(g.Tick())
+	assert.Nil(t, err)
+
+	err = j.Close()
+	assert.Nil(t, err)
+
+	b, err := ioutil.ReadAll(j)
+	assert.Nil(t, err)
+
+	expected := `
+Price for A/B:
+───AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T01:00:10+01:00, method:median, min:1)
+   ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T01:00:10+01:00)
+   ├──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T01:00:10+01:00, method:indirect)
+   │  └──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T01:00:10+01:00)
+   └──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T01:00:10+01:00, method:median, min:1)
+      ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T01:00:10+01:00)
+      └──[ERROR] OriginTick(pair:A/B, origin:b, price:20, timestamp:1970-01-01T01:00:20+01:00)
+            Error: something
+`
+
+	assert.Equal(t, expected[1:], string(b))
+}
+
+func TestTrace_Origins(t *testing.T) {
+	disableColors()
+
+	p := graph.Pair{Base: "A", Quote: "B"}
+	j := newTrace()
+
+	err := j.Write(map[graph.Pair][]string{
+		p: {"a", "b", "c"},
+	})
+
+	assert.Nil(t, err)
+
+	err = j.Close()
+	assert.Nil(t, err)
+
+	b, err := ioutil.ReadAll(j)
+	assert.Nil(t, err)
+
+	expected := `
+───A/B
+   ├──a
+   ├──b
+   └──c
+`
+
+	assert.Equal(t, expected[1:], string(b))
+}

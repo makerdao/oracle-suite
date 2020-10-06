@@ -34,7 +34,7 @@ import (
 type Marshaller interface {
 	io.ReadCloser
 
-	Write(item interface{}, err error) error
+	Write(item interface{}) error
 }
 
 // Marshal implements the Marshaller interface. It wraps other marshaller based
@@ -70,8 +70,8 @@ func NewMarshal(format FormatType) (*Marshal, error) {
 }
 
 // Write implements the Marshaller interface.
-func (m *Marshal) Write(w interface{}, err error) error {
-	return m.marshaller.Write(w, err)
+func (m *Marshal) Write(w interface{}) error {
+	return m.marshaller.Write(w)
 }
 
 // Read implements the Marshaller interface.
@@ -98,7 +98,7 @@ func (m marshalledItem) MarshalJSON() ([]byte, error) {
 	return m, nil
 }
 
-type marshallerFunc func(interface{}, error) ([]marshalledItem, error)
+type marshallerFunc func(interface{}) ([]marshalledItem, error)
 
 // bufferedMarshaller helps to implement Marshaller interface.
 type bufferedMarshaller struct {
@@ -171,7 +171,7 @@ func (b *bufferedMarshaller) Read(p []byte) (int, error) {
 					// buffer, then we set b.items to nil to indicate that
 					// data are already marshaled. Otherwise code below will
 					// invoke marshaller on every read.
-					bs, err := b.marshaller(b.items, nil)
+					bs, err := b.marshaller(b.items)
 					if err != nil {
 						return 0, err
 					}
@@ -191,7 +191,7 @@ func (b *bufferedMarshaller) Read(p []byte) (int, error) {
 }
 
 // Implements the Marshaller interface.
-func (b *bufferedMarshaller) Write(item interface{}, err error) error {
+func (b *bufferedMarshaller) Write(item interface{}) error {
 	b.cond.L.Lock()
 	defer func() {
 		b.cond.Broadcast()
@@ -202,7 +202,7 @@ func (b *bufferedMarshaller) Write(item interface{}, err error) error {
 		return fmt.Errorf("unable to write to closed writer")
 	}
 
-	bs, err := b.marshaller(item, err)
+	bs, err := b.marshaller(item)
 	if err != nil {
 		return err
 	}

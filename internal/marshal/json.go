@@ -29,7 +29,7 @@ type json struct {
 }
 
 func newJSON(ndjson bool) *json {
-	return &json{newBufferedMarshaller(ndjson, func(item interface{}, ierr error) ([]marshalledItem, error) {
+	return &json{newBufferedMarshaller(ndjson, func(item interface{}) ([]marshalledItem, error) {
 		if i, ok := item.([]marshalledItem); ok {
 			b, err := encodingJson.Marshal(i)
 			b = append(b, '\n')
@@ -60,8 +60,8 @@ func (j *json) Read(p []byte) (int, error) {
 }
 
 // Write implements the Marshaller interface.
-func (j *json) Write(item interface{}, err error) error {
-	return j.bufferedMarshaller.Write(item, err)
+func (j *json) Write(item interface{}) error {
+	return j.bufferedMarshaller.Write(item)
 }
 
 // Close implements the Marshaller interface.

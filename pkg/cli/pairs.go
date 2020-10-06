@@ -38,7 +38,7 @@ func Pairs(l pairsLister, m readWriter) error {
 	})
 
 	for _, g := range graphs {
-		err = m.Write(g, nil)
+		err = m.Write(g)
 		if err != nil {
 			return err
 		}
