@@ -17,6 +17,7 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -74,8 +75,6 @@ func TestBuildGraphs_ValidConfig(t *testing.T) {
 	assert.Equal(t, ac, j[ac].Children()[1].(*graph.IndirectAggregatorNode).Pair())
 	assert.Equal(t, ab, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[0].(*graph.OriginNode).OriginPair().Pair)
 	assert.Equal(t, bc, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[1].(*graph.OriginNode).OriginPair().Pair)
-	// In a first source, we should reuse instance of the B/C OriginNode:
-	assert.Same(t, j[bc].Children()[0], j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[1])
 	// In a second source, there is a reference to another root node. We should
 	// use previously created instance instead creating new one:
 	assert.Same(t, j[bc], j[ac].Children()[1].(*graph.IndirectAggregatorNode).Children()[1])
@@ -181,4 +180,95 @@ func TestBuildGraphs_ReferenceToSelf(t *testing.T) {
 
 	_, err2 := f.BuildGraphs()
 	assert.Error(t, err2)
+}
+
+func TestBuildGraphs_DefaultTTL(t *testing.T) {
+	f, err1 := ParseJSON([]byte(`
+		{
+		  "pricemodels": {
+			"A/B": {
+			  "method": "median",
+			  "sources": [
+				[{"origin": "ab", "pair": "A/B"}]
+			  ]
+			}
+		  }
+		}
+	`))
+	assert.Nil(t, err1)
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := f.BuildGraphs()
+
+	assert.Equal(t, defaultMaxTTL, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, defaultMaxTTL - minTTLDifference, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+}
+
+func TestBuildGraphs_OriginTTL(t *testing.T) {
+	f, err1 := ParseJSON([]byte(`
+		{
+		  "pricemodels": {
+			"A/B": {
+			  "method": "median",
+			  "sources": [
+				[{"origin": "ab", "pair": "A/B", "ttl": 120}]
+			  ]
+			}
+		  }
+		}
+	`))
+	assert.Nil(t, err1)
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := f.BuildGraphs()
+
+	assert.Equal(t, 120 * time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90 * time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+}
+
+func TestBuildGraphs_MedianTTL(t *testing.T) {
+	f, err1 := ParseJSON([]byte(`
+		{
+		  "pricemodels": {
+			"A/B": {
+			  "method": "median",
+			  "ttl": 120,
+			  "sources": [
+				[{"origin": "ab", "pair": "A/B"}]
+			  ]
+			}
+		  }
+		}
+	`))
+	assert.Nil(t, err1)
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := f.BuildGraphs()
+
+	assert.Equal(t, 120 * time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90 * time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+}
+
+func TestBuildGraphs_MedianAndOriginTTL(t *testing.T) {
+	f, err1 := ParseJSON([]byte(`
+		{
+		  "pricemodels": {
+			"A/B": {
+			  "method": "median",
+			  "ttl": 300,
+			  "sources": [
+				[{"origin": "ab", "pair": "A/B", "ttl": 120}]
+			  ]
+			}
+		  }
+		}
+	`))
+	assert.Nil(t, err1)
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := f.BuildGraphs()
+
+	// TTL assigned TTL should have higher priority:
+	assert.Equal(t, 120 * time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90 * time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }

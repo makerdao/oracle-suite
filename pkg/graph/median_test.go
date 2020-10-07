@@ -23,12 +23,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const medianTestTTL = 10 * time.Second
+
 func TestMedianAggregatorNode_Children(t *testing.T) {
 	m := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 3)
 
-	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"}, medianTestTTL, medianTestTTL)
+	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"}, medianTestTTL, medianTestTTL)
 
 	m.AddChild(c1)
 	m.AddChild(c2)
@@ -52,9 +54,9 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 3)
 
-	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"}, medianTestTTL, medianTestTTL)
+	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"}, medianTestTTL, medianTestTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -122,9 +124,9 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 3)
 
-	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"}, medianTestTTL, medianTestTTL)
+	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"}, medianTestTTL, medianTestTTL)
 
 	i1 := NewMedianAggregatorNode(p, 1)
 	i1.AddChild(c1)
@@ -244,7 +246,7 @@ func TestMedianAggregatorNode_Tick_NotEnoughSources(t *testing.T) {
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 3)
 
-	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
+	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"}, medianTestTTL, medianTestTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -276,8 +278,8 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 2)
 
-	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
+	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"}, medianTestTTL, medianTestTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -324,8 +326,8 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 	n := time.Now()
 	m := NewMedianAggregatorNode(p1, 2)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, medianTestTTL, medianTestTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -380,9 +382,9 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 1)
 
-	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: p, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p, Origin: "b"}, medianTestTTL, medianTestTTL)
+	c3 := NewOriginNode(OriginPair{Pair: p, Origin: "c"}, medianTestTTL, medianTestTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{

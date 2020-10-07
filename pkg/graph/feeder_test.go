@@ -60,20 +60,20 @@ func originsSetMock(ticks map[string][]origins.Tick) *origins.Set {
 }
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil), 0)
+	f := NewFeeder(originsSetMock(nil))
 	err := f.Feed()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// Feed method shouldn't panic
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil), 0)
+	f := NewFeeder(originsSetMock(nil))
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
 	err := f.Feed(g)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// Feed method shouldn't panic
 }
@@ -92,18 +92,18 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s, 0)
+	f := NewFeeder(s)
 
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
 	o := NewOriginNode(OriginPair{
 		Origin: "test",
 		Pair:   Pair{Base: "A", Quote: "B"},
-	})
+	}, 0, 0)
 
 	g.AddChild(o)
 	err := f.Feed(g)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
 	assert.Equal(t, 10.0, o.tick.Price)
 	assert.Equal(t, 9.0, o.tick.Bid)
@@ -144,25 +144,25 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s, 0)
+	f := NewFeeder(s)
 
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
 	o1 := NewOriginNode(OriginPair{
 		Origin: "test",
 		Pair:   Pair{Base: "A", Quote: "B"},
-	})
+	}, 0, 0)
 	o2 := NewOriginNode(OriginPair{
 		Origin: "test",
 		Pair:   Pair{Base: "C", Quote: "D"},
-	})
+	}, 0, 0)
 	o3 := NewOriginNode(OriginPair{
 		Origin: "test2",
 		Pair:   Pair{Base: "E", Quote: "F"},
-	})
+	}, 0, 0)
 	o4 := NewOriginNode(OriginPair{
 		Origin: "test2",
 		Pair:   Pair{Base: "E", Quote: "F"},
-	})
+	}, 0, 0)
 
 	// The last o4 origin is intentionally same as an o3 origin. Also an o3
 	// origin was added two times as a child for the g node. The feeder should
@@ -175,7 +175,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	g.AddChild(o4)
 	err := f.Feed(g)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o1.tick.Pair)
 	assert.Equal(t, 10.0, o1.tick.Price)
@@ -227,20 +227,20 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s, 0)
+	f := NewFeeder(s)
 
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
 	i := NewIndirectAggregatorNode(Pair{Base: "A", Quote: "B"})
 	o := NewOriginNode(OriginPair{
 		Origin: "test",
 		Pair:   Pair{Base: "A", Quote: "B"},
-	})
+	}, 0, 0)
 
 	g.AddChild(i)
 	i.AddChild(o)
 	err := f.Feed(g)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
 	assert.Equal(t, 10.0, o.tick.Price)
 	assert.Equal(t, 9.0, o.tick.Bid)
@@ -249,7 +249,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 	assert.Equal(t, time.Unix(10000, 0), o.tick.Timestamp)
 }
 
-func TestFeeder_Feed_TTL(t *testing.T) {
+func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 	s := originsSetMock(map[string][]origins.Tick{
 		"test": {
 			origins.Tick{
@@ -263,13 +263,13 @@ func TestFeeder_Feed_TTL(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s, 10)
+	f := NewFeeder(s)
 
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
 	o := NewOriginNode(OriginPair{
 		Origin: "test",
 		Pair:   Pair{Base: "A", Quote: "B"},
-	})
+	}, 10*time.Second, 10*time.Second)
 
 	_ = o.Ingest(OriginTick{
 		Tick: Tick{
@@ -287,11 +287,58 @@ func TestFeeder_Feed_TTL(t *testing.T) {
 	g.AddChild(o)
 	err := f.Feed(g)
 
-	// OriginNode shouldn't be updated because of TTL setting:
-	assert.Nil(t, err)
+	// OriginNode shouldn't be updated because time diff is below MinTTL setting:
+	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
 	assert.Equal(t, 10.0, o.tick.Price)
 	assert.Equal(t, 9.0, o.tick.Bid)
 	assert.Equal(t, 11.0, o.tick.Ask)
 	assert.Equal(t, 10.0, o.tick.Volume24h)
+}
+
+func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
+	s := originsSetMock(map[string][]origins.Tick{
+		"test": {
+			origins.Tick{
+				Pair:      origins.Pair{Base: "A", Quote: "B"},
+				Price:     11,
+				Bid:       10,
+				Ask:       12,
+				Volume24h: 11,
+				Timestamp: time.Unix(10000, 0),
+			},
+		},
+	})
+
+	f := NewFeeder(s)
+
+	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
+	o := NewOriginNode(OriginPair{
+		Origin: "test",
+		Pair:   Pair{Base: "A", Quote: "B"},
+	}, 10*time.Second, 60*time.Second)
+
+	_ = o.Ingest(OriginTick{
+		Tick: Tick{
+			Pair:      Pair{Base: "A", Quote: "B"},
+			Price:     10,
+			Bid:       9,
+			Ask:       11,
+			Volume24h: 10,
+			Timestamp: time.Now().Add(-30 * time.Second),
+		},
+		Origin: "test",
+		Error:  nil,
+	})
+
+	g.AddChild(o)
+	err := f.Feed(g)
+
+	// OriginNode should be updated because time diff is above MinTTL setting:
+	assert.NoError(t, err)
+	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
+	assert.Equal(t, 11.0, o.tick.Price)
+	assert.Equal(t, 10.0, o.tick.Bid)
+	assert.Equal(t, 12.0, o.tick.Ask)
+	assert.Equal(t, 11.0, o.tick.Volume24h)
 }

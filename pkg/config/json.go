@@ -24,9 +24,13 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/makerdao/gofer/pkg/graph"
 )
+
+const defaultMaxTTL = 60 * time.Second
+const minTTLDifference = 30 * time.Second
 
 type JSON struct {
 	Origins     map[string]JSONOrigin     `json:"origins"`
@@ -41,17 +45,19 @@ type JSONOrigin struct {
 
 type JSONPriceModel struct {
 	Method  string          `json:"method"`
-	Sources [][]JSONSources `json:"sources"`
+	Sources [][]JSONSource  `json:"sources"`
 	Params  json.RawMessage `json:"params"`
+	TTL     int             `json:"ttl"`
 }
 
 type MedianPriceModel struct {
 	MinSourceSuccess int `json:"minimumSuccessfulSources"`
 }
 
-type JSONSources struct {
+type JSONSource struct {
 	Origin string `json:"origin"`
 	Pair   string `json:"pair"`
+	TTL    int    `json:"ttl"`
 }
 
 type JSONConfigErr struct {
@@ -138,10 +144,6 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 }
 
 func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
-	// Map of all created origin nodes. Used to reuse instances of the nodes
-	// whenever possible.
-	origins := map[graph.OriginPair]graph.Origin{}
-
 	for name, model := range j.PriceModels {
 		// We can ignore error here, because it was checked already
 		// in buildRoots method.
@@ -160,44 +162,28 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 		for _, sources := range model.Sources {
 			var children []graph.Node
 			for _, source := range sources {
-				sourcePair, err := graph.NewPair(source.Pair)
-				if err != nil {
-					return err
-				}
+				var err error
+				var node graph.Node
 
 				if source.Origin == "." {
-					// If the origin is set to "." it means, that it's
-					// a reference to an other root node.
-					if _, ok := graphs[sourcePair]; !ok {
-						return fmt.Errorf(
-							"unable to find price model for the %s pair",
-							sourcePair,
-						)
-					}
-					children = append(children, graphs[sourcePair].(graph.Node))
-				} else {
-					// The origin node. If it's possible we're trying to reuse
-					// previously created origin nodes.
-					pair, err := graph.NewPair(source.Pair)
+					node, err = j.reference(graphs, source)
 					if err != nil {
 						return err
 					}
-					originPair := graph.OriginPair{
-						Origin: source.Origin,
-						Pair:   pair,
+				} else {
+					node, err = j.originNode(model, source)
+					if err != nil {
+						return err
 					}
-					if _, ok := origins[originPair]; !ok {
-						origins[originPair] = graph.NewOriginNode(originPair)
-					}
-					children = append(children, origins[originPair])
 				}
+
+				children = append(children, node)
 			}
 
 			// If there are provided multiple sources it means, that price
 			// have to be calculated by using graph.IndirectAggregatorNode.
 			// Otherwise we can pass that graph.OriginNode directly to
 			// the parent node.
-
 			var node graph.Node
 			if len(children) == 1 {
 				node = children[0]
@@ -214,6 +200,44 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	}
 
 	return nil
+}
+
+func (j *JSON) reference(graphs map[graph.Pair]graph.Aggregator, source JSONSource) (graph.Node, error) {
+	sourcePair, err := graph.NewPair(source.Pair)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := graphs[sourcePair]; !ok {
+		return nil, fmt.Errorf(
+			"unable to find price model for the %s pair",
+			sourcePair,
+		)
+	}
+
+	return graphs[sourcePair].(graph.Node), nil
+}
+
+func (j *JSON) originNode(model JSONPriceModel, source JSONSource) (graph.Node, error) {
+	sourcePair, err := graph.NewPair(source.Pair)
+	if err != nil {
+		return nil, err
+	}
+
+	originPair := graph.OriginPair{
+		Origin: source.Origin,
+		Pair:   sourcePair,
+	}
+
+	ttl := defaultMaxTTL
+	if model.TTL > 0 {
+		ttl = time.Second * time.Duration(model.TTL)
+	}
+	if source.TTL > 0 {
+		ttl = time.Second * time.Duration(source.TTL)
+	}
+
+	return graph.NewOriginNode(originPair, ttl-minTTLDifference, ttl), nil
 }
 
 func (j *JSON) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {

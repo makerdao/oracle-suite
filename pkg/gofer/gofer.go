@@ -59,7 +59,7 @@ func (g *Gofer) Feed(pairs ...graph.Pair) error {
 		}
 	}
 
-	// We can ignore error, because all errors are assigned to nodes.
+	// TODO: Display somehow returned errors
 	_ = g.feeder.Feed(graphs...)
 
 	return nil

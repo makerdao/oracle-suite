@@ -75,10 +75,12 @@ func NewMedianAggregatorNode(pair Pair, minSources int) *MedianAggregatorNode {
 	}
 }
 
+// Children implements Node interface.
 func (n *MedianAggregatorNode) Children() []Node {
 	return n.children
 }
 
+// AddChild implements Parent interface.
 func (n *MedianAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }
