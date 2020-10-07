@@ -55,7 +55,7 @@ func NewFeeder(set *origins.Set) *Feeder {
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
 // and sets Ticks to all of their children that implements the Feedable interface.
-
+//
 // This method may return an error with a list of problems during fetching, but
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
