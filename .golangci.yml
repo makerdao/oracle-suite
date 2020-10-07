@@ -13,6 +13,8 @@ run:
   # on Windows.
   skip-dirs:
     - bin
+    - testdata
+    - testutil
 
   # which files to skip: they will be analyzed, but issues from them
   # won't be reported. Default value is empty list, but there is
@@ -21,8 +23,7 @@ run:
   # "/" will be replaced by current OS file path separator to properly work
   # on Windows.
   #skip-files:
-  #  - ".*\\.my\\.go$"
-  #  - lib/bad.go
+  #  - "_test\\.go$"
 
   # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit

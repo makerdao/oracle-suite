@@ -27,7 +27,7 @@ type plain struct {
 }
 
 func newPlain() *plain {
-	return &plain{newBufferedMarshaller(false, func(item interface{}, ierr error) ([]marshalledItem, error) {
+	return &plain{newBufferedMarshaller(false, func(item interface{}) ([]marshalledItem, error) {
 		if i, ok := item.([]marshalledItem); ok {
 			strs := make([]string, len(i))
 			for n, s := range i {
@@ -61,8 +61,8 @@ func (j *plain) Read(p []byte) (int, error) {
 }
 
 // Write implements the Marshaller interface.
-func (j *plain) Write(item interface{}, err error) error {
-	return j.bufferedMarshaller.Write(item, err)
+func (j *plain) Write(item interface{}) error {
+	return j.bufferedMarshaller.Write(item)
 }
 
 // Close implements the Marshaller interface.
