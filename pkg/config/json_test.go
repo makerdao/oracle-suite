@@ -201,7 +201,7 @@ func TestBuildGraphs_DefaultTTL(t *testing.T) {
 	g, _ := f.BuildGraphs()
 
 	assert.Equal(t, defaultMaxTTL, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, defaultMaxTTL - minTTLDifference, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, defaultMaxTTL-minTTLDifference, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
 
 func TestBuildGraphs_OriginTTL(t *testing.T) {
@@ -222,8 +222,8 @@ func TestBuildGraphs_OriginTTL(t *testing.T) {
 	p, _ := graph.NewPair("A/B")
 	g, _ := f.BuildGraphs()
 
-	assert.Equal(t, 120 * time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, 90 * time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
 
 func TestBuildGraphs_MedianTTL(t *testing.T) {
@@ -245,8 +245,8 @@ func TestBuildGraphs_MedianTTL(t *testing.T) {
 	p, _ := graph.NewPair("A/B")
 	g, _ := f.BuildGraphs()
 
-	assert.Equal(t, 120 * time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, 90 * time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
 
 func TestBuildGraphs_MedianAndOriginTTL(t *testing.T) {
@@ -269,6 +269,6 @@ func TestBuildGraphs_MedianAndOriginTTL(t *testing.T) {
 	g, _ := f.BuildGraphs()
 
 	// TTL assigned TTL should have higher priority:
-	assert.Equal(t, 120 * time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, 90 * time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
