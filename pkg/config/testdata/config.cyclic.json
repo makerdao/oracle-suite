@@ -3,28 +3,9 @@
     "A/B": {
       "method": "median",
       "sources": [
-        [
-          {
-            "origin": "ab1",
-            "pair": "A/B"
-          }
-        ],
-        [
-          {
-            "origin": "ab2",
-            "pair": "A/B"
-          }
-        ],
-        [
-          {
-            "origin": "ac1",
-            "pair": "A/C"
-          },
-          {
-            "origin": ".",
-            "pair": "B/C"
-          }
-        ]
+        [{"origin": "ab1", "pair": "A/B"}],
+        [{"origin": "ab2", "pair": "A/B"}],
+        [{"origin": "ac1", "pair": "A/C"}, {"origin": ".", "pair": "B/C"}]
       ],
       "params": {
         "minimumSuccessfulSources": 3
@@ -33,16 +14,7 @@
     "A/C": {
       "method": "median",
       "sources": [
-        [
-          {
-            "origin": "ab1",
-            "pair": "A/B"
-          },
-          {
-            "origin": ".",
-            "pair": "B/C"
-          }
-        ]
+        [{"origin": "ab1", "pair": "A/B"}, {"origin": ".", "pair": "B/C"}]
       ],
       "params": {
         "minimumSuccessfulSources": 3
@@ -51,16 +23,7 @@
     "B/C": {
       "method": "median",
       "sources": [
-        [
-          {
-            "origin": "ab1",
-            "pair": "A/B"
-          },
-          {
-            "origin": ".",
-            "pair": "A/C"
-          }
-        ]
+        [{"origin": "ab1", "pair": "A/B"}, {"origin": ".", "pair": "A/C"}]
       ],
       "params": {
         "minimumSuccessfulSources": 3
