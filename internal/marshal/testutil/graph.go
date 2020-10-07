@@ -25,8 +25,9 @@ import (
 func Graph(p graph.Pair) *graph.MedianAggregatorNode {
 	root := graph.NewMedianAggregatorNode(p, 1)
 
-	on1 := graph.NewOriginNode(graph.OriginPair{Origin: "a", Pair: p}, 0, 0)
-	on2 := graph.NewOriginNode(graph.OriginPair{Origin: "b", Pair: p}, 0, 0)
+	ttl := time.Second * time.Duration(time.Now().Unix() + 10)
+	on1 := graph.NewOriginNode(graph.OriginPair{Origin: "a", Pair: p}, 0, ttl)
+	on2 := graph.NewOriginNode(graph.OriginPair{Origin: "b", Pair: p}, 0, ttl)
 	in := graph.NewIndirectAggregatorNode(p)
 	mn := graph.NewMedianAggregatorNode(p, 1)
 
