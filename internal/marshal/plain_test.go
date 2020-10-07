@@ -91,7 +91,7 @@ func TestPlain_Origins(t *testing.T) {
 	err = j.Close()
 	assert.NoError(t, err)
 
-	b, err := ioutil.ReadAll(j)
+	b, _ := ioutil.ReadAll(j)
 
 	expected := `
 A/B:
