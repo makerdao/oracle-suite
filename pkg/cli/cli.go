@@ -21,5 +21,5 @@ import (
 
 type readWriter interface {
 	io.Reader
-	Write(item interface{}, err error) error
+	Write(item interface{}) error
 }

@@ -31,7 +31,7 @@ type trace struct {
 }
 
 func newTrace() *trace {
-	return &trace{newBufferedMarshaller(false, func(item interface{}, ierr error) ([]marshalledItem, error) {
+	return &trace{newBufferedMarshaller(false, func(item interface{}) ([]marshalledItem, error) {
 		if i, ok := item.([]marshalledItem); ok {
 			strs := make([]string, len(i))
 			for n, s := range i {
@@ -65,8 +65,8 @@ func (j *trace) Read(p []byte) (int, error) {
 }
 
 // Write implements the Marshaller interface.
-func (j *trace) Write(item interface{}, err error) error {
-	return j.bufferedMarshaller.Write(item, err)
+func (j *trace) Write(item interface{}) error {
+	return j.bufferedMarshaller.Write(item)
 }
 
 // Close implements the Marshaller interface.
@@ -87,7 +87,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 					[]param{
 						{key: "pair", value: typedTick.Pair.String()},
 						{key: "price", value: typedTick.Price},
-						{key: "timestamp", value: typedTick.Timestamp.Format(time.RFC3339Nano)},
+						{key: "timestamp", value: typedTick.Timestamp.In(time.UTC).Format(time.RFC3339Nano)},
 					},
 					typedTick.Parameters,
 				),
@@ -107,7 +107,7 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 					{key: "pair", value: typedTick.Pair.String()},
 					{key: "origin", value: typedTick.Origin},
 					{key: "price", value: typedTick.Price},
-					{key: "timestamp", value: typedTick.Timestamp.Format(time.RFC3339Nano)},
+					{key: "timestamp", value: typedTick.Timestamp.In(time.UTC).Format(time.RFC3339Nano)},
 				},
 				typedTick.Error,
 			)
@@ -244,12 +244,12 @@ func renderNode(typ string, params []param, err error) []byte {
 //nolint:gocyclo
 func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []interface{}, level int) []byte {
 	const (
-		first  = string(green + "┌──" + reset)
-		middle = string(green + "├──" + reset)
-		last   = string(green + "└──" + reset)
-		vline  = string(green + "│  " + reset)
-		hline  = string(green + "───" + reset)
-		empty  = string(green + "   " + reset)
+		first  = "┌──"
+		middle = "├──"
+		last   = "└──"
+		vline  = "│  "
+		hline  = "───"
+		empty  = "   "
 	)
 
 	s := bytes.Buffer{}
@@ -258,29 +258,29 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 		isFirst := i == 0
 		isLast := i == len(nodes)-1
 		hasChild := len(nodeChildren) > 0
-		firstLinePrefix := string(reset)
-		restLinesPrefix := string(reset)
+		firstLinePrefix := color("", reset)
+		restLinesPrefix := color("", reset)
 
 		switch {
 		case level == 0 && isFirst && isLast:
-			firstLinePrefix += hline
+			firstLinePrefix += color(hline, green)
 		case level == 0 && isFirst:
-			firstLinePrefix += first
+			firstLinePrefix += color(first, green)
 		case isLast:
-			firstLinePrefix += last
+			firstLinePrefix += color(last, green)
 		default:
-			firstLinePrefix += middle
+			firstLinePrefix += color(middle, green)
 		}
 
 		switch {
 		case isLast && hasChild:
-			restLinesPrefix += empty + vline
+			restLinesPrefix += color(empty+vline, green)
 		case !isLast && hasChild:
-			restLinesPrefix += vline + vline
+			restLinesPrefix += color(vline+vline, green)
 		case isLast && !hasChild:
-			restLinesPrefix += empty + empty
+			restLinesPrefix += color(empty+empty, green)
 		case !isLast && !hasChild:
-			restLinesPrefix += vline + empty
+			restLinesPrefix += color(vline+empty, green)
 		}
 
 		s.Write(prependLines(nodeStr, firstLinePrefix, restLinesPrefix))
@@ -292,7 +292,7 @@ func renderTree(printer func(interface{}) ([]byte, []interface{}), nodes []inter
 			if isLast {
 				subTree = prependLines(subTree, empty, empty)
 			} else {
-				subTree = prependLines(subTree, vline, vline)
+				subTree = prependLines(subTree, color(vline, green), color(vline, green))
 			}
 
 			s.Write(subTree)
