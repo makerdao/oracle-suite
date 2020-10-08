@@ -61,7 +61,7 @@ func (e IncompatiblePairsErr) Error() string {
 //                                                \
 //                                                 -- ...
 //
-// All children of this node must return tick for the same pair.
+// All children of this node must return a Tick for the same pair.
 type MedianAggregatorNode struct {
 	pair       Pair
 	minSources int
@@ -75,12 +75,12 @@ func NewMedianAggregatorNode(pair Pair, minSources int) *MedianAggregatorNode {
 	}
 }
 
-// Children implements Node interface.
+// Children implements the Node interface.
 func (n *MedianAggregatorNode) Children() []Node {
 	return n.children
 }
 
-// AddChild implements Parent interface.
+// AddChild implements the Parent interface.
 func (n *MedianAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }

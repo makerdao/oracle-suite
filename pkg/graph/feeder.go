@@ -24,21 +24,23 @@ import (
 )
 
 type Feedable interface {
-	// OriginPair returns origin and pair which are acceptable for this Node.
+	// OriginPair returns the origin and pair which are acceptable for
+	// this Node.
 	OriginPair() OriginPair
-	// Ingest sets the Tick for this Node. It may return error if the OriginTick
-	// contains incompatible origin or pair.
+	// Ingest sets the Tick for this Node. It may return error if
+	// the OriginTick contains incompatible origin or pair.
 	Ingest(tick OriginTick) error
-	// MinTTL is a amount of time during which the Tick shouldn't be updated.
+	// MinTTL is the amount of time during which the Tick shouldn't be updated.
 	MinTTL() time.Duration
-	// MaxTTL is a maximum amount of time during which the Tick can be used.
-	// After that time, the Tick method will return the OriginTick with
-	// the TickTTLExpiredErr error.
+	// MaxTTL is the maximum amount of time during which the Tick can be used.
+	// After that time, the Tick method will return a OriginTick with
+	// a TickTTLExpiredErr error.
 	MaxTTL() time.Duration
-	// Expired returns true if Tick is expired. This is based on MaxTTL value.
+	// Expired returns true if the Tick is expired. This is based on the MaxTTL
+	// value.
 	Expired() bool
 	// Tick returns the Tick assigned in the Ingest method. If the Tick is
-	// expired then the TickTTLExpiredErr error will be set in
+	// expired then a TickTTLExpiredErr error will be set in
 	// the OriginTick.Error field.
 	Tick() OriginTick
 }

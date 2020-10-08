@@ -181,7 +181,7 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 			}
 
 			// If there are provided multiple sources it means, that price
-			// have to be calculated by using graph.IndirectAggregatorNode.
+			// have to be calculated by using the graph.IndirectAggregatorNode.
 			// Otherwise we can pass that graph.OriginNode directly to
 			// the parent node.
 			var node graph.Node

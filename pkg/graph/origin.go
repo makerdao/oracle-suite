@@ -76,7 +76,7 @@ func NewOriginNode(originPair OriginPair, minTTL time.Duration, maxTTL time.Dura
 	}
 }
 
-// OriginPair implements Feedable interface.
+// OriginPair implements the Feedable interface.
 func (n *OriginNode) OriginPair() OriginPair {
 	return n.originPair
 }
@@ -105,22 +105,22 @@ func (n *OriginNode) Ingest(tick OriginTick) error {
 	return err
 }
 
-// MinTTL implements Feedable interface.
+// MinTTL implements the Feedable interface.
 func (n *OriginNode) MinTTL() time.Duration {
 	return n.minTTL
 }
 
-// MaxTTL implements Feedable interface.
+// MaxTTL implements the Feedable interface.
 func (n *OriginNode) MaxTTL() time.Duration {
 	return n.maxTTL
 }
 
-// Expired implements Feedable interface.
+// Expired implements the Feedable interface.
 func (n OriginNode) Expired() bool {
 	return n.tick.Timestamp.Before(time.Now().Add(-1 * n.MaxTTL()))
 }
 
-// Tick implements Feedable interface.
+// Tick implements the Feedable interface.
 func (n *OriginNode) Tick() OriginTick {
 	if n.tick.Error == nil {
 		if n.Expired() {
@@ -134,7 +134,7 @@ func (n *OriginNode) Tick() OriginTick {
 	return n.tick
 }
 
-// Children implements Node interface.
+// Children implements the Node interface.
 func (n OriginNode) Children() []Node {
 	return []Node{}
 }
