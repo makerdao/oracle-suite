@@ -105,7 +105,6 @@ func DefaultSet() *Set {
 		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
 		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},
 		"bittrex":       &Bittrex{Pool: httpWorkerPool},
-		"coinbase":      &Coinbase{Pool: httpWorkerPool},
 		"coinbasepro":   &CoinbasePro{Pool: httpWorkerPool},
 		"cryptocompare": &CryptoCompare{Pool: httpWorkerPool},
 		"coinmarketcap": &CoinMarketCap{Pool: httpWorkerPool, APIKey: "KEY_HERE"},
