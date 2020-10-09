@@ -26,8 +26,8 @@ func TestDetectCycles(t *testing.T) {
 
 	// Non cyclic graph:
 	nonCyclic := NewMedianAggregatorNode(p, 0)
-	nonCyclicC1 := NewOriginNode(OriginPair{Origin: "a", Pair: p})
-	nonCyclicC2 := NewOriginNode(OriginPair{Origin: "b", Pair: p})
+	nonCyclicC1 := NewOriginNode(OriginPair{Origin: "a", Pair: p}, 0, 0)
+	nonCyclicC2 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 0, 0)
 	nonCyclicC3 := NewMedianAggregatorNode(p, 0)
 	nonCyclic.AddChild(nonCyclicC1)
 	nonCyclic.AddChild(nonCyclicC2)
@@ -37,8 +37,8 @@ func TestDetectCycles(t *testing.T) {
 
 	// Cyclic graph:
 	cyclic := NewMedianAggregatorNode(p, 0)
-	cyclicC1 := NewOriginNode(OriginPair{Origin: "a", Pair: p})
-	cyclicC2 := NewOriginNode(OriginPair{Origin: "b", Pair: p})
+	cyclicC1 := NewOriginNode(OriginPair{Origin: "a", Pair: p}, 0, 0)
+	cyclicC2 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 0, 0)
 	cyclicC3 := NewMedianAggregatorNode(p, 0)
 	cyclic.AddChild(cyclicC1)
 	cyclic.AddChild(cyclicC2)

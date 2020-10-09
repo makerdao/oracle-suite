@@ -17,6 +17,7 @@ package graph
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -47,22 +48,40 @@ func (e IngestedIncompatibleOriginErr) Error() string {
 	)
 }
 
+type TickTTLExpiredErr struct {
+	Tick OriginTick
+	TTL  time.Duration
+}
+
+func (e TickTTLExpiredErr) Error() string {
+	return fmt.Sprintf(
+		"the tick TTL for the pair %s expired",
+		e.Tick.Pair,
+	)
+}
+
 // OriginNode contains a Tick fetched directly from an origin.
 type OriginNode struct {
 	originPair OriginPair
 	tick       OriginTick
+	minTTL     time.Duration
+	maxTTL     time.Duration
 }
 
-func NewOriginNode(originPair OriginPair) *OriginNode {
+func NewOriginNode(originPair OriginPair, minTTL time.Duration, maxTTL time.Duration) *OriginNode {
 	return &OriginNode{
 		originPair: originPair,
+		minTTL:     minTTL,
+		maxTTL:     maxTTL,
 	}
 }
 
+// OriginPair implements the Feedable interface.
 func (n *OriginNode) OriginPair() OriginPair {
 	return n.originPair
 }
 
+// Ingest implements Feedable interface.
 func (n *OriginNode) Ingest(tick OriginTick) error {
 	var err error
 	if !tick.Pair.Equal(n.originPair.Pair) {
@@ -79,26 +98,43 @@ func (n *OriginNode) Ingest(tick OriginTick) error {
 		})
 	}
 
-	if err != nil {
-		// TBD: Do we want to assign this error to OriginTick?
-		n.tick = OriginTick{
-			Tick:   Tick{},
-			Origin: "",
-			Error:  err,
-		}
-
-		return err
+	if err == nil {
+		n.tick = tick
 	}
 
-	n.tick = tick
-
-	return nil
+	return err
 }
 
+// MinTTL implements the Feedable interface.
+func (n *OriginNode) MinTTL() time.Duration {
+	return n.minTTL
+}
+
+// MaxTTL implements the Feedable interface.
+func (n *OriginNode) MaxTTL() time.Duration {
+	return n.maxTTL
+}
+
+// Expired implements the Feedable interface.
+func (n OriginNode) Expired() bool {
+	return n.tick.Timestamp.Before(time.Now().Add(-1 * n.MaxTTL()))
+}
+
+// Tick implements the Feedable interface.
 func (n *OriginNode) Tick() OriginTick {
+	if n.tick.Error == nil {
+		if n.Expired() {
+			n.tick.Error = TickTTLExpiredErr{
+				Tick: n.tick,
+				TTL:  n.maxTTL,
+			}
+		}
+	}
+
 	return n.tick
 }
 
+// Children implements the Node interface.
 func (n OriginNode) Children() []Node {
 	return []Node{}
 }

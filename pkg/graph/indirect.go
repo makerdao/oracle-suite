@@ -109,10 +109,12 @@ func NewIndirectAggregatorNode(pair Pair) *IndirectAggregatorNode {
 	}
 }
 
+// Children implements the Node interface.
 func (n *IndirectAggregatorNode) Children() []Node {
 	return n.children
 }
 
+// AddChild implements the Parent interface.
 func (n *IndirectAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }

@@ -50,7 +50,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet(), 10)), nil
+	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.

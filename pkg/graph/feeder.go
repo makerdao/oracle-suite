@@ -24,38 +24,58 @@ import (
 )
 
 type Feedable interface {
+	// OriginPair returns the origin and pair which are acceptable for
+	// this Node.
 	OriginPair() OriginPair
+	// Ingest sets the Tick for this Node. It may return error if
+	// the OriginTick contains incompatible origin or pair.
 	Ingest(tick OriginTick) error
+	// MinTTL is the amount of time during which the Tick shouldn't be updated.
+	MinTTL() time.Duration
+	// MaxTTL is the maximum amount of time during which the Tick can be used.
+	// After that time, the Tick method will return a OriginTick with
+	// a TickTTLExpiredErr error.
+	MaxTTL() time.Duration
+	// Expired returns true if the Tick is expired. This is based on the MaxTTL
+	// value.
+	Expired() bool
+	// Tick returns the Tick assigned in the Ingest method. If the Tick is
+	// expired then a TickTTLExpiredErr error will be set in
+	// the OriginTick.Error field.
 	Tick() OriginTick
 }
 
 // Feeder sets ticks from origins to the Feedable nodes.
 type Feeder struct {
 	set *origins.Set
-	ttl int
 }
 
 // NewFeeder creates new Feeder instance.
-func NewFeeder(set *origins.Set, ttl int) *Feeder {
-	return &Feeder{set: set, ttl: ttl}
+func NewFeeder(set *origins.Set) *Feeder {
+	return &Feeder{set: set}
 }
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
 // and sets Ticks to all of their children that implements the Feedable interface.
+//
+// This method may return an error with a list of problems during fetching, but
+// despite this there may be enough data to calculate prices. To check that,
+// invoke the Tick() method on the root node and check if there is an error
+// in AggregatorTick.Error field.
 func (i *Feeder) Feed(nodes ...Node) error {
 	return i.fetchTicks(i.findFeedableNodes(nodes))
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
-// which implements Feedable interface and have empty Tick or with Tick older
-// than i.ttl.
+// which implements Feedable interface.
 func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
-	t := time.Now().Add(time.Second * time.Duration(-1*i.ttl))
+	tn := time.Now()
 
 	var feedables []Feedable
 	Walk(func(node Node) {
 		if feedable, ok := node.(Feedable); ok {
-			if feedable.Tick().Timestamp.Before(t) {
+			tr := tn.Add(-1 * feedable.MinTTL())
+			if feedable.Tick().Timestamp.Before(tr) {
 				feedables = append(feedables, feedable)
 			}
 		}
@@ -104,9 +124,18 @@ func (i *Feeder) fetchTicks(nodes []Feedable) error {
 				pair:   fr.Tick.Pair,
 			}
 
-			for _, node := range nodesMap[originPair] {
-				if inErr := node.Ingest(mapOriginResult(origin, fr)); inErr != nil {
-					err = multierror.Append(err, inErr)
+			for _, feedable := range nodesMap[originPair] {
+				tick := mapOriginResult(origin, fr)
+
+				// If there was an error during fetching a Tick but previous Tick is still
+				// not expired, do not try to override it:
+				if tick.Error != nil && !feedable.Expired() {
+					err = multierror.Append(err, tick.Error)
+				} else {
+					iErr := feedable.Ingest(tick)
+					if iErr != nil {
+						err = multierror.Append(err, feedable.Ingest(tick))
+					}
 				}
 			}
 		}

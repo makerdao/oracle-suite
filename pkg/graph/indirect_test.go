@@ -23,12 +23,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testTTL = 10 * time.Second
+
 func TestIndirectAggregatorNode_Children(t *testing.T) {
 	m := NewIndirectAggregatorNode(Pair{Base: "A", Quote: "B"})
 
-	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"}, testTTL, testTTL)
+	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"}, testTTL, testTTL)
 
 	m.AddChild(c1)
 	m.AddChild(c2)
@@ -56,9 +58,9 @@ func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
+	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"}, testTTL, testTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -130,9 +132,9 @@ func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
-	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
+	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"}, testTTL, testTTL)
 
 	i1 := NewIndirectAggregatorNode(p1)
 	i1.AddChild(c1)
@@ -255,8 +257,8 @@ func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -299,8 +301,8 @@ func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -343,8 +345,8 @@ func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{
@@ -387,8 +389,8 @@ func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
 
-	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"})
-	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"})
+	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
 	_ = c1.Ingest(OriginTick{
 		Tick: Tick{

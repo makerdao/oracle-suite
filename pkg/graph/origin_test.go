@@ -23,13 +23,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const originTestTTL = 10 * time.Second
+
 func TestOriginNode_OriginPair(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
 		Pair:   Pair{Base: "A", Quote: "B"},
 	}
 
-	o := NewOriginNode(op)
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	assert.Equal(t, op, o.OriginPair())
 }
 
@@ -46,18 +48,19 @@ func TestOriginNode_Ingest_Valid(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Unix(0, 0),
+			Timestamp: time.Now(),
 		},
 		Origin: "foo",
 		Error:  nil,
 	}
 
-	o := NewOriginNode(op)
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
 	assert.Equal(t, op, o.OriginPair())
 	assert.Equal(t, ot, o.Tick())
-	assert.Nil(t, err)
+	assert.NoError(t, err)
+	assert.NoError(t, o.tick.Error)
 }
 
 func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
@@ -73,17 +76,17 @@ func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Unix(0, 0),
+			Timestamp: time.Now(),
 		},
 		Origin: "foo",
 		Error:  nil,
 	}
 
-	o := NewOriginNode(op)
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
 	assert.True(t, errors.As(err, &IngestedIncompatiblePairErr{}))
-	assert.Equal(t, err, o.tick.Error)
+	assert.NoError(t, o.tick.Error)
 }
 
 func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
@@ -99,17 +102,17 @@ func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Unix(0, 0),
+			Timestamp: time.Now(),
 		},
 		Origin: "bar",
 		Error:  nil,
 	}
 
-	o := NewOriginNode(op)
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
 	assert.True(t, errors.As(err, &IngestedIncompatibleOriginErr{}))
-	assert.Equal(t, err, o.tick.Error)
+	assert.NoError(t, o.tick.Error)
 }
 
 func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
@@ -125,18 +128,18 @@ func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Unix(0, 0),
+			Timestamp: time.Now(),
 		},
 		Origin: "bar",
 		Error:  nil,
 	}
 
-	o := NewOriginNode(op)
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
 	assert.True(t, errors.As(err, &IngestedIncompatibleOriginErr{}))
 	assert.True(t, errors.As(err, &IngestedIncompatiblePairErr{}))
-	assert.Equal(t, err, o.tick.Error)
+	assert.NoError(t, o.tick.Error)
 }
 
 func TestOriginNode_Ingest_TickWithError(t *testing.T) {
@@ -154,15 +157,41 @@ func TestOriginNode_Ingest_TickWithError(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Unix(0, 0),
+			Timestamp: time.Now(),
 		},
 		Origin: "foo",
 		Error:  err,
 	}
 
-	o := NewOriginNode(op)
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err2 := o.Ingest(ot)
 
-	assert.Nil(t, err2)
+	assert.NoError(t, err2)
 	assert.Equal(t, err, o.tick.Error)
+}
+
+func TestOriginNode_Tick_Expired(t *testing.T) {
+	op := OriginPair{
+		Origin: "foo",
+		Pair:   Pair{Base: "A", Quote: "B"},
+	}
+
+	ot := OriginTick{
+		Tick: Tick{
+			Pair:      Pair{Base: "A", Quote: "B"},
+			Price:     10,
+			Bid:       10,
+			Ask:       10,
+			Volume24h: 10,
+			Timestamp: time.Now().Add(-20 * time.Second),
+		},
+		Origin: "foo",
+		Error:  nil,
+	}
+
+	o := NewOriginNode(op, originTestTTL, originTestTTL)
+	_ = o.Ingest(ot)
+	tick := o.Tick()
+
+	assert.True(t, errors.As(tick.Error, &TickTTLExpiredErr{}))
 }
