@@ -21,15 +21,11 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
-}
-
-func Pairs(l pairsLister, m readWriter) error {
+func Pairs(l graph.PriceModels, m readWriter) error {
 	var err error
 
 	var graphs []graph.Aggregator
-	for _, g := range l.Graphs() {
+	for _, g := range l {
 		graphs = append(graphs, g)
 	}
 

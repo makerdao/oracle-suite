@@ -28,13 +28,11 @@ import (
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/config"
-	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
-	"github.com/makerdao/gofer/pkg/origins"
 	"github.com/makerdao/gofer/pkg/web"
 )
 
-func newGofer(path string) (*gofer.Gofer, error) {
+func priceModels(path string) (graph.PriceModels, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -49,8 +47,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
+	return g, nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.
@@ -101,7 +98,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
@@ -141,7 +138,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
@@ -181,12 +178,12 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			gg, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
 
-			err = cli.Prices(args, g, m)
+			err = cli.Prices(args, gg, m)
 			if err != nil {
 				return err
 			}
@@ -208,13 +205,8 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := priceModels(absPath)
 			if err != nil {
-				return err
-			}
-
-			log.Println("Populating graph")
-			if err := g.UpdateNodesForPairs(g.Pairs()...); err != nil {
 				return err
 			}
 
@@ -236,7 +228,7 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: false,
+		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
 

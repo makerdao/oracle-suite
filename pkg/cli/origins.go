@@ -21,12 +21,7 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type originsLister interface {
-	Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error)
-	Pairs() []graph.Pair
-}
-
-func Origins(args []string, l originsLister, m readWriter) error {
+func Origins(args []string, l graph.PriceModels, m readWriter) error {
 	var pairs []graph.Pair
 	if len(args) > 0 {
 		for _, pair := range args {

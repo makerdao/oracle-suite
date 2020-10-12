@@ -13,55 +13,21 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cli
+package populator
 
 import (
-	"errors"
-
 	"github.com/makerdao/gofer/pkg/graph"
 	"github.com/makerdao/gofer/pkg/origins"
 )
 
-func Prices(args []string, l graph.PriceModels, m readWriter) error {
-	var pairs []graph.Pair
-
-	if len(args) > 0 {
-		for _, pair := range args {
-			p, err := graph.NewPair(pair)
-			if err != nil {
-				return err
-			}
-			pairs = append(pairs, p)
-		}
-	} else {
-		pairs = l.Pairs()
-	}
-
-	nodes, err := l.GetNodesForPairs(pairs...)
+func do(l graph.PriceModels) error {
+	nodes, err := l.GetNodesForPairs(l.Pairs()...)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Display returned errors somehow (log?)
+	//loop
 	_ = graph.NewFeeder(origins.DefaultSet()).UpdateNodes(nodes...)
-
-	ticks, err := l.Ticks(pairs...)
-	if err != nil {
-		return err
-	}
-
-	for _, t := range ticks {
-		err = m.Write(t)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, t := range ticks {
-		if t.Error != nil {
-			return errors.New("some of the prices were returned with an error")
-		}
-	}
 
 	return nil
 }

@@ -24,14 +24,10 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
-}
-
-func PairsHandler(l pairsLister) http.HandlerFunc {
+func PairsHandler(l graph.PriceModels) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var graphs []graph.Aggregator
-		for _, g := range l.Graphs() {
+		for _, g := range l {
 			graphs = append(graphs, g)
 		}
 
