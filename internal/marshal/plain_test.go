@@ -44,7 +44,8 @@ func TestPlain_Graph(t *testing.T) {
 
 	expected := `
 A/B
-C/D`
+C/D
+`
 
 	assert.Equal(t, expected[1:], string(b))
 }
@@ -72,8 +73,8 @@ func TestPlain_Ticks(t *testing.T) {
 
 	expected := `
 A/B 10.000000
-C/D 10.000000
-Error: something`
+C/D - something
+`
 
 	assert.Equal(t, expected[1:], string(b))
 }

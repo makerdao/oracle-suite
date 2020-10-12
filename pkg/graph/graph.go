@@ -157,7 +157,7 @@ func (g PriceModels) Ticks(pairs ...Pair) ([]AggregatorTick, error) {
 	return ticks, nil
 }
 
-func (g PriceModels) GetNodesForPairs(pairs ...Pair) ([]Node, error) {
+func Nodes(g PriceModels, pairs ...Pair) ([]Node, error) {
 	var nodes []Node
 	for _, pair := range pairs {
 		if pairGraph, ok := g[pair]; ok {
@@ -167,4 +167,11 @@ func (g PriceModels) GetNodesForPairs(pairs ...Pair) ([]Node, error) {
 		}
 	}
 	return nodes, nil
+}
+func AllNodes(g PriceModels) []Node {
+	var nodes []Node
+	for _, pairGraph := range g {
+		nodes = append(nodes, pairGraph)
+	}
+	return nodes
 }

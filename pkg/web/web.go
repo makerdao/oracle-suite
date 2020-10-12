@@ -13,44 +13,50 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cli
+package web
 
 import (
-	"sort"
-
-	"github.com/makerdao/gofer/pkg/graph"
+	"io"
+	"log"
+	"net/http"
+	"sync"
 )
 
-func Origins(args []string, l graph.PriceModels, m itemWriter) error {
-	pairs, err := graph.Pairs(l, args...)
-	if err != nil {
-		return err
-	}
-
-	origins, err := l.Origins(pairs...)
-	if err != nil {
-		return err
-	}
-
-	for _, p := range sortMapKeys(origins) {
-		err = m.Write(map[graph.Pair][]string{p: origins[p]})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+func badRequest(w http.ResponseWriter, srvErr ...error) {
+	log.Println(srvErr)
+	w.WriteHeader(http.StatusBadRequest)
+}
+func internalServerError(w http.ResponseWriter, srvErr ...error) {
+	log.Println(srvErr)
+	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func sortMapKeys(m map[graph.Pair][]string) []graph.Pair {
-	var pairs []graph.Pair
-	for p := range m {
-		pairs = append(pairs, p)
+func asJSON(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
+func asyncCopy(dst io.Writer, src io.Reader) func() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		_, err := io.Copy(dst, src)
+		wg.Done()
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
+	return func() {
+		wg.Wait()
 	}
+}
 
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].String() < pairs[j].Quote
-	})
-
-	return pairs
+func closeAndFinish(c io.Closer, w http.ResponseWriter, done func()) {
+	if err := c.Close(); err != nil {
+		badRequest(w, err)
+		return
+	}
+	done()
 }

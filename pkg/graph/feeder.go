@@ -62,7 +62,7 @@ func NewFeeder(set *origins.Set) *Feeder {
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
 // in AggregatorTick.Error field.
-func (i *Feeder) UpdateNodes(nodes ...Node) error {
+func (i *Feeder) UpdateNodes(nodes []Node) error {
 	return i.fetchTicksAndFeedThemToFeedableNodes(i.findFeedableNodes(nodes))
 }
 

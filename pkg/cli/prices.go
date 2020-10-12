@@ -17,33 +17,51 @@ package cli
 
 import (
 	"errors"
+	"log"
 
 	"github.com/makerdao/gofer/pkg/graph"
 	"github.com/makerdao/gofer/pkg/origins"
 )
 
-func Prices(args []string, l graph.PriceModels, m readWriter) error {
-	var pairs []graph.Pair
-
-	if len(args) > 0 {
-		for _, pair := range args {
-			p, err := graph.NewPair(pair)
-			if err != nil {
-				return err
-			}
-			pairs = append(pairs, p)
-		}
-	} else {
-		pairs = l.Pairs()
-	}
-
-	nodes, err := l.GetNodesForPairs(pairs...)
+func PricesWithPopulation(args []string, l graph.PriceModels, m itemWriter) error {
+	pairs, err := graph.Pairs(l, args...)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Display returned errors somehow (log?)
-	_ = graph.NewFeeder(origins.DefaultSet()).UpdateNodes(nodes...)
+	nodes, err := graph.Nodes(l, pairs...)
+	if err != nil {
+		return err
+	}
+	if err := graph.NewFeeder(origins.DefaultSet()).UpdateNodes(nodes); err != nil {
+		log.Println(err)
+	}
+
+	ticks, err := l.Ticks(pairs...)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range ticks {
+		err = m.Write(t)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, t := range ticks {
+		if t.Error != nil {
+			return errors.New("some of the prices were returned with an error")
+		}
+	}
+
+	return nil
+}
+func Prices(args []string, l graph.PriceModels, m itemWriter) error {
+	pairs, err := graph.Pairs(l, args...)
+	if err != nil {
+		return err
+	}
 
 	ticks, err := l.Ticks(pairs...)
 	if err != nil {

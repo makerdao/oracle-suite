@@ -15,11 +15,6 @@
 
 package cli
 
-import (
-	"io"
-)
-
-type readWriter interface {
-	io.Reader
+type itemWriter interface {
 	Write(item interface{}) error
 }

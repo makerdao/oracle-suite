@@ -16,15 +16,32 @@
 package web
 
 import (
-	"log"
 	"net/http"
+	"net/url"
+
+	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/cli"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func BadRequest(w http.ResponseWriter, srvErr ...error) {
-	log.Println(srvErr)
-	w.WriteHeader(http.StatusBadRequest)
-}
+func OriginsHandler(l graph.PriceModels) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m, err := marshal.NewMarshal(marshal.JSON)
+		if err != nil {
+			badRequest(w, err)
+			return
+		}
+		asJSON(w)
+		defer closeAndFinish(m, w, asyncCopy(w, m))
 
-func AsJSON(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+		values, err := url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			badRequest(w, err)
+			return
+		}
+		if err := cli.Origins(values["pair"], l, m); err != nil {
+			badRequest(w, err)
+			return
+		}
+	}
 }

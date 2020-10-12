@@ -16,43 +16,26 @@
 package web
 
 import (
-	"io"
 	"net/http"
-	"sort"
 
 	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
 func PairsHandler(l graph.PriceModels) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var graphs []graph.Aggregator
-		for _, g := range l {
-			graphs = append(graphs, g)
-		}
-
-		sort.SliceStable(graphs, func(i, j int) bool {
-			return graphs[i].Pair().String() < graphs[j].Pair().String()
-		})
-
-		m, _ := marshal.NewMarshal(marshal.JSON)
-		for _, g := range graphs {
-			if err := m.Write(g); err != nil {
-				BadRequest(w, err)
-				return
-			}
-		}
-
-		if err := m.Close(); err != nil {
-			BadRequest(w, err)
+		m, err := marshal.NewMarshal(marshal.JSON)
+		if err != nil {
+			badRequest(w, err)
 			return
 		}
+		asJSON(w)
+		defer closeAndFinish(m, w, asyncCopy(w, m))
 
-		if _, err := io.Copy(w, m); err != nil {
-			BadRequest(w, err)
+		if err := cli.Pairs(l, m); err != nil {
+			badRequest(w, err)
 			return
 		}
-
-		AsJSON(w)
 	}
 }

@@ -16,18 +16,33 @@
 package populator
 
 import (
+	"log"
+	"time"
+
 	"github.com/makerdao/gofer/pkg/graph"
-	"github.com/makerdao/gofer/pkg/origins"
 )
 
-func do(l graph.PriceModels) error {
-	nodes, err := l.GetNodesForPairs(l.Pairs()...)
-	if err != nil {
-		return err
+func Feed(feeder *graph.Feeder, nodes []graph.Node) {
+	if err := feeder.UpdateNodes(nodes); err != nil {
+		log.Println(err)
 	}
-
-	//loop
-	_ = graph.NewFeeder(origins.DefaultSet()).UpdateNodes(nodes...)
-
-	return nil
+}
+func ScheduleFeeding(d time.Duration, feeder *graph.Feeder, nodes []graph.Node) func() {
+	done := make(chan bool)
+	ticker := time.NewTicker(d)
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				log.Println("repopulating data graph")
+				Feed(feeder, nodes)
+			}
+		}
+	}()
+	return func() {
+		done <- true
+	}
 }

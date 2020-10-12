@@ -13,44 +13,35 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cli
+package web
 
 import (
-	"sort"
+	"net/http"
+	"net/url"
 
+	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Origins(args []string, l graph.PriceModels, m itemWriter) error {
-	pairs, err := graph.Pairs(l, args...)
-	if err != nil {
-		return err
-	}
-
-	origins, err := l.Origins(pairs...)
-	if err != nil {
-		return err
-	}
-
-	for _, p := range sortMapKeys(origins) {
-		err = m.Write(map[graph.Pair][]string{p: origins[p]})
+func PricesHandler(l graph.PriceModels) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m, err := marshal.NewMarshal(marshal.JSON)
 		if err != nil {
-			return err
+			badRequest(w, err)
+			return
+		}
+		asJSON(w)
+		defer closeAndFinish(m, w, asyncCopy(w, m))
+
+		values, err := url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			badRequest(w, err)
+			return
+		}
+		if err := cli.Prices(values["pair"], l, m); err != nil {
+			internalServerError(w, err)
+			return
 		}
 	}
-
-	return nil
-}
-
-func sortMapKeys(m map[graph.Pair][]string) []graph.Pair {
-	var pairs []graph.Pair
-	for p := range m {
-		pairs = append(pairs, p)
-	}
-
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].String() < pairs[j].Quote
-	})
-
-	return pairs
 }

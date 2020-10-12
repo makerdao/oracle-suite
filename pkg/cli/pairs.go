@@ -21,7 +21,7 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Pairs(l graph.PriceModels, m readWriter) error {
+func Pairs(l graph.PriceModels, m itemWriter) error {
 	var err error
 
 	var graphs []graph.Aggregator

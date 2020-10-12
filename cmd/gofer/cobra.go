@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -29,6 +30,8 @@ import (
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/config"
 	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/origins"
+	"github.com/makerdao/gofer/pkg/populator"
 	"github.com/makerdao/gofer/pkg/web"
 )
 
@@ -183,7 +186,7 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			err = cli.Prices(args, gg, m)
+			err = cli.PricesWithPopulation(args, gg, m)
 			if err != nil {
 				return err
 			}
@@ -205,14 +208,23 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := priceModels(absPath)
+			models, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
 
-			http.HandleFunc("/pairs/", web.PairsHandler(g))
+			http.HandleFunc("/v1/pairs/", web.PairsHandler(models))
+			http.HandleFunc("/v1/origins/", web.OriginsHandler(models))
 
-			log.Println("Starting server at http://localhost:8080")
+			feeder := graph.NewFeeder(origins.DefaultSet())
+			nodes := graph.AllNodes(models)
+			log.Println("populating data graph")
+			populator.Feed(feeder, nodes)
+			done := populator.ScheduleFeeding(time.Minute, feeder, nodes)
+			defer done()
+			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
+
+			log.Println("starting server at http://localhost:8080")
 			return http.ListenAndServe(":8080", nil)
 		},
 	}
