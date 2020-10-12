@@ -119,7 +119,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 func NewOriginsCmd(o *options) *cobra.Command {
 	return &cobra.Command{
 		Use:     "origins [PAIR...]",
-		Aliases: []string{"origin", "exchanges", "exchange"},
+		Aliases: []string{"origin", "exchanges", "exchange", "sources", "source"},
 		Short:   "List supported origins",
 		Long: `Lists origins that will be queried for all of the supported pairs
 or a subset of those, if at least one PAIR is provided.`,
@@ -214,7 +214,7 @@ func NewServerCmd(o *options) *cobra.Command {
 			}
 
 			log.Println("Populating graph")
-			if err := g.Feed(g.Pairs()...); err != nil {
+			if err := g.UpdateNodesForPairs(g.Pairs()...); err != nil {
 				return err
 			}
 

@@ -55,19 +55,19 @@ func NewFeeder(set *origins.Set) *Feeder {
 	return &Feeder{set: set}
 }
 
-// Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
-// and sets Ticks to all of their children that implements the Feedable interface.
+// UpdateNodes sets Ticks to Feedable nodes. This method takes list of root Nodes
+// and sets Ticks to all of their children that implement the Feedable interface.
 //
 // This method may return an error with a list of problems during fetching, but
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
 // in AggregatorTick.Error field.
-func (i *Feeder) Feed(nodes ...Node) error {
-	return i.fetchTicks(i.findFeedableNodes(nodes))
+func (i *Feeder) UpdateNodes(nodes ...Node) error {
+	return i.fetchTicksAndFeedThemToFeedableNodes(i.findFeedableNodes(nodes))
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
-// which implements Feedable interface.
+// which implement Feedable interface.
 func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	tn := time.Now()
 
@@ -84,7 +84,7 @@ func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	return feedables
 }
 
-func (i *Feeder) fetchTicks(nodes []Feedable) error {
+func (i *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 	var err error
 
 	// originPair is used as a key in a map to easily find

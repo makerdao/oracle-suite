@@ -49,7 +49,8 @@ func (g *Gofer) Pairs() []graph.Pair {
 	return pairs
 }
 
-func (g *Gofer) Feed(pairs ...graph.Pair) error {
+// UpdateNodesForPairs gathers all data model graphs and triggers updates of the underlying nodes
+func (g *Gofer) UpdateNodesForPairs(pairs ...graph.Pair) error {
 	var graphs []graph.Node
 	for _, pair := range pairs {
 		if pairGraph, ok := g.graphs[pair]; ok {
@@ -60,7 +61,7 @@ func (g *Gofer) Feed(pairs ...graph.Pair) error {
 	}
 
 	// TODO: Display somehow returned errors
-	_ = g.feeder.Feed(graphs...)
+	_ = g.feeder.UpdateNodes(graphs...)
 
 	return nil
 }

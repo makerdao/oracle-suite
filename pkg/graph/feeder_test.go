@@ -61,7 +61,7 @@ func originsSetMock(ticks map[string][]origins.Tick) *origins.Set {
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil))
-	err := f.Feed()
+	err := f.UpdateNodes()
 
 	assert.NoError(t, err)
 
@@ -71,7 +71,7 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil))
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
-	err := f.Feed(g)
+	err := f.UpdateNodes(g)
 
 	assert.NoError(t, err)
 
@@ -101,7 +101,7 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 	}, 0, 0)
 
 	g.AddChild(o)
-	err := f.Feed(g)
+	err := f.UpdateNodes(g)
 
 	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
@@ -173,7 +173,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	g.AddChild(o3)
 	g.AddChild(o3) // intentionally
 	g.AddChild(o4)
-	err := f.Feed(g)
+	err := f.UpdateNodes(g)
 
 	assert.NoError(t, err)
 
@@ -238,7 +238,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 
 	g.AddChild(i)
 	i.AddChild(o)
-	err := f.Feed(g)
+	err := f.UpdateNodes(g)
 
 	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
@@ -285,7 +285,7 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	err := f.Feed(g)
+	err := f.UpdateNodes(g)
 
 	// OriginNode shouldn't be updated because time diff is below MinTTL setting:
 	assert.NoError(t, err)
@@ -332,7 +332,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	err := f.Feed(g)
+	err := f.UpdateNodes(g)
 
 	// OriginNode should be updated because time diff is above MinTTL setting:
 	assert.NoError(t, err)

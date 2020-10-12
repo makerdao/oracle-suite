@@ -22,7 +22,7 @@ import (
 )
 
 type pricer interface {
-	Feed(pairs ...graph.Pair) error
+	UpdateNodesForPairs(pairs ...graph.Pair) error
 	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
 	Pairs() []graph.Pair
 }
@@ -42,7 +42,7 @@ func Prices(args []string, l pricer, m readWriter) error {
 		pairs = l.Pairs()
 	}
 
-	if err := l.Feed(pairs...); err != nil {
+	if err := l.UpdateNodesForPairs(pairs...); err != nil {
 		return err
 	}
 
