@@ -34,7 +34,7 @@ func newPlain() *plain {
 				strs[n] = string(s)
 			}
 
-			return []marshalledItem{[]byte(strings.Join(strs, "\n") + "\n")}, nil
+			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
 		}
 
 		var err error

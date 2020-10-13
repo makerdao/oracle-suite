@@ -186,7 +186,10 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			err = cli.PricesWithPopulation(args, gg, m)
+			log.Println("populating data graph")
+			populator.Feed(graph.NewFeeder(origins.DefaultSet()), graph.AllNodes(gg))
+
+			err = cli.Prices(args, gg, m)
 			if err != nil {
 				return err
 			}
