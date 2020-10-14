@@ -222,7 +222,7 @@ func NewServerCmd(o *options) *cobra.Command {
 			nodes := graph.AllNodes(models)
 			log.Println("populating data graph")
 			populator.Feed(feeder, nodes)
-			done := populator.ScheduleFeeding(config.DefaultSourceUpdateInterval, feeder, nodes)
+			done := populator.ScheduleFeeding(feeder, nodes)
 			defer done()
 			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
 

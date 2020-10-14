@@ -27,9 +27,10 @@ func Feed(feeder *graph.Feeder, nodes []graph.Node) {
 		log.Println(err)
 	}
 }
-func ScheduleFeeding(d time.Duration, feeder *graph.Feeder, nodes []graph.Node) func() {
+
+func ScheduleFeeding(feeder *graph.Feeder, nodes []graph.Node) func() {
 	done := make(chan bool)
-	ticker := time.NewTicker(d)
+	ticker := time.NewTicker(getMinTTL(nodes))
 	go func() {
 		for {
 			select {
@@ -45,4 +46,21 @@ func ScheduleFeeding(d time.Duration, feeder *graph.Feeder, nodes []graph.Node) 
 	return func() {
 		done <- true
 	}
+}
+
+func getMinTTL(nodes []graph.Node) time.Duration {
+	minTTL := time.Duration(0)
+	graph.Walk(func(node graph.Node) {
+		if feedable, ok := node.(graph.Feedable); ok {
+			if minTTL == 0 || feedable.MinTTL() < minTTL {
+				minTTL = feedable.MinTTL()
+			}
+		}
+	}, nodes...)
+
+	if minTTL < time.Second {
+		return time.Second
+	}
+
+	return minTTL
 }

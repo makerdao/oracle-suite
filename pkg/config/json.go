@@ -29,9 +29,8 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-const DefaultSourceUpdateInterval = 60 * time.Second
-const defaultMaxTTL = DefaultSourceUpdateInterval * 2
-const minTTLDifference = DefaultSourceUpdateInterval / 2
+const defaultMaxTTL = 60 * time.Second
+const minTTLDifference = 30 * time.Second
 
 type JSON struct {
 	Origins     map[string]JSONOrigin     `json:"origins"`
