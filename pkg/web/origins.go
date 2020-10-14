@@ -16,6 +16,7 @@
 package web
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 
@@ -31,6 +32,11 @@ func OriginsHandler(l graph.PriceModels) http.HandlerFunc {
 			return err
 		}
 
-		return cli.Origins(values["pair"], l, m)
+		err = cli.Origins(values["pair"], l, m)
+		if err != nil {
+			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
+		}
+
+		return nil
 	})
 }

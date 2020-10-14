@@ -16,6 +16,7 @@
 package web
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/makerdao/gofer/internal/marshal"
@@ -25,6 +26,11 @@ import (
 
 func PairsHandler(l graph.PriceModels) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
-		return cli.Pairs(l, m)
+		err := cli.Pairs(l, m)
+		if err != nil {
+			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
+		}
+
+		return nil
 	})
 }

@@ -25,13 +25,18 @@ import (
 	"github.com/makerdao/gofer/internal/marshal"
 )
 
-func badRequest(w http.ResponseWriter, srvErr ...error) {
-	log.Println(srvErr)
+func StartServer(addr string) error {
+	log.Printf("[WEB] starting server at %s", addr)
+	return http.ListenAndServe(addr, nil)
+}
+
+func badRequest(w http.ResponseWriter, srvErr error) {
+	log.Printf("[WEB] 400: %s", srvErr.Error())
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func internalServerError(w http.ResponseWriter, srvErr ...error) {
-	log.Println(srvErr)
+func internalServerError(w http.ResponseWriter, srvErr error) {
+	log.Printf("[WEB] 500: %s", srvErr.Error())
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
@@ -49,7 +54,7 @@ func asyncCopy(dst io.Writer, src io.Reader) func() {
 			return
 		}
 		if err != nil {
-			log.Println(err)
+			log.Printf("[WEB] %s", err.Error())
 		}
 	}()
 	return func() {
@@ -71,7 +76,7 @@ func recoverHandler() func() {
 			}
 
 			if err != nil {
-				log.Println(err)
+				log.Printf("[WEB] recovered panic: %s", err.Error())
 			}
 		}
 	}
@@ -100,7 +105,7 @@ func marshallerHandler(handler func(m marshal.Marshaller, r *http.Request) error
 		}()
 
 		if err := handler(m, r); err != nil {
-			badRequest(w, err)
+			internalServerError(w, err)
 			return
 		}
 	}

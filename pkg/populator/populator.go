@@ -23,8 +23,9 @@ import (
 )
 
 func Feed(feeder *graph.Feeder, nodes []graph.Node) {
+	log.Println("[POPULATOR] populating data graph")
 	if err := feeder.Feed(nodes); err != nil {
-		log.Println(err)
+		log.Printf("[POPULATOR] %s", err.Error())
 	}
 }
 
@@ -38,7 +39,6 @@ func ScheduleFeeding(feeder *graph.Feeder, nodes []graph.Node) func() {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				log.Println("repopulating data graph")
 				Feed(feeder, nodes)
 			}
 		}

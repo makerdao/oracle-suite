@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -131,10 +130,8 @@ func (i *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 				// If there was an error during fetching a Tick but previous Tick is still
 				// not expired, do not try to override it:
 				if tick.Error != nil && !feedable.Expired() {
-					log.Println(tick.Error)
 					err = multierror.Append(err, tick.Error)
 				} else if iErr := feedable.Ingest(tick); iErr != nil {
-					log.Println(err)
 					err = multierror.Append(err, feedable.Ingest(tick))
 				}
 			}
