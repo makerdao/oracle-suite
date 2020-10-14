@@ -17,6 +17,7 @@ package graph
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -62,6 +63,8 @@ func (e TickTTLExpiredErr) Error() string {
 
 // OriginNode contains a Tick fetched directly from an origin.
 type OriginNode struct {
+	mu sync.Mutex
+
 	originPair OriginPair
 	tick       OriginTick
 	minTTL     time.Duration
@@ -83,6 +86,9 @@ func (n *OriginNode) OriginPair() OriginPair {
 
 // Ingest implements Feedable interface.
 func (n *OriginNode) Ingest(tick OriginTick) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var err error
 	if !tick.Pair.Equal(n.originPair.Pair) {
 		err = multierror.Append(err, IngestedIncompatiblePairErr{
@@ -122,6 +128,9 @@ func (n OriginNode) Expired() bool {
 
 // Tick implements the Feedable interface.
 func (n *OriginNode) Tick() OriginTick {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	if n.tick.Error == nil {
 		if n.Expired() {
 			n.tick.Error = TickTTLExpiredErr{
