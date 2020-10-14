@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -223,7 +222,7 @@ func NewServerCmd(o *options) *cobra.Command {
 			nodes := graph.AllNodes(models)
 			log.Println("populating data graph")
 			populator.Feed(feeder, nodes)
-			done := populator.ScheduleFeeding(time.Minute, feeder, nodes)
+			done := populator.ScheduleFeeding(config.DefaultSourceUpdateInterval, feeder, nodes)
 			defer done()
 			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
 

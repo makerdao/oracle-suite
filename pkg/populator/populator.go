@@ -23,7 +23,7 @@ import (
 )
 
 func Feed(feeder *graph.Feeder, nodes []graph.Node) {
-	if err := feeder.UpdateNodes(nodes); err != nil {
+	if err := feeder.Feed(nodes); err != nil {
 		log.Println(err)
 	}
 }

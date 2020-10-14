@@ -52,6 +52,10 @@ type OriginPair struct {
 	Pair   Pair
 }
 
+func (o OriginPair) String() string {
+	return fmt.Sprintf("%s %s", o.Pair.String(), o.Origin)
+}
+
 type Tick struct {
 	Pair      Pair
 	Price     float64

@@ -16,6 +16,7 @@
 package graph
 
 import (
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -55,14 +56,14 @@ func NewFeeder(set *origins.Set) *Feeder {
 	return &Feeder{set: set}
 }
 
-// UpdateNodes sets Ticks to Feedable nodes. This method takes list of root Nodes
+// Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
 // and sets Ticks to all of their children that implement the Feedable interface.
 //
 // This method may return an error with a list of problems during fetching, but
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
 // in AggregatorTick.Error field.
-func (i *Feeder) UpdateNodes(nodes []Node) error {
+func (i *Feeder) Feed(nodes []Node) error {
 	return i.fetchTicksAndFeedThemToFeedableNodes(i.findFeedableNodes(nodes))
 }
 
@@ -130,12 +131,11 @@ func (i *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 				// If there was an error during fetching a Tick but previous Tick is still
 				// not expired, do not try to override it:
 				if tick.Error != nil && !feedable.Expired() {
+					log.Println(tick.Error)
 					err = multierror.Append(err, tick.Error)
-				} else {
-					iErr := feedable.Ingest(tick)
-					if iErr != nil {
-						err = multierror.Append(err, feedable.Ingest(tick))
-					}
+				} else if iErr := feedable.Ingest(tick); iErr != nil {
+					log.Println(err)
+					err = multierror.Append(err, feedable.Ingest(tick))
 				}
 			}
 		}
