@@ -16,16 +16,20 @@
 package web
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/makerdao/gofer/internal/marshal"
 )
 
 func badRequest(w http.ResponseWriter, srvErr ...error) {
 	log.Println(srvErr)
 	w.WriteHeader(http.StatusBadRequest)
 }
+
 func internalServerError(w http.ResponseWriter, srvErr ...error) {
 	log.Println(srvErr)
 	w.WriteHeader(http.StatusInternalServerError)
@@ -45,7 +49,7 @@ func asyncCopy(dst io.Writer, src io.Reader) func() {
 			return
 		}
 		if err != nil {
-			panic(err.Error())
+			log.Println(err)
 		}
 	}()
 	return func() {
@@ -53,10 +57,51 @@ func asyncCopy(dst io.Writer, src io.Reader) func() {
 	}
 }
 
-func closeAndFinish(c io.Closer, w http.ResponseWriter, done func()) {
-	if err := c.Close(); err != nil {
-		badRequest(w, err)
-		return
+func recoverHandler() func() {
+	return func() {
+		if r := recover(); r != nil {
+			var err error
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = errors.New("unknown panic")
+			}
+
+			if err != nil {
+				log.Println(err)
+			}
+		}
 	}
-	done()
+}
+
+func marshallerHandler(handler func(m marshal.Marshaller, r *http.Request) error) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer recoverHandler()
+
+		m, err := marshal.NewMarshal(marshal.JSON)
+		if err != nil {
+			internalServerError(w, err)
+			return
+		}
+
+		asJSON(w)
+
+		wait := asyncCopy(w, m)
+		defer func() {
+			if err := m.Close(); err != nil {
+				internalServerError(w, err)
+				return
+			}
+
+			wait()
+		}()
+
+		if err := handler(m, r); err != nil {
+			badRequest(w, err)
+			return
+		}
+	}
 }

@@ -89,7 +89,6 @@ func NewPairsCmd(o *options) *cobra.Command {
 			}
 
 			wait := asyncCopy(os.Stdout, m)
-
 			defer func() {
 				_ = m.Close()
 				wait()
@@ -129,7 +128,6 @@ or a subset of those, if at least one PAIR is provided.`,
 			}
 
 			wait := asyncCopy(os.Stdout, m)
-
 			defer func() {
 				_ = m.Close()
 				wait()
@@ -169,7 +167,6 @@ func NewPricesCmd(o *options) *cobra.Command {
 			}
 
 			wait := asyncCopy(os.Stdout, m)
-
 			defer func() {
 				_ = m.Close()
 				wait()

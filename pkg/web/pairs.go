@@ -24,18 +24,7 @@ import (
 )
 
 func PairsHandler(l graph.PriceModels) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m, err := marshal.NewMarshal(marshal.JSON)
-		if err != nil {
-			badRequest(w, err)
-			return
-		}
-		asJSON(w)
-		defer closeAndFinish(m, w, asyncCopy(w, m))
-
-		if err := cli.Pairs(l, m); err != nil {
-			badRequest(w, err)
-			return
-		}
-	}
+	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
+		return cli.Pairs(l, m)
+	})
 }

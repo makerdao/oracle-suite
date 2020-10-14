@@ -25,23 +25,12 @@ import (
 )
 
 func PricesHandler(l graph.PriceModels) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m, err := marshal.NewMarshal(marshal.JSON)
-		if err != nil {
-			badRequest(w, err)
-			return
-		}
-		asJSON(w)
-		defer closeAndFinish(m, w, asyncCopy(w, m))
-
+	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
 		values, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
-			badRequest(w, err)
-			return
+			return err
 		}
-		if err := cli.Prices(values["pair"], l, m); err != nil {
-			internalServerError(w, err)
-			return
-		}
-	}
+
+		return cli.Prices(values["pair"], l, m)
+	})
 }

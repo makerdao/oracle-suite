@@ -73,6 +73,8 @@ type OriginNode struct {
 
 func NewOriginNode(originPair OriginPair, minTTL time.Duration, maxTTL time.Duration) *OriginNode {
 	return &OriginNode{
+		mu: sync.Mutex{},
+
 		originPair: originPair,
 		minTTL:     minTTL,
 		maxTTL:     maxTTL,
@@ -122,7 +124,7 @@ func (n *OriginNode) MaxTTL() time.Duration {
 }
 
 // Expired implements the Feedable interface.
-func (n OriginNode) Expired() bool {
+func (n *OriginNode) Expired() bool {
 	return n.tick.Timestamp.Before(time.Now().Add(-1 * n.MaxTTL()))
 }
 
@@ -144,6 +146,6 @@ func (n *OriginNode) Tick() OriginTick {
 }
 
 // Children implements the Node interface.
-func (n OriginNode) Children() []Node {
+func (n *OriginNode) Children() []Node {
 	return []Node{}
 }
