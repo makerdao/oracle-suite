@@ -17,7 +17,6 @@ package main
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -182,7 +181,6 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			log.Println("populating data graph")
 			populator.Feed(graph.NewFeeder(origins.DefaultSet()), graph.AllNodes(gg))
 
 			err = cli.Prices(args, gg, m)
@@ -217,14 +215,12 @@ func NewServerCmd(o *options) *cobra.Command {
 
 			feeder := graph.NewFeeder(origins.DefaultSet())
 			nodes := graph.AllNodes(models)
-			log.Println("populating data graph")
 			populator.Feed(feeder, nodes)
 			done := populator.ScheduleFeeding(feeder, nodes)
 			defer done()
 			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
 
-			log.Println("starting server at http://localhost:8080")
-			return http.ListenAndServe(":8080", nil)
+			return web.StartServer(":8080")
 		},
 	}
 }

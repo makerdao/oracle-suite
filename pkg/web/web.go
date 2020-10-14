@@ -77,7 +77,10 @@ func recoverHandler() func() {
 	}
 }
 
-func marshallerHandler(handler func(m marshal.Marshaller, r *http.Request) error) func(w http.ResponseWriter, r *http.Request) {
+func marshallerHandler(
+	handler func(m marshal.Marshaller, r *http.Request) error,
+) func(w http.ResponseWriter, r *http.Request) {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer recoverHandler()
 
