@@ -30,11 +30,6 @@ func StartServer(addr string) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-func badRequest(w http.ResponseWriter, srvErr error) {
-	log.Printf("[WEB] 400: %s", srvErr.Error())
-	w.WriteHeader(http.StatusBadRequest)
-}
-
 func internalServerError(w http.ResponseWriter, srvErr error) {
 	log.Printf("[WEB] 500: %s", srvErr.Error())
 	w.WriteHeader(http.StatusInternalServerError)
