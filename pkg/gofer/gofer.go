@@ -61,10 +61,26 @@ func (g PriceModels) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) 
 	return ticks, nil
 }
 
-func AllNodes(g PriceModels) []graph.Node {
+func RootNodes(g PriceModels) []graph.Node {
 	var nodes []graph.Node
 	for _, pairGraph := range g {
 		nodes = append(nodes, pairGraph)
 	}
 	return nodes
+}
+
+func Pairs(l PriceModels, args ...string) ([]graph.Pair, error) {
+	var pairs []graph.Pair
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return nil, err
+			}
+			pairs = append(pairs, p)
+		}
+	} else {
+		pairs = l.Pairs()
+	}
+	return pairs, nil
 }

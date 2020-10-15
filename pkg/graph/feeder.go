@@ -16,6 +16,7 @@
 package graph
 
 import (
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -187,4 +188,47 @@ func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
 		Origin: origin,
 		Error:  fr.Error,
 	}
+}
+
+func Feed(feeder *Feeder, nodes []Node) {
+	log.Println("[POPULATOR] populating data graph")
+	if err := feeder.Feed(nodes); err != nil {
+		log.Printf("[POPULATOR] %s", err.Error())
+	}
+}
+
+func ScheduleFeeding(feeder *Feeder, nodes []Node) func() {
+	done := make(chan bool)
+	ticker := time.NewTicker(getMinTTL(nodes))
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				Feed(feeder, nodes)
+			}
+		}
+	}()
+	return func() {
+		done <- true
+	}
+}
+
+func getMinTTL(nodes []Node) time.Duration {
+	minTTL := time.Duration(0)
+	Walk(func(node Node) {
+		if feedable, ok := node.(Feedable); ok {
+			if minTTL == 0 || feedable.MinTTL() < minTTL {
+				minTTL = feedable.MinTTL()
+			}
+		}
+	}, nodes...)
+
+	if minTTL < time.Second {
+		return time.Second
+	}
+
+	return minTTL
 }

@@ -23,7 +23,7 @@ import (
 )
 
 func Origins(args []string, l gofer.PriceModels, m itemWriter) error {
-	pairs, err := graph.Pairs(l, args...)
+	pairs, err := gofer.Pairs(l, args...)
 	if err != nil {
 		return err
 	}

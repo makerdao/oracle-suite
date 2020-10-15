@@ -19,11 +19,10 @@ import (
 	"errors"
 
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/graph"
 )
 
 func Prices(args []string, l gofer.PriceModels, m itemWriter) error {
-	pairs, err := graph.Pairs(l, args...)
+	pairs, err := gofer.Pairs(l, args...)
 	if err != nil {
 		return err
 	}

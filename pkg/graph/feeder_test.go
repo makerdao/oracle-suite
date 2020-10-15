@@ -342,3 +342,33 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	assert.Equal(t, 12.0, o.tick.Ask)
 	assert.Equal(t, 11.0, o.tick.Volume24h)
 }
+
+func Test_getMinTTL(t *testing.T) {
+	p := Pair{Base: "A", Quote: "B"}
+	root := NewMedianAggregatorNode(p, 1)
+	ttl := time.Second * time.Duration(time.Now().Unix()+10)
+	on1 := NewOriginNode(OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
+	on2 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 5*time.Second, ttl)
+	on3 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 10*time.Second, ttl)
+
+	root.AddChild(on1)
+	root.AddChild(on2)
+	root.AddChild(on3)
+
+	assert.Equal(t, 5*time.Second, getMinTTL([]Node{root}))
+}
+
+func Test_getMinTTL_SorterThanOneSecond(t *testing.T) {
+	p := Pair{Base: "A", Quote: "B"}
+	root := NewMedianAggregatorNode(p, 1)
+	ttl := time.Second * time.Duration(time.Now().Unix()+10)
+	on1 := NewOriginNode(OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
+	on2 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, -5*time.Second, ttl)
+	on3 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 0*time.Second, ttl)
+
+	root.AddChild(on1)
+	root.AddChild(on2)
+	root.AddChild(on3)
+
+	assert.Equal(t, 1*time.Second, getMinTTL([]Node{root}))
+}

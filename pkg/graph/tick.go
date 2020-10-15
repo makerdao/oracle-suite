@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type Pair struct {
@@ -81,20 +79,4 @@ type AggregatorTick struct {
 	AggregatorTicks []AggregatorTick  // AggregatorTicks is a list of all OriginTicks used to calculate Tick.
 	Parameters      map[string]string // Parameters is a custom list of optional parameters returned by an aggregator.
 	Error           error             // Error is optional error which may occur during calculating Tick.
-}
-
-func Pairs(l gofer.PriceModels, args ...string) ([]Pair, error) {
-	var pairs []Pair
-	if len(args) > 0 {
-		for _, pair := range args {
-			p, err := NewPair(pair)
-			if err != nil {
-				return nil, err
-			}
-			pairs = append(pairs, p)
-		}
-	} else {
-		pairs = l.Pairs()
-	}
-	return pairs, nil
 }
