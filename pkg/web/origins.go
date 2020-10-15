@@ -22,10 +22,10 @@ import (
 
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func OriginsHandler(l graph.PriceModels) http.HandlerFunc {
+func OriginsHandler(l gofer.PriceModels) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
 		values, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {

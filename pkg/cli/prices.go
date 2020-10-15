@@ -18,10 +18,11 @@ package cli
 import (
 	"errors"
 
+	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Prices(args []string, l graph.PriceModels, m itemWriter) error {
+func Prices(args []string, l gofer.PriceModels, m itemWriter) error {
 	pairs, err := graph.Pairs(l, args...)
 	if err != nil {
 		return err

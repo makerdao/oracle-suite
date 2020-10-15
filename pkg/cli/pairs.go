@@ -18,10 +18,11 @@ package cli
 import (
 	"sort"
 
+	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Pairs(l graph.PriceModels, m itemWriter) error {
+func Pairs(l gofer.PriceModels, m itemWriter) error {
 	var err error
 
 	var graphs []graph.Aggregator

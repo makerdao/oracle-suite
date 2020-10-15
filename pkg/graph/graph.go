@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -115,63 +114,4 @@ func DetectCycle(node Node) []Node {
 	}
 
 	return recur(node, nil)
-}
-
-type PriceModels map[Pair]Aggregator
-
-func (g PriceModels) Pairs() []Pair {
-	var pairs []Pair
-	for p := range g {
-		pairs = append(pairs, p)
-	}
-	return pairs
-}
-
-func (g PriceModels) Origins(pairs ...Pair) (map[Pair][]string, error) {
-	origins := map[Pair][]string{}
-	for _, pair := range pairs {
-		if pairGraph, ok := g[pair]; ok {
-			Walk(func(node Node) {
-				if originNode, ok := node.(*OriginNode); ok {
-					name := originNode.OriginPair().Origin
-					for _, n := range origins[pair] {
-						if name == n {
-							return
-						}
-					}
-					origins[pair] = append(origins[pair], name)
-				}
-			}, pairGraph)
-		} else {
-			return nil, fmt.Errorf("unable to find %s pair", pair)
-		}
-	}
-	return origins, nil
-}
-
-func (g PriceModels) Ticks(pairs ...Pair) ([]AggregatorTick, error) {
-	var ticks []AggregatorTick
-	for _, pair := range pairs {
-		ticks = append(ticks, g[pair].Tick())
-	}
-	return ticks, nil
-}
-
-func Nodes(g PriceModels, pairs ...Pair) ([]Node, error) {
-	var nodes []Node
-	for _, pair := range pairs {
-		if pairGraph, ok := g[pair]; ok {
-			nodes = append(nodes, pairGraph)
-		} else {
-			return nil, fmt.Errorf("unable to find %s pair", pair)
-		}
-	}
-	return nodes, nil
-}
-func AllNodes(g PriceModels) []Node {
-	var nodes []Node
-	for _, pairGraph := range g {
-		nodes = append(nodes, pairGraph)
-	}
-	return nodes
 }

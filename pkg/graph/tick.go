@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type Pair struct {
@@ -81,7 +83,7 @@ type AggregatorTick struct {
 	Error           error             // Error is optional error which may occur during calculating Tick.
 }
 
-func Pairs(l PriceModels, args ...string) ([]Pair, error) {
+func Pairs(l gofer.PriceModels, args ...string) ([]Pair, error) {
 	var pairs []Pair
 	if len(args) > 0 {
 		for _, pair := range args {

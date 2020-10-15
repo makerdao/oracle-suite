@@ -27,13 +27,14 @@ import (
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/config"
+	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
 	"github.com/makerdao/gofer/pkg/origins"
 	"github.com/makerdao/gofer/pkg/populator"
 	"github.com/makerdao/gofer/pkg/web"
 )
 
-func priceModels(path string) (graph.PriceModels, error) {
+func priceModels(path string) (gofer.PriceModels, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -181,7 +182,7 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			populator.Feed(graph.NewFeeder(origins.DefaultSet()), graph.AllNodes(gg))
+			populator.Feed(graph.NewFeeder(origins.DefaultSet()), gofer.AllNodes(gg))
 
 			err = cli.Prices(args, gg, m)
 			if err != nil {
@@ -214,7 +215,7 @@ func NewServerCmd(o *options) *cobra.Command {
 			http.HandleFunc("/v1/origins/", web.OriginsHandler(models))
 
 			feeder := graph.NewFeeder(origins.DefaultSet())
-			nodes := graph.AllNodes(models)
+			nodes := gofer.AllNodes(models)
 			populator.Feed(feeder, nodes)
 			done := populator.ScheduleFeeding(feeder, nodes)
 			defer done()
