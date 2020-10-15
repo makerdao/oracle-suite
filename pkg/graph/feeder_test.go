@@ -61,7 +61,7 @@ func originsSetMock(ticks map[string][]origins.Tick) *origins.Set {
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil))
-	err := f.Feed()
+	err := f.Feed([]Node{})
 
 	assert.NoError(t, err)
 
@@ -71,7 +71,7 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil))
 	g := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 1)
-	err := f.Feed(g)
+	err := f.Feed([]Node{g})
 
 	assert.NoError(t, err)
 
@@ -101,7 +101,7 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 	}, 0, 0)
 
 	g.AddChild(o)
-	err := f.Feed(g)
+	err := f.Feed([]Node{g})
 
 	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
@@ -173,7 +173,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	g.AddChild(o3)
 	g.AddChild(o3) // intentionally
 	g.AddChild(o4)
-	err := f.Feed(g)
+	err := f.Feed([]Node{g})
 
 	assert.NoError(t, err)
 
@@ -238,7 +238,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 
 	g.AddChild(i)
 	i.AddChild(o)
-	err := f.Feed(g)
+	err := f.Feed([]Node{g})
 
 	assert.NoError(t, err)
 	assert.Equal(t, Pair{Base: "A", Quote: "B"}, o.tick.Pair)
@@ -285,7 +285,7 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	err := f.Feed(g)
+	err := f.Feed([]Node{g})
 
 	// OriginNode shouldn't be updated because time diff is below MinTTL setting:
 	assert.NoError(t, err)
@@ -332,7 +332,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	err := f.Feed(g)
+	err := f.Feed([]Node{g})
 
 	// OriginNode should be updated because time diff is above MinTTL setting:
 	assert.NoError(t, err)
@@ -341,4 +341,34 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	assert.Equal(t, 10.0, o.tick.Bid)
 	assert.Equal(t, 12.0, o.tick.Ask)
 	assert.Equal(t, 11.0, o.tick.Volume24h)
+}
+
+func Test_getMinTTL(t *testing.T) {
+	p := Pair{Base: "A", Quote: "B"}
+	root := NewMedianAggregatorNode(p, 1)
+	ttl := time.Second * time.Duration(time.Now().Unix()+10)
+	on1 := NewOriginNode(OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
+	on2 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 5*time.Second, ttl)
+	on3 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 10*time.Second, ttl)
+
+	root.AddChild(on1)
+	root.AddChild(on2)
+	root.AddChild(on3)
+
+	assert.Equal(t, 5*time.Second, getMinTTL([]Node{root}))
+}
+
+func Test_getMinTTL_SorterThanOneSecond(t *testing.T) {
+	p := Pair{Base: "A", Quote: "B"}
+	root := NewMedianAggregatorNode(p, 1)
+	ttl := time.Second * time.Duration(time.Now().Unix()+10)
+	on1 := NewOriginNode(OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
+	on2 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, -5*time.Second, ttl)
+	on3 := NewOriginNode(OriginPair{Origin: "b", Pair: p}, 0*time.Second, ttl)
+
+	root.AddChild(on1)
+	root.AddChild(on2)
+	root.AddChild(on3)
+
+	assert.Equal(t, 1*time.Second, getMinTTL([]Node{root}))
 }

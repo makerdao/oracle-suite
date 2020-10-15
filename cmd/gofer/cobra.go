@@ -17,7 +17,6 @@ package main
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,7 +33,7 @@ import (
 	"github.com/makerdao/gofer/pkg/web"
 )
 
-func newGofer(path string) (*gofer.Gofer, error) {
+func priceModels(path string) (gofer.PriceModels, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -49,8 +48,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
+	return g, nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.
@@ -90,7 +88,6 @@ func NewPairsCmd(o *options) *cobra.Command {
 			}
 
 			wait := asyncCopy(os.Stdout, m)
-
 			defer func() {
 				_ = m.Close()
 				wait()
@@ -101,7 +98,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
@@ -119,7 +116,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 func NewOriginsCmd(o *options) *cobra.Command {
 	return &cobra.Command{
 		Use:     "origins [PAIR...]",
-		Aliases: []string{"origin", "exchanges", "exchange"},
+		Aliases: []string{"origin", "exchanges", "exchange", "sources", "source"},
 		Short:   "List supported origins",
 		Long: `Lists origins that will be queried for all of the supported pairs
 or a subset of those, if at least one PAIR is provided.`,
@@ -130,7 +127,6 @@ or a subset of those, if at least one PAIR is provided.`,
 			}
 
 			wait := asyncCopy(os.Stdout, m)
-
 			defer func() {
 				_ = m.Close()
 				wait()
@@ -141,7 +137,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
@@ -170,7 +166,6 @@ func NewPricesCmd(o *options) *cobra.Command {
 			}
 
 			wait := asyncCopy(os.Stdout, m)
-
 			defer func() {
 				_ = m.Close()
 				wait()
@@ -181,12 +176,14 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			gg, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
 
-			err = cli.Prices(args, g, m)
+			graph.Feed(graph.NewFeeder(origins.DefaultSet()), gofer.RootNodes(gg))
+
+			err = cli.Prices(args, gg, m)
 			if err != nil {
 				return err
 			}
@@ -208,20 +205,22 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			models, err := priceModels(absPath)
 			if err != nil {
 				return err
 			}
 
-			log.Println("Populating graph")
-			if err := g.Feed(g.Pairs()...); err != nil {
-				return err
-			}
+			http.HandleFunc("/v1/pairs/", web.PairsHandler(models))
+			http.HandleFunc("/v1/origins/", web.OriginsHandler(models))
 
-			http.HandleFunc("/pairs/", web.PairsHandler(g))
+			feeder := graph.NewFeeder(origins.DefaultSet())
+			nodes := gofer.RootNodes(models)
+			graph.Feed(feeder, nodes)
+			done := graph.ScheduleFeeding(feeder, nodes)
+			defer done()
+			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
 
-			log.Println("Starting server at http://localhost:8080")
-			return http.ListenAndServe(":8080", nil)
+			return web.StartServer(":8080")
 		},
 	}
 }
@@ -236,7 +235,7 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: false,
+		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
 

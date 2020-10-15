@@ -16,7 +16,6 @@
 package marshal
 
 import (
-	//nolint:gosec
 	encodingJson "encoding/json"
 	"fmt"
 	"time"

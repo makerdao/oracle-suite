@@ -16,47 +16,21 @@
 package web
 
 import (
-	"io"
+	"log"
 	"net/http"
-	"sort"
 
 	"github.com/makerdao/gofer/internal/marshal"
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/cli"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
-}
-
-func PairsHandler(l pairsLister) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var graphs []graph.Aggregator
-		for _, g := range l.Graphs() {
-			graphs = append(graphs, g)
+func PairsHandler(l gofer.PriceModels) http.HandlerFunc {
+	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
+		err := cli.Pairs(l, m)
+		if err != nil {
+			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
 		}
 
-		sort.SliceStable(graphs, func(i, j int) bool {
-			return graphs[i].Pair().String() < graphs[j].Pair().String()
-		})
-
-		m, _ := marshal.NewMarshal(marshal.JSON)
-		for _, g := range graphs {
-			if err := m.Write(g); err != nil {
-				BadRequest(w, err)
-				return
-			}
-		}
-
-		if err := m.Close(); err != nil {
-			BadRequest(w, err)
-			return
-		}
-
-		if _, err := io.Copy(w, m); err != nil {
-			BadRequest(w, err)
-			return
-		}
-
-		AsJSON(w)
-	}
+		return nil
+	})
 }

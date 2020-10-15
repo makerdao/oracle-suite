@@ -18,13 +18,25 @@ package web
 import (
 	"log"
 	"net/http"
+	"net/url"
+
+	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/cli"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func BadRequest(w http.ResponseWriter, srvErr ...error) {
-	log.Println(srvErr)
-	w.WriteHeader(http.StatusBadRequest)
-}
+func PricesHandler(l gofer.PriceModels) http.HandlerFunc {
+	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
+		values, err := url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			return err
+		}
 
-func AsJSON(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+		err = cli.Prices(values["pair"], l, m)
+		if err != nil {
+			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
+		}
+
+		return nil
+	})
 }

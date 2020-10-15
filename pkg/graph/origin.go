@@ -17,6 +17,7 @@ package graph
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -62,6 +63,8 @@ func (e TickTTLExpiredErr) Error() string {
 
 // OriginNode contains a Tick fetched directly from an origin.
 type OriginNode struct {
+	mu sync.Mutex
+
 	originPair OriginPair
 	tick       OriginTick
 	minTTL     time.Duration
@@ -70,6 +73,8 @@ type OriginNode struct {
 
 func NewOriginNode(originPair OriginPair, minTTL time.Duration, maxTTL time.Duration) *OriginNode {
 	return &OriginNode{
+		mu: sync.Mutex{},
+
 		originPair: originPair,
 		minTTL:     minTTL,
 		maxTTL:     maxTTL,
@@ -83,6 +88,9 @@ func (n *OriginNode) OriginPair() OriginPair {
 
 // Ingest implements Feedable interface.
 func (n *OriginNode) Ingest(tick OriginTick) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var err error
 	if !tick.Pair.Equal(n.originPair.Pair) {
 		err = multierror.Append(err, IngestedIncompatiblePairErr{
@@ -116,12 +124,15 @@ func (n *OriginNode) MaxTTL() time.Duration {
 }
 
 // Expired implements the Feedable interface.
-func (n OriginNode) Expired() bool {
+func (n *OriginNode) Expired() bool {
 	return n.tick.Timestamp.Before(time.Now().Add(-1 * n.MaxTTL()))
 }
 
 // Tick implements the Feedable interface.
 func (n *OriginNode) Tick() OriginTick {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	if n.tick.Error == nil {
 		if n.Expired() {
 			n.tick.Error = TickTTLExpiredErr{
@@ -135,6 +146,6 @@ func (n *OriginNode) Tick() OriginTick {
 }
 
 // Children implements the Node interface.
-func (n OriginNode) Children() []Node {
+func (n *OriginNode) Children() []Node {
 	return []Node{}
 }

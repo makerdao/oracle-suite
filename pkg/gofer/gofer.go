@@ -21,63 +21,20 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-type Gofer struct {
-	graphs map[graph.Pair]graph.Aggregator
-	feeder *graph.Feeder
-}
+type PriceModels map[graph.Pair]graph.Aggregator
 
-func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *graph.Feeder) *Gofer {
-	return &Gofer{
-		graphs: graphs,
-		feeder: feeder,
-	}
-}
-
-func (g *Gofer) Graphs() map[graph.Pair]graph.Aggregator {
-	return g.graphs
-}
-
-func (g *Gofer) Feeder() *graph.Feeder {
-	return g.feeder
-}
-
-func (g *Gofer) Pairs() []graph.Pair {
+func (g PriceModels) Pairs() []graph.Pair {
 	var pairs []graph.Pair
-	for p := range g.Graphs() {
+	for p := range g {
 		pairs = append(pairs, p)
 	}
 	return pairs
 }
 
-func (g *Gofer) Feed(pairs ...graph.Pair) error {
-	var graphs []graph.Node
-	for _, pair := range pairs {
-		if pairGraph, ok := g.graphs[pair]; ok {
-			graphs = append(graphs, pairGraph)
-		} else {
-			return fmt.Errorf("unable to find %s pair", pair)
-		}
-	}
-
-	// TODO: Display somehow returned errors
-	_ = g.feeder.Feed(graphs...)
-
-	return nil
-}
-
-func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
-	var ticks []graph.AggregatorTick
-	for _, pair := range pairs {
-		ticks = append(ticks, g.graphs[pair].Tick())
-	}
-
-	return ticks, nil
-}
-
-func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
+func (g PriceModels) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 	origins := map[graph.Pair][]string{}
 	for _, pair := range pairs {
-		if pairGraph, ok := g.graphs[pair]; ok {
+		if pairGraph, ok := g[pair]; ok {
 			graph.Walk(func(node graph.Node) {
 				if originNode, ok := node.(*graph.OriginNode); ok {
 					name := originNode.OriginPair().Origin
@@ -93,6 +50,37 @@ func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 			return nil, fmt.Errorf("unable to find %s pair", pair)
 		}
 	}
-
 	return origins, nil
+}
+
+func (g PriceModels) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
+	var ticks []graph.AggregatorTick
+	for _, pair := range pairs {
+		ticks = append(ticks, g[pair].Tick())
+	}
+	return ticks, nil
+}
+
+func RootNodes(g PriceModels) []graph.Node {
+	var nodes []graph.Node
+	for _, pairGraph := range g {
+		nodes = append(nodes, pairGraph)
+	}
+	return nodes
+}
+
+func Pairs(l PriceModels, args ...string) ([]graph.Pair, error) {
+	var pairs []graph.Pair
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return nil, err
+			}
+			pairs = append(pairs, p)
+		}
+	} else {
+		pairs = l.Pairs()
+	}
+	return pairs, nil
 }

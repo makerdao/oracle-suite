@@ -72,8 +72,7 @@ func TestPlain_Ticks(t *testing.T) {
 
 	expected := `
 A/B 10.000000
-C/D 10.000000
-Error: something`
+C/D - something`
 
 	assert.Equal(t, expected[1:], string(b))
 }

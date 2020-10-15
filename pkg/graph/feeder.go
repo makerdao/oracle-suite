@@ -16,6 +16,7 @@
 package graph
 
 import (
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -56,18 +57,18 @@ func NewFeeder(set *origins.Set) *Feeder {
 }
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
-// and sets Ticks to all of their children that implements the Feedable interface.
+// and sets Ticks to all of their children that implement the Feedable interface.
 //
 // This method may return an error with a list of problems during fetching, but
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
 // in AggregatorTick.Error field.
-func (i *Feeder) Feed(nodes ...Node) error {
-	return i.fetchTicks(i.findFeedableNodes(nodes))
+func (i *Feeder) Feed(nodes []Node) error {
+	return i.fetchTicksAndFeedThemToFeedableNodes(i.findFeedableNodes(nodes))
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
-// which implements Feedable interface.
+// which implement Feedable interface.
 func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	tn := time.Now()
 
@@ -84,7 +85,7 @@ func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	return feedables
 }
 
-func (i *Feeder) fetchTicks(nodes []Feedable) error {
+func (i *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 	var err error
 
 	// originPair is used as a key in a map to easily find
@@ -131,11 +132,8 @@ func (i *Feeder) fetchTicks(nodes []Feedable) error {
 				// not expired, do not try to override it:
 				if tick.Error != nil && !feedable.Expired() {
 					err = multierror.Append(err, tick.Error)
-				} else {
-					iErr := feedable.Ingest(tick)
-					if iErr != nil {
-						err = multierror.Append(err, feedable.Ingest(tick))
-					}
+				} else if iErr := feedable.Ingest(tick); iErr != nil {
+					err = multierror.Append(err, feedable.Ingest(tick))
 				}
 			}
 		}
@@ -190,4 +188,47 @@ func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
 		Origin: origin,
 		Error:  fr.Error,
 	}
+}
+
+func Feed(feeder *Feeder, nodes []Node) {
+	log.Println("[POPULATOR] populating data graph")
+	if err := feeder.Feed(nodes); err != nil {
+		log.Printf("[POPULATOR] %s", err.Error())
+	}
+}
+
+func ScheduleFeeding(feeder *Feeder, nodes []Node) func() {
+	done := make(chan bool)
+	ticker := time.NewTicker(getMinTTL(nodes))
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				Feed(feeder, nodes)
+			}
+		}
+	}()
+	return func() {
+		done <- true
+	}
+}
+
+func getMinTTL(nodes []Node) time.Duration {
+	minTTL := time.Duration(0)
+	Walk(func(node Node) {
+		if feedable, ok := node.(Feedable); ok {
+			if minTTL == 0 || feedable.MinTTL() < minTTL {
+				minTTL = feedable.MinTTL()
+			}
+		}
+	}, nodes...)
+
+	if minTTL < time.Second {
+		return time.Second
+	}
+
+	return minTTL
 }
