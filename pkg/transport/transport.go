@@ -13,4 +13,17 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ghost
+package transport
+
+import (
+	"encoding/json"
+)
+
+type Event struct {
+	Name    string
+	Payload json.Marshaler
+}
+
+type Broadcaster interface {
+	Broadcast(Event) error
+}
