@@ -1,0 +1,82 @@
+{
+  "ethereum": {
+    "from": "",
+    "keystore": "",
+    "password": "",
+    "rpc": ""
+  },
+  "feeds": [],
+  "options": {
+    "interval": 60,
+    "msgLimit": 20,
+    "verbose": true
+  },
+  "pairs": {
+    "BATUSD": {
+      "oracle": "0x18B4633D6E39870f398597f3c1bA8c4A41294966",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "BTCUSD": {
+      "oracle": "0xe0F30cb149fAADC7247E953746Be9BbBB6B5751f",
+      "oracleSpread": 0.5,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "COMPUSD": {
+      "oracle": "0xA3421Be733125405Ea20aA853839D34b364eB524",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ETHBTC": {
+      "oracle": "0x81A679f98b63B3dDf2F17CB5619f4d6775b3c5ED",
+      "oracleSpread": 0.5,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ETHUSD": {
+      "oracle": "0x64DE91F5A373Cd4c28de3600cB34C7C6cE410C85",
+      "oracleSpread": 0.5,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "KNCUSD": {
+      "oracle": "0x83076a2F42dc1925537165045c9FDe9A4B71AD97",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "LINKUSD": {
+      "oracle": "0xbAd4212d73561B240f10C56F27e6D9608963f17b",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "LRCUSD": {
+      "oracle": "0xcCe92282d9fe310F4c232b0DA9926d5F24611C7B",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "MANAUSD": {
+      "oracle": "0x681c4F8f69cF68852BAd092086ffEaB31F5B812c",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ZRXUSD": {
+      "oracle": "0x956ecD6a9A9A0d84e8eB4e6BaaC09329E202E55e",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "USDTUSD": {
+      "oracle": "0x56D4bBF358D7790579b55eA6Af3f605BcA2c0C3A",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    }
+  }
+}

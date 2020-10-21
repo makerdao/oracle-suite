@@ -26,9 +26,9 @@ func NewWallet(keyStore, passphrase string, address common.Address) (*Wallet, er
 	}
 
 	w := &Wallet{
-		// Using StartClefAccountManager is not perfect solution but it's probably little better than
+		// Using StartClefAccountManager is not a perfect solution but it's probably little better than
 		// copy-pasting the code.
-		accountManager: core.StartClefAccountManager(keyStore, false, true, ""),
+		accountManager: core.StartClefAccountManager(keyStore, true, true, ""),
 		passphrase:     passphrase,
 		address:        address,
 	}
@@ -65,7 +65,7 @@ func (s *Wallet) findWalletByAddress(from common.Address) (accounts.Wallet, *acc
 		}
 	}
 
-	return nil, nil, errors.New("unable to find wallet and account for requested address")
+	return nil, nil, errors.New("unable to find wallet for requested address")
 }
 
 // source: https://github.com/dapphub/dapptools/blob/master/src/ethsign/ethsign.go
