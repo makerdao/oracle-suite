@@ -2,12 +2,17 @@ package oracle
 
 import (
 	"context"
+	"encoding/hex"
+	"errors"
 	"math/big"
+	"regexp"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type Ethereum struct {
@@ -18,7 +23,7 @@ type Ethereum struct {
 func NewEthereum(ethClient *ethclient.Client, wallet *Wallet) *Ethereum {
 	return &Ethereum{
 		ethClient: ethClient,
-		wallet: wallet,
+		wallet:    wallet,
 	}
 }
 
@@ -37,7 +42,12 @@ func (e *Ethereum) Call(ctx context.Context, address common.Address, data []byte
 		Data:     data,
 	}
 
-	return e.ethClient.CallContract(ctx, cm, new(big.Int).SetUint64(bn))
+	resp, err := e.ethClient.CallContract(ctx, cm, new(big.Int).SetUint64(bn))
+	if err != nil {
+		return nil, parseError(err)
+	}
+
+	return resp, err
 }
 
 func (e *Ethereum) Storage(ctx context.Context, address common.Address, key common.Hash) ([]byte, error) {
@@ -49,7 +59,7 @@ func (e *Ethereum) Storage(ctx context.Context, address common.Address, key comm
 	return e.ethClient.StorageAt(ctx, address, key, new(big.Int).SetUint64(bn))
 }
 
-func (e *Ethereum) GetTransaction(ctx context.Context, address common.Address, gasLimit uint64, data []byte) (*types.Transaction, error) {
+func (e *Ethereum) SendTransaction(ctx context.Context, address common.Address, gasLimit uint64, data []byte) (*common.Hash, error) {
 	nonce, err := e.ethClient.PendingNonceAt(ctx, e.wallet.Address())
 	if err != nil {
 		return nil, err
@@ -79,15 +89,37 @@ func (e *Ethereum) GetTransaction(ctx context.Context, address common.Address, g
 		return nil, err
 	}
 
-	return signedTx, nil
+	hash := signedTx.Hash()
+
+	return &hash, e.ethClient.SendTransaction(ctx, signedTx)
 }
 
-func (e *Ethereum) SendTransaction(ctx context.Context, address common.Address, gasLimit uint64, data []byte) (*common.Hash, error) {
-	tx, err := e.GetTransaction(ctx, address, gasLimit, data)
-	if err != nil {
-		return nil, err
+func parseError(vmErr error) error {
+	switch terr := vmErr.(type) {
+	// rpc.jsonError:
+	case rpc.DataError:
+		// Some RPC servers returns "revert" data as a hex encoded string, here
+		// we're trying to parse it. If any error occurs during it, then original
+		// error will be returned.
+		if str, ok := terr.ErrorData().(string); ok {
+			re := regexp.MustCompile("(0x[a-zA-Z0-9]+)")
+			match := re.FindStringSubmatch(str)
+
+			if len(match) == 2 && len(match[1]) > 2 {
+				bytes, err := hex.DecodeString(match[1][2:])
+				if err != nil {
+					return vmErr
+				}
+
+				revert, err := abi.UnpackRevert(bytes)
+				if err != nil {
+					return vmErr
+				}
+
+				return errors.New(revert)
+			}
+		}
 	}
 
-	hash := tx.Hash()
-	return &hash, e.ethClient.SendTransaction(ctx, tx)
+	return vmErr
 }
