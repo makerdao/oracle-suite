@@ -5,8 +5,9 @@ go 1.14
 require (
 	github.com/ethereum/go-ethereum v1.9.23
 	github.com/hashicorp/go-multierror v1.1.0
-	github.com/hashicorp/serf v0.9.5 // indirect
+	github.com/hashicorp/serf v0.9.5
 	github.com/kr/text v0.2.0 // indirect
+	github.com/mitchellh/cli v1.1.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
