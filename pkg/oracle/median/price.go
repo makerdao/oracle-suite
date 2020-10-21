@@ -14,9 +14,8 @@ import (
 
 type Price struct {
 	AssetPair string
-	Time      time.Time
 	Val       *big.Int
-	Age       *big.Int
+	Age       time.Time
 	V         uint8
 	R         [32]byte
 	S         [32]byte
@@ -30,7 +29,7 @@ func (m *Price) Sign(wallet *oracle.Wallet) error {
 
 	// Time HEX:
 	timeHexB := make([]byte, 32)
-	binary.BigEndian.PutUint64(timeHexB[24:], uint64(time.Now().Unix()))
+	binary.BigEndian.PutUint64(timeHexB[24:], uint64(m.Age.Unix()))
 	timeHex := hex.EncodeToString(timeHexB)
 
 	// Pair HEX:
