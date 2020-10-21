@@ -84,7 +84,7 @@ func (m *Median) Poke(ctx context.Context, args []*Price) (*common.Hash, error) 
 		}
 
 		val = append(val, arg.Val)
-		age = append(age, arg.Age)
+		age = append(age, big.NewInt(arg.Age.Unix()))
 		v = append(v, arg.V)
 		r = append(r, arg.R)
 		s = append(s, arg.S)

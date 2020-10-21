@@ -95,7 +95,7 @@ func (r *Relayer) Relay(pair string) error {
 	// Get non expired prices:
 	var prices []*median.Price
 	for _, p := range r.prices[pair] {
-		if time.Now().Unix()-p.Time.Unix() < r.pairs[pair].MsgExpiration {
+		if time.Now().Unix()-p.Age.Unix() < r.pairs[pair].MsgExpiration {
 			prices = append(prices, p)
 		}
 	}
