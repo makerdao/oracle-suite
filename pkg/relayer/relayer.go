@@ -18,42 +18,44 @@ package relayer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
 type Relayer struct {
 	mu sync.Mutex
 
-	ethereum *ethereum.Client
-	wallet   *ethereum.Wallet
-	median   map[string]*oracle.Median
-	prices   map[string]*Prices
+	interval time.Duration
 	pairs    map[string]Pair
+	doneCh   chan bool
 }
 
 type Pair struct {
-	AssetPair        string
-	Oracle           common.Address
-	OracleSpread     float64
+	// AssetPair is the name of asset pair, e.g. ETHUSD.
+	AssetPair string
+	// OracleSpread is the minimum spread between the oracle price and new price
+	// required to send update.
+	OracleSpread float64
+	// OracleExpiration is the minimum time difference between the oracle time
+	// and current time required to send update.
 	OracleExpiration time.Duration
-	MsgExpiration    time.Duration
+	// PriceExpiration is the maximum TTL of the price from feeder.
+	PriceExpiration time.Duration
+	// Median is the instance of the oracle.Median which is the interface for
+	// the median oracle contract.
+	Median *oracle.Median
+	// prices contains list of prices form the feeders.
+	prices *Prices
 }
 
-func NewRelayer(ethereum *ethereum.Client, wallet *ethereum.Wallet) *Relayer {
+func NewRelayer(interval time.Duration) *Relayer {
 	return &Relayer{
-		ethereum: ethereum,
-		wallet:   wallet,
-		median:   make(map[string]*oracle.Median, 0),
-		prices:   make(map[string]*Prices, 0),
+		interval: interval,
 		pairs:    make(map[string]Pair, 0),
+		doneCh:   make(chan bool, 0),
 	}
 }
 
@@ -61,12 +63,8 @@ func (r *Relayer) AddPair(pair Pair) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	pair.prices = NewPrices(pair.AssetPair, pair.PriceExpiration)
 	r.pairs[pair.AssetPair] = pair
-	r.median[pair.AssetPair] = oracle.NewMedian(r.ethereum, pair.Oracle, pair.AssetPair)
-}
-
-func (r *Relayer) Pairs() map[string]Pair {
-	return r.pairs
 }
 
 func (r *Relayer) Collect(price *oracle.Price) error {
@@ -77,32 +75,56 @@ func (r *Relayer) Collect(price *oracle.Price) error {
 		return errors.New("invalid price")
 	}
 
-	if _, ok := r.prices[price.AssetPair]; !ok {
-		r.prices[price.AssetPair] = NewPrices(price.AssetPair, r.pairs[price.AssetPair].MsgExpiration)
+	err := r.pairs[price.AssetPair].prices.Add(price)
+	if err != nil {
+		return err
 	}
-
-	_ = r.prices[price.AssetPair].Add(price)
 
 	return nil
 }
 
-func (r *Relayer) Relay(assetPair string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *Relayer) Start(onSuccessChan chan<- string, onErrChan chan<- error) {
+	r.doneCh = make(chan bool)
+	ticker := time.NewTicker(r.interval)
+	go func() {
+		for {
+			select {
+			case <-r.doneCh:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				r.mu.Lock()
+				for assetPair, pair := range r.pairs {
+					if pair.prices.Len() == 0 {
+						continue
+					}
 
+					err := r.relay(assetPair)
+					if err != nil && onErrChan != nil {
+						onErrChan <- err
+					}
+					if err == nil && onSuccessChan != nil {
+						onSuccessChan <- assetPair
+					}
+				}
+				r.mu.Unlock()
+			}
+		}
+	}()
+}
+
+func (r *Relayer) Stop() {
+	r.doneCh <- true
+}
+
+func (r *Relayer) relay(assetPair string) error {
 	ctx := context.Background()
 
-	m, ok := r.median[assetPair]
-	if !ok {
-		return fmt.Errorf("unable to find oracle contract for %s", assetPair)
-	}
-
 	pair := r.pairs[assetPair]
-	prices := r.prices[assetPair]
-	prices.ClearExpired()
+	pair.prices.ClearExpired()
 
 	// Check if the oracle price is expired:
-	oracleTime, err := m.Age(ctx)
+	oracleTime, err := pair.Median.Age(ctx)
 	if err != nil {
 		return err
 	}
@@ -111,20 +133,20 @@ func (r *Relayer) Relay(assetPair string) error {
 	}
 
 	// Check if there are enough prices to achieve a quorum:
-	quorum, err := m.Bar(ctx)
+	quorum, err := pair.Median.Bar(ctx)
 	if err != nil {
 		return err
 	}
-	if prices.Len() < quorum {
+	if pair.prices.Len() < quorum {
 		return errors.New("unable to update oracle, there is not enough prices to achieve a quorum")
 	}
 
 	// Use only a minimum prices required to achieve a quorum, this will save some gas:
-	prices.Truncate(quorum)
+	pair.prices.Truncate(quorum)
 
 	// Check if spread is large enough:
-	medianPrice := prices.Median()
-	oldPrice, err := m.Price(ctx)
+	medianPrice := pair.prices.Median()
+	oldPrice, err := pair.Median.Price(ctx)
 	if err != nil {
 		return err
 	}
@@ -134,10 +156,10 @@ func (r *Relayer) Relay(assetPair string) error {
 	}
 
 	// Send transaction:
-	_, err = m.Poke(ctx, prices.Get())
+	_, err = pair.Median.Poke(ctx, pair.prices.Get())
 
 	// Remove prices:
-	prices.Clear()
+	pair.prices.Clear()
 
 	return err
 }

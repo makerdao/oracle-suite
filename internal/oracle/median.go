@@ -16,12 +16,18 @@ import (
 // TODO: make it configurable
 const gasLimit = 200000
 
+// Median is an interface for the median oracle contract:
+// https://github.com/makerdao/median/
+//
+// Contract documentation:
+// https://docs.makerdao.com/smart-contract-modules/oracle-module/median-detailed-documentation
 type Median struct {
 	ethereum  *ethereum.Client
 	address   common.Address
 	assetPair string
 }
 
+// NewMedian creates the new Median instance.
 func NewMedian(ethereum *ethereum.Client, address common.Address, assetPair string) *Median {
 	return &Median{
 		ethereum:  ethereum,
@@ -30,6 +36,8 @@ func NewMedian(ethereum *ethereum.Client, address common.Address, assetPair stri
 	}
 }
 
+// Age returns the value from contract's age method. The age is the block
+// timestamp of last price val update.
 func (m *Median) Age(ctx context.Context) (time.Time, error) {
 	r, err := m.read(ctx, "age")
 	if err != nil {
@@ -39,6 +47,8 @@ func (m *Median) Age(ctx context.Context) (time.Time, error) {
 	return time.Unix(r[0].(int64), 0), nil
 }
 
+// Bar returns the value from contract's bar method. The bar method returns
+// the minimum number of prices necessary to accept a new median value.
 func (m *Median) Bar(ctx context.Context) (int64, error) {
 	r, err := m.read(ctx, "bar")
 	if err != nil {
@@ -48,6 +58,7 @@ func (m *Median) Bar(ctx context.Context) (int64, error) {
 	return r[0].(*big.Int).Int64(), nil
 }
 
+// Price returns current asset price form the contract's storage.
 func (m *Median) Price(ctx context.Context) (*big.Int, error) {
 	b, err := m.ethereum.Storage(ctx, m.address, common.BigToHash(big.NewInt(1)))
 	if err != nil {
@@ -60,10 +71,13 @@ func (m *Median) Price(ctx context.Context) (*big.Int, error) {
 	return new(big.Int).SetBytes(b[16:32]), err
 }
 
-func (m *Median) Poke(ctx context.Context, args []*Price) (*common.Hash, error) {
+// Poke sends transaction to the smart contract which invokes contract's
+// poke method. Before transaction is sent, it is executed on the EVM using the
+// eth_call to check if it's valid.
+func (m *Median) Poke(ctx context.Context, prices []*Price) (*common.Hash, error) {
 	// It's important to send prices in correct order, otherwise contract will fail:
-	sort.Slice(args, func(i, j int) bool {
-		return args[i].Val.Cmp(args[j].Val) < 0
+	sort.Slice(prices, func(i, j int) bool {
+		return prices[i].Val.Cmp(prices[j].Val) < 0
 	})
 
 	var (
@@ -74,7 +88,7 @@ func (m *Median) Poke(ctx context.Context, args []*Price) (*common.Hash, error) 
 		s   [][32]byte
 	)
 
-	for _, arg := range args {
+	for _, arg := range prices {
 		if arg.AssetPair != m.assetPair {
 			return nil, fmt.Errorf(
 				"incompatible asset pair, %s given but %s expected",

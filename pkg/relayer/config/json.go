@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/pkg/relayer"
 )
 
@@ -29,7 +30,7 @@ type JSONEthereum struct {
 }
 
 type JSONOptions struct {
-	Interval int  `json:"interval"` // TODO
+	Interval int  `json:"interval"`
 	MsgLimit int  `json:"msgLimit"` // TODO
 	Verbose  bool `json:"verbose"`  // TODO
 }
@@ -90,15 +91,15 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 	}
 
 	eth := ethereum.NewClient(client, wallet)
-	rel := relayer.NewRelayer(eth, wallet)
+	rel := relayer.NewRelayer(time.Second*time.Duration(j.Options.Interval))
 
 	for name, pair := range j.Pairs {
 		rel.AddPair(relayer.Pair{
 			AssetPair:        name,
-			Oracle:           common.HexToAddress(pair.Oracle),
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
-			MsgExpiration:    time.Second * time.Duration(pair.MsgExpiration),
+			PriceExpiration:  time.Second * time.Duration(pair.MsgExpiration),
+			Median:           oracle.NewMedian(eth, common.HexToAddress(pair.Oracle), name),
 		})
 	}
 
