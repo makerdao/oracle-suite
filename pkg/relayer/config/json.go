@@ -94,7 +94,7 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 	rel := relayer.NewRelayer(time.Second*time.Duration(j.Options.Interval))
 
 	for name, pair := range j.Pairs {
-		rel.AddPair(&relayer.Pair{
+		rel.AddPair(relayer.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
