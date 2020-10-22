@@ -25,18 +25,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/makerdao/gofer/pkg/oracle"
-	"github.com/makerdao/gofer/pkg/oracle/median"
+	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/oracle"
 )
 
 type Relayer struct {
 	mu sync.Mutex
 
-	eth    *oracle.Ethereum
-	wallet *oracle.Wallet
-	median map[string]*median.Median
-	prices map[string]*Prices
-	pairs  map[string]Pair
+	ethereum *ethereum.Client
+	wallet   *ethereum.Wallet
+	median   map[string]*oracle.Median
+	prices   map[string]*Prices
+	pairs    map[string]Pair
 }
 
 type Pair struct {
@@ -47,13 +47,13 @@ type Pair struct {
 	MsgExpiration    time.Duration
 }
 
-func NewRelayer(eth *oracle.Ethereum, wallet *oracle.Wallet) *Relayer {
+func NewRelayer(ethereum *ethereum.Client, wallet *ethereum.Wallet) *Relayer {
 	return &Relayer{
-		eth:    eth,
-		wallet: wallet,
-		median: make(map[string]*median.Median, 0),
-		prices: make(map[string]*Prices, 0),
-		pairs:  make(map[string]Pair, 0),
+		ethereum: ethereum,
+		wallet:   wallet,
+		median:   make(map[string]*oracle.Median, 0),
+		prices:   make(map[string]*Prices, 0),
+		pairs:    make(map[string]Pair, 0),
 	}
 }
 
@@ -62,14 +62,14 @@ func (r *Relayer) AddPair(pair Pair) {
 	defer r.mu.Unlock()
 
 	r.pairs[pair.AssetPair] = pair
-	r.median[pair.AssetPair] = median.NewMedian(r.eth, pair.Oracle, pair.AssetPair)
+	r.median[pair.AssetPair] = oracle.NewMedian(r.ethereum, pair.Oracle, pair.AssetPair)
 }
 
 func (r *Relayer) Pairs() map[string]Pair {
 	return r.pairs
 }
 
-func (r *Relayer) Collect(price *median.Price) error {
+func (r *Relayer) Collect(price *oracle.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

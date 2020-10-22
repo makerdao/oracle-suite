@@ -1,4 +1,4 @@
-package median
+package oracle
 
 import (
 	"context"
@@ -10,21 +10,21 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/makerdao/gofer/pkg/oracle"
+	"github.com/makerdao/gofer/internal/ethereum"
 )
 
 // TODO: make it configurable
 const gasLimit = 200000
 
 type Median struct {
-	eth       *oracle.Ethereum
+	ethereum  *ethereum.Client
 	address   common.Address
 	assetPair string
 }
 
-func NewMedian(eth *oracle.Ethereum, address common.Address, assetPair string) *Median {
+func NewMedian(ethereum *ethereum.Client, address common.Address, assetPair string) *Median {
 	return &Median{
-		eth:       eth,
+		ethereum:  ethereum,
 		address:   address,
 		assetPair: assetPair,
 	}
@@ -49,7 +49,7 @@ func (m *Median) Bar(ctx context.Context) (int64, error) {
 }
 
 func (m *Median) Price(ctx context.Context) (*big.Int, error) {
-	b, err := m.eth.Storage(ctx, m.address, common.BigToHash(big.NewInt(1)))
+	b, err := m.ethereum.Storage(ctx, m.address, common.BigToHash(big.NewInt(1)))
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (m *Median) read(ctx context.Context, method string, args ...interface{}) (
 		return nil, err
 	}
 
-	data, err := m.eth.Call(ctx, m.address, cd)
+	data, err := m.ethereum.Call(ctx, m.address, cd)
 	if err != nil {
 		return nil, err
 	}
@@ -118,5 +118,5 @@ func (m *Median) write(ctx context.Context, method string, args ...interface{}) 
 		return nil, err
 	}
 
-	return m.eth.SendTransaction(ctx, m.address, gasLimit, cd)
+	return m.ethereum.SendTransaction(ctx, m.address, gasLimit, cd)
 }
