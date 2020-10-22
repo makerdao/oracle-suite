@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -15,7 +16,7 @@ import (
 
 type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
-	Feeds    []string            `json:"feeds"` // TODO
+	Feeds    []string            `json:"feeds"`   // TODO
 	Options  JSONOptions         `json:"options"` // TODO
 	Pairs    map[string]JSONPair `json:"pairs"`
 }
@@ -30,7 +31,7 @@ type JSONEthereum struct {
 type JSONOptions struct {
 	Interval int  `json:"interval"` // TODO
 	MsgLimit int  `json:"msgLimit"` // TODO
-	Verbose  bool `json:"verbose"` // TODO
+	Verbose  bool `json:"verbose"`  // TODO
 }
 
 type JSONPair struct {
@@ -96,8 +97,8 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 			AssetPair:        name,
 			Oracle:           common.HexToAddress(pair.Oracle),
 			OracleSpread:     pair.OracleSpread,
-			OracleExpiration: pair.OracleExpiration,
-			MsgExpiration:    pair.MsgExpiration,
+			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
+			MsgExpiration:    time.Second * time.Duration(pair.MsgExpiration),
 		})
 	}
 
