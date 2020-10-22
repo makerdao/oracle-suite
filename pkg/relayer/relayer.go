@@ -29,7 +29,7 @@ type Relayer struct {
 	mu sync.Mutex
 
 	interval time.Duration
-	pairs    map[string]*Pair
+	pairs    map[string]Pair
 	doneCh   chan bool
 }
 
@@ -48,21 +48,22 @@ type Pair struct {
 	// the median oracle contract.
 	Median *oracle.Median
 	// prices contains list of prices form the feeders.
-	prices Prices
+	prices *Prices
 }
 
 func NewRelayer(interval time.Duration) *Relayer {
 	return &Relayer{
 		interval: interval,
-		pairs:    make(map[string]*Pair, 0),
+		pairs:    make(map[string]Pair, 0),
 		doneCh:   make(chan bool, 0),
 	}
 }
 
-func (r *Relayer) AddPair(pair *Pair) {
+func (r *Relayer) AddPair(pair Pair) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	pair.prices = NewPrices(pair.AssetPair, pair.PriceExpiration)
 	r.pairs[pair.AssetPair] = pair
 }
 
