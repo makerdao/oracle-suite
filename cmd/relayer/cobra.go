@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -44,10 +47,12 @@ func NewRelayerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			// TODO
-			for _, p := range r.Pairs() {
-				println(p.AssetPair)
-			}
+			r.Start(nil, nil)
+			defer r.Stop()
+
+			c := make(chan os.Signal)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+			<-c
 
 			return nil
 		},
