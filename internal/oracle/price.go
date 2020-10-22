@@ -1,4 +1,4 @@
-package median
+package oracle
 
 import (
 	"encoding/binary"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/makerdao/gofer/pkg/oracle"
+	"github.com/makerdao/gofer/internal/ethereum"
 )
 
 type Price struct {
@@ -21,7 +21,7 @@ type Price struct {
 	S         [32]byte
 }
 
-func (m *Price) Sign(wallet *oracle.Wallet) error {
+func (m *Price) Sign(wallet *ethereum.Wallet) error {
 	// Median HEX:
 	medianB := make([]byte, 32)
 	m.Val.FillBytes(medianB)
@@ -50,7 +50,7 @@ func (m *Price) Sign(wallet *oracle.Wallet) error {
 	return nil
 }
 
-func signData(w *oracle.Wallet, data []byte) ([]byte, error) {
+func signData(w *ethereum.Wallet, data []byte) ([]byte, error) {
 	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
 	wallet := w.EthWallet()
 	account := w.EthAccount()

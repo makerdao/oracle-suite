@@ -22,13 +22,13 @@ import (
 	"sort"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/oracle/median"
+	"github.com/makerdao/gofer/internal/oracle"
 )
 
 type Prices struct {
 	assetPair string
 	timeout   time.Duration
-	prices    []*median.Price
+	prices    []*oracle.Price
 }
 
 func NewPrices(assetPair string, timeout time.Duration) *Prices {
@@ -38,7 +38,7 @@ func NewPrices(assetPair string, timeout time.Duration) *Prices {
 	}
 }
 
-func (p *Prices) Add(price *median.Price) error {
+func (p *Prices) Add(price *oracle.Price) error {
 	if price.AssetPair != p.assetPair {
 		return fmt.Errorf(
 			"incompatible asset pair, %s given but %s expected",
@@ -51,7 +51,7 @@ func (p *Prices) Add(price *median.Price) error {
 	return nil
 }
 
-func (p *Prices) Get() []*median.Price {
+func (p *Prices) Get() []*oracle.Price {
 	return p.prices
 }
 
@@ -60,7 +60,7 @@ func (p *Prices) Len() int64 {
 }
 
 func (p *Prices) ClearExpired() {
-	var prices []*median.Price
+	var prices []*oracle.Price
 	for _, price := range p.prices {
 		if price.Age.Add(p.timeout).After(time.Now()) {
 			prices = append(prices, price)

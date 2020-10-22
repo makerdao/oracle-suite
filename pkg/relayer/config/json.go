@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/makerdao/gofer/pkg/oracle"
+	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/pkg/relayer"
 )
 
@@ -80,7 +80,7 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		return nil, err
 	}
 
-	wallet, err := oracle.NewWallet(
+	wallet, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
 		common.HexToAddress(j.Ethereum.From),
@@ -89,7 +89,7 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		return nil, err
 	}
 
-	eth := oracle.NewEthereum(client, wallet)
+	eth := ethereum.NewClient(client, wallet)
 	rel := relayer.NewRelayer(eth, wallet)
 
 	for name, pair := range j.Pairs {

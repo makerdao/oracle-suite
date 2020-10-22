@@ -1,4 +1,4 @@
-package oracle
+package ethereum
 
 import (
 	"context"
@@ -15,19 +15,19 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-type Ethereum struct {
+type Client struct {
 	ethClient *ethclient.Client
 	wallet    *Wallet
 }
 
-func NewEthereum(ethClient *ethclient.Client, wallet *Wallet) *Ethereum {
-	return &Ethereum{
+func NewClient(ethClient *ethclient.Client, wallet *Wallet) *Client {
+	return &Client{
 		ethClient: ethClient,
 		wallet:    wallet,
 	}
 }
 
-func (e *Ethereum) Call(ctx context.Context, address common.Address, data []byte) ([]byte, error) {
+func (e *Client) Call(ctx context.Context, address common.Address, data []byte) ([]byte, error) {
 	bn, err := e.ethClient.BlockNumber(ctx)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (e *Ethereum) Call(ctx context.Context, address common.Address, data []byte
 	return resp, err
 }
 
-func (e *Ethereum) Storage(ctx context.Context, address common.Address, key common.Hash) ([]byte, error) {
+func (e *Client) Storage(ctx context.Context, address common.Address, key common.Hash) ([]byte, error) {
 	bn, err := e.ethClient.BlockNumber(ctx)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (e *Ethereum) Storage(ctx context.Context, address common.Address, key comm
 	return e.ethClient.StorageAt(ctx, address, key, new(big.Int).SetUint64(bn))
 }
 
-func (e *Ethereum) SendTransaction(ctx context.Context, address common.Address, gasLimit uint64, data []byte) (*common.Hash, error) {
+func (e *Client) SendTransaction(ctx context.Context, address common.Address, gasLimit uint64, data []byte) (*common.Hash, error) {
 	nonce, err := e.ethClient.PendingNonceAt(ctx, e.wallet.Address())
 	if err != nil {
 		return nil, err
