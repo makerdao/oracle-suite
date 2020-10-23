@@ -114,15 +114,6 @@ func (r *Relayer) relay(assetPair string) error {
 	pair := r.pairs[assetPair]
 	pair.prices.ClearExpired()
 
-	// Check if the oracle price is expired:
-	oracleTime, err := pair.Median.Age(ctx)
-	if err != nil {
-		return err
-	}
-	if oracleTime.Add(pair.OracleExpiration).After(time.Now()) {
-		return errors.New("unable to update oracle, price is not expired yet")
-	}
-
 	// Check if there are enough prices to achieve a quorum:
 	quorum, err := pair.Median.Bar(ctx)
 	if err != nil {
@@ -132,25 +123,31 @@ func (r *Relayer) relay(assetPair string) error {
 		return errors.New("unable to update oracle, there is not enough prices to achieve a quorum")
 	}
 
+	// TODO: remove prices which are older than last oracle update
+	// TODO: remove duplicated prices from the same feeder
+
 	// Use only a minimum prices required to achieve a quorum, this will save some gas:
 	pair.prices.Truncate(quorum)
 
-	// Check if spread is large enough:
+	// Check if the oracle price is expired:
+	oracleTime, err := pair.Median.Age(ctx)
+	if err != nil {
+		return err
+	}
+	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
+
+	// Check if the oracle is stale:
 	medianPrice := pair.prices.Median()
 	oldPrice, err := pair.Median.Price(ctx)
 	if err != nil {
 		return err
 	}
-	spread := calcSpread(oldPrice, medianPrice)
-	if spread < pair.OracleSpread {
-		return errors.New("unable to update oracle, spread is too low")
+	isStale := calcSpread(oldPrice, medianPrice) < pair.OracleSpread
+
+	if isExpired || isStale {
+		_, err = pair.Median.Poke(ctx, pair.prices.Get())
+		pair.prices.Clear()
 	}
-
-	// Send transaction:
-	_, err = pair.Median.Poke(ctx, pair.prices.Get())
-
-	// Remove prices:
-	pair.prices.Clear()
 
 	return err
 }
