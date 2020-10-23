@@ -3,7 +3,7 @@ package ethereum
 import (
 	"context"
 	"encoding/hex"
-	"errors"
+	"fmt"
 	"math/big"
 	"regexp"
 
@@ -14,6 +14,19 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 )
+
+type RevertErr struct {
+	Message string
+	Err     error
+}
+
+func (e RevertErr) Error() string {
+	return fmt.Sprintf("reverted: %s", e.Message)
+}
+
+func (e RevertErr) Unwrap() error {
+	return e.Err
+}
 
 type Client struct {
 	ethClient *ethclient.Client
@@ -116,7 +129,10 @@ func parseError(vmErr error) error {
 					return vmErr
 				}
 
-				return errors.New(revert)
+				return RevertErr{
+					Message: revert,
+					Err:     vmErr,
+				}
 			}
 		}
 	}

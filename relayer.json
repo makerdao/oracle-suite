@@ -5,6 +5,9 @@
     "password": "",
     "rpc": ""
   },
+  "serf": {
+    "rpc": "127.0.0.1:7373"
+  },
   "feeds": [],
   "options": {
     "interval": 60,

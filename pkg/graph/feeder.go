@@ -16,7 +16,7 @@
 package graph
 
 import (
-	"log"
+	"errors"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -48,7 +48,8 @@ type Feedable interface {
 
 // Feeder sets ticks from origins to the Feedable nodes.
 type Feeder struct {
-	set *origins.Set
+	set    *origins.Set
+	doneCh chan bool
 }
 
 // NewFeeder creates new Feeder instance.
@@ -63,13 +64,44 @@ func NewFeeder(set *origins.Set) *Feeder {
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
 // in AggregatorTick.Error field.
-func (i *Feeder) Feed(nodes []Node) error {
-	return i.fetchTicksAndFeedThemToFeedableNodes(i.findFeedableNodes(nodes))
+func (f *Feeder) Feed(nodes []Node) error {
+	return f.fetchTicksAndFeedThemToFeedableNodes(f.findFeedableNodes(nodes))
+}
+
+func (f *Feeder) Start(nodes []Node) error {
+	if f.doneCh != nil {
+		return errors.New("feeder is already started")
+	}
+
+	// TODO: log errors
+	_ = f.Feed(nodes)
+
+	f.doneCh = make(chan bool)
+	ticker := time.NewTicker(getMinTTL(nodes))
+	go func() {
+		for {
+			select {
+			case <-f.doneCh:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				// TODO: log errors
+				_ = f.Feed(nodes)
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (f *Feeder) Stop() {
+	f.doneCh <- true
+	f.doneCh = nil
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
 // which implement Feedable interface.
-func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
+func (f *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	tn := time.Now()
 
 	var feedables []Feedable
@@ -85,7 +117,7 @@ func (i *Feeder) findFeedableNodes(nodes []Node) []Feedable {
 	return feedables
 }
 
-func (i *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
+func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 	var err error
 
 	// originPair is used as a key in a map to easily find
@@ -118,7 +150,7 @@ func (i *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 		)
 	}
 
-	for origin, frs := range i.set.Fetch(pairsMap) {
+	for origin, frs := range f.set.Fetch(pairsMap) {
 		for _, fr := range frs {
 			originPair := originPair{
 				origin: origin,
@@ -187,32 +219,6 @@ func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
 		},
 		Origin: origin,
 		Error:  fr.Error,
-	}
-}
-
-func Feed(feeder *Feeder, nodes []Node) {
-	log.Println("[POPULATOR] populating data graph")
-	if err := feeder.Feed(nodes); err != nil {
-		log.Printf("[POPULATOR] %s", err.Error())
-	}
-}
-
-func ScheduleFeeding(feeder *Feeder, nodes []Node) func() {
-	done := make(chan bool)
-	ticker := time.NewTicker(getMinTTL(nodes))
-	go func() {
-		for {
-			select {
-			case <-done:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				Feed(feeder, nodes)
-			}
-		}
-	}()
-	return func() {
-		done <- true
 	}
 }
 

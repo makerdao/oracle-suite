@@ -1,0 +1,52 @@
+{
+  "ethereum": {
+    "from": "",
+    "keystore": "",
+    "password": ""
+  },
+  "serf": {
+    "rpc": "127.0.0.1:7373"
+  },
+  "options": {
+    "interval": 60,
+    "verbose": true
+  },
+  "pairs": {
+    "BATUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "BTCUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "DGDUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "ETHUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "GNTUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "MKRUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "OMGUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "REPUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "ZRXUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    }
+  }
+}

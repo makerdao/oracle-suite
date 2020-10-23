@@ -44,7 +44,7 @@ func (m *Median) Age(ctx context.Context) (time.Time, error) {
 		return time.Unix(0, 0), err
 	}
 
-	return time.Unix(r[0].(int64), 0), nil
+	return time.Unix(int64(r[0].(uint32)), 0), nil
 }
 
 // Bar returns the value from contract's bar method. The bar method returns

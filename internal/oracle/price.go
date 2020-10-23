@@ -3,6 +3,7 @@ package oracle
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/makerdao/gofer/internal/ethereum"
 )
+
+const priceMultiplier = 1e18
 
 type Price struct {
 	AssetPair string
@@ -21,20 +24,59 @@ type Price struct {
 	S         [32]byte
 }
 
-func (m *Price) Sign(wallet *ethereum.Wallet) error {
+type jsonPrice struct {
+	AssetPair string `json:"ap"`
+	Val       string `json:"val"`
+	Age       int64  `json:"age"`
+	V         uint8  `json:"v"`
+	R         string `json:"r"`
+	S         string `json:"s"`
+}
+
+func NewPrice(assetPair string) *Price {
+	return &Price{
+		AssetPair: assetPair,
+		Val:       nil,
+		V:         0,
+		R:         [32]byte{},
+		S:         [32]byte{},
+	}
+}
+
+func (p *Price) SetFloat64Price(price float64) {
+	pf := new(big.Float).SetFloat64(price)
+	pf = new(big.Float).Mul(pf, new(big.Float).SetFloat64(priceMultiplier))
+	pi, _ := pf.Int(nil)
+
+	p.Val = pi
+}
+
+func (p *Price) Float64Price() float64 {
+	x := new(big.Float).SetInt(p.Val)
+	x = new(big.Float).Quo(x, new(big.Float).SetFloat64(priceMultiplier))
+	f, _ := x.Float64()
+
+	return f
+}
+
+func (p *Price) Spread(oldPrice float64) float64 {
+	return (p.Float64Price() - oldPrice) / oldPrice * 100
+}
+
+func (p *Price) Sign(wallet *ethereum.Wallet) error {
 	// Median HEX:
 	medianB := make([]byte, 32)
-	m.Val.FillBytes(medianB)
+	p.Val.FillBytes(medianB)
 	medianHex := hex.EncodeToString(medianB)
 
 	// Time HEX:
 	timeHexB := make([]byte, 32)
-	binary.BigEndian.PutUint64(timeHexB[24:], uint64(m.Age.Unix()))
+	binary.BigEndian.PutUint64(timeHexB[24:], uint64(p.Age.Unix()))
 	timeHex := hex.EncodeToString(timeHexB)
 
 	// Pair HEX:
 	assetPairB := make([]byte, 32)
-	copy(assetPairB, m.AssetPair)
+	copy(assetPairB, p.AssetPair)
 	assetPairHex := hex.EncodeToString(assetPairB)
 
 	hash := crypto.Keccak256Hash([]byte("0x" + medianHex + timeHex + assetPairHex))
@@ -43,9 +85,45 @@ func (m *Price) Sign(wallet *ethereum.Wallet) error {
 		return err
 	}
 
-	copy(m.R[:], sig[:32])
-	copy(m.S[:], sig[32:64])
-	m.V = sig[64]
+	copy(p.R[:], sig[:32])
+	copy(p.S[:], sig[32:64])
+	p.V = sig[64]
+
+	return nil
+}
+
+func (p *Price) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jsonPrice{
+		AssetPair: p.AssetPair,
+		Val:       p.Val.String(),
+		Age:       p.Age.Unix(),
+		V:         p.V,
+		R:         hex.EncodeToString(p.R[:]),
+		S:         hex.EncodeToString(p.S[:]),
+	})
+}
+
+func (p *Price) UnmarshalJSON(bytes []byte) error {
+	j := &jsonPrice{}
+	err := json.Unmarshal(bytes, j)
+	if err != nil {
+		return err
+	}
+
+	p.AssetPair = j.AssetPair
+	p.Val, _ = new(big.Int).SetString(j.Val, 10)
+	p.Age = time.Unix(j.Age, 0)
+	p.V = j.V
+
+	_, err = hex.Decode(p.R[:], []byte(j.R))
+	if err != nil {
+		return err
+	}
+
+	_, err = hex.Decode(p.S[:], []byte(j.S))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

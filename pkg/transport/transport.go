@@ -15,15 +15,17 @@
 
 package transport
 
-import (
-	"encoding/json"
-)
-
 type Event struct {
 	Name    string
-	Payload json.Marshaler
+	Payload Payload
 }
 
-type Broadcaster interface {
-	Broadcast(Event) error
+type Payload interface {
+	PayloadMarshall() ([]byte, error)
+	PayloadUnmarshall([]byte) error
+}
+
+type Transport interface {
+	Broadcast(*Event) error
+	WaitFor(eventName string, payload Payload) chan Payload
 }

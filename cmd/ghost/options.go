@@ -13,30 +13,10 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package web
+package main
 
-import (
-	"log"
-	"net/http"
-	"net/url"
-
-	"github.com/makerdao/gofer/internal/marshal"
-	"github.com/makerdao/gofer/pkg/cli"
-	"github.com/makerdao/gofer/pkg/gofer"
-)
-
-func OriginsHandler(g *gofer.Gofer) http.HandlerFunc {
-	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
-		values, err := url.ParseQuery(r.URL.RawQuery)
-		if err != nil {
-			return err
-		}
-
-		err = cli.Origins(values["pair"], g, m)
-		if err != nil {
-			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
-		}
-
-		return nil
-	})
+// These are the command options that can be set by CLI flags.
+type options struct {
+	GhostConfigFilePath string
+	GoferConfigFilePath string
 }

@@ -33,7 +33,7 @@ import (
 	"github.com/makerdao/gofer/pkg/web"
 )
 
-func priceModels(path string) (gofer.PriceModels, error) {
+func newGofer(path string) (*gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,8 @@ func priceModels(path string) (gofer.PriceModels, error) {
 	if err != nil {
 		return nil, err
 	}
-	return g, nil
+
+	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.
@@ -98,7 +99,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := priceModels(absPath)
+			g, err := newGofer(absPath)
 			if err != nil {
 				return err
 			}
@@ -137,7 +138,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			g, err := priceModels(absPath)
+			g, err := newGofer(absPath)
 			if err != nil {
 				return err
 			}
@@ -176,14 +177,16 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			gg, err := priceModels(absPath)
+			g, err := newGofer(absPath)
 			if err != nil {
 				return err
 			}
 
-			graph.Feed(graph.NewFeeder(origins.DefaultSet()), gofer.RootNodes(gg))
+			if err := g.Feed(g.Pairs()...); err != nil {
+				return err
+			}
 
-			err = cli.Prices(args, gg, m)
+			err = cli.Prices(args, g, m)
 			if err != nil {
 				return err
 			}
@@ -205,20 +208,17 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			models, err := priceModels(absPath)
+			g, err := newGofer(absPath)
 			if err != nil {
 				return err
 			}
 
-			http.HandleFunc("/v1/pairs/", web.PairsHandler(models))
-			http.HandleFunc("/v1/origins/", web.OriginsHandler(models))
+			http.HandleFunc("/v1/pairs/", web.PairsHandler(g))
+			http.HandleFunc("/v1/origins/", web.OriginsHandler(g))
+			http.HandleFunc("/v1/prices/", web.PricesHandler(g))
 
-			feeder := graph.NewFeeder(origins.DefaultSet())
-			nodes := gofer.RootNodes(models)
-			graph.Feed(feeder, nodes)
-			done := graph.ScheduleFeeding(feeder, nodes)
-			defer done()
-			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
+			// TODO: log errors
+			_ = g.StartFeeder(g.Pairs()...)
 
 			return web.StartServer(":8080")
 		},
@@ -235,7 +235,7 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: true,
+		SilenceErrors: false,
 		SilenceUsage:  true,
 	}
 

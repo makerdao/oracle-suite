@@ -7,7 +7,7 @@ func main() {
 	rootCmd := NewRootCommand(&opts)
 
 	rootCmd.AddCommand(
-		NewRelayerCmd(&opts),
+		NewRunCmd(&opts),
 	)
 
 	if err := rootCmd.Execute(); err != nil {

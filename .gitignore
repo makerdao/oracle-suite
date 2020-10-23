@@ -20,5 +20,3 @@
 
 # Output of the go coverage tool
 *.out
-
-/workdir/

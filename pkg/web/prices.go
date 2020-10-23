@@ -25,14 +25,14 @@ import (
 	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func PricesHandler(l gofer.PriceModels) http.HandlerFunc {
+func PricesHandler(g *gofer.Gofer) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
 		values, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
 			return err
 		}
 
-		err = cli.Prices(values["pair"], l, m)
+		err = cli.Prices(values["pair"], g, m)
 		if err != nil {
 			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
 		}

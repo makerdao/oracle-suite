@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+
+  gofer:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-gofer"
+    volumes:
+      - "./gofer.json:/root/gofer.json"
+
+  ghost:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-ghost"
+    volumes:
+      - "./gofer.json:/root/gofer.json"
+      - "./ghost.json:/root/ghost.json"
+
+  relayer:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-relayer"
+    volumes:
+      - "./relayer.json:/root/relayer.json"
+
+  serf:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-serf"
