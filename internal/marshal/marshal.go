@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 )
 
@@ -220,4 +221,32 @@ func (b *bufferedMarshaller) Close() error {
 	b.cond.L.Unlock()
 
 	return nil
+}
+
+// Marshall simplifies marshalling items. It allows to marshall items in one
+// line.
+func Marshall(format FormatType, items ...interface{}) ([]byte, error) {
+	m, err := NewMarshal(format)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range items {
+		err = m.Write(item)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = m.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := ioutil.ReadAll(m)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }

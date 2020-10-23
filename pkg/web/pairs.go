@@ -24,9 +24,9 @@ import (
 	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func PairsHandler(l gofer.PriceModels) http.HandlerFunc {
+func PairsHandler(g *gofer.Gofer) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
-		err := cli.Pairs(l, m)
+		err := cli.Pairs(g, m)
 		if err != nil {
 			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
 		}

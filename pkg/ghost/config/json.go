@@ -8,19 +8,17 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/oracle"
-	"github.com/makerdao/gofer/pkg/relayer"
+	"github.com/makerdao/gofer/pkg/ghost"
+	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/transport/serf"
 )
 
 type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
-	Serf     JSONSerf            `json:"serf"`    // TODO
-	Feeds    []string            `json:"feeds"`   // TODO
-	Options  JSONOptions         `json:"options"` // TODO
+	Serf     JSONSerf            `json:"serf"`
+	Options  JSONOptions         `json:"options"`
 	Pairs    map[string]JSONPair `json:"pairs"`
 }
 
@@ -28,7 +26,6 @@ type JSONEthereum struct {
 	From     string `json:"from"`
 	Keystore string `json:"keystore"`
 	Password string `json:"password"`
-	RPC      string `json:"rpc"`
 }
 
 type JSONSerf struct {
@@ -36,16 +33,18 @@ type JSONSerf struct {
 }
 
 type JSONOptions struct {
-	Interval int  `json:"interval"`
-	MsgLimit int  `json:"msgLimit"` // TODO
-	Verbose  bool `json:"verbose"`  // TODO
+	Interval         int  `json:"interval"`
+	MsgLimit         int  `json:"msgLimit"`
+	SrcTimeout       int  `json:"srcTimeout"`
+	GoferTimeout     int  `json:"goferTimeout"`
+	GoferCacheExpiry int  `json:"goferCacheExpiry"`
+	GoferMinMedian   int  `json:"goferMinMedian"`
+	Verbose          bool `json:"verbose"`
 }
 
 type JSONPair struct {
-	Oracle           string  `json:"oracle"`
-	OracleSpread     float64 `json:"oracleSpread"`
-	OracleExpiration int64   `json:"oracleExpiration"`
-	MsgExpiration    int64   `json:"msgExpiration"`
+	MsgExpiration int     `json:"msgExpiration"`
+	MsgSpread     float64 `json:"msgSpread"`
 }
 
 type JSONConfigErr struct {
@@ -81,12 +80,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
-	client, err := ethclient.Dial(j.Ethereum.RPC)
-	if err != nil {
-		return nil, err
-	}
-
+func (j *JSON) MakeGhost(gofer *gofer.Gofer) (*ghost.Ghost, error) {
 	wallet, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
@@ -101,18 +95,17 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		return nil, err
 	}
 
-	eth := ethereum.NewClient(client, wallet)
-	rel := relayer.NewRelayer(transport, time.Second * time.Duration(j.Options.Interval))
-
+	gho := ghost.NewGhost(gofer, wallet, transport, time.Second*time.Duration(j.Options.Interval))
 	for name, pair := range j.Pairs {
-		rel.AddPair(relayer.Pair{
+		err := gho.AddPair(ghost.Pair{
 			AssetPair:        name,
-			OracleSpread:     pair.OracleSpread,
-			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
-			PriceExpiration:  time.Second * time.Duration(pair.MsgExpiration),
-			Median:           oracle.NewMedian(eth, common.HexToAddress(pair.Oracle), name),
+			OracleSpread:     pair.MsgSpread,
+			OracleExpiration: time.Second * time.Duration(pair.MsgExpiration),
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return rel, nil
+	return gho, nil
 }

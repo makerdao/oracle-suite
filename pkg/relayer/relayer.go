@@ -23,14 +23,17 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/pkg/events"
+	"github.com/makerdao/gofer/pkg/transport"
 )
 
 type Relayer struct {
 	mu sync.Mutex
 
-	interval time.Duration
-	pairs    map[string]Pair
-	doneCh   chan bool
+	transport transport.Transport
+	interval  time.Duration
+	pairs     map[string]Pair
+	doneCh    chan bool
 }
 
 type Pair struct {
@@ -48,14 +51,15 @@ type Pair struct {
 	// the median oracle contract.
 	Median *oracle.Median
 	// prices contains list of prices form the feeders.
-	prices *Prices
+	prices *prices
 }
 
-func NewRelayer(interval time.Duration) *Relayer {
+func NewRelayer(transport transport.Transport, interval time.Duration) *Relayer {
 	return &Relayer{
-		interval: interval,
-		pairs:    make(map[string]Pair, 0),
-		doneCh:   make(chan bool, 0),
+		transport: transport,
+		interval:  interval,
+		pairs:     make(map[string]Pair, 0),
+		doneCh:    nil,
 	}
 }
 
@@ -63,16 +67,37 @@ func (r *Relayer) AddPair(pair Pair) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	pair.prices = NewPrices(pair.AssetPair, pair.PriceExpiration)
+	pair.prices = newPrices(pair.PriceExpiration)
 	r.pairs[pair.AssetPair] = pair
 }
 
-func (r *Relayer) Collect(price *oracle.Price) error {
+func (r *Relayer) Start(successCh chan<- string, errCh chan<- error) error {
+	if r.doneCh != nil {
+		return errors.New("relayer is already started")
+	}
+
+	r.doneCh = make(chan bool)
+
+	r.initRelayer(successCh, errCh)
+	r.initCollector(errCh)
+
+	return nil
+}
+
+func (r *Relayer) Stop() {
+	close(r.doneCh)
+}
+
+func (r *Relayer) collect(price *oracle.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if price.Val.Cmp(big.NewInt(0)) == 0 {
 		return errors.New("invalid price")
+	}
+
+	if _, ok := r.pairs[price.AssetPair]; !ok {
+		return errors.New("invalid pair")
 	}
 
 	err := r.pairs[price.AssetPair].prices.Add(price)
@@ -81,40 +106,6 @@ func (r *Relayer) Collect(price *oracle.Price) error {
 	}
 
 	return nil
-}
-
-func (r *Relayer) Start(onSuccessChan chan<- string, onErrChan chan<- error) {
-	r.doneCh = make(chan bool)
-	ticker := time.NewTicker(r.interval)
-	go func() {
-		for {
-			select {
-			case <-r.doneCh:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				r.mu.Lock()
-				for assetPair, pair := range r.pairs {
-					if pair.prices.Len() == 0 {
-						continue
-					}
-
-					err := r.relay(assetPair)
-					if err != nil && onErrChan != nil {
-						onErrChan <- err
-					}
-					if err == nil && onSuccessChan != nil {
-						onSuccessChan <- assetPair
-					}
-				}
-				r.mu.Unlock()
-			}
-		}
-	}()
-}
-
-func (r *Relayer) Stop() {
-	r.doneCh <- true
 }
 
 func (r *Relayer) relay(assetPair string) error {
@@ -162,6 +153,52 @@ func (r *Relayer) relay(assetPair string) error {
 	pair.prices.Clear()
 
 	return err
+}
+
+func (r *Relayer) initCollector(onErrChan chan<- error) {
+	go func() {
+		for {
+			price := &events.Price{}
+			select {
+			case <-r.doneCh:
+				return
+			case <-r.transport.WaitFor("price", price):
+				err := r.collect(price.Price)
+				if err != nil && onErrChan != nil {
+					onErrChan <- err
+				}
+			}
+		}
+	}()
+}
+
+func (r *Relayer) initRelayer(successCh chan<- string, errCh chan<- error) {
+	ticker := time.NewTicker(r.interval)
+	go func() {
+		for {
+			select {
+			case <-r.doneCh:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				r.mu.Lock()
+				for assetPair, pair := range r.pairs {
+					if pair.prices.Len() == 0 {
+						continue
+					}
+
+					err := r.relay(assetPair)
+					if err != nil && errCh != nil {
+						errCh <- err
+					}
+					if err == nil && successCh != nil {
+						successCh <- assetPair
+					}
+				}
+				r.mu.Unlock()
+			}
+		}
+	}()
 }
 
 func calcSpread(oldPrice, newPrice *big.Int) float64 {

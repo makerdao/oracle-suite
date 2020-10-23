@@ -16,7 +16,6 @@
 package relayer
 
 import (
-	"fmt"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -25,49 +24,41 @@ import (
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
-// Prices contains a list of oracle.Price's for single asset pair.
-type Prices struct {
+// prices contains a list of oracle.Price's for single asset pair.
+type prices struct {
 	assetPair string
 	timeout   time.Duration
 	prices    []*oracle.Price
 }
 
-// NewPrices creates the new Prices instance.
-func NewPrices(assetPair string, timeout time.Duration) *Prices {
-	return &Prices{
-		assetPair: assetPair,
-		timeout:   timeout,
+// newPrices creates the new Prices instance.
+func newPrices(timeout time.Duration) *prices {
+	return &prices{
+		timeout: timeout,
+		prices:  make([]*oracle.Price, 0),
 	}
 }
 
 // Add adds a new price to the list.
-func (p *Prices) Add(price *oracle.Price) error {
-	if price.AssetPair != p.assetPair {
-		return fmt.Errorf(
-			"incompatible asset pair, %s given but %s expected",
-			price.AssetPair,
-			p.assetPair,
-		)
-	}
-
+func (p *prices) Add(price *oracle.Price) error {
 	p.prices = append(p.prices, price)
 	return nil
 }
 
 // Get returns all prices from the list. This method returns also expired
-// prices, to exclude the, use ClearExpired method.
-func (p *Prices) Get() []*oracle.Price {
+// prices, to exclude them, use ClearExpired method.
+func (p *prices) Get() []*oracle.Price {
 	return p.prices
 }
 
 // Len returns the number of prices in the list. This method counts also
-// expired prices, to exclude the, use ClearExpired method.
-func (p *Prices) Len() int64 {
+// expired prices, to exclude them, use ClearExpired method.
+func (p *prices) Len() int64 {
 	return int64(len(p.Get()))
 }
 
 // ClearExpired deletes expired prices form the list.
-func (p *Prices) ClearExpired() {
+func (p *prices) ClearExpired() {
 	var prices []*oracle.Price
 	for _, price := range p.prices {
 		if price.Age.Add(p.timeout).After(time.Now()) {
@@ -83,7 +74,7 @@ func (p *Prices) ClearExpired() {
 //
 // This method is used to reduce number of arguments in transaction which will
 // reduce transaction costs.
-func (p *Prices) Truncate(n int64) {
+func (p *prices) Truncate(n int64) {
 	if int64(len(p.prices)) <= n {
 		return
 	}
@@ -96,8 +87,8 @@ func (p *Prices) Truncate(n int64) {
 }
 
 // Median calculates median price for all prices in the list. This method
-// uses also expired prices, to exclude the, use ClearExpired method.
-func (p *Prices) Median() *big.Int {
+// uses also expired prices, to exclude them, use ClearExpired method.
+func (p *prices) Median() *big.Int {
 	prices := p.Get()
 
 	count := len(p.prices)
@@ -120,6 +111,6 @@ func (p *Prices) Median() *big.Int {
 }
 
 // Clear deletes all prices from the list.
-func (p *Prices) Clear() {
+func (p *prices) Clear() {
 	p.prices = nil
 }

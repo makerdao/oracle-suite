@@ -18,14 +18,26 @@ package cli
 import (
 	"sort"
 
-	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Origins(args []string, l gofer.PriceModels, m itemWriter) error {
-	pairs, err := gofer.Pairs(l, args...)
-	if err != nil {
-		return err
+type originsLister interface {
+	Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error)
+	Pairs() []graph.Pair
+}
+
+func Origins(args []string, l originsLister, m itemWriter) error {
+	var pairs []graph.Pair
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
+		}
+	} else {
+		pairs = l.Pairs()
 	}
 
 	origins, err := l.Origins(pairs...)

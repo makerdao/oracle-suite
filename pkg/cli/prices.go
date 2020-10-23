@@ -18,12 +18,31 @@ package cli
 import (
 	"errors"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/graph"
 )
 
-func Prices(args []string, l gofer.PriceModels, m itemWriter) error {
-	pairs, err := gofer.Pairs(l, args...)
-	if err != nil {
+type pricer interface {
+	Feed(pairs ...graph.Pair) error
+	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
+	Pairs() []graph.Pair
+}
+
+func Prices(args []string, l pricer, m itemWriter) error {
+	var pairs []graph.Pair
+
+	if len(args) > 0 {
+		for _, pair := range args {
+			p, err := graph.NewPair(pair)
+			if err != nil {
+				return err
+			}
+			pairs = append(pairs, p)
+		}
+	} else {
+		pairs = l.Pairs()
+	}
+
+	if err := l.Feed(pairs...); err != nil {
 		return err
 	}
 
@@ -41,7 +60,7 @@ func Prices(args []string, l gofer.PriceModels, m itemWriter) error {
 
 	for _, t := range ticks {
 		if t.Error != nil {
-			return errors.New("some of the prices were returned with an error")
+			return errors.New("some of the prices was returned with an error")
 		}
 	}
 
