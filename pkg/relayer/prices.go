@@ -27,15 +27,13 @@ import (
 // prices contains a list of oracle.Price's for single asset pair.
 type prices struct {
 	assetPair string
-	timeout   time.Duration
 	prices    []*oracle.Price
 }
 
 // newPrices creates the new Prices instance.
-func newPrices(timeout time.Duration) *prices {
+func newPrices() *prices {
 	return &prices{
-		timeout: timeout,
-		prices:  make([]*oracle.Price, 0),
+		prices: make([]*oracle.Price, 0),
 	}
 }
 
@@ -45,28 +43,14 @@ func (p *prices) Add(price *oracle.Price) error {
 	return nil
 }
 
-// Get returns all prices from the list. This method returns also expired
-// prices, to exclude them, use ClearExpired method.
+// Get returns all prices from the list.
 func (p *prices) Get() []*oracle.Price {
 	return p.prices
 }
 
-// Len returns the number of prices in the list. This method counts also
-// expired prices, to exclude them, use ClearExpired method.
+// Len returns the number of prices in the list.
 func (p *prices) Len() int64 {
 	return int64(len(p.Get()))
-}
-
-// ClearExpired deletes expired prices form the list.
-func (p *prices) ClearExpired() {
-	var prices []*oracle.Price
-	for _, price := range p.prices {
-		if price.Age.Add(p.timeout).After(time.Now()) {
-			prices = append(prices, price)
-		}
-	}
-
-	p.prices = prices
 }
 
 // Truncate removes random prices until the number of remaining prices is equal
@@ -86,8 +70,7 @@ func (p *prices) Truncate(n int64) {
 	p.prices = p.prices[0:n]
 }
 
-// Median calculates median price for all prices in the list. This method
-// uses also expired prices, to exclude them, use ClearExpired method.
+// Median calculates median price for all prices in the list.
 func (p *prices) Median() *big.Int {
 	prices := p.Get()
 
@@ -108,6 +91,18 @@ func (p *prices) Median() *big.Int {
 	}
 
 	return prices[(count-1)/2].Val
+}
+
+// ClearOlderThan deletes expired prices form the list.
+func (p *prices) ClearOlderThan(t time.Time) {
+	var prices []*oracle.Price
+	for _, price := range p.prices {
+		if price.Age.After(t) {
+			prices = append(prices, price)
+		}
+	}
+
+	p.prices = prices
 }
 
 // Clear deletes all prices from the list.

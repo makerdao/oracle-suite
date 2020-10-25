@@ -74,10 +74,6 @@ func (p *Price) Float64Price() float64 {
 	return f
 }
 
-func (p *Price) Spread(oldPrice float64) float64 {
-	return (p.Float64Price() - oldPrice) / oldPrice * 100
-}
-
 func (p *Price) Sign(wallet *ethereum.Wallet) error {
 	// Median HEX:
 	medianB := make([]byte, 32)

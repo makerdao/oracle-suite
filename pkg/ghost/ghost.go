@@ -16,7 +16,6 @@
 package ghost
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -59,7 +58,7 @@ func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.T
 		transport: transport,
 		interval:  interval,
 		pairs:     make(map[graph.Pair]Pair, 0),
-		doneCh:    nil,
+		doneCh:    make(chan bool),
 	}
 }
 
@@ -78,16 +77,6 @@ func (g *Ghost) AddPair(pair Pair) error {
 }
 
 func (g *Ghost) Start() error {
-	if g.doneCh != nil {
-		return errors.New("ghost is already started")
-	}
-
-	err := g.gofer.StartFeeder(g.gofer.Pairs()...)
-	if err != nil {
-		return err
-	}
-
-	g.doneCh = make(chan bool)
 	ticker := time.NewTicker(g.interval)
 	go func() {
 		for {
@@ -96,7 +85,6 @@ func (g *Ghost) Start() error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				// TODO: log errors
 				_ = g.broadcast()
 			}
 		}
@@ -106,12 +94,14 @@ func (g *Ghost) Start() error {
 }
 
 func (g *Ghost) Stop() {
-	close(g.doneCh)
-	g.gofer.StopFeeder()
+	g.doneCh <- true
 }
 
 func (g *Ghost) broadcast() error {
 	var err error
+
+	// TODO: log errors (don't return that error, check out Feeder.Feed doc for explanation)
+	_ = g.gofer.Feed(g.gofer.Pairs()...)
 
 	ticks, err := g.gofer.Ticks(g.gofer.Pairs()...)
 	if err != nil {
@@ -161,14 +151,11 @@ func (g *Ghost) broadcast() error {
 	return err
 }
 
-func newPriceEvent(price *oracle.Price, tick graph.AggregatorTick) *transport.Event {
+func newPriceEvent(price *oracle.Price, tick graph.AggregatorTick) transport.Event {
 	trace, _ := marshal.Marshall(marshal.JSON, tick)
 
-	return &transport.Event{
-		Name: events.PriceEvent,
-		Payload: &events.Price{
-			Price: price,
-			Trace: trace,
-		},
+	return &events.Price{
+		Price: price,
+		Trace: trace,
 	}
 }
