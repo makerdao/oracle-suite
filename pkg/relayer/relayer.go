@@ -132,7 +132,12 @@ func (r *Relayer) relay(assetPair string) error {
 
 	// Check if there are enough prices to achieve a quorum:
 	if pair.prices.Len() < oracleQuorum {
-		return fmt.Errorf("unable to update the %s oracle, there is not enough prices to achieve a quorum", assetPair)
+		return fmt.Errorf(
+			"unable to update the %s oracle, there is not enough prices to achieve a quorum (%d/%d)",
+			assetPair,
+			pair.prices.Len(),
+			oracleQuorum,
+		)
 	}
 
 	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
@@ -176,13 +181,8 @@ func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				for assetPair, pair := range r.pairs {
+				for assetPair, _ := range r.pairs {
 					r.mu.Lock()
-					if pair.prices.Len() == 0 {
-						r.mu.Unlock()
-						continue
-					}
-
 					err := r.relay(assetPair)
 					if err != nil && errCh != nil {
 						errCh <- err
