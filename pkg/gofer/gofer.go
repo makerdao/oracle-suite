@@ -74,6 +74,14 @@ func (g *Gofer) StopFeeder() {
 	g.feeder.Stop()
 }
 
+func (g *Gofer) Tick(pair graph.Pair) (graph.AggregatorTick, error) {
+	if node, ok := g.graphs[pair]; ok {
+		return node.Tick(), nil
+	}
+
+	return graph.AggregatorTick{}, fmt.Errorf("unable to find %s pair", pair)
+}
+
 func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
 	var ticks []graph.AggregatorTick
 	for _, pair := range pairs {

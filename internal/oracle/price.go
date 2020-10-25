@@ -19,16 +19,19 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/makerdao/gofer/internal/ethereum"
 )
 
 const priceMultiplier = 1e18
+const signPrefix = "\u0019Ethereum Signed Message:\n"
 
 type Price struct {
 	AssetPair string
@@ -37,6 +40,7 @@ type Price struct {
 	V         uint8
 	R         [32]byte
 	S         [32]byte
+	from      *common.Address
 }
 
 type jsonPrice struct {
@@ -74,24 +78,22 @@ func (p *Price) Float64Price() float64 {
 	return f
 }
 
+func (p *Price) From() (*common.Address, error) {
+	if p.from != nil {
+		return p.from, nil
+	}
+
+	from, err := p.recover()
+	if err != nil {
+		return nil, err
+	}
+
+	p.from = from
+	return from, nil
+}
+
 func (p *Price) Sign(wallet *ethereum.Wallet) error {
-	// Median HEX:
-	medianB := make([]byte, 32)
-	p.Val.FillBytes(medianB)
-	medianHex := hex.EncodeToString(medianB)
-
-	// Time HEX:
-	timeHexB := make([]byte, 32)
-	binary.BigEndian.PutUint64(timeHexB[24:], uint64(p.Age.Unix()))
-	timeHex := hex.EncodeToString(timeHexB)
-
-	// Pair HEX:
-	assetPairB := make([]byte, 32)
-	copy(assetPairB, p.AssetPair)
-	assetPairHex := hex.EncodeToString(assetPairB)
-
-	hash := crypto.Keccak256Hash([]byte("0x" + medianHex + timeHex + assetPairHex))
-	sig, err := signData(wallet, hash.Bytes())
+	sig, err := p.signature(wallet)
 	if err != nil {
 		return err
 	}
@@ -139,8 +141,28 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func signData(w *ethereum.Wallet, data []byte) ([]byte, error) {
-	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
+func (p *Price) priceHash() []byte {
+	// Median HEX:
+	medianB := make([]byte, 32)
+	p.Val.FillBytes(medianB)
+	medianHex := hex.EncodeToString(medianB)
+
+	// Time HEX:
+	timeHexB := make([]byte, 32)
+	binary.BigEndian.PutUint64(timeHexB[24:], uint64(p.Age.Unix()))
+	timeHex := hex.EncodeToString(timeHexB)
+
+	// Pair HEX:
+	assetPairB := make([]byte, 32)
+	copy(assetPairB, p.AssetPair)
+	assetPairHex := hex.EncodeToString(assetPairB)
+
+	return crypto.Keccak256Hash([]byte("0x" + medianHex + timeHex + assetPairHex)).Bytes()
+}
+
+func (p *Price) signature(w *ethereum.Wallet) ([]byte, error) {
+	priceHash := p.priceHash()
+	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(priceHash), priceHash))
 	wallet := w.EthWallet()
 	account := w.EthAccount()
 
@@ -149,8 +171,34 @@ func signData(w *ethereum.Wallet, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Transform V from 0/1 to 27/28 according to the yellow paper.
+	// Transform V from 0/1 to 27/28 according to the yellow paper:
 	signature[64] += 27
 
 	return signature, nil
+}
+
+func (p *Price) recover() (*common.Address, error) {
+	sig := append(append(append([]byte{}, p.R[:]...), p.S[:]...), p.V)
+
+	if len(sig) != 65 {
+		return nil, errors.New("signature must be 65 bytes long")
+	}
+	if sig[64] != 27 && sig[64] != 28 {
+		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
+	}
+
+	// Transform yellow paper V from 27/28 to 0/1:
+	sig[64] -= 27
+
+	priceHash := p.priceHash()
+	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(priceHash), priceHash))
+	hash := crypto.Keccak256(msg)
+
+	rpk, err := crypto.SigToPub(hash, sig)
+	if err != nil {
+		return nil, err
+	}
+
+	address := crypto.PubkeyToAddress(*rpk)
+	return &address, nil
 }

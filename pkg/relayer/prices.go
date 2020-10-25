@@ -21,36 +21,49 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
-// prices contains a list of oracle.Price's for single asset pair.
+// prices contains a list of oracle.Price's for single asset pair. Only one
+// price from single address can be added to that list.
 type prices struct {
 	assetPair string
-	prices    []*oracle.Price
+	prices    map[common.Address]*oracle.Price
 }
 
 // newPrices creates the new Prices instance.
 func newPrices() *prices {
 	return &prices{
-		prices: make([]*oracle.Price, 0),
+		prices: make(map[common.Address]*oracle.Price, 0),
 	}
 }
 
 // Add adds a new price to the list.
 func (p *prices) Add(price *oracle.Price) error {
-	p.prices = append(p.prices, price)
+	addr, err := price.From()
+	if err != nil {
+		return err
+	}
+
+	p.prices[*addr] = price
 	return nil
 }
 
 // Get returns all prices from the list.
 func (p *prices) Get() []*oracle.Price {
-	return p.prices
+	var prices []*oracle.Price
+	for _, price := range p.prices {
+		prices = append(prices, price)
+	}
+
+	return prices
 }
 
 // Len returns the number of prices in the list.
 func (p *prices) Len() int64 {
-	return int64(len(p.Get()))
+	return int64(len(p.prices))
 }
 
 // Truncate removes random prices until the number of remaining prices is equal
@@ -63,11 +76,15 @@ func (p *prices) Truncate(n int64) {
 		return
 	}
 
-	rand.Shuffle(len(p.prices), func(i, j int) {
-		p.prices[i], p.prices[j] = p.prices[j], p.prices[i]
+	prices := p.Get()
+	rand.Shuffle(len(prices), func(i, j int) {
+		prices[i], prices[j] = prices[j], prices[i]
 	})
 
-	p.prices = p.prices[0:n]
+	p.Clear()
+	for _, price := range prices {
+		_ = p.Add(price)
+	}
 }
 
 // Median calculates median price for all prices in the list.
@@ -95,17 +112,14 @@ func (p *prices) Median() *big.Int {
 
 // ClearOlderThan deletes expired prices form the list.
 func (p *prices) ClearOlderThan(t time.Time) {
-	var prices []*oracle.Price
-	for _, price := range p.prices {
-		if price.Age.After(t) {
-			prices = append(prices, price)
+	for address, price := range p.prices {
+		if price.Age.Before(t) {
+			delete(p.prices, address)
 		}
 	}
-
-	p.prices = prices
 }
 
 // Clear deletes all prices from the list.
 func (p *prices) Clear() {
-	p.prices = nil
+	p.prices = make(map[common.Address]*oracle.Price, 0)
 }

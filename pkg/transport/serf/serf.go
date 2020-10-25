@@ -1,6 +1,8 @@
 package serf
 
 import (
+	"sync"
+
 	"github.com/hashicorp/serf/client"
 
 	"github.com/makerdao/gofer/pkg/transport"
@@ -9,10 +11,12 @@ import (
 const messageQueueSize = 1024
 
 type Serf struct {
+	mu sync.Mutex
+
 	client       *client.RPCClient
 	streamHandle client.StreamHandle
 	payloadCh    map[string]chan []byte
-	eventCh      map[string]chan transport.Event
+	eventCh      map[string]chan transport.Status
 	msgCh        chan map[string]interface{}
 	doneCh       chan bool
 }
@@ -28,7 +32,7 @@ func NewSerf(rpc string) (*Serf, error) {
 	return &Serf{
 		client:    serfClient,
 		payloadCh: make(map[string]chan []byte, 0),
-		eventCh:   make(map[string]chan transport.Event, 0),
+		eventCh:   make(map[string]chan transport.Status, 0),
 		msgCh:     make(chan map[string]interface{}, messageQueueSize),
 		doneCh:    make(chan bool, 0),
 	}, nil
@@ -43,14 +47,15 @@ func (s *Serf) Broadcast(event transport.Event) error {
 	return s.client.UserEvent(event.Name(), payload, false)
 }
 
-func (s *Serf) WaitFor(event transport.Event) chan transport.Event {
+func (s *Serf) WaitFor(event transport.Event) chan transport.Status {
+	s.mu.Lock()
 	s.registerSubscriber(event.Name())
 	s.initStream()
+	s.mu.Unlock()
 
 	go func() {
-		// TODO: log errors
-		_ = event.PayloadUnmarshall(<-s.payloadCh[event.Name()])
-		s.eventCh[event.Name()] <- event
+		err := event.PayloadUnmarshall(<-s.payloadCh[event.Name()])
+		s.eventCh[event.Name()] <- transport.Status{Error: err}
 	}()
 
 	return s.eventCh[event.Name()]
@@ -64,7 +69,7 @@ func (s *Serf) Close() error {
 func (s *Serf) registerSubscriber(eventName string) {
 	if _, ok := s.payloadCh[eventName]; !ok {
 		s.payloadCh[eventName] = make(chan []byte, 0)
-		s.eventCh[eventName] = make(chan transport.Event, 0)
+		s.eventCh[eventName] = make(chan transport.Status, 0)
 	}
 }
 
@@ -89,7 +94,6 @@ func (s *Serf) initStream() {
 					ch <- msg["Payload"].([]byte)
 				}
 			}
-
 		}
 	}()
 }
