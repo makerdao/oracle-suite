@@ -20,13 +20,14 @@ type Status struct {
 }
 
 type Event interface {
-	Name() string
 	PayloadMarshall() ([]byte, error)
 	PayloadUnmarshall([]byte) error
 }
 
 type Transport interface {
-	Broadcast(payload Event) error
-	WaitFor(payload Event) chan Status
+	Broadcast(eventName string, payload Event) error
+	Subscribe(eventName string) error
+	Unsubscribe(eventName string) error
+	WaitFor(eventName string, payload Event) chan Status
 	Close() error
 }

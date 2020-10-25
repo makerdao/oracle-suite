@@ -21,13 +21,11 @@ import (
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
+var PriceEventName = "price"
+
 type Price struct {
 	Price *oracle.Price   `json:"price"`
 	Trace json.RawMessage `json:"trace"`
-}
-
-func (p *Price) Name() string {
-	return "price"
 }
 
 func (p *Price) PayloadMarshall() ([]byte, error) {

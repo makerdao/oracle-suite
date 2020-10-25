@@ -48,13 +48,9 @@ type JSONSerf struct {
 }
 
 type JSONOptions struct {
-	Interval         int  `json:"interval"`
-	MsgLimit         int  `json:"msgLimit"`
-	SrcTimeout       int  `json:"srcTimeout"`
-	GoferTimeout     int  `json:"goferTimeout"`
-	GoferCacheExpiry int  `json:"goferCacheExpiry"`
-	GoferMinMedian   int  `json:"goferMinMedian"`
-	Verbose          bool `json:"verbose"`
+	Interval   int  `json:"interval"`
+	SrcTimeout int  `json:"srcTimeout"` // TODO
+	Verbose    bool `json:"verbose"`    // TODO
 }
 
 type JSONPair struct {
@@ -105,7 +101,7 @@ func (j *JSON) MakeGhost(gofer *gofer.Gofer) (*ghost.Ghost, error) {
 		return nil, err
 	}
 
-	transport, err := serf.NewSerf(j.Serf.RPC)
+	transport, err := serf.NewSerf(j.Serf.RPC, 1024)
 	if err != nil {
 		return nil, err
 	}

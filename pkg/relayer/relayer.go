@@ -72,8 +72,12 @@ func (r *Relayer) AddPair(pair Pair) {
 }
 
 func (r *Relayer) Start(successCh chan<- string, errCh chan<- error) error {
+	err := r.startCollector(errCh)
+	if err != nil {
+		return err
+	}
+
 	r.startRelayer(successCh, errCh)
-	r.startCollector(errCh)
 
 	return nil
 }
@@ -151,14 +155,24 @@ func (r *Relayer) relay(assetPair string) error {
 	return err
 }
 
-func (r *Relayer) startCollector(onErrChan chan<- error) {
+func (r *Relayer) startCollector(onErrChan chan<- error) error {
+	err := r.transport.Subscribe(events.PriceEventName)
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		for {
 			price := &events.Price{}
 			select {
 			case <-r.doneCh:
+				err := r.transport.Unsubscribe(events.PriceEventName)
+				if err != nil {
+					onErrChan <- err
+				}
+
 				return
-			case status := <-r.transport.WaitFor(price):
+			case status := <-r.transport.WaitFor(events.PriceEventName, price):
 				if status.Error != nil && onErrChan != nil {
 					onErrChan <- status.Error
 					continue
@@ -170,6 +184,8 @@ func (r *Relayer) startCollector(onErrChan chan<- error) {
 			}
 		}
 	}()
+
+	return nil
 }
 
 func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
