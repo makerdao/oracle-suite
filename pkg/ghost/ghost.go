@@ -20,8 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/internal/oracle"
@@ -76,8 +74,10 @@ func (g *Ghost) AddPair(pair Pair) error {
 	return fmt.Errorf("unable to find the %s pair in the Gofer price models", pair.AssetPair)
 }
 
-func (g *Ghost) Start() error {
+func (g *Ghost) Start(successCh chan<- string, errCh chan<- error) error {
 	ticker := time.NewTicker(g.interval)
+	wg := sync.WaitGroup{}
+
 	go func() {
 		for {
 			select {
@@ -85,8 +85,30 @@ func (g *Ghost) Start() error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				_ = g.broadcast()
+				err := g.gofer.Feed(g.gofer.Pairs()...)
+				if err != nil && errCh != nil {
+					errCh <- err
+				}
+
+				// Signing may be slow, especially with high KDF so this is why
+				// we're using goroutines here:
+				wg.Add(1)
+				go func() {
+					for assetPair, pair := range g.pairs {
+						err := g.broadcast(assetPair)
+						if err != nil && errCh != nil {
+							errCh <- err
+						}
+						if err == nil && successCh != nil {
+							successCh <- pair.AssetPair
+						}
+					}
+
+					wg.Done()
+				}()
 			}
+
+			wg.Wait()
 		}
 	}()
 
@@ -97,56 +119,35 @@ func (g *Ghost) Stop() {
 	g.doneCh <- true
 }
 
-func (g *Ghost) broadcast() error {
+func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	var err error
 
-	// TODO: log errors (don't return that error, check out Feeder.Feed doc for explanation)
-	_ = g.gofer.Feed(g.gofer.Pairs()...)
+	pair := g.pairs[goferPair]
+	tick, err := g.gofer.Tick(goferPair)
+	if err != nil {
+		return err
+	}
+	if tick.Error != nil {
+		return tick.Error
+	}
 
-	ticks, err := g.gofer.Ticks(g.gofer.Pairs()...)
+	// Create price:
+	price := oracle.NewPrice(pair.AssetPair)
+	price.SetFloat64Price(tick.Price)
+	price.Age = tick.Timestamp
+
+	// Sign price:
+	err = price.Sign(g.wallet)
+
 	if err != nil {
 		return err
 	}
 
-	wg := sync.WaitGroup{}
-	mu := sync.Mutex{}
-
-	for _, tick := range ticks {
-		if pair, ok := g.pairs[tick.Pair]; ok {
-			tick := tick
-			pair := pair
-
-			// Signing may be slow, especially with high KDF so this is why
-			// we're using goroutines here:
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				// Create price:
-				price := oracle.NewPrice(pair.AssetPair)
-				price.SetFloat64Price(tick.Price)
-				price.Age = tick.Timestamp
-
-				// Sign price:
-				sErr := price.Sign(g.wallet)
-
-				mu.Lock()
-				defer mu.Unlock()
-
-				if sErr != nil {
-					err = multierror.Append(err, sErr)
-				}
-
-				// Broadcast price to P2P network:
-				bErr := g.transport.Broadcast(newPriceEvent(price, tick))
-				if bErr != nil {
-					err = multierror.Append(err, bErr)
-				}
-			}()
-		}
+	// Broadcast price to P2P network:
+	err = g.transport.Broadcast(newPriceEvent(price, tick))
+	if err != nil {
+		return err
 	}
-
-	wg.Wait()
 
 	return err
 }

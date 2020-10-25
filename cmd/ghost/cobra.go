@@ -16,6 +16,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -95,7 +96,21 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			err = gho.Start()
+			successCh := make(chan string, 0)
+			go func() {
+				for {
+					log.Printf("Broadcasted: %s", <-successCh)
+				}
+			}()
+
+			errCh := make(chan error, 0)
+			go func() {
+				for {
+					log.Printf("Error: %s", <-errCh)
+				}
+			}()
+
+			err = gho.Start(successCh, errCh)
 			if err != nil {
 				return err
 			}

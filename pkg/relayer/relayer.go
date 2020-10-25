@@ -17,7 +17,7 @@ package relayer
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -86,15 +86,19 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	from, err := price.From()
+	if err != nil {
+		return fmt.Errorf("recieved price has an invalid signature (pair: %s)", price.AssetPair)
+	}
+
 	if price.Val.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New("invalid price")
+		return fmt.Errorf("recieved price is invalid (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
-
 	if _, ok := r.pairs[price.AssetPair]; !ok {
-		return errors.New("invalid pair")
+		return fmt.Errorf("recieved price is not configured (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
 
-	err := r.pairs[price.AssetPair].prices.Add(price)
+	err = r.pairs[price.AssetPair].prices.Add(price)
 	if err != nil {
 		return err
 	}
@@ -128,10 +132,8 @@ func (r *Relayer) relay(assetPair string) error {
 
 	// Check if there are enough prices to achieve a quorum:
 	if pair.prices.Len() < oracleQuorum {
-		return errors.New("unable to update oracle, there is not enough prices to achieve a quorum")
+		return fmt.Errorf("unable to update the %s oracle, there is not enough prices to achieve a quorum", assetPair)
 	}
-
-	// TODO: remove duplicated prices from the same feeder
 
 	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
 	isStale := calcSpread(oraclePrice, pair.prices.Median()) < pair.OracleSpread
@@ -151,7 +153,11 @@ func (r *Relayer) startCollector(onErrChan chan<- error) {
 			select {
 			case <-r.doneCh:
 				return
-			case <-r.transport.WaitFor(price):
+			case status := <-r.transport.WaitFor(price):
+				if status.Error != nil && onErrChan != nil {
+					onErrChan <- status.Error
+					continue
+				}
 				err := r.collect(price.Price)
 				if err != nil && onErrChan != nil {
 					onErrChan <- err
@@ -170,9 +176,10 @@ func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				r.mu.Lock()
 				for assetPair, pair := range r.pairs {
+					r.mu.Lock()
 					if pair.prices.Len() == 0 {
+						r.mu.Unlock()
 						continue
 					}
 
@@ -183,8 +190,8 @@ func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
 					if err == nil && successCh != nil {
 						successCh <- assetPair
 					}
+					r.mu.Unlock()
 				}
-				r.mu.Unlock()
 			}
 		}
 	}()

@@ -15,6 +15,10 @@
 
 package transport
 
+type Status struct {
+	Error error
+}
+
 type Event interface {
 	Name() string
 	PayloadMarshall() ([]byte, error)
@@ -23,6 +27,6 @@ type Event interface {
 
 type Transport interface {
 	Broadcast(payload Event) error
-	WaitFor(payload Event) chan Event
+	WaitFor(payload Event) chan Status
 	Close() error
 }
