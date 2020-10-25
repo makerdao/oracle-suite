@@ -144,7 +144,7 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	}
 
 	// Broadcast price to P2P network:
-	err = g.transport.Broadcast(newPriceEvent(price, tick))
+	err = g.transport.Broadcast(events.PriceEventName, newPriceEvent(price, tick))
 	if err != nil {
 		return err
 	}

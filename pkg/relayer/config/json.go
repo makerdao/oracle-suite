@@ -52,8 +52,8 @@ type JSONSerf struct {
 
 type JSONOptions struct {
 	Interval int  `json:"interval"`
-	MsgLimit int  `json:"msgLimit"` // TODO
-	Verbose  bool `json:"verbose"`  // TODO
+	MsgLimit int  `json:"msgLimit"`
+	Verbose  bool `json:"verbose"` // TODO
 }
 
 type JSONPair struct {
@@ -111,7 +111,7 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		return nil, err
 	}
 
-	transport, err := serf.NewSerf(j.Serf.RPC)
+	transport, err := serf.NewSerf(j.Serf.RPC, j.Options.MsgLimit)
 	if err != nil {
 		return nil, err
 	}
