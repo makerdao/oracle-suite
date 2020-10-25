@@ -59,7 +59,7 @@ func NewRelayer(transport transport.Transport, interval time.Duration) *Relayer 
 		transport: transport,
 		interval:  interval,
 		pairs:     make(map[string]Pair, 0),
-		doneCh:    nil,
+		doneCh:    make(chan bool),
 	}
 }
 
@@ -67,32 +67,26 @@ func (r *Relayer) AddPair(pair Pair) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	pair.prices = newPrices(pair.PriceExpiration)
+	pair.prices = newPrices()
 	r.pairs[pair.AssetPair] = pair
 }
 
 func (r *Relayer) Start(successCh chan<- string, errCh chan<- error) error {
-	if r.doneCh != nil {
-		return errors.New("relayer is already started")
-	}
-
-	r.doneCh = make(chan bool)
-
-	r.initRelayer(successCh, errCh)
-	r.initCollector(errCh)
+	r.startRelayer(successCh, errCh)
+	r.startCollector(errCh)
 
 	return nil
 }
 
 func (r *Relayer) Stop() {
-	close(r.doneCh)
+	r.doneCh <- true
 }
 
 func (r *Relayer) collect(price *oracle.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if price.Val.Cmp(big.NewInt(0)) == 0 {
+	if price.Val.Cmp(big.NewInt(0)) <= 0 {
 		return errors.New("invalid price")
 	}
 
@@ -110,39 +104,37 @@ func (r *Relayer) collect(price *oracle.Price) error {
 
 func (r *Relayer) relay(assetPair string) error {
 	ctx := context.Background()
-
 	pair := r.pairs[assetPair]
-	pair.prices.ClearExpired()
 
-	// Check if there are enough prices to achieve a quorum:
-	quorum, err := pair.Median.Bar(ctx)
+	oracleQuorum, err := pair.Median.Bar(ctx)
 	if err != nil {
 		return err
 	}
-	if pair.prices.Len() < quorum {
-		return errors.New("unable to update oracle, there is not enough prices to achieve a quorum")
-	}
-
-	// TODO: remove prices which are older than last oracle update
-	// TODO: remove duplicated prices from the same feeder
-
-	// Use only a minimum prices required to achieve a quorum, this will save some gas:
-	pair.prices.Truncate(quorum)
-
-	// Check if the oracle price is expired:
 	oracleTime, err := pair.Median.Age(ctx)
 	if err != nil {
 		return err
 	}
-	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
-
-	// Check if the oracle is stale:
-	medianPrice := pair.prices.Median()
-	oldPrice, err := pair.Median.Price(ctx)
+	oraclePrice, err := pair.Median.Price(ctx)
 	if err != nil {
 		return err
 	}
-	isStale := calcSpread(oldPrice, medianPrice) < pair.OracleSpread
+
+	// Clear expired prices:
+	pair.prices.ClearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
+	pair.prices.ClearOlderThan(oracleTime)
+
+	// Use only a minimum prices required to achieve a quorum:
+	pair.prices.Truncate(oracleQuorum)
+
+	// Check if there are enough prices to achieve a quorum:
+	if pair.prices.Len() < oracleQuorum {
+		return errors.New("unable to update oracle, there is not enough prices to achieve a quorum")
+	}
+
+	// TODO: remove duplicated prices from the same feeder
+
+	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
+	isStale := calcSpread(oraclePrice, pair.prices.Median()) < pair.OracleSpread
 
 	if isExpired || isStale {
 		_, err = pair.Median.Poke(ctx, pair.prices.Get())
@@ -152,14 +144,14 @@ func (r *Relayer) relay(assetPair string) error {
 	return err
 }
 
-func (r *Relayer) initCollector(onErrChan chan<- error) {
+func (r *Relayer) startCollector(onErrChan chan<- error) {
 	go func() {
 		for {
 			price := &events.Price{}
 			select {
 			case <-r.doneCh:
 				return
-			case <-r.transport.WaitFor("price", price):
+			case <-r.transport.WaitFor(price):
 				err := r.collect(price.Price)
 				if err != nil && onErrChan != nil {
 					onErrChan <- err
@@ -169,7 +161,7 @@ func (r *Relayer) initCollector(onErrChan chan<- error) {
 	}()
 }
 
-func (r *Relayer) initRelayer(successCh chan<- string, errCh chan<- error) {
+func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
 	ticker := time.NewTicker(r.interval)
 	go func() {
 		for {

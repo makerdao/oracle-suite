@@ -11,9 +11,10 @@ const messageQueueSize = 1024
 type Serf struct {
 	client       *client.RPCClient
 	streamHandle client.StreamHandle
-	subscribers  map[string]chan []byte
-	payloads     map[string]chan transport.Payload
-	ch           chan map[string]interface{}
+	payloadCh    map[string]chan []byte
+	eventCh      map[string]chan transport.Event
+	msgCh        chan map[string]interface{}
+	doneCh       chan bool
 }
 
 func NewSerf(rpc string) (*Serf, error) {
@@ -25,39 +26,45 @@ func NewSerf(rpc string) (*Serf, error) {
 	}
 
 	return &Serf{
-		client:      serfClient,
-		subscribers: make(map[string]chan []byte, 0),
-		payloads:    make(map[string]chan transport.Payload, 0),
-		ch:          make(chan map[string]interface{}, messageQueueSize),
+		client:    serfClient,
+		payloadCh: make(map[string]chan []byte, 0),
+		eventCh:   make(map[string]chan transport.Event, 0),
+		msgCh:     make(chan map[string]interface{}, messageQueueSize),
+		doneCh:    make(chan bool, 0),
 	}, nil
 }
 
-func (s *Serf) Broadcast(event *transport.Event) error {
-	payload, err := event.Payload.PayloadMarshall()
+func (s *Serf) Broadcast(event transport.Event) error {
+	payload, err := event.PayloadMarshall()
 	if err != nil {
 		return err
 	}
 
-	return s.client.UserEvent(event.Name, payload, false)
+	return s.client.UserEvent(event.Name(), payload, false)
 }
 
-func (s *Serf) WaitFor(eventName string, payload transport.Payload) chan transport.Payload {
-	s.registerSubscriber(eventName)
+func (s *Serf) WaitFor(event transport.Event) chan transport.Event {
+	s.registerSubscriber(event.Name())
 	s.initStream()
 
 	go func() {
 		// TODO: log errors
-		_ = payload.PayloadUnmarshall(<-s.subscribers[eventName])
-		s.payloads[eventName] <- payload
+		_ = event.PayloadUnmarshall(<-s.payloadCh[event.Name()])
+		s.eventCh[event.Name()] <- event
 	}()
 
-	return s.payloads[eventName]
+	return s.eventCh[event.Name()]
+}
+
+func (s *Serf) Close() error {
+	s.doneCh <- true
+	return s.client.Close()
 }
 
 func (s *Serf) registerSubscriber(eventName string) {
-	if _, ok := s.subscribers[eventName]; !ok {
-		s.subscribers[eventName] = make(chan []byte, 0)
-		s.payloads[eventName] = make(chan transport.Payload, 0)
+	if _, ok := s.payloadCh[eventName]; !ok {
+		s.payloadCh[eventName] = make(chan []byte, 0)
+		s.eventCh[eventName] = make(chan transport.Event, 0)
 	}
 }
 
@@ -67,17 +74,22 @@ func (s *Serf) initStream() {
 	}
 
 	var err error
-	s.streamHandle, err = s.client.Stream("user", s.ch)
+	s.streamHandle, err = s.client.Stream("user", s.msgCh)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	go func() {
 		for {
-			msg := <-s.ch
-			if subscriber, ok := s.subscribers[msg["Name"].(string)]; ok {
-				subscriber <- msg["Payload"].([]byte)
+			select {
+			case <-s.doneCh:
+				return
+			case msg := <-s.msgCh:
+				if ch, ok := s.payloadCh[msg["Name"].(string)]; ok {
+					ch <- msg["Payload"].([]byte)
+				}
 			}
+
 		}
 	}()
 }

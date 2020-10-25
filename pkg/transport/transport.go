@@ -15,17 +15,14 @@
 
 package transport
 
-type Event struct {
-	Name    string
-	Payload Payload
-}
-
-type Payload interface {
+type Event interface {
+	Name() string
 	PayloadMarshall() ([]byte, error)
 	PayloadUnmarshall([]byte) error
 }
 
 type Transport interface {
-	Broadcast(*Event) error
-	WaitFor(eventName string, payload Payload) chan Payload
+	Broadcast(payload Event) error
+	WaitFor(payload Event) chan Event
+	Close() error
 }

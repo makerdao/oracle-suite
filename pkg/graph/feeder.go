@@ -16,7 +16,6 @@
 package graph
 
 import (
-	"errors"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -54,7 +53,10 @@ type Feeder struct {
 
 // NewFeeder creates new Feeder instance.
 func NewFeeder(set *origins.Set) *Feeder {
-	return &Feeder{set: set}
+	return &Feeder{
+		set:    set,
+		doneCh: make(chan bool, 0),
+	}
 }
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
@@ -69,14 +71,9 @@ func (f *Feeder) Feed(nodes []Node) error {
 }
 
 func (f *Feeder) Start(nodes []Node) error {
-	if f.doneCh != nil {
-		return errors.New("feeder is already started")
-	}
-
 	// TODO: log errors
 	_ = f.Feed(nodes)
 
-	f.doneCh = make(chan bool)
 	ticker := time.NewTicker(getMinTTL(nodes))
 	go func() {
 		for {
@@ -96,7 +93,6 @@ func (f *Feeder) Start(nodes []Node) error {
 
 func (f *Feeder) Stop() {
 	f.doneCh <- true
-	f.doneCh = nil
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
