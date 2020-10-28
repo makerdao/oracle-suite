@@ -19,8 +19,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -83,7 +81,9 @@ func (p *Price) From() (*common.Address, error) {
 		return p.from, nil
 	}
 
-	from, err := p.recover()
+	signature := append(append(append([]byte{}, p.R[:]...), p.S[:]...), p.V)
+	signer := ethereum.NewSigner(nil)
+	from, err := signer.Recover(signature, p.hash())
 	if err != nil {
 		return nil, err
 	}
@@ -93,14 +93,15 @@ func (p *Price) From() (*common.Address, error) {
 }
 
 func (p *Price) Sign(wallet *ethereum.Wallet) error {
-	sig, err := p.signature(wallet)
+	signer := ethereum.NewSigner(wallet)
+	signature, err := signer.Signature(p.hash())
 	if err != nil {
 		return err
 	}
 
-	copy(p.R[:], sig[:32])
-	copy(p.S[:], sig[32:64])
-	p.V = sig[64]
+	copy(p.R[:], signature[:32])
+	copy(p.S[:], signature[32:64])
+	p.V = signature[64]
 
 	return nil
 }
@@ -141,7 +142,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func (p *Price) priceHash() []byte {
+func (p *Price) hash() []byte {
 	// Median HEX:
 	medianB := make([]byte, 32)
 	p.Val.FillBytes(medianB)
@@ -158,47 +159,4 @@ func (p *Price) priceHash() []byte {
 	assetPairHex := hex.EncodeToString(assetPairB)
 
 	return crypto.Keccak256Hash([]byte("0x" + medianHex + timeHex + assetPairHex)).Bytes()
-}
-
-func (p *Price) signature(w *ethereum.Wallet) ([]byte, error) {
-	priceHash := p.priceHash()
-	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(priceHash), priceHash))
-	wallet := w.EthWallet()
-	account := w.EthAccount()
-
-	signature, err := wallet.SignDataWithPassphrase(*account, w.Passphrase(), "", msg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Transform V from 0/1 to 27/28 according to the yellow paper:
-	signature[64] += 27
-
-	return signature, nil
-}
-
-func (p *Price) recover() (*common.Address, error) {
-	sig := append(append(append([]byte{}, p.R[:]...), p.S[:]...), p.V)
-
-	if len(sig) != 65 {
-		return nil, errors.New("signature must be 65 bytes long")
-	}
-	if sig[64] != 27 && sig[64] != 28 {
-		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
-	}
-
-	// Transform yellow paper V from 27/28 to 0/1:
-	sig[64] -= 27
-
-	priceHash := p.priceHash()
-	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(priceHash), priceHash))
-	hash := crypto.Keccak256(msg)
-
-	rpk, err := crypto.SigToPub(hash, sig)
-	if err != nil {
-		return nil, err
-	}
-
-	address := crypto.PubkeyToAddress(*rpk)
-	return &address, nil
 }

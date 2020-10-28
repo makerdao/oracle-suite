@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -99,14 +100,14 @@ func NewRunCmd(o *options) *cobra.Command {
 			successCh := make(chan string, 0)
 			go func() {
 				for {
-					log.Printf("Broadcasted: %s", <-successCh)
+					log.Printf("Broadcasted: %s", strings.TrimSpace(<-successCh))
 				}
 			}()
 
 			errCh := make(chan error, 0)
 			go func() {
 				for {
-					log.Printf("Error: %s", <-errCh)
+					log.Printf("Error: %s", strings.TrimSpace((<-errCh).Error()))
 				}
 			}()
 

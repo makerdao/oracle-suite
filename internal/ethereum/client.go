@@ -71,8 +71,14 @@ func (e *Client) Call(ctx context.Context, address common.Address, data []byte) 
 	}
 
 	resp, err := e.ethClient.CallContract(ctx, cm, new(big.Int).SetUint64(bn))
+	if err := isRevertErr(err); err != nil {
+		return nil, err
+	}
+	if err := isRevertResp(resp); err != nil {
+		return nil, err
+	}
 	if err != nil {
-		return nil, parseError(err)
+		return nil, err
 	}
 
 	return resp, err
@@ -118,17 +124,23 @@ func (e *Client) SendTransaction(ctx context.Context, address common.Address, ga
 	}
 
 	hash := signedTx.Hash()
-
 	return &hash, e.ethClient.SendTransaction(ctx, signedTx)
 }
 
-func parseError(vmErr error) error {
+func isRevertResp(resp []byte) error {
+	revert, err := abi.UnpackRevert(resp)
+	if err != nil {
+		return nil
+	}
+
+	return RevertErr{Message: revert, Err: nil}
+}
+
+func isRevertErr(vmErr error) error {
 	switch terr := vmErr.(type) {
-	// rpc.jsonError:
 	case rpc.DataError:
 		// Some RPC servers returns "revert" data as a hex encoded string, here
-		// we're trying to parse it. If any error occurs during it, then original
-		// error will be returned.
+		// we're trying to parse it:
 		if str, ok := terr.ErrorData().(string); ok {
 			re := regexp.MustCompile("(0x[a-zA-Z0-9]+)")
 			match := re.FindStringSubmatch(str)
@@ -136,21 +148,18 @@ func parseError(vmErr error) error {
 			if len(match) == 2 && len(match[1]) > 2 {
 				bytes, err := hex.DecodeString(match[1][2:])
 				if err != nil {
-					return vmErr
+					return nil
 				}
 
 				revert, err := abi.UnpackRevert(bytes)
 				if err != nil {
-					return vmErr
+					return nil
 				}
 
-				return RevertErr{
-					Message: revert,
-					Err:     vmErr,
-				}
+				return RevertErr{Message: revert, Err: vmErr}
 			}
 		}
 	}
 
-	return vmErr
+	return nil
 }
