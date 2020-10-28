@@ -14,10 +14,15 @@ type Serf struct {
 
 	client       *client.RPCClient
 	streamHandle client.StreamHandle
-	payloadCh    map[string]chan []byte
-	statusCh     map[string]chan transport.Status
-	msgCh        chan map[string]interface{}
-	doneCh       chan bool
+	subscribers  map[string]subscriber
+	rawMsgCh     chan map[string]interface{}
+	doneCh       chan struct{}
+}
+
+type subscriber struct {
+	payloadCh chan []byte
+	statusCh  chan transport.Status
+	doneCh    chan struct{}
 }
 
 func NewSerf(rpc string, queueSize int) (*Serf, error) {
@@ -27,11 +32,10 @@ func NewSerf(rpc string, queueSize int) (*Serf, error) {
 	}
 
 	return &Serf{
-		client:    serfClient,
-		payloadCh: make(map[string]chan []byte, 0),
-		statusCh:  make(map[string]chan transport.Status, 0),
-		msgCh:     make(chan map[string]interface{}, queueSize),
-		doneCh:    make(chan bool, 0),
+		client:      serfClient,
+		subscribers: make(map[string]subscriber, 0),
+		rawMsgCh:    make(chan map[string]interface{}, queueSize),
+		doneCh:      make(chan struct{}, 0),
 	}, nil
 }
 
@@ -48,17 +52,20 @@ func (s *Serf) Subscribe(eventName string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.payloadCh[eventName]; ok {
+	if _, ok := s.subscribers[eventName]; ok {
 		return errors.New("already subscribed")
 	}
 
-	err := s.stream()
+	err := s.startStream()
 	if err != nil {
 		return err
 	}
 
-	s.payloadCh[eventName] = make(chan []byte, 0)
-	s.statusCh[eventName] = make(chan transport.Status, 0)
+	s.subscribers[eventName] = subscriber{
+		payloadCh: make(chan []byte, 0),
+		statusCh:  make(chan transport.Status, 0),
+		doneCh:    make(chan struct{}, 0),
+	}
 
 	return nil
 }
@@ -67,79 +74,109 @@ func (s *Serf) Unsubscribe(eventName string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.payloadCh[eventName]; !ok {
+	if _, ok := s.subscribers[eventName]; !ok {
 		return errors.New("unable to unsubscribe")
 	}
 
-	close(s.payloadCh[eventName])
-	close(s.statusCh[eventName])
-	delete(s.payloadCh, eventName)
-	delete(s.statusCh, eventName)
+	subscriber := s.subscribers[eventName]
+	close(subscriber.doneCh)
+	close(subscriber.statusCh)
+	close(subscriber.payloadCh)
+	delete(s.subscribers, eventName)
+
+	if len(s.subscribers) == 0 {
+		return s.stopStream()
+	}
 
 	return nil
 }
 
 func (s *Serf) WaitFor(eventName string, event transport.Event) chan transport.Status {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.subscribers[eventName]; !ok {
+		return nil
+	}
+
 	go func() {
 		select {
-		case <-s.doneCh:
-			s.send(eventName, transport.Status{
+		case <-s.subscribers[eventName].doneCh:
+			s.handle(eventName, transport.Status{
 				Error: errors.New("closed"),
 			})
-		case payload := <-s.payloadCh[eventName]:
-			s.send(eventName, transport.Status{
+		case payload := <-s.subscribers[eventName].payloadCh:
+			s.handle(eventName, transport.Status{
 				Error: event.PayloadUnmarshall(payload),
 			})
 		}
 	}()
 
-	return s.statusCh[eventName]
+	return s.subscribers[eventName].statusCh
 }
 
 func (s *Serf) Close() error {
-	close(s.doneCh)
-	for eventName, _ := range s.statusCh {
-		err := s.Unsubscribe(eventName)
-		if err != nil {
-			return err
-		}
-	}
-
-	return s.client.Close()
-}
-
-func (s *Serf) send(eventName string, status transport.Status) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if ch, ok := s.statusCh[eventName]; ok {
-		ch <- status
+	close(s.doneCh)
+	close(s.rawMsgCh)
+	for _, subscriber := range s.subscribers {
+		close(subscriber.doneCh)
+		close(subscriber.statusCh)
+		close(subscriber.payloadCh)
+	}
+
+	s.subscribers = nil
+	return s.client.Close()
+}
+
+func (s *Serf) handle(eventName string, status transport.Status) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if subscriber, ok := s.subscribers[eventName]; ok {
+		select {
+		case <-subscriber.doneCh:
+			return
+		case subscriber.statusCh <- status:
+			return
+		}
 	}
 }
 
-func (s *Serf) stream() error {
+func (s *Serf) startStream() error {
 	if s.streamHandle != 0 {
 		return nil
 	}
 
 	var err error
-	s.streamHandle, err = s.client.Stream("user", s.msgCh)
+	s.streamHandle, err = s.client.Stream("user", s.rawMsgCh)
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		for {
-			select {
-			case <-s.doneCh:
-				return
-			case msg := <-s.msgCh:
-				if ch, ok := s.payloadCh[msg["Name"].(string)]; ok {
-					ch <- msg["Payload"].([]byte)
-				}
+	go s.listen()
+	return nil
+}
+
+func (s *Serf) stopStream() error {
+	if s.streamHandle == 0 {
+		return nil
+	}
+
+	return s.client.Stop(s.streamHandle)
+}
+
+func (s *Serf) listen() {
+	for {
+		select {
+		case <-s.doneCh:
+			return
+		case msg := <-s.rawMsgCh:
+			if subscriber, ok := s.subscribers[msg["Name"].(string)]; ok {
+				subscriber.payloadCh <- msg["Payload"].([]byte)
 			}
 		}
-	}()
-
-	return nil
+	}
 }

@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/pkg/events"
 	"github.com/makerdao/gofer/pkg/transport"
@@ -32,6 +34,7 @@ type Relayer struct {
 
 	transport transport.Transport
 	interval  time.Duration
+	feeds     []common.Address
 	pairs     map[string]Pair
 	doneCh    chan bool
 }
@@ -54,8 +57,9 @@ type Pair struct {
 	prices *prices
 }
 
-func NewRelayer(transport transport.Transport, interval time.Duration) *Relayer {
+func NewRelayer(feeds []common.Address, transport transport.Transport, interval time.Duration) *Relayer {
 	return &Relayer{
+		feeds:     feeds,
 		transport: transport,
 		interval:  interval,
 		pairs:     make(map[string]Pair, 0),
@@ -94,12 +98,14 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	if err != nil {
 		return fmt.Errorf("recieved price has an invalid signature (pair: %s)", price.AssetPair)
 	}
-
+	if !onList(*from, r.feeds) {
+		return fmt.Errorf("address is not on feeds list (pair: %s, from: %s)", price.AssetPair, from.String())
+	}
 	if price.Val.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("recieved price is invalid (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
 	if _, ok := r.pairs[price.AssetPair]; !ok {
-		return fmt.Errorf("recieved price is not configured (pair: %s, from: %s)", price.AssetPair, from.String())
+		return fmt.Errorf("recieved pair is not configured (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
 
 	err = r.pairs[price.AssetPair].prices.Add(price)
@@ -135,7 +141,7 @@ func (r *Relayer) relay(assetPair string) error {
 	pair.prices.Truncate(oracleQuorum)
 
 	// Check if there are enough prices to achieve a quorum:
-	if pair.prices.Len() < oracleQuorum {
+	if pair.prices.Len() != oracleQuorum {
 		return fmt.Errorf(
 			"unable to update the %s oracle, there is not enough prices to achieve a quorum (%d/%d)",
 			assetPair,
@@ -145,14 +151,14 @@ func (r *Relayer) relay(assetPair string) error {
 	}
 
 	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
-	isStale := calcSpread(oraclePrice, pair.prices.Median()) < pair.OracleSpread
+	isStale := calcSpread(oraclePrice, pair.prices.Median()) >= pair.OracleSpread
 
 	if isExpired || isStale {
 		_, err = pair.Median.Poke(ctx, pair.prices.Get())
 		pair.prices.Clear()
 	}
 
-	return err
+	return fmt.Errorf("unable to update %s oracle: %w", assetPair, err)
 }
 
 func (r *Relayer) startCollector(onErrChan chan<- error) error {
@@ -211,6 +217,15 @@ func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
 			}
 		}
 	}()
+}
+
+func onList(address common.Address, addresses []common.Address) bool {
+	for _, a := range addresses {
+		if a == address {
+			return true
+		}
+	}
+	return false
 }
 
 func calcSpread(oldPrice, newPrice *big.Int) float64 {

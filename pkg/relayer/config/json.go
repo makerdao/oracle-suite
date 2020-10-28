@@ -33,8 +33,8 @@ import (
 
 type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
-	Serf     JSONSerf            `json:"serf"`    // TODO
-	Feeds    []string            `json:"feeds"`   // TODO
+	Serf     JSONSerf            `json:"serf"` // TODO
+	Feeds    []string            `json:"feeds"`
 	Options  JSONOptions         `json:"options"` // TODO
 	Pairs    map[string]JSONPair `json:"pairs"`
 }
@@ -116,8 +116,13 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		return nil, err
 	}
 
+	var feeds []common.Address
+	for _, address := range j.Feeds {
+		feeds = append(feeds, common.HexToAddress(address))
+	}
+
 	eth := ethereum.NewClient(client, wallet)
-	rel := relayer.NewRelayer(transport, time.Second*time.Duration(j.Options.Interval))
+	rel := relayer.NewRelayer(feeds, transport, time.Second*time.Duration(j.Options.Interval))
 
 	for name, pair := range j.Pairs {
 		rel.AddPair(relayer.Pair{
