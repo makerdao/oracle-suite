@@ -29,7 +29,6 @@ import (
 )
 
 const priceMultiplier = 1e18
-const signPrefix = "\u0019Ethereum Signed Message:\n"
 
 type Price struct {
 	AssetPair string

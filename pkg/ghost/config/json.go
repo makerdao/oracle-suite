@@ -27,12 +27,12 @@ import (
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/transport/serf"
+	"github.com/makerdao/gofer/pkg/transport/p2p"
 )
 
 type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
-	Serf     JSONSerf            `json:"serf"`
+	P2P      JSONP2P             `json:"p2p"`
 	Options  JSONOptions         `json:"options"`
 	Pairs    map[string]JSONPair `json:"pairs"`
 }
@@ -43,8 +43,9 @@ type JSONEthereum struct {
 	Password string `json:"password"`
 }
 
-type JSONSerf struct {
-	RPC string `json:"rpc"`
+type JSONP2P struct {
+	Listen string   `json:"listen"`
+	Peers  []string `json:"peers"`
 }
 
 type JSONOptions struct {
@@ -60,6 +61,11 @@ type JSONPair struct {
 
 type JSONConfigErr struct {
 	Err error
+}
+
+type Instances struct {
+	P2P   *p2p.P2P
+	Ghost *ghost.Ghost
 }
 
 func (e JSONConfigErr) Error() string {
@@ -91,7 +97,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) MakeGhost(gofer *gofer.Gofer) (*ghost.Ghost, error) {
+func (j *JSON) Configure(gof *gofer.Gofer) (*Instances, error) {
 	wallet, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
@@ -101,12 +107,12 @@ func (j *JSON) MakeGhost(gofer *gofer.Gofer) (*ghost.Ghost, error) {
 		return nil, err
 	}
 
-	transport, err := serf.NewSerf(j.Serf.RPC, 1024)
+	transport, err := p2p.NewP2P(j.P2P.Listen, j.P2P.Peers)
 	if err != nil {
 		return nil, err
 	}
 
-	gho := ghost.NewGhost(gofer, wallet, transport, time.Second*time.Duration(j.Options.Interval))
+	gho := ghost.NewGhost(gof, wallet, transport, time.Second*time.Duration(j.Options.Interval), j.Options.Verbose)
 	for name, pair := range j.Pairs {
 		err := gho.AddPair(ghost.Pair{
 			AssetPair:        name,
@@ -118,5 +124,8 @@ func (j *JSON) MakeGhost(gofer *gofer.Gofer) (*ghost.Ghost, error) {
 		}
 	}
 
-	return gho, nil
+	return &Instances{
+		P2P:   transport,
+		Ghost: gho,
+	}, nil
 }

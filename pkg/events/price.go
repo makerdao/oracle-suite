@@ -16,7 +16,10 @@
 package events
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"io/ioutil"
 
 	"github.com/makerdao/gofer/internal/oracle"
 )
@@ -29,12 +32,49 @@ type Price struct {
 }
 
 func (p *Price) PayloadMarshall() ([]byte, error) {
-	p.Trace = []byte("null") // remove for now
+	b, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: use binary format and base64 to reduce payload size
-	return json.Marshal(p)
+	return compress(b)
 }
 
 func (p *Price) PayloadUnmarshall(b []byte) error {
+	b, err := decompress(b)
+	if err != nil {
+		return err
+	}
+
 	return json.Unmarshal(b, p)
+}
+
+func compress(in []byte) ([]byte, error) {
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+	if _, err := gz.Write(in); err != nil {
+		return nil, err
+	}
+	if err := gz.Close(); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+func decompress(in []byte) ([]byte, error) {
+	var b bytes.Buffer
+	b.Write(in)
+	gz, err := gzip.NewReader(&b)
+	if err != nil {
+		return nil, err
+	}
+	out, err := ioutil.ReadAll(gz)
+	if err != nil {
+		return nil, err
+	}
+	if err := gz.Close(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
