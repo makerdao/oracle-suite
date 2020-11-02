@@ -28,12 +28,12 @@ import (
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/pkg/relayer"
-	"github.com/makerdao/gofer/pkg/transport/serf"
+	"github.com/makerdao/gofer/pkg/transport/p2p"
 )
 
 type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
-	Serf     JSONSerf            `json:"serf"` // TODO
+	P2P      JSONP2P             `json:"p2p"`
 	Feeds    []string            `json:"feeds"`
 	Options  JSONOptions         `json:"options"` // TODO
 	Pairs    map[string]JSONPair `json:"pairs"`
@@ -46,8 +46,9 @@ type JSONEthereum struct {
 	RPC      string `json:"rpc"`
 }
 
-type JSONSerf struct {
-	RPC string `json:"rpc"`
+type JSONP2P struct {
+	Listen string   `json:"listen"`
+	Peers  []string `json:"peers"`
 }
 
 type JSONOptions struct {
@@ -65,6 +66,11 @@ type JSONPair struct {
 
 type JSONConfigErr struct {
 	Err error
+}
+
+type Instances struct {
+	P2P     *p2p.P2P
+	Relayer *relayer.Relayer
 }
 
 func (e JSONConfigErr) Error() string {
@@ -96,7 +102,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
+func (j *JSON) Configure() (*Instances, error) {
 	client, err := ethclient.Dial(j.Ethereum.RPC)
 	if err != nil {
 		return nil, err
@@ -111,7 +117,7 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		return nil, err
 	}
 
-	transport, err := serf.NewSerf(j.Serf.RPC, j.Options.MsgLimit)
+	transport, err := p2p.NewP2P(j.P2P.Listen, j.P2P.Peers)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +128,7 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 	}
 
 	eth := ethereum.NewClient(client, wallet)
-	rel := relayer.NewRelayer(feeds, transport, time.Second*time.Duration(j.Options.Interval))
+	rel := relayer.NewRelayer(feeds, transport, time.Second*time.Duration(j.Options.Interval), j.Options.Verbose)
 
 	for name, pair := range j.Pairs {
 		rel.AddPair(relayer.Pair{
@@ -134,5 +140,8 @@ func (j *JSON) MakeRelayer() (*relayer.Relayer, error) {
 		})
 	}
 
-	return rel, nil
+	return &Instances{
+		P2P:     transport,
+		Relayer: rel,
+	}, nil
 }

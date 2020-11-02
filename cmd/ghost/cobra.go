@@ -26,7 +26,6 @@ import (
 	"github.com/spf13/cobra"
 
 	goferConfig "github.com/makerdao/gofer/pkg/config"
-	"github.com/makerdao/gofer/pkg/ghost"
 	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
@@ -52,7 +51,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
 }
 
-func newGhost(path string, gofer *gofer.Gofer) (*ghost.Ghost, error) {
+func newGhost(path string, gofer *gofer.Gofer) (*ghostConfig.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -63,11 +62,11 @@ func newGhost(path string, gofer *gofer.Gofer) (*ghost.Ghost, error) {
 		return nil, err
 	}
 
-	r, err := j.MakeGhost(gofer)
+	i, err := j.Configure(gofer)
 	if err != nil {
 		return nil, err
 	}
-	return r, nil
+	return i, nil
 }
 
 func NewRunCmd(o *options) *cobra.Command {
@@ -92,10 +91,12 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			gho, err := newGhost(ghostAbsPath, gof)
+			ins, err := newGhost(ghostAbsPath, gof)
 			if err != nil {
 				return err
 			}
+
+			log.Printf("Listening on address: %s", strings.Join(ins.P2P.Addresses(), ", "))
 
 			successCh := make(chan string, 0)
 			go func() {
@@ -111,11 +112,11 @@ func NewRunCmd(o *options) *cobra.Command {
 				}
 			}()
 
-			err = gho.Start(successCh, errCh)
+			err = ins.Ghost.Start(successCh, errCh)
 			if err != nil {
 				return err
 			}
-			defer gho.Stop()
+			defer ins.Ghost.Stop()
 
 			c := make(chan os.Signal)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)

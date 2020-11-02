@@ -25,11 +25,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/relayer"
 	"github.com/makerdao/gofer/pkg/relayer/config"
 )
 
-func newRelayer(path string) (*relayer.Relayer, error) {
+func newRelayer(path string) (*config.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -40,11 +39,11 @@ func newRelayer(path string) (*relayer.Relayer, error) {
 		return nil, err
 	}
 
-	r, err := j.MakeRelayer()
+	i, err := j.Configure()
 	if err != nil {
 		return nil, err
 	}
-	return r, nil
+	return i, nil
 }
 
 func NewRunCmd(o *options) *cobra.Command {
@@ -59,10 +58,12 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			rel, err := newRelayer(absPath)
+			ins, err := newRelayer(absPath)
 			if err != nil {
 				return err
 			}
+
+			log.Printf("Listening on address: %s", strings.Join(ins.P2P.Addresses(), ", "))
 
 			successCh := make(chan string, 0)
 			go func() {
@@ -78,11 +79,11 @@ func NewRunCmd(o *options) *cobra.Command {
 				}
 			}()
 
-			err = rel.Start(successCh, errCh)
+			err = ins.Relayer.Start(successCh, errCh)
 			if err != nil {
 				return err
 			}
-			defer rel.Stop()
+			defer ins.Relayer.Stop()
 
 			c := make(chan os.Signal)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)

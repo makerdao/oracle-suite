@@ -35,6 +35,7 @@ type Ghost struct {
 	transport transport.Transport
 	interval  time.Duration
 	pairs     map[graph.Pair]Pair
+	verbose   bool
 	doneCh    chan bool
 }
 
@@ -49,7 +50,7 @@ type Pair struct {
 	OracleExpiration time.Duration
 }
 
-func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.Transport, interval time.Duration) *Ghost {
+func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.Transport, interval time.Duration, verbose bool) *Ghost {
 	return &Ghost{
 		gofer:     gofer,
 		wallet:    wallet,
@@ -57,6 +58,7 @@ func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.T
 		interval:  interval,
 		pairs:     make(map[graph.Pair]Pair, 0),
 		doneCh:    make(chan bool),
+		verbose:   verbose,
 	}
 }
 
@@ -75,6 +77,11 @@ func (g *Ghost) AddPair(pair Pair) error {
 }
 
 func (g *Ghost) Start(successCh chan<- string, errCh chan<- error) error {
+	err := g.transport.Subscribe(events.PriceEventName)
+	if err != nil {
+		return err
+	}
+
 	ticker := time.NewTicker(g.interval)
 	wg := sync.WaitGroup{}
 
@@ -83,6 +90,12 @@ func (g *Ghost) Start(successCh chan<- string, errCh chan<- error) error {
 			select {
 			case <-g.doneCh:
 				ticker.Stop()
+
+				err := g.transport.Unsubscribe(events.PriceEventName)
+				if err != nil {
+					errCh <- err
+				}
+
 				return
 			case <-ticker.C:
 				err := g.gofer.Feed(g.gofer.Pairs()...)

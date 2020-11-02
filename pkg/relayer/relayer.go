@@ -36,6 +36,7 @@ type Relayer struct {
 	interval  time.Duration
 	feeds     []common.Address
 	pairs     map[string]Pair
+	verbose   bool
 	doneCh    chan bool
 }
 
@@ -57,13 +58,14 @@ type Pair struct {
 	prices *prices
 }
 
-func NewRelayer(feeds []common.Address, transport transport.Transport, interval time.Duration) *Relayer {
+func NewRelayer(feeds []common.Address, transport transport.Transport, interval time.Duration, verbose bool) *Relayer {
 	return &Relayer{
 		feeds:     feeds,
 		transport: transport,
 		interval:  interval,
 		pairs:     make(map[string]Pair, 0),
 		doneCh:    make(chan bool),
+		verbose:   verbose,
 	}
 }
 
@@ -161,7 +163,7 @@ func (r *Relayer) relay(assetPair string) error {
 	return fmt.Errorf("unable to update %s oracle: %w", assetPair, err)
 }
 
-func (r *Relayer) startCollector(onErrChan chan<- error) error {
+func (r *Relayer) startCollector(errCh chan<- error) error {
 	err := r.transport.Subscribe(events.PriceEventName)
 	if err != nil {
 		return err
@@ -174,18 +176,18 @@ func (r *Relayer) startCollector(onErrChan chan<- error) error {
 			case <-r.doneCh:
 				err := r.transport.Unsubscribe(events.PriceEventName)
 				if err != nil {
-					onErrChan <- err
+					errCh <- err
 				}
 
 				return
 			case status := <-r.transport.WaitFor(events.PriceEventName, price):
-				if status.Error != nil && onErrChan != nil {
-					onErrChan <- status.Error
+				if status.Error != nil && errCh != nil {
+					errCh <- status.Error
 					continue
 				}
 				err := r.collect(price.Price)
-				if err != nil && onErrChan != nil {
-					onErrChan <- err
+				if err != nil && errCh != nil {
+					errCh <- err
 				}
 			}
 		}
