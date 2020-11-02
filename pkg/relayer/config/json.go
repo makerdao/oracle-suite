@@ -16,6 +16,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,9 +27,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/logger"
 	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/pkg/relayer"
-	"github.com/makerdao/gofer/pkg/transport/p2p"
 )
 
 type JSON struct {
@@ -68,6 +70,11 @@ type JSONConfigErr struct {
 	Err error
 }
 
+type Options struct {
+	Context context.Context
+	Logger  logger.Logger
+}
+
 type Instances struct {
 	P2P     *p2p.P2P
 	Relayer *relayer.Relayer
@@ -102,7 +109,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) Configure() (*Instances, error) {
+func (j *JSON) Configure(opts Options) (*Instances, error) {
 	client, err := ethclient.Dial(j.Ethereum.RPC)
 	if err != nil {
 		return nil, err
@@ -117,7 +124,12 @@ func (j *JSON) Configure() (*Instances, error) {
 		return nil, err
 	}
 
-	transport, err := p2p.NewP2P(j.P2P.Listen, j.P2P.Peers)
+	transport, err := p2p.NewP2P(p2p.Config{
+		Context: opts.Context,
+		Listen:  j.P2P.Listen,
+		Peers:   j.P2P.Peers,
+		Logger:  opts.Logger,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +140,7 @@ func (j *JSON) Configure() (*Instances, error) {
 	}
 
 	eth := ethereum.NewClient(client, wallet)
-	rel := relayer.NewRelayer(feeds, transport, time.Second*time.Duration(j.Options.Interval), j.Options.Verbose)
+	rel := relayer.NewRelayer(feeds, transport, time.Second*time.Duration(j.Options.Interval), opts.Logger)
 
 	for name, pair := range j.Pairs {
 		rel.AddPair(relayer.Pair{

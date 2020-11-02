@@ -16,6 +16,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,9 +26,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/logger"
+	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/transport/p2p"
 )
 
 type JSON struct {
@@ -61,6 +63,12 @@ type JSONPair struct {
 
 type JSONConfigErr struct {
 	Err error
+}
+
+type Options struct {
+	Context context.Context
+	Gofer   *gofer.Gofer
+	Logger  logger.Logger
 }
 
 type Instances struct {
@@ -97,7 +105,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) Configure(gof *gofer.Gofer) (*Instances, error) {
+func (j *JSON) Configure(opts Options) (*Instances, error) {
 	wallet, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
@@ -107,12 +115,17 @@ func (j *JSON) Configure(gof *gofer.Gofer) (*Instances, error) {
 		return nil, err
 	}
 
-	transport, err := p2p.NewP2P(j.P2P.Listen, j.P2P.Peers)
+	transport, err := p2p.NewP2P(p2p.Config{
+		Context: opts.Context,
+		Listen:  j.P2P.Listen,
+		Peers:   j.P2P.Peers,
+		Logger:  opts.Logger,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	gho := ghost.NewGhost(gof, wallet, transport, time.Second*time.Duration(j.Options.Interval), j.Options.Verbose)
+	gho := ghost.NewGhost(opts.Gofer, wallet, transport, time.Second*time.Duration(j.Options.Interval), opts.Logger)
 	for name, pair := range j.Pairs {
 		err := gho.AddPair(ghost.Pair{
 			AssetPair:        name,

@@ -4,16 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/gofer/internal/logger"
+	"github.com/makerdao/gofer/internal/transport"
 )
 
 type P2P struct {
-	mu sync.RWMutex
+	mu     sync.RWMutex
+	ctx    context.Context
+	logger logger.Logger
 
 	// node is a current libp2p's node
 	node host.Host
@@ -28,49 +32,60 @@ type P2P struct {
 type subscription struct {
 	topic *pubsub.Topic
 	sub   *pubsub.Subscription
+
 	// statusCh is used to send a notification about new message, it's returned by
 	// transport.WaitFor function.
 	statusCh chan transport.Status
 }
 
-func (s subscription) Unsubscribe() error {
-	err := s.topic.Close()
+func (s subscription) unsubscribe() error {
 	s.sub.Cancel()
+	err := s.topic.Close()
 	close(s.statusCh)
 	return err
 }
 
-func NewP2P(listen string, peers []string) (*P2P, error) {
+type Config struct {
+	Context context.Context
+	Listen  string
+	Peers   []string
+	Logger  logger.Logger
+}
+
+func NewP2P(cfg Config) (*P2P, error) {
 	var err error
 
-	ctx := context.Background()
-
+	listen := cfg.Listen
 	if listen == "" {
 		listen = "/ip4/0.0.0.0/tcp/0"
 	}
 
 	p := &P2P{
-		subs: make(map[string]subscription, 0),
+		ctx:    cfg.Context,
+		logger: cfg.Logger,
+		subs:   make(map[string]subscription, 0),
 	}
 
-	err = p.setupNode(ctx, listen, peers)
+	err = p.setupNode(cfg.Context, listen, cfg.Peers)
 	if err != nil {
 		return nil, err
 	}
 
-	err = p.setupGossip(ctx)
+	err = p.setupGossip()
 	if err != nil {
 		return nil, err
 	}
 
-	err = p.setupDiscovery(ctx)
+	err = p.setupDiscovery()
 	if err != nil {
 		return nil, err
 	}
 
+	p.logger.Info("P2P", "Initialized, listening on addresses: %s", strings.Join(p.Addresses(), ", "))
 	return p, nil
 }
 
+// Addresses returns a list of addresses on which we are listening.
 func (p *P2P) Addresses() []string {
 	p.mu.RLock()
 	p.mu.RUnlock()
@@ -101,7 +116,8 @@ func (p *P2P) Broadcast(eventName string, payload transport.Event) error {
 		return err
 	}
 
-	return p.subs[eventName].topic.Publish(context.Background(), bts)
+	p.logger.Debug("P2P", "Event \"%s\" broadcasted: ", eventName, bts)
+	return p.subs[eventName].topic.Publish(p.ctx, bts)
 }
 
 // Subscribe implements the transport.Transport interface.
@@ -133,6 +149,7 @@ func (p *P2P) Subscribe(eventName string) error {
 		statusCh: make(chan transport.Status, 0),
 	}
 
+	p.logger.Info("P2P", "Event \"%s\" subscribed", eventName)
 	return nil
 }
 
@@ -145,7 +162,8 @@ func (p *P2P) Unsubscribe(eventName string) error {
 		return fmt.Errorf("unable to unsubscirbe to the %s topic becasue is already unsubscribed", eventName)
 	}
 
-	return p.subs[eventName].Unsubscribe()
+	p.logger.Info("P2P", "Event \"%s\" unsubscribed", eventName)
+	return p.subs[eventName].unsubscribe()
 }
 
 // WaitFor implements the transport.Transport interface.
@@ -159,7 +177,10 @@ func (p *P2P) WaitFor(eventName string, payload transport.Event) chan transport.
 
 	sub := p.subs[eventName].sub
 	go func() {
-		msg, err := sub.Next(context.Background())
+		msg, err := sub.Next(p.ctx)
+		if err == nil {
+			p.logger.Debug("P2P", "Event \"%s\" received: %s", eventName, msg.Data)
+		}
 
 		// Try to unmarshall payload ONLY if there is no error.
 		if err == nil {
@@ -180,10 +201,13 @@ func (p *P2P) Close() error {
 	p.mu.Unlock()
 
 	for _, s := range p.subs {
-		_ = s.Unsubscribe()
+		_ = s.unsubscribe()
 	}
 
 	p.subs = nil
 	p.closed = true
-	return p.node.Close()
+	err := p.node.Close()
+	p.logger.Info("P2P", "Closed")
+
+	return err
 }

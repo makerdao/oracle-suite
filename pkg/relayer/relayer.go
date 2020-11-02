@@ -24,9 +24,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/makerdao/gofer/internal/logger"
 	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/pkg/events"
-	"github.com/makerdao/gofer/pkg/transport"
 )
 
 type Relayer struct {
@@ -38,6 +39,7 @@ type Relayer struct {
 	pairs     map[string]Pair
 	verbose   bool
 	doneCh    chan bool
+	logger    logger.Logger
 }
 
 type Pair struct {
@@ -58,14 +60,14 @@ type Pair struct {
 	prices *prices
 }
 
-func NewRelayer(feeds []common.Address, transport transport.Transport, interval time.Duration, verbose bool) *Relayer {
+func NewRelayer(feeds []common.Address, transport transport.Transport, interval time.Duration, logger logger.Logger) *Relayer {
 	return &Relayer{
 		feeds:     feeds,
 		transport: transport,
 		interval:  interval,
 		pairs:     make(map[string]Pair, 0),
 		doneCh:    make(chan bool),
-		verbose:   verbose,
+		logger:    logger,
 	}
 }
 
@@ -77,19 +79,25 @@ func (r *Relayer) AddPair(pair Pair) {
 	r.pairs[pair.AssetPair] = pair
 }
 
-func (r *Relayer) Start(successCh chan<- string, errCh chan<- error) error {
-	err := r.startCollector(errCh)
+func (r *Relayer) Start() error {
+	err := r.startCollector()
 	if err != nil {
 		return err
 	}
 
-	r.startRelayer(successCh, errCh)
+	r.startRelayer()
 
 	return nil
 }
 
-func (r *Relayer) Stop() {
+func (r *Relayer) Stop() error {
+	err := r.transport.Unsubscribe(events.PriceEventName)
+	if err != nil {
+		return err
+	}
+
 	r.doneCh <- true
+	return nil
 }
 
 func (r *Relayer) collect(price *oracle.Price) error {
@@ -118,21 +126,21 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	return nil
 }
 
-func (r *Relayer) relay(assetPair string) error {
+func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	ctx := context.Background()
 	pair := r.pairs[assetPair]
 
 	oracleQuorum, err := pair.Median.Bar(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	oracleTime, err := pair.Median.Age(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	oraclePrice, err := pair.Median.Price(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Clear expired prices:
@@ -144,7 +152,7 @@ func (r *Relayer) relay(assetPair string) error {
 
 	// Check if there are enough prices to achieve a quorum:
 	if pair.prices.Len() != oracleQuorum {
-		return fmt.Errorf(
+		return nil, fmt.Errorf(
 			"unable to update the %s oracle, there is not enough prices to achieve a quorum (%d/%d)",
 			assetPair,
 			pair.prices.Len(),
@@ -156,14 +164,15 @@ func (r *Relayer) relay(assetPair string) error {
 	isStale := calcSpread(oraclePrice, pair.prices.Median()) >= pair.OracleSpread
 
 	if isExpired || isStale {
-		_, err = pair.Median.Poke(ctx, pair.prices.Get())
+		tx, err := pair.Median.Poke(ctx, pair.prices.Get())
 		pair.prices.Clear()
+		return tx, err
 	}
 
-	return fmt.Errorf("unable to update %s oracle: %w", assetPair, err)
+	return nil, fmt.Errorf("unable to update %s oracle: %w", assetPair, err)
 }
 
-func (r *Relayer) startCollector(errCh chan<- error) error {
+func (r *Relayer) startCollector() error {
 	err := r.transport.Subscribe(events.PriceEventName)
 	if err != nil {
 		return err
@@ -174,20 +183,18 @@ func (r *Relayer) startCollector(errCh chan<- error) error {
 			price := &events.Price{}
 			select {
 			case <-r.doneCh:
-				err := r.transport.Unsubscribe(events.PriceEventName)
-				if err != nil {
-					errCh <- err
-				}
-
 				return
 			case status := <-r.transport.WaitFor(events.PriceEventName, price):
-				if status.Error != nil && errCh != nil {
-					errCh <- status.Error
+				if status.Error != nil {
+					r.logger.Warning("RELAYER", "Unable to read prices from the network: %s", status.Error)
 					continue
 				}
 				err := r.collect(price.Price)
-				if err != nil && errCh != nil {
-					errCh <- err
+				if err != nil {
+					r.logger.Warning("RELAYER", "Received invalid price: %s", err)
+				} else {
+					from, _ := price.Price.From()
+					r.logger.Info("RELAYER", "Received price (pair: %s, from: %s, price: %s, age: %s)", price.Price.AssetPair, from.String(), price.Price.Val.String(), price.Price.Age.String())
 				}
 			}
 		}
@@ -196,7 +203,7 @@ func (r *Relayer) startCollector(errCh chan<- error) error {
 	return nil
 }
 
-func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
+func (r *Relayer) startRelayer() {
 	ticker := time.NewTicker(r.interval)
 	go func() {
 		for {
@@ -207,12 +214,11 @@ func (r *Relayer) startRelayer(successCh chan<- string, errCh chan<- error) {
 			case <-ticker.C:
 				for assetPair, _ := range r.pairs {
 					r.mu.Lock()
-					err := r.relay(assetPair)
-					if err != nil && errCh != nil {
-						errCh <- err
-					}
-					if err == nil && successCh != nil {
-						successCh <- assetPair
+					tx, err := r.relay(assetPair)
+					if err != nil {
+						r.logger.Warning("RELAYER", "Unable to relay prices: %s", err)
+					} else {
+						r.logger.Info("RELAYER", "Prices relayed (tx: %s, pair: %s)", tx.String(), assetPair)
 					}
 					r.mu.Unlock()
 				}

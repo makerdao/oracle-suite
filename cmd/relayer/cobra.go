@@ -16,19 +16,32 @@
 package main
 
 import (
-	"log"
+	"context"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
+	"github.com/makerdao/gofer/internal/logger"
 	"github.com/makerdao/gofer/pkg/relayer/config"
 )
 
-func newRelayer(path string) (*config.Instances, error) {
+func newLogger(level string, componets []string) (logger.Logger, error) {
+	ll, err := logger.LevelFromString(level)
+	if err != nil {
+		return nil, err
+	}
+
+	l := logger.NewDefault()
+	l.SetLevel(ll)
+	l.SetComponents(componets)
+
+	return l, nil
+}
+
+func newRelayer(path string, log logger.Logger) (*config.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -39,7 +52,10 @@ func newRelayer(path string) (*config.Instances, error) {
 		return nil, err
 	}
 
-	i, err := j.Configure()
+	i, err := j.Configure(config.Options{
+		Context: context.Background(),
+		Logger:  log,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -58,32 +74,26 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			ins, err := newRelayer(absPath)
+			log, err := newLogger(o.LogVerbosity, o.LogComponents)
 			if err != nil {
 				return err
 			}
 
-			log.Printf("Listening on address: %s", strings.Join(ins.P2P.Addresses(), ", "))
-
-			successCh := make(chan string, 0)
-			go func() {
-				for {
-					log.Printf("Oracle updated: %s", strings.TrimSpace(<-successCh))
-				}
-			}()
-
-			errCh := make(chan error, 0)
-			go func() {
-				for {
-					log.Printf("Error: %s", strings.TrimSpace((<-errCh).Error()))
-				}
-			}()
-
-			err = ins.Relayer.Start(successCh, errCh)
+			ins, err := newRelayer(absPath, log)
 			if err != nil {
 				return err
 			}
-			defer ins.Relayer.Stop()
+
+			err = ins.Relayer.Start()
+			if err != nil {
+				return err
+			}
+			defer func() {
+				err := ins.Relayer.Stop()
+				if err != nil {
+					log.Error("RELAYER", "Unable to stop relayer: %s", err)
+				}
+			}()
 
 			c := make(chan os.Signal)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -104,7 +114,9 @@ func NewRootCommand(opts *options) *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "relayer-config", "c", "./relayer.json", "config file")
+	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
+	rootCmd.PersistentFlags().StringSliceVar(&opts.LogComponents, "log.components", nil, "components from which logs will be printed")
+	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "relayer-config", "c", "./relayer.json", "relayer config file")
 
 	return rootCmd
 }

@@ -21,12 +21,13 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/logger"
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/pkg/events"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
-	"github.com/makerdao/gofer/pkg/transport"
 )
 
 type Ghost struct {
@@ -35,8 +36,8 @@ type Ghost struct {
 	transport transport.Transport
 	interval  time.Duration
 	pairs     map[graph.Pair]Pair
-	verbose   bool
 	doneCh    chan bool
+	logger    logger.Logger
 }
 
 type Pair struct {
@@ -50,7 +51,7 @@ type Pair struct {
 	OracleExpiration time.Duration
 }
 
-func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.Transport, interval time.Duration, verbose bool) *Ghost {
+func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.Transport, interval time.Duration, logger logger.Logger) *Ghost {
 	return &Ghost{
 		gofer:     gofer,
 		wallet:    wallet,
@@ -58,7 +59,7 @@ func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.T
 		interval:  interval,
 		pairs:     make(map[graph.Pair]Pair, 0),
 		doneCh:    make(chan bool),
-		verbose:   verbose,
+		logger:    logger,
 	}
 }
 
@@ -76,7 +77,7 @@ func (g *Ghost) AddPair(pair Pair) error {
 	return fmt.Errorf("unable to find the %s pair in the Gofer price models", pair.AssetPair)
 }
 
-func (g *Ghost) Start(successCh chan<- string, errCh chan<- error) error {
+func (g *Ghost) Start() error {
 	err := g.transport.Subscribe(events.PriceEventName)
 	if err != nil {
 		return err
@@ -90,30 +91,23 @@ func (g *Ghost) Start(successCh chan<- string, errCh chan<- error) error {
 			select {
 			case <-g.doneCh:
 				ticker.Stop()
-
-				err := g.transport.Unsubscribe(events.PriceEventName)
-				if err != nil {
-					errCh <- err
-				}
-
 				return
 			case <-ticker.C:
 				err := g.gofer.Feed(g.gofer.Pairs()...)
-				if err != nil && errCh != nil {
-					errCh <- err
+				if err != nil {
+					g.logger.Warning("GHOST", "Unable to fetch prices for some pairs: %s", err)
 				}
 
 				// Signing may be slow, especially with high KDF so this is why
 				// we're using goroutines here:
 				wg.Add(1)
 				go func() {
-					for assetPair, pair := range g.pairs {
+					for assetPair, _ := range g.pairs {
 						err := g.broadcast(assetPair)
-						if err != nil && errCh != nil {
-							errCh <- err
-						}
-						if err == nil && successCh != nil {
-							successCh <- pair.AssetPair
+						if err != nil {
+							g.logger.Warning("GHOST", "Unable to broadcast price: %s", err)
+						} else {
+							g.logger.Info("GHOST", "Price broadcasted: %s", assetPair)
 						}
 					}
 
@@ -128,8 +122,14 @@ func (g *Ghost) Start(successCh chan<- string, errCh chan<- error) error {
 	return nil
 }
 
-func (g *Ghost) Stop() {
+func (g *Ghost) Stop() error {
+	err := g.transport.Unsubscribe(events.PriceEventName)
+	if err != nil {
+		return err
+	}
+
 	g.doneCh <- true
+	return nil
 }
 
 func (g *Ghost) broadcast(goferPair graph.Pair) error {
