@@ -5,7 +5,6 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -28,12 +27,16 @@ func (p *P2P) setupNode(ctx context.Context, listen string, peers []string) erro
 		}
 
 		// Extract the peer ID from the multiaddr.
-		info, err := peer.AddrInfoFromP2pAddr(maddr)
+		pi, err := peer.AddrInfoFromP2pAddr(maddr)
 		if err != nil {
 			return err
 		}
 
-		p.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		p.logger.Info(LoggerTag, "Bootstrap peer %s", pi.String())
+		err = p.host.Connect(p.ctx, *pi)
+		if err != nil {
+			p.logger.Info(LoggerTag, "Error connecting to peer %s: %s", pi.String(), err)
+		}
 	}
 
 	return nil

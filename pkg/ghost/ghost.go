@@ -39,7 +39,7 @@ type Ghost struct {
 	interval  time.Duration
 	logger    logger.Logger
 	pairs     map[graph.Pair]Pair
-	doneCh    chan bool
+	doneCh    chan struct{}
 }
 
 type Config struct {
@@ -76,7 +76,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		interval:  config.Interval,
 		logger:    config.Logger,
 		pairs:     make(map[graph.Pair]Pair, 0),
-		doneCh:    make(chan bool),
+		doneCh:    make(chan struct{}),
 	}
 
 	// Unfortunately, the Gofer stores pairs in AAA/BBB format but Ghost (and
@@ -112,12 +112,13 @@ func (g *Ghost) Start() error {
 
 func (g *Ghost) Stop() error {
 	defer g.logger.Info(LoggerTag, "Stopped")
+
+	close(g.doneCh)
 	err := g.transport.Unsubscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
 	}
 
-	g.doneCh <- true
 	return nil
 }
 

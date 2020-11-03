@@ -42,9 +42,7 @@ type subscription struct {
 
 func (s subscription) unsubscribe() error {
 	s.sub.Cancel()
-	err := s.topic.Close()
-	close(s.statusCh)
-	return err
+	return s.topic.Close()
 }
 
 type Config struct {
@@ -201,7 +199,7 @@ func (p *P2P) WaitFor(topic string, payload transport.Message) chan transport.St
 // Close implements the transport.Transport interface.
 func (p *P2P) Close() error {
 	p.mu.Lock()
-	p.mu.Unlock()
+	defer p.mu.Unlock()
 
 	for _, s := range p.subs {
 		_ = s.unsubscribe()

@@ -40,7 +40,7 @@ type Relayer struct {
 	logger    logger.Logger
 	pairs     map[string]Pair
 	verbose   bool
-	doneCh    chan bool
+	doneCh    chan struct{}
 }
 
 type Config struct {
@@ -81,7 +81,7 @@ func NewRelayer(config Config) *Relayer {
 		interval:  config.Interval,
 		logger:    config.Logger,
 		pairs:     make(map[string]Pair, 0),
-		doneCh:    make(chan bool),
+		doneCh:    make(chan struct{}),
 	}
 
 	for _, feed := range config.Feeds {
@@ -109,12 +109,13 @@ func (r *Relayer) Start() error {
 
 func (r *Relayer) Stop() error {
 	defer r.logger.Info(LoggerTag, "Stopped")
+
+	close(r.doneCh)
 	err := r.transport.Unsubscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
 	}
 
-	r.doneCh <- true
 	return nil
 }
 
