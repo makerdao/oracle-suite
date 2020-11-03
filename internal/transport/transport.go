@@ -19,15 +19,25 @@ type Status struct {
 	Error error
 }
 
-type Event interface {
-	PayloadMarshall() ([]byte, error)
-	PayloadUnmarshall([]byte) error
+type Message interface {
+	Marshall() ([]byte, error)
+	Unmarshall([]byte) error
 }
 
 type Transport interface {
-	Broadcast(eventName string, payload Event) error
-	Subscribe(eventName string) error
-	Unsubscribe(eventName string) error
-	WaitFor(eventName string, payload Event) chan Status
+	// Subscribes starts subscribing for messages with given topic.
+	Subscribe(topic string) error
+	// Subscribes stops subscribing for messages with given topic.
+	Unsubscribe(topic string) error
+	// Broadcast send a message with given topic to the network. To send
+	// a message, you must first subscribe appropriate topic.
+	Broadcast(topic string, message Message) error
+	// WaitFor returns a channel which will be blocked until message for given
+	// topic arrives. Then message will be unmarshalled using provided message
+	// structure. Note, that only messages for subscribed topics will be
+	// supported by this method. In case of an error, return will be returned in
+	// a Status structure.
+	WaitFor(topic string, message Message) chan Status
+	// Closes closes connection.
 	Close() error
 }

@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package events
+package messages
 
 import (
 	"encoding/json"
@@ -21,17 +21,17 @@ import (
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
-var PriceEventName = "price"
+var PriceMessageName = "price"
 
 type Price struct {
 	Price *oracle.Price   `json:"price"`
 	Trace json.RawMessage `json:"trace"`
 }
 
-func (p *Price) PayloadMarshall() ([]byte, error) {
+func (p *Price) Marshall() ([]byte, error) {
 	return json.Marshal(p)
 }
 
-func (p *Price) PayloadUnmarshall(b []byte) error {
+func (p *Price) Unmarshall(b []byte) error {
 	return json.Unmarshal(b, p)
 }
