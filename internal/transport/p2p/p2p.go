@@ -14,13 +14,15 @@ import (
 	"github.com/makerdao/gofer/internal/transport"
 )
 
+const LoggerTag = "P2P"
+
 type P2P struct {
 	mu     sync.RWMutex
 	ctx    context.Context
 	logger logger.Logger
 
 	// node is a current libp2p's node
-	node host.Host
+	host host.Host
 	// ps is a instance of PubSub system
 	ps *pubsub.PubSub
 	// subs is a list of subscription we are interested in
@@ -81,7 +83,7 @@ func NewP2P(cfg Config) (*P2P, error) {
 		return nil, err
 	}
 
-	p.logger.Info("P2P", "Initialized, listening on addresses: %s", strings.Join(p.Addresses(), ", "))
+	p.logger.Info(LoggerTag, "Initialized, listening on addresses: %s", strings.Join(p.Addresses(), ", "))
 	return p, nil
 }
 
@@ -91,7 +93,7 @@ func (p *P2P) Addresses() []string {
 	p.mu.RUnlock()
 
 	var addresses []string
-	for _, addr := range p.node.Addrs() {
+	for _, addr := range p.host.Addrs() {
 		addresses = append(addresses, addr.String())
 	}
 
@@ -116,7 +118,7 @@ func (p *P2P) Broadcast(eventName string, payload transport.Event) error {
 		return err
 	}
 
-	p.logger.Debug("P2P", "Event \"%s\" broadcasted: ", eventName, bts)
+	p.logger.Debug(LoggerTag, "Event \"%s\" broadcasted: ", eventName, bts)
 	return p.subs[eventName].topic.Publish(p.ctx, bts)
 }
 
@@ -149,7 +151,7 @@ func (p *P2P) Subscribe(eventName string) error {
 		statusCh: make(chan transport.Status, 0),
 	}
 
-	p.logger.Info("P2P", "Event \"%s\" subscribed", eventName)
+	p.logger.Info(LoggerTag, "Event \"%s\" subscribed", eventName)
 	return nil
 }
 
@@ -162,7 +164,7 @@ func (p *P2P) Unsubscribe(eventName string) error {
 		return fmt.Errorf("unable to unsubscirbe to the %s topic becasue is already unsubscribed", eventName)
 	}
 
-	p.logger.Info("P2P", "Event \"%s\" unsubscribed", eventName)
+	p.logger.Info(LoggerTag, "Event \"%s\" unsubscribed", eventName)
 	return p.subs[eventName].unsubscribe()
 }
 
@@ -179,7 +181,7 @@ func (p *P2P) WaitFor(eventName string, payload transport.Event) chan transport.
 	go func() {
 		msg, err := sub.Next(p.ctx)
 		if err == nil {
-			p.logger.Debug("P2P", "Event \"%s\" received: %s", eventName, msg.Data)
+			p.logger.Debug(LoggerTag, "Event \"%s\" received: %s", eventName, msg.Data)
 		}
 
 		// Try to unmarshall payload ONLY if there is no error.
@@ -206,8 +208,8 @@ func (p *P2P) Close() error {
 
 	p.subs = nil
 	p.closed = true
-	err := p.node.Close()
-	p.logger.Info("P2P", "Closed")
+	err := p.host.Close()
+	p.logger.Info(LoggerTag, "Closed")
 
 	return err
 }

@@ -30,14 +30,31 @@ import (
 	"github.com/makerdao/gofer/pkg/graph"
 )
 
+const LoggerTag = "GHOST"
+
 type Ghost struct {
 	gofer     *gofer.Gofer
 	wallet    *ethereum.Wallet
 	transport transport.Transport
 	interval  time.Duration
+	logger    logger.Logger
 	pairs     map[graph.Pair]Pair
 	doneCh    chan bool
-	logger    logger.Logger
+}
+
+type Config struct {
+	// Gofer is an instance of the gofer.Gofer which will be used to fetch prices.
+	Gofer *gofer.Gofer
+	// Wallet is an instance of the ethereum.Wallet which will be used to sign prices.
+	Wallet *ethereum.Wallet
+	// Transport is a implementation of transport used to send prices to relayers.
+	Transport transport.Transport
+	// Interval describes how often we should send prices to the network.
+	Interval time.Duration
+	// Logger is a current logger interface used by the Ghost.
+	Logger logger.Logger
+	// Pairs is the list supported pairs by Ghost with their configuration.
+	Pairs []Pair
 }
 
 type Pair struct {
@@ -51,78 +68,50 @@ type Pair struct {
 	OracleExpiration time.Duration
 }
 
-func NewGhost(gofer *gofer.Gofer, wallet *ethereum.Wallet, transport transport.Transport, interval time.Duration, logger logger.Logger) *Ghost {
-	return &Ghost{
-		gofer:     gofer,
-		wallet:    wallet,
-		transport: transport,
-		interval:  interval,
+func NewGhost(config Config) (*Ghost, error) {
+	g := &Ghost{
+		gofer:     config.Gofer,
+		wallet:    config.Wallet,
+		transport: config.Transport,
+		interval:  config.Interval,
+		logger:    config.Logger,
 		pairs:     make(map[graph.Pair]Pair, 0),
 		doneCh:    make(chan bool),
-		logger:    logger,
 	}
-}
 
-func (g *Ghost) AddPair(pair Pair) error {
 	// Unfortunately, the Gofer stores pairs in AAA/BBB format but Ghost (and
 	// oracle contract) stores them in AAABBB format. Because of this we need
 	// to make this wired mapping:
-	for _, goferPair := range g.gofer.Pairs() {
-		if goferPair.Base+goferPair.Quote == pair.AssetPair {
-			g.pairs[goferPair] = pair
-			return nil
+	for _, pair := range config.Pairs {
+		found := false
+		for _, goferPair := range g.gofer.Pairs() {
+			if goferPair.Base+goferPair.Quote == pair.AssetPair {
+				g.pairs[goferPair] = pair
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return nil, fmt.Errorf("unable to find the %s pair in the Gofer price models", pair.AssetPair)
 		}
 	}
 
-	return fmt.Errorf("unable to find the %s pair in the Gofer price models", pair.AssetPair)
+	return g, nil
 }
 
 func (g *Ghost) Start() error {
-	err := g.transport.Subscribe(events.PriceEventName)
+	g.logger.Info(LoggerTag, "Starting")
+	err := g.broadcasterLoop()
 	if err != nil {
 		return err
 	}
-
-	ticker := time.NewTicker(g.interval)
-	wg := sync.WaitGroup{}
-
-	go func() {
-		for {
-			select {
-			case <-g.doneCh:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				err := g.gofer.Feed(g.gofer.Pairs()...)
-				if err != nil {
-					g.logger.Warning("GHOST", "Unable to fetch prices for some pairs: %s", err)
-				}
-
-				// Signing may be slow, especially with high KDF so this is why
-				// we're using goroutines here:
-				wg.Add(1)
-				go func() {
-					for assetPair, _ := range g.pairs {
-						err := g.broadcast(assetPair)
-						if err != nil {
-							g.logger.Warning("GHOST", "Unable to broadcast price: %s", err)
-						} else {
-							g.logger.Info("GHOST", "Price broadcasted: %s", assetPair)
-						}
-					}
-
-					wg.Done()
-				}()
-			}
-
-			wg.Wait()
-		}
-	}()
 
 	return nil
 }
 
 func (g *Ghost) Stop() error {
+	defer g.logger.Info(LoggerTag, "Stopped")
 	err := g.transport.Unsubscribe(events.PriceEventName)
 	if err != nil {
 		return err
@@ -132,6 +121,8 @@ func (g *Ghost) Stop() error {
 	return nil
 }
 
+// broadcast sends price for single pair to the network. This method uses
+// current price from the Gofer so it must be updated beforehand.
 func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	var err error
 
@@ -151,13 +142,16 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 
 	// Sign price:
 	err = price.Sign(g.wallet)
-
 	if err != nil {
 		return err
 	}
 
 	// Broadcast price to P2P network:
-	err = g.transport.Broadcast(events.PriceEventName, newPriceEvent(price, tick))
+	payload, err := createPriceEventPayload(price, tick)
+	if err != nil {
+		return err
+	}
+	err = g.transport.Broadcast(events.PriceEventName, payload)
 	if err != nil {
 		return err
 	}
@@ -165,11 +159,61 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	return err
 }
 
-func newPriceEvent(price *oracle.Price, tick graph.AggregatorTick) transport.Event {
-	trace, _ := marshal.Marshall(marshal.JSON, tick)
+// broadcasterLoop creates a asynchronous loop which fetches prices from exchanges and then
+// sends them to the network at a specified interval.
+func (g *Ghost) broadcasterLoop() error {
+	err := g.transport.Subscribe(events.PriceEventName)
+	if err != nil {
+		return err
+	}
+
+	ticker := time.NewTicker(g.interval)
+	wg := sync.WaitGroup{}
+	go func() {
+		for {
+			select {
+			case <-g.doneCh:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				// Fetch prices from exchanges:
+				err := g.gofer.Feed(g.gofer.Pairs()...)
+				if err != nil {
+					g.logger.Warning(LoggerTag, "Unable to fetch prices for some pairs: %s", err)
+				}
+
+				// Send prices to the network.
+				//
+				// Signing may be slow, especially with high KDF so this is why
+				// we're using goroutines here:
+				wg.Add(1)
+				go func() {
+					for assetPair, _ := range g.pairs {
+						err := g.broadcast(assetPair)
+						if err != nil {
+							g.logger.Warning(LoggerTag, "Unable to broadcast price: %s", err)
+						} else {
+							g.logger.Info(LoggerTag, "Price broadcasted: %s", assetPair)
+						}
+					}
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		}
+	}()
+
+	return nil
+}
+
+func createPriceEventPayload(price *oracle.Price, tick graph.AggregatorTick) (transport.Event, error) {
+	trace, err := marshal.Marshall(marshal.JSON, tick)
+	if err != nil {
+		return nil, err
+	}
 
 	return &events.Price{
 		Price: price,
 		Trace: trace,
-	}
+	}, nil
 }

@@ -28,7 +28,7 @@ import (
 	"github.com/makerdao/gofer/pkg/relayer/config"
 )
 
-func newLogger(level string, componets []string) (logger.Logger, error) {
+func newLogger(level string, tags []string) (logger.Logger, error) {
 	ll, err := logger.LevelFromString(level)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func newLogger(level string, componets []string) (logger.Logger, error) {
 
 	l := logger.NewDefault()
 	l.SetLevel(ll)
-	l.SetComponents(componets)
+	l.SetTags(tags)
 
 	return l, nil
 }
@@ -52,7 +52,7 @@ func newRelayer(path string, log logger.Logger) (*config.Instances, error) {
 		return nil, err
 	}
 
-	i, err := j.Configure(config.Options{
+	i, err := j.Configure(config.Dependencies{
 		Context: context.Background(),
 		Logger:  log,
 	})
@@ -74,7 +74,7 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			log, err := newLogger(o.LogVerbosity, o.LogComponents)
+			log, err := newLogger(o.LogVerbosity, o.LogTags)
 			if err != nil {
 				return err
 			}
@@ -115,7 +115,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
-	rootCmd.PersistentFlags().StringSliceVar(&opts.LogComponents, "log.components", nil, "components from which logs will be printed")
+	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
 	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "relayer-config", "c", "./relayer.json", "relayer config file")
 
 	return rootCmd

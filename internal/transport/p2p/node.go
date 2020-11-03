@@ -14,7 +14,7 @@ func (p *P2P) setupNode(ctx context.Context, listen string, peers []string) erro
 	var err error
 
 	// Start a libp2p node with default settings.
-	p.node, err = libp2p.New(ctx, libp2p.ListenAddrStrings(listen))
+	p.host, err = libp2p.New(ctx, libp2p.ListenAddrStrings(listen))
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (p *P2P) setupNode(ctx context.Context, listen string, peers []string) erro
 			return err
 		}
 
-		p.node.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		p.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 	}
 
 	return nil

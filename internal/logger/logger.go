@@ -15,25 +15,28 @@ const (
 	Error
 	Fatal
 	Panic
+	None
 )
 
 func (l Level) String() string {
 	switch l {
 	case Info:
-		return "Info"
+		return "INFO"
 	case Debug:
-		return "Debug"
+		return "DEBUG"
 	case Warning:
-		return "Warning"
+		return "WARN"
 	case Error:
-		return "Error"
+		return "ERROR"
 	case Fatal:
-		return "Fatal"
+		return "FATAL"
 	case Panic:
-		return "Panic"
+		return "PANIC"
+	case None:
+		return "NONE"
 	}
 
-	return "Invalid"
+	return "INVALID"
 }
 
 func LevelFromString(level string) (Level, error) {
@@ -50,20 +53,22 @@ func LevelFromString(level string) (Level, error) {
 		return Fatal, nil
 	case "panic":
 		return Panic, nil
+	case "none", "nothing":
+		return None, nil
 	}
 
-	return Invalid, errors.New("invalid error level, valid levels are: info, debug, warning, error, fatal and panic")
+	return Invalid, errors.New("invalid error level, valid levels are: info, debug, warning, error, fatal, panic and none")
 }
 
 type Logger interface {
 	SetLevel(level Level)
 	Level() Level
-	SetComponents(components []string)
-	Components() []string
-	Debug(component string, message string, a ...interface{})
-	Info(component string, message string, a ...interface{})
-	Warning(component string, message string, a ...interface{})
-	Error(component string, message string, a ...interface{})
-	Fatal(component string, message string, a ...interface{})
-	Panic(component string, message string, a ...interface{})
+	SetTags(tags []string)
+	Tags() []string
+	Debug(tag string, message string, a ...interface{})
+	Info(tag string, message string, a ...interface{})
+	Warning(tag string, message string, a ...interface{})
+	Error(tag string, message string, a ...interface{})
+	Fatal(tag string, message string, a ...interface{})
+	Panic(tag string, message string, a ...interface{})
 }
