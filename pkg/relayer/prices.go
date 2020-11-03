@@ -40,7 +40,8 @@ func newPrices() *prices {
 	}
 }
 
-// Add adds a new price to the list.
+// Add adds a new price to the list. If an price from same address already
+// exists, it will be overwritten.
 func (p *prices) Add(price *oracle.Price) error {
 	addr, err := price.From()
 	if err != nil {
@@ -110,7 +111,22 @@ func (p *prices) Median() *big.Int {
 	return prices[(count-1)/2].Val
 }
 
-// ClearOlderThan deletes expired prices form the list.
+// Spread calculates spread between given price and an median. The spread is
+// returned as percentage points.
+func (p *prices) Spread(price *big.Int) float64 {
+	oldPriceF := new(big.Float).SetInt(price)
+	newPriceF := new(big.Float).SetInt(p.Median())
+
+	x := new(big.Float).Sub(newPriceF, oldPriceF)
+	x = new(big.Float).Quo(x, oldPriceF)
+	x = new(big.Float).Mul(x, big.NewFloat(100))
+
+	xf, _ := x.Float64()
+
+	return xf
+}
+
+// ClearOlderThan deletes prices which are older than given time.
 func (p *prices) ClearOlderThan(t time.Time) {
 	for address, price := range p.prices {
 		if price.Age.Before(t) {

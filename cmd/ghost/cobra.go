@@ -32,7 +32,7 @@ import (
 	"github.com/makerdao/gofer/pkg/origins"
 )
 
-func newLogger(level string, componets []string) (logger.Logger, error) {
+func newLogger(level string, tags []string) (logger.Logger, error) {
 	ll, err := logger.LevelFromString(level)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func newLogger(level string, componets []string) (logger.Logger, error) {
 
 	l := logger.NewDefault()
 	l.SetLevel(ll)
-	l.SetComponents(componets)
+	l.SetTags(tags)
 
 	return l, nil
 }
@@ -75,7 +75,7 @@ func newGhost(path string, gof *gofer.Gofer, log logger.Logger) (*ghostConfig.In
 		return nil, err
 	}
 
-	i, err := j.Configure(ghostConfig.Options{
+	i, err := j.Configure(ghostConfig.Dependencies{
 		Context: context.Background(),
 		Gofer:   gof,
 		Logger:  log,
@@ -103,7 +103,7 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			log, err := newLogger(o.LogVerbosity, o.LogComponents)
+			log, err := newLogger(o.LogVerbosity, o.LogTags)
 			if err != nil {
 				return err
 			}
@@ -149,7 +149,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
-	rootCmd.PersistentFlags().StringSliceVar(&opts.LogComponents, "log.components", nil, "components from which logs will be printed")
+	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
 	rootCmd.PersistentFlags().StringVarP(&opts.GhostConfigFilePath, "config", "c", "./ghost.json", "ghost config file")
 	rootCmd.PersistentFlags().StringVar(&opts.GoferConfigFilePath, "gofer-config", "./gofer.json", "gofer config file")
 

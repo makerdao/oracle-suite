@@ -65,7 +65,7 @@ type JSONConfigErr struct {
 	Err error
 }
 
-type Options struct {
+type Dependencies struct {
 	Context context.Context
 	Gofer   *gofer.Gofer
 	Logger  logger.Logger
@@ -105,7 +105,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) Configure(opts Options) (*Instances, error) {
+func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	wallet, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
@@ -116,25 +116,35 @@ func (j *JSON) Configure(opts Options) (*Instances, error) {
 	}
 
 	transport, err := p2p.NewP2P(p2p.Config{
-		Context: opts.Context,
+		Context: deps.Context,
 		Listen:  j.P2P.Listen,
 		Peers:   j.P2P.Peers,
-		Logger:  opts.Logger,
+		Logger:  deps.Logger,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	gho := ghost.NewGhost(opts.Gofer, wallet, transport, time.Second*time.Duration(j.Options.Interval), opts.Logger)
+	config := ghost.Config{
+		Gofer:     deps.Gofer,
+		Wallet:    wallet,
+		Transport: transport,
+		Logger:    deps.Logger,
+		Interval:  time.Second * time.Duration(j.Options.Interval),
+		Pairs:     nil,
+	}
+
 	for name, pair := range j.Pairs {
-		err := gho.AddPair(ghost.Pair{
+		config.Pairs = append(config.Pairs, ghost.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.MsgSpread,
 			OracleExpiration: time.Second * time.Duration(pair.MsgExpiration),
 		})
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	gho, err := ghost.NewGhost(config)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Instances{

@@ -70,7 +70,7 @@ type JSONConfigErr struct {
 	Err error
 }
 
-type Options struct {
+type Dependencies struct {
 	Context context.Context
 	Logger  logger.Logger
 }
@@ -109,7 +109,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) Configure(opts Options) (*Instances, error) {
+func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	client, err := ethclient.Dial(j.Ethereum.RPC)
 	if err != nil {
 		return nil, err
@@ -125,25 +125,27 @@ func (j *JSON) Configure(opts Options) (*Instances, error) {
 	}
 
 	transport, err := p2p.NewP2P(p2p.Config{
-		Context: opts.Context,
+		Context: deps.Context,
 		Listen:  j.P2P.Listen,
 		Peers:   j.P2P.Peers,
-		Logger:  opts.Logger,
+		Logger:  deps.Logger,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var feeds []common.Address
-	for _, address := range j.Feeds {
-		feeds = append(feeds, common.HexToAddress(address))
+	eth := ethereum.NewClient(client, wallet)
+
+	config := relayer.Config{
+		Feeds:     j.Feeds,
+		Transport: transport,
+		Interval:  time.Second * time.Duration(j.Options.Interval),
+		Logger:    deps.Logger,
+		Pairs:     nil,
 	}
 
-	eth := ethereum.NewClient(client, wallet)
-	rel := relayer.NewRelayer(feeds, transport, time.Second*time.Duration(j.Options.Interval), opts.Logger)
-
 	for name, pair := range j.Pairs {
-		rel.AddPair(relayer.Pair{
+		config.Pairs = append(config.Pairs, relayer.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
@@ -151,6 +153,8 @@ func (j *JSON) Configure(opts Options) (*Instances, error) {
 			Median:           oracle.NewMedian(eth, common.HexToAddress(pair.Oracle), name),
 		})
 	}
+
+	rel := relayer.NewRelayer(config)
 
 	return &Instances{
 		P2P:     transport,

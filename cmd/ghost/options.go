@@ -18,7 +18,7 @@ package main
 // These are the command options that can be set by CLI flags.
 type options struct {
 	LogVerbosity        string
-	LogComponents       []string
+	LogTags             []string
 	GhostConfigFilePath string
 	GoferConfigFilePath string
 }

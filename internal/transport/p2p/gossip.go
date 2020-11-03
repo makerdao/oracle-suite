@@ -8,7 +8,7 @@ import (
 func (p *P2P) setupGossip() error {
 	var err error
 
-	p.ps, err = pubsub.NewGossipSub(p.ctx, p.node)
+	p.ps, err = pubsub.NewGossipSub(p.ctx, p.host)
 	if err != nil {
 		return err
 	}

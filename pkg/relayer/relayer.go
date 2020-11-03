@@ -30,67 +30,85 @@ import (
 	"github.com/makerdao/gofer/pkg/events"
 )
 
-type Relayer struct {
-	mu sync.Mutex
+const LoggerTag = "RELAYER"
 
+type Relayer struct {
+	mu        sync.Mutex
+	feeds     []common.Address
 	transport transport.Transport
 	interval  time.Duration
-	feeds     []common.Address
+	logger    logger.Logger
 	pairs     map[string]Pair
 	verbose   bool
 	doneCh    chan bool
-	logger    logger.Logger
+}
+
+type Config struct {
+	// Feeds is the list of Ethereum addresses from which prices will be accepted.
+	Feeds []string
+	// Transport is a implementation of transport used to fetch prices from feeders.
+	Transport transport.Transport
+	// Interval describes how often we should try to update Oracles.
+	Interval time.Duration
+	// Logger is a current logger interface used by the Relayer.
+	Logger logger.Logger
+	// Pairs is the list supported pairs by Relayer with their configuration.
+	Pairs []Pair
 }
 
 type Pair struct {
 	// AssetPair is the name of asset pair, e.g. ETHUSD.
 	AssetPair string
-	// OracleSpread is the minimum spread between the oracle price and new price
+	// OracleSpread is the minimum spread between the Oracle price and new price
 	// required to send update.
 	OracleSpread float64
-	// OracleExpiration is the minimum time difference between the oracle time
-	// and current time required to send update.
+	// OracleExpiration is the minimum time difference between the Oracle time
+	// and current time required to send an update.
 	OracleExpiration time.Duration
-	// PriceExpiration is the maximum TTL of the price from feeder.
+	// PriceExpiration is the maximum amount of time before price received
+	// from the feeder will be considered as expired.
 	PriceExpiration time.Duration
 	// Median is the instance of the oracle.Median which is the interface for
-	// the median oracle contract.
+	// the Oracle contract.
 	Median *oracle.Median
 	// prices contains list of prices form the feeders.
 	prices *prices
 }
 
-func NewRelayer(feeds []common.Address, transport transport.Transport, interval time.Duration, logger logger.Logger) *Relayer {
-	return &Relayer{
-		feeds:     feeds,
-		transport: transport,
-		interval:  interval,
+func NewRelayer(config Config) *Relayer {
+	r := &Relayer{
+		transport: config.Transport,
+		interval:  config.Interval,
+		logger:    config.Logger,
 		pairs:     make(map[string]Pair, 0),
 		doneCh:    make(chan bool),
-		logger:    logger,
 	}
-}
 
-func (r *Relayer) AddPair(pair Pair) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	for _, feed := range config.Feeds {
+		r.feeds = append(r.feeds, common.HexToAddress(feed))
+	}
 
-	pair.prices = newPrices()
-	r.pairs[pair.AssetPair] = pair
+	for _, pair := range config.Pairs {
+		pair.prices = newPrices()
+		r.pairs[pair.AssetPair] = pair
+	}
+
+	return r
 }
 
 func (r *Relayer) Start() error {
-	err := r.startCollector()
+	r.logger.Info(LoggerTag, "Starting")
+	err := r.collectorLoop()
 	if err != nil {
 		return err
 	}
 
-	r.startRelayer()
-
+	r.relayerLoop()
 	return nil
 }
 
 func (r *Relayer) Stop() error {
+	defer r.logger.Info(LoggerTag, "Stopped")
 	err := r.transport.Unsubscribe(events.PriceEventName)
 	if err != nil {
 		return err
@@ -100,6 +118,9 @@ func (r *Relayer) Stop() error {
 	return nil
 }
 
+// collect adds a price from a feeder which may be used to update
+// Oracle contract. The price will be added only if a feeder is
+// allowed to send prices (must be on the r.Feeds list).
 func (r *Relayer) collect(price *oracle.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -108,8 +129,8 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	if err != nil {
 		return fmt.Errorf("recieved price has an invalid signature (pair: %s)", price.AssetPair)
 	}
-	if !onList(*from, r.feeds) {
-		return fmt.Errorf("address is not on feeds list (pair: %s, from: %s)", price.AssetPair, from.String())
+	if r.isFeedAllowed(*from) {
+		return fmt.Errorf("address is not on feed list (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
 	if price.Val.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("recieved price is invalid (pair: %s, from: %s)", price.AssetPair, from.String())
@@ -126,6 +147,10 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	return nil
 }
 
+// relay tries to update an Oracle contract for given pair. It may return
+// an error if there is not enough prices to achieve a quorum, Oracle is not
+// expired or Oracle price is not stale. Otherwise it'll return transaction
+// hash.
 func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	ctx := context.Background()
 	pair := r.pairs[assetPair]
@@ -161,10 +186,13 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	}
 
 	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
-	isStale := calcSpread(oraclePrice, pair.prices.Median()) >= pair.OracleSpread
+	isStale := pair.prices.Spread(oraclePrice) >= pair.OracleSpread
 
 	if isExpired || isStale {
+		// Send *actual* transaction to the Ethereum network:
 		tx, err := pair.Median.Poke(ctx, pair.prices.Get())
+		// There is no point in keeping the prices that have already been sent,
+		// so we can safely remove them:
 		pair.prices.Clear()
 		return tx, err
 	}
@@ -172,7 +200,8 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	return nil, fmt.Errorf("unable to update %s oracle: %w", assetPair, err)
 }
 
-func (r *Relayer) startCollector() error {
+// collectorLoop creates a asynchronous loop which fetches prices from feeders.
+func (r *Relayer) collectorLoop() error {
 	err := r.transport.Subscribe(events.PriceEventName)
 	if err != nil {
 		return err
@@ -186,15 +215,15 @@ func (r *Relayer) startCollector() error {
 				return
 			case status := <-r.transport.WaitFor(events.PriceEventName, price):
 				if status.Error != nil {
-					r.logger.Warning("RELAYER", "Unable to read prices from the network: %s", status.Error)
+					r.logger.Warning(LoggerTag, "Unable to read prices from the network: %s", status.Error)
 					continue
 				}
 				err := r.collect(price.Price)
 				if err != nil {
-					r.logger.Warning("RELAYER", "Received invalid price: %s", err)
+					r.logger.Warning(LoggerTag, "Received invalid price: %s", err)
 				} else {
 					from, _ := price.Price.From()
-					r.logger.Info("RELAYER", "Received price (pair: %s, from: %s, price: %s, age: %s)", price.Price.AssetPair, from.String(), price.Price.Val.String(), price.Price.Age.String())
+					r.logger.Info(LoggerTag, "Received price (pair: %s, from: %s, price: %s, age: %s)", price.Price.AssetPair, from.String(), price.Price.Val.String(), price.Price.Age.String())
 				}
 			}
 		}
@@ -203,7 +232,9 @@ func (r *Relayer) startCollector() error {
 	return nil
 }
 
-func (r *Relayer) startRelayer() {
+// collectorLoop creates a asynchronous loop which tries to send an update
+// to an Oracle contract at a specified interval.
+func (r *Relayer) relayerLoop() {
 	ticker := time.NewTicker(r.interval)
 	go func() {
 		for {
@@ -216,9 +247,9 @@ func (r *Relayer) startRelayer() {
 					r.mu.Lock()
 					tx, err := r.relay(assetPair)
 					if err != nil {
-						r.logger.Warning("RELAYER", "Unable to relay prices: %s", err)
+						r.logger.Warning(LoggerTag, "Unable to relay prices: %s", err)
 					} else {
-						r.logger.Info("RELAYER", "Prices relayed (tx: %s, pair: %s)", tx.String(), assetPair)
+						r.logger.Info(LoggerTag, "Prices relayed (tx: %s, pair: %s)", tx.String(), assetPair)
 					}
 					r.mu.Unlock()
 				}
@@ -227,24 +258,11 @@ func (r *Relayer) startRelayer() {
 	}()
 }
 
-func onList(address common.Address, addresses []common.Address) bool {
-	for _, a := range addresses {
+func (r *Relayer) isFeedAllowed(address common.Address) bool {
+	for _, a := range r.feeds {
 		if a == address {
 			return true
 		}
 	}
 	return false
-}
-
-func calcSpread(oldPrice, newPrice *big.Int) float64 {
-	oldPriceF := new(big.Float).SetInt(oldPrice)
-	newPriceF := new(big.Float).SetInt(newPrice)
-
-	x := new(big.Float).Sub(newPriceF, oldPriceF)
-	x = new(big.Float).Quo(x, oldPriceF)
-	x = new(big.Float).Mul(x, big.NewFloat(100))
-
-	xf, _ := x.Float64()
-
-	return xf
 }
