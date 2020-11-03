@@ -94,36 +94,15 @@ func (p *P2P) Addresses() []string {
 
 	var addresses []string
 	for _, addr := range p.host.Addrs() {
-		addresses = append(addresses, addr.String())
+		p.host.Addrs()
+		addresses = append(addresses, fmt.Sprintf("%s/p2p/%s", addr.String(), p.host.ID().String()))
 	}
 
 	return addresses
 }
 
-// Broadcast implements the transport.Transport interface.
-func (p *P2P) Broadcast(eventName string, payload transport.Event) error {
-	p.mu.RLock()
-	p.mu.RUnlock()
-
-	if p.closed {
-		return errors.New("p2p is already closed")
-	}
-
-	if _, ok := p.subs[eventName]; !ok {
-		return fmt.Errorf("unable to broadcast to the %s topic because is not subscribed", eventName)
-	}
-
-	bts, err := payload.PayloadMarshall()
-	if err != nil {
-		return err
-	}
-
-	p.logger.Debug(LoggerTag, "Event \"%s\" broadcasted: ", eventName, bts)
-	return p.subs[eventName].topic.Publish(p.ctx, bts)
-}
-
 // Subscribe implements the transport.Transport interface.
-func (p *P2P) Subscribe(eventName string) error {
+func (p *P2P) Subscribe(topic string) error {
 	p.mu.Lock()
 	p.mu.Unlock()
 
@@ -131,70 +110,92 @@ func (p *P2P) Subscribe(eventName string) error {
 		return errors.New("p2p is already closed")
 	}
 
-	if _, ok := p.subs[eventName]; ok {
-		return fmt.Errorf("unable to subscirbe to the %s topic becasue is already subscribed", eventName)
+	if _, ok := p.subs[topic]; ok {
+		return fmt.Errorf("unable to subscirbe to the %s topic becasue is already subscribed", topic)
 	}
 
-	topic, err := p.ps.Join(eventName)
+	t, err := p.ps.Join(topic)
 	if err != nil {
 		return err
 	}
 
-	sub, err := topic.Subscribe()
+	s, err := t.Subscribe()
 	if err != nil {
 		return err
 	}
 
-	p.subs[eventName] = subscription{
-		topic:    topic,
-		sub:      sub,
+	p.subs[topic] = subscription{
+		topic:    t,
+		sub:      s,
 		statusCh: make(chan transport.Status, 0),
 	}
 
-	p.logger.Info(LoggerTag, "Event \"%s\" subscribed", eventName)
+	p.logger.Info(LoggerTag, "Message \"%s\" subscribed", topic)
 	return nil
 }
 
 // Unsubscribe implements the transport.Transport interface.
-func (p *P2P) Unsubscribe(eventName string) error {
+func (p *P2P) Unsubscribe(topic string) error {
 	p.mu.Lock()
 	p.mu.Unlock()
 
-	if _, ok := p.subs[eventName]; !ok {
-		return fmt.Errorf("unable to unsubscirbe to the %s topic becasue is already unsubscribed", eventName)
+	if _, ok := p.subs[topic]; !ok {
+		return fmt.Errorf("unable to unsubscirbe to the %s topic becasue is already unsubscribed", topic)
 	}
 
-	p.logger.Info(LoggerTag, "Event \"%s\" unsubscribed", eventName)
-	return p.subs[eventName].unsubscribe()
+	p.logger.Info(LoggerTag, "Message \"%s\" unsubscribed", topic)
+	return p.subs[topic].unsubscribe()
 }
 
-// WaitFor implements the transport.Transport interface.
-func (p *P2P) WaitFor(eventName string, payload transport.Event) chan transport.Status {
+// Broadcast implements the transport.Transport interface.
+func (p *P2P) Broadcast(topic string, payload transport.Message) error {
 	p.mu.RLock()
 	p.mu.RUnlock()
 
-	if _, ok := p.subs[eventName]; !ok {
+	if p.closed {
+		return errors.New("p2p is already closed")
+	}
+
+	if _, ok := p.subs[topic]; !ok {
+		return fmt.Errorf("unable to broadcast to the %s topic because is not subscribed", topic)
+	}
+
+	bts, err := payload.Marshall()
+	if err != nil {
+		return err
+	}
+
+	p.logger.Debug(LoggerTag, "Message \"%s\" broadcasted: ", topic, bts)
+	return p.subs[topic].topic.Publish(p.ctx, bts)
+}
+
+// WaitFor implements the transport.Transport interface.
+func (p *P2P) WaitFor(topic string, payload transport.Message) chan transport.Status {
+	p.mu.RLock()
+	p.mu.RUnlock()
+
+	if _, ok := p.subs[topic]; !ok {
 		return nil
 	}
 
-	sub := p.subs[eventName].sub
+	sub := p.subs[topic].sub
 	go func() {
 		msg, err := sub.Next(p.ctx)
 		if err == nil {
-			p.logger.Debug(LoggerTag, "Event \"%s\" received: %s", eventName, msg.Data)
+			p.logger.Debug(LoggerTag, "Message \"%s\" received: %s", topic, msg.Data)
 		}
 
 		// Try to unmarshall payload ONLY if there is no error.
 		if err == nil {
-			err = payload.PayloadUnmarshall(msg.Data)
+			err = payload.Unmarshall(msg.Data)
 		}
 
-		p.subs[eventName].statusCh <- transport.Status{
+		p.subs[topic].statusCh <- transport.Status{
 			Error: err,
 		}
 	}()
 
-	return p.subs[eventName].statusCh
+	return p.subs[topic].statusCh
 }
 
 // Close implements the transport.Transport interface.

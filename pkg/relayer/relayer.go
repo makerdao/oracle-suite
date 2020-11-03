@@ -27,7 +27,7 @@ import (
 	"github.com/makerdao/gofer/internal/logger"
 	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/internal/transport"
-	"github.com/makerdao/gofer/pkg/events"
+	"github.com/makerdao/gofer/pkg/messages"
 )
 
 const LoggerTag = "RELAYER"
@@ -109,7 +109,7 @@ func (r *Relayer) Start() error {
 
 func (r *Relayer) Stop() error {
 	defer r.logger.Info(LoggerTag, "Stopped")
-	err := r.transport.Unsubscribe(events.PriceEventName)
+	err := r.transport.Unsubscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
 	}
@@ -202,18 +202,18 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 
 // collectorLoop creates a asynchronous loop which fetches prices from feeders.
 func (r *Relayer) collectorLoop() error {
-	err := r.transport.Subscribe(events.PriceEventName)
+	err := r.transport.Subscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			price := &events.Price{}
+			price := &messages.Price{}
 			select {
 			case <-r.doneCh:
 				return
-			case status := <-r.transport.WaitFor(events.PriceEventName, price):
+			case status := <-r.transport.WaitFor(messages.PriceMessageName, price):
 				if status.Error != nil {
 					r.logger.Warning(LoggerTag, "Unable to read prices from the network: %s", status.Error)
 					continue

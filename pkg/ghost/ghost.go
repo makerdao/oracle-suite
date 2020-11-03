@@ -25,9 +25,9 @@ import (
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/internal/transport"
-	"github.com/makerdao/gofer/pkg/events"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/messages"
 )
 
 const LoggerTag = "GHOST"
@@ -112,7 +112,7 @@ func (g *Ghost) Start() error {
 
 func (g *Ghost) Stop() error {
 	defer g.logger.Info(LoggerTag, "Stopped")
-	err := g.transport.Unsubscribe(events.PriceEventName)
+	err := g.transport.Unsubscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
 	}
@@ -147,11 +147,11 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	}
 
 	// Broadcast price to P2P network:
-	payload, err := createPriceEventPayload(price, tick)
+	payload, err := createPriceMessage(price, tick)
 	if err != nil {
 		return err
 	}
-	err = g.transport.Broadcast(events.PriceEventName, payload)
+	err = g.transport.Broadcast(messages.PriceMessageName, payload)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 // broadcasterLoop creates a asynchronous loop which fetches prices from exchanges and then
 // sends them to the network at a specified interval.
 func (g *Ghost) broadcasterLoop() error {
-	err := g.transport.Subscribe(events.PriceEventName)
+	err := g.transport.Subscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
 	}
@@ -182,10 +182,10 @@ func (g *Ghost) broadcasterLoop() error {
 					g.logger.Warning(LoggerTag, "Unable to fetch prices for some pairs: %s", err)
 				}
 
-				// Send prices to the network.
+				// Send prices to the network:
 				//
 				// Signing may be slow, especially with high KDF so this is why
-				// we're using goroutines here:
+				// we're using goroutines here.
 				wg.Add(1)
 				go func() {
 					for assetPair, _ := range g.pairs {
@@ -206,13 +206,13 @@ func (g *Ghost) broadcasterLoop() error {
 	return nil
 }
 
-func createPriceEventPayload(price *oracle.Price, tick graph.AggregatorTick) (transport.Event, error) {
+func createPriceMessage(price *oracle.Price, tick graph.AggregatorTick) (transport.Message, error) {
 	trace, err := marshal.Marshall(marshal.JSON, tick)
 	if err != nil {
 		return nil, err
 	}
 
-	return &events.Price{
+	return &messages.Price{
 		Price: price,
 		Trace: trace,
 	}, nil

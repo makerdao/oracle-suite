@@ -102,6 +102,7 @@ func defaultKeyStore() string {
 		defaultKeyStores = []string{
 			os.Getenv("HOME") + "/.ethereum/keystore",
 			os.Getenv("HOME") + "/.local/share/io.parity.ethereum/keys/ethereum",
+			os.Getenv("HOME") + "/snap/geth/current/.ethereum/keystore",
 		}
 	}
 
