@@ -189,7 +189,7 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 		)
 	}
 
-	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
+	isExpired := oracleTime.Add(pair.OracleExpiration).Before(time.Now())
 	isStale := pair.store.spread(oraclePrice) >= pair.OracleSpread
 
 	if isExpired || isStale {
