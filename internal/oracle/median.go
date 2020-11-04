@@ -87,9 +87,9 @@ func (m *Median) Price(ctx context.Context) (*big.Int, error) {
 }
 
 // Poke sends transaction to the smart contract which invokes contract's
-// poke method. Before transaction is sent, it is executed on the EVM using the
-// eth_call to check if it's valid.
-func (m *Median) Poke(ctx context.Context, prices []*Price) (*common.Hash, error) {
+// poke method. If you set simulateBeforeRun to true, then transaction will be
+// simulated on the EVM before actual transaction will be send.
+func (m *Median) Poke(ctx context.Context, prices []*Price, simulateBeforeRun bool) (*common.Hash, error) {
 	// It's important to send prices in correct order, otherwise contract will fail:
 	sort.Slice(prices, func(i, j int) bool {
 		return prices[i].Val.Cmp(prices[j].Val) < 0
@@ -120,8 +120,10 @@ func (m *Median) Poke(ctx context.Context, prices []*Price) (*common.Hash, error
 	}
 
 	// Simulate transaction to not waste a gas in case of an error:
-	if _, err := m.read(ctx, "poke", val, age, v, r, s); err != nil {
-		return nil, err
+	if simulateBeforeRun {
+		if _, err := m.read(ctx, "poke", val, age, v, r, s); err != nil {
+			return nil, err
+		}
 	}
 
 	return m.write(ctx, "poke", val, age, v, r, s)

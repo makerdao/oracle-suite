@@ -11,7 +11,7 @@ const (
 	Invalid = iota - 2
 	Debug
 	Info
-	Warning
+	Warn
 	Error
 	Fatal
 	Panic
@@ -24,7 +24,7 @@ func (l Level) String() string {
 		return "INFO"
 	case Debug:
 		return "DEBUG"
-	case Warning:
+	case Warn:
 		return "WARN"
 	case Error:
 		return "ERROR"
@@ -41,12 +41,12 @@ func (l Level) String() string {
 
 func LevelFromString(level string) (Level, error) {
 	switch strings.ToLower(level) {
-	case "info":
-		return Info, nil
 	case "debug":
 		return Debug, nil
+	case "info":
+		return Info, nil
 	case "warn", "warning":
-		return Warning, nil
+		return Warn, nil
 	case "err", "error":
 		return Error, nil
 	case "fatal":
@@ -57,7 +57,7 @@ func LevelFromString(level string) (Level, error) {
 		return None, nil
 	}
 
-	return Invalid, errors.New("invalid error level, valid levels are: info, debug, warning, error, fatal, panic and none")
+	return Invalid, errors.New("invalid error level, valid levels are: debug, info, warn, error, fatal, panic and none")
 }
 
 type Logger interface {
@@ -67,7 +67,7 @@ type Logger interface {
 	Tags() []string
 	Debug(tag string, message string, a ...interface{})
 	Info(tag string, message string, a ...interface{})
-	Warning(tag string, message string, a ...interface{})
+	Warn(tag string, message string, a ...interface{})
 	Error(tag string, message string, a ...interface{})
 	Fatal(tag string, message string, a ...interface{})
 	Panic(tag string, message string, a ...interface{})

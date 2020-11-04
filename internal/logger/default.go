@@ -7,8 +7,8 @@ import (
 )
 
 type Default struct {
-	level      Level
-	tags []string
+	level Level
+	tags  []string
 }
 
 func NewDefault() *Default {
@@ -41,8 +41,8 @@ func (s *Default) Info(tag string, message string, a ...interface{}) {
 	s.log(Info, tag, message, a...)
 }
 
-func (s *Default) Warning(tag string, message string, a ...interface{}) {
-	s.log(Warning, tag, message, a...)
+func (s *Default) Warn(tag string, message string, a ...interface{}) {
+	s.log(Warn, tag, message, a...)
 }
 
 func (s *Default) Error(tag string, message string, a ...interface{}) {
@@ -58,21 +58,23 @@ func (s *Default) Panic(tag string, message string, a ...interface{}) {
 }
 
 func (s *Default) log(level Level, tag string, message string, a ...interface{}) {
-	message = strings.TrimSpace(fmt.Sprintf("%-5s [%s] "+message, append([]interface{}{ level.String(), tag}, a...)...))
-
 	if level == Fatal {
-		log.Fatal(message)
+		log.Fatal(s.format(level, tag, message, a...))
 		return
 	}
 
 	if level == Panic {
-		log.Panic(message)
+		log.Panic(s.format(level, tag, message, a...))
 		return
 	}
 
 	if level >= s.level && s.isTagEnabled(tag) {
-		log.Printf(message)
+		log.Print(s.format(level, tag, message, a...))
 	}
+}
+
+func (s *Default) format(level Level, tag string, message string, a ...interface{}) string {
+	return strings.TrimSpace(fmt.Sprintf("%-5s [%s] "+message, append([]interface{}{level.String(), tag}, a...)...))
 }
 
 func (s *Default) isTagEnabled(tag string) bool {

@@ -43,15 +43,19 @@ type Ghost struct {
 }
 
 type Config struct {
-	// Gofer is an instance of the gofer.Gofer which will be used to fetch prices.
+	// Gofer is an instance of the gofer.Gofer which will be used to fetch
+	// prices.
 	Gofer *gofer.Gofer
-	// Wallet is an instance of the ethereum.Wallet which will be used to sign prices.
+	// Wallet is an instance of the ethereum.Wallet which will be used to
+	// sign prices.
 	Wallet *ethereum.Wallet
-	// Transport is a implementation of transport used to send prices to relayers.
+	// Transport is a implementation of transport used to send prices to
+	// relayers.
 	Transport transport.Transport
 	// Interval describes how often we should send prices to the network.
 	Interval time.Duration
-	// Logger is a current logger interface used by the Ghost.
+	// Logger is a current logger interface used by the Ghost. The Logger is
+	//	// required to monitor asynchronous processes.
 	Logger logger.Logger
 	// Pairs is the list supported pairs by Ghost with their configuration.
 	Pairs []Pair
@@ -180,7 +184,7 @@ func (g *Ghost) broadcasterLoop() error {
 				// Fetch prices from exchanges:
 				err := g.gofer.Feed(g.gofer.Pairs()...)
 				if err != nil {
-					g.logger.Warning(LoggerTag, "Unable to fetch prices for some pairs: %s", err)
+					g.logger.Warn(LoggerTag, "Unable to fetch prices for some pairs: %s", err)
 				}
 
 				// Send prices to the network:
@@ -192,7 +196,7 @@ func (g *Ghost) broadcasterLoop() error {
 					for assetPair, _ := range g.pairs {
 						err := g.broadcast(assetPair)
 						if err != nil {
-							g.logger.Warning(LoggerTag, "Unable to broadcast price: %s", err)
+							g.logger.Warn(LoggerTag, "Unable to broadcast price: %s", err)
 						} else {
 							g.logger.Info(LoggerTag, "Price broadcasted: %s", assetPair)
 						}

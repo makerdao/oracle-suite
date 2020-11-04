@@ -44,13 +44,16 @@ type Relayer struct {
 }
 
 type Config struct {
-	// Feeds is the list of Ethereum addresses from which prices will be accepted.
+	// Feeds is the list of Ethereum addresses from which prices will be
+	// accepted.
 	Feeds []string
-	// Transport is a implementation of transport used to fetch prices from feeders.
+	// Transport is a implementation of transport used to fetch prices from
+	// feeders.
 	Transport transport.Transport
 	// Interval describes how often we should try to update Oracles.
 	Interval time.Duration
-	// Logger is a current logger interface used by the Relayer.
+	// Logger is a current logger interface used by the Relayer. The Logger is
+	// required to monitor asynchronous processes.
 	Logger logger.Logger
 	// Pairs is the list supported pairs by Relayer with their configuration.
 	Pairs []Pair
@@ -71,8 +74,8 @@ type Pair struct {
 	// Median is the instance of the oracle.Median which is the interface for
 	// the Oracle contract.
 	Median *oracle.Median
-	// prices contains list of prices form the feeders.
-	prices *prices
+	// store contains list of prices form feeders.
+	store *store
 }
 
 func NewRelayer(config Config) *Relayer {
@@ -89,7 +92,7 @@ func NewRelayer(config Config) *Relayer {
 	}
 
 	for _, pair := range config.Pairs {
-		pair.prices = newPrices()
+		pair.store = newStore()
 		r.pairs[pair.AssetPair] = pair
 	}
 
@@ -140,7 +143,7 @@ func (r *Relayer) collect(price *oracle.Price) error {
 		return fmt.Errorf("recieved pair is not configured (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
 
-	err = r.pairs[price.AssetPair].prices.Add(price)
+	err = r.pairs[price.AssetPair].store.add(price)
 	if err != nil {
 		return err
 	}
@@ -170,31 +173,31 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	}
 
 	// Clear expired prices:
-	pair.prices.ClearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
-	pair.prices.ClearOlderThan(oracleTime)
+	pair.store.clearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
+	pair.store.clearOlderThan(oracleTime)
 
 	// Use only a minimum prices required to achieve a quorum:
-	pair.prices.Truncate(oracleQuorum)
+	pair.store.truncate(oracleQuorum)
 
 	// Check if there are enough prices to achieve a quorum:
-	if pair.prices.Len() != oracleQuorum {
+	if pair.store.len() != oracleQuorum {
 		return nil, fmt.Errorf(
 			"unable to update the %s oracle, there is not enough prices to achieve a quorum (%d/%d)",
 			assetPair,
-			pair.prices.Len(),
+			pair.store.len(),
 			oracleQuorum,
 		)
 	}
 
 	isExpired := oracleTime.Add(pair.OracleExpiration).After(time.Now())
-	isStale := pair.prices.Spread(oraclePrice) >= pair.OracleSpread
+	isStale := pair.store.spread(oraclePrice) >= pair.OracleSpread
 
 	if isExpired || isStale {
 		// Send *actual* transaction to the Ethereum network:
-		tx, err := pair.Median.Poke(ctx, pair.prices.Get())
+		tx, err := pair.Median.Poke(ctx, pair.store.get(), true)
 		// There is no point in keeping the prices that have already been sent,
 		// so we can safely remove them:
-		pair.prices.Clear()
+		pair.store.clear()
 		return tx, err
 	}
 
@@ -216,12 +219,12 @@ func (r *Relayer) collectorLoop() error {
 				return
 			case status := <-r.transport.WaitFor(messages.PriceMessageName, price):
 				if status.Error != nil {
-					r.logger.Warning(LoggerTag, "Unable to read prices from the network: %s", status.Error)
+					r.logger.Warn(LoggerTag, "Unable to read prices from the network: %s", status.Error)
 					continue
 				}
 				err := r.collect(price.Price)
 				if err != nil {
-					r.logger.Warning(LoggerTag, "Received invalid price: %s", err)
+					r.logger.Warn(LoggerTag, "Received invalid price: %s", err)
 				} else {
 					from, _ := price.Price.From()
 					r.logger.Info(LoggerTag, "Received price (pair: %s, from: %s, price: %s, age: %s)", price.Price.AssetPair, from.String(), price.Price.Val.String(), price.Price.Age.String())
@@ -248,7 +251,7 @@ func (r *Relayer) relayerLoop() {
 					r.mu.Lock()
 					tx, err := r.relay(assetPair)
 					if err != nil {
-						r.logger.Warning(LoggerTag, "Unable to relay prices: %s", err)
+						r.logger.Warn(LoggerTag, "Unable to relay prices: %s", err)
 					} else {
 						r.logger.Info(LoggerTag, "Prices relayed (tx: %s, pair: %s)", tx.String(), assetPair)
 					}
