@@ -133,7 +133,7 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	if err != nil {
 		return fmt.Errorf("recieved price has an invalid signature (pair: %s)", price.AssetPair)
 	}
-	if r.isFeedAllowed(*from) {
+	if !r.isFeedAllowed(*from) {
 		return fmt.Errorf("address is not on feed list (pair: %s, from: %s)", price.AssetPair, from.String())
 	}
 	if price.Val.Cmp(big.NewInt(0)) <= 0 {
@@ -151,10 +151,8 @@ func (r *Relayer) collect(price *oracle.Price) error {
 	return nil
 }
 
-// relay tries to update an Oracle contract for given pair. It may return
-// an error if there is not enough prices to achieve a quorum, Oracle is not
-// expired or Oracle price is not stale. Otherwise it'll return transaction
-// hash.
+// relay tries to update an Oracle contract for given pair. It'll return
+// transaction hash or nil if there is no need to update Oracle.
 func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	ctx := context.Background()
 	pair := r.pairs[assetPair]
@@ -189,8 +187,19 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 		)
 	}
 
+	spread := pair.store.spread(oraclePrice)
 	isExpired := oracleTime.Add(pair.OracleExpiration).Before(time.Now())
-	isStale := pair.store.spread(oraclePrice) >= pair.OracleSpread
+	isStale := spread >= pair.OracleSpread
+
+	r.logger.Debug(LoggerTag, "Updating Oracle for %s", assetPair)
+	r.logger.Debug(LoggerTag, "Bar: %d", oracleQuorum)
+	r.logger.Debug(LoggerTag, "Age: %s", oracleTime.String())
+	r.logger.Debug(LoggerTag, "Val: %s", oraclePrice.String())
+	r.logger.Debug(LoggerTag, "Expired: %v (current: %s, min: %s)", isExpired, time.Now().Sub(oracleTime), pair.OracleExpiration.String())
+	r.logger.Debug(LoggerTag, "Stale: %v (current: %.1f, min: %.1f)", isStale, spread, pair.OracleSpread)
+	for n, price := range pair.store.get() {
+		r.logger.Debug(LoggerTag, "Price #%d: %s", n+1, price.String())
+	}
 
 	if isExpired || isStale {
 		// Send *actual* transaction to the Ethereum network:
@@ -201,7 +210,8 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 		return tx, err
 	}
 
-	return nil, fmt.Errorf("unable to update %s oracle: %w", assetPair, err)
+	// There is no need to update Oracle:
+	return nil, nil
 }
 
 // collectorLoop creates a asynchronous loop which fetches prices from feeders.
@@ -226,7 +236,7 @@ func (r *Relayer) collectorLoop() error {
 				if err != nil {
 					r.logger.Warn(LoggerTag, "Received invalid price: %s", err)
 				} else {
-					from, _ := price.Price.From()
+					from, _ := price.Price.From() // the price was already validated, so an error can't occur here
 					r.logger.Info(LoggerTag, "Received price (pair: %s, from: %s, price: %s, age: %s)", price.Price.AssetPair, from.String(), price.Price.Val.String(), price.Price.Age.String())
 				}
 			}
@@ -251,9 +261,11 @@ func (r *Relayer) relayerLoop() {
 					r.mu.Lock()
 					tx, err := r.relay(assetPair)
 					if err != nil {
-						r.logger.Warn(LoggerTag, "Unable to relay prices: %s", err)
+						r.logger.Warn(LoggerTag, "Unable to update Oracle: %s", err)
+					} else if tx == nil {
+						r.logger.Info(LoggerTag, "Oracle price is still valid (pair: %s)", assetPair)
 					} else {
-						r.logger.Info(LoggerTag, "Prices relayed (tx: %s, pair: %s)", tx.String(), assetPair)
+						r.logger.Info(LoggerTag, "Oracle updated (tx: %s, pair: %s)", tx.String(), assetPair)
 					}
 					r.mu.Unlock()
 				}

@@ -16,6 +16,7 @@
 package relayer
 
 import (
+	"math"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -127,7 +128,7 @@ func (p *store) spread(price *big.Int) float64 {
 	x = new(big.Float).Mul(x, big.NewFloat(100))
 	xf, _ := x.Float64()
 
-	return xf
+	return math.Abs(xf)
 }
 
 // clearOlderThan deletes prices which are older than given time.
