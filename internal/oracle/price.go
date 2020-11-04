@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -103,6 +104,23 @@ func (p *Price) Sign(wallet *ethereum.Wallet) error {
 	p.V = signature[64]
 
 	return nil
+}
+
+func (p *Price) String() string {
+	from := "*invalid signature*"
+	if addr, err := p.From(); err == nil {
+		from = addr.String()
+	}
+
+	return fmt.Sprintf(
+		"from: %s, age: %s, val: %s, V: 0x%s, R: 0x%s, S: 0x%s",
+		from,
+		p.Age.String(),
+		p.Val.String(),
+		hex.EncodeToString([]byte{p.V}),
+		hex.EncodeToString(p.R[:]),
+		hex.EncodeToString(p.S[:]),
+	)
 }
 
 func (p *Price) MarshalJSON() ([]byte, error) {
