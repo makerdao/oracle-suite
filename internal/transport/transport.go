@@ -16,7 +16,8 @@
 package transport
 
 type Status struct {
-	Error error
+	Payload Message
+	Error   error
 }
 
 type Message interface {
@@ -25,11 +26,11 @@ type Message interface {
 }
 
 type Transport interface {
-	// Subscribes starts subscribing for messages with given topic.
+	// Subscribe starts subscribing for messages with given topic.
 	Subscribe(topic string) error
-	// Subscribes stops subscribing for messages with given topic.
+	// Unsubscribe stops subscribing for messages with given topic.
 	Unsubscribe(topic string) error
-	// Broadcast send a message with given topic to the network. To send
+	// Broadcast sends a message with given topic to the network. To send
 	// a message, you must first subscribe appropriate topic.
 	Broadcast(topic string, message Message) error
 	// WaitFor returns a channel which will be blocked until message for given
@@ -38,6 +39,6 @@ type Transport interface {
 	// supported by this method. In case of an error, return will be returned in
 	// a Status structure.
 	WaitFor(topic string, message Message) chan Status
-	// Closes closes connection.
+	// Close closes connection.
 	Close() error
 }

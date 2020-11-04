@@ -189,7 +189,8 @@ func (p *P2P) WaitFor(topic string, payload transport.Message) chan transport.St
 		}
 
 		p.subs[topic].statusCh <- transport.Status{
-			Error: err,
+			Payload: payload,
+			Error:   err,
 		}
 	}()
 

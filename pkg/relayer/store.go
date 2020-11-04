@@ -26,34 +26,39 @@ import (
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
-// prices contains a list of oracle.Price's for single asset pair. Only one
+// store contains a list of oracle.Price's for single asset pair. Only one
 // price from single address can be added to that list.
-type prices struct {
+type store struct {
 	assetPair string
 	prices    map[common.Address]*oracle.Price
 }
 
-// newPrices creates the new Prices instance.
-func newPrices() *prices {
-	return &prices{
+// newStore creates the new Prices instance.
+func newStore() *store {
+	return &store{
 		prices: make(map[common.Address]*oracle.Price, 0),
 	}
 }
 
-// Add adds a new price to the list. If an price from same address already
-// exists, it will be overwritten.
-func (p *prices) Add(price *oracle.Price) error {
+// add adds a new price to the list. If a price from same address already
+// exists, the newer one will be used.
+func (p *store) add(price *oracle.Price) error {
 	addr, err := price.From()
 	if err != nil {
 		return err
+	}
+
+	// Skip if previous price is newer:
+	if prev, ok := p.prices[*addr]; ok && prev.Age.After(price.Age) {
+		return nil
 	}
 
 	p.prices[*addr] = price
 	return nil
 }
 
-// Get returns all prices from the list.
-func (p *prices) Get() []*oracle.Price {
+// get returns all prices from the list.
+func (p *store) get() []*oracle.Price {
 	var prices []*oracle.Price
 	for _, price := range p.prices {
 		prices = append(prices, price)
@@ -62,35 +67,35 @@ func (p *prices) Get() []*oracle.Price {
 	return prices
 }
 
-// Len returns the number of prices in the list.
-func (p *prices) Len() int64 {
+// len returns the number of prices in the list.
+func (p *store) len() int64 {
 	return int64(len(p.prices))
 }
 
-// Truncate removes random prices until the number of remaining prices is equal
+// truncate removes random prices until the number of remaining prices is equal
 // to n. If number of prices is less or equal to n, it does nothing.
 //
 // This method is used to reduce number of arguments in transaction which will
 // reduce transaction costs.
-func (p *prices) Truncate(n int64) {
+func (p *store) truncate(n int64) {
 	if int64(len(p.prices)) <= n {
 		return
 	}
 
-	prices := p.Get()
+	prices := p.get()
 	rand.Shuffle(len(prices), func(i, j int) {
 		prices[i], prices[j] = prices[j], prices[i]
 	})
 
-	p.Clear()
+	p.clear()
 	for _, price := range prices {
-		_ = p.Add(price)
+		_ = p.add(price)
 	}
 }
 
-// Median calculates median price for all prices in the list.
-func (p *prices) Median() *big.Int {
-	prices := p.Get()
+// median calculates median price for all prices in the list.
+func (p *store) Median() *big.Int {
+	prices := p.get()
 
 	count := len(p.prices)
 	if count == 0 {
@@ -111,23 +116,22 @@ func (p *prices) Median() *big.Int {
 	return prices[(count-1)/2].Val
 }
 
-// Spread calculates spread between given price and an median. The spread is
-// returned as percentage points.
-func (p *prices) Spread(price *big.Int) float64 {
+// spread calculates spread between given price and a median price. The spread
+// is returned as percentage points.
+func (p *store) spread(price *big.Int) float64 {
 	oldPriceF := new(big.Float).SetInt(price)
 	newPriceF := new(big.Float).SetInt(p.Median())
 
 	x := new(big.Float).Sub(newPriceF, oldPriceF)
 	x = new(big.Float).Quo(x, oldPriceF)
 	x = new(big.Float).Mul(x, big.NewFloat(100))
-
 	xf, _ := x.Float64()
 
 	return xf
 }
 
-// ClearOlderThan deletes prices which are older than given time.
-func (p *prices) ClearOlderThan(t time.Time) {
+// clearOlderThan deletes prices which are older than given time.
+func (p *store) clearOlderThan(t time.Time) {
 	for address, price := range p.prices {
 		if price.Age.Before(t) {
 			delete(p.prices, address)
@@ -135,7 +139,7 @@ func (p *prices) ClearOlderThan(t time.Time) {
 	}
 }
 
-// Clear deletes all prices from the list.
-func (p *prices) Clear() {
+// clear deletes all prices from the list.
+func (p *store) clear() {
 	p.prices = make(map[common.Address]*oracle.Price, 0)
 }
