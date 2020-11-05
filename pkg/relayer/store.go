@@ -95,7 +95,7 @@ func (p *store) truncate(n int64) {
 }
 
 // median calculates median price for all prices in the list.
-func (p *store) Median() *big.Int {
+func (p *store) median() *big.Int {
 	prices := p.get()
 
 	count := len(p.prices)
@@ -121,7 +121,7 @@ func (p *store) Median() *big.Int {
 // is returned as percentage points.
 func (p *store) spread(price *big.Int) float64 {
 	oldPriceF := new(big.Float).SetInt(price)
-	newPriceF := new(big.Float).SetInt(p.Median())
+	newPriceF := new(big.Float).SetInt(p.median())
 
 	x := new(big.Float).Sub(newPriceF, oldPriceF)
 	x = new(big.Float).Quo(x, oldPriceF)

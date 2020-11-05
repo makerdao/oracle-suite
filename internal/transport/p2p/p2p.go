@@ -66,7 +66,7 @@ func NewP2P(cfg Config) (*P2P, error) {
 		subs:   make(map[string]subscription, 0),
 	}
 
-	err = p.setupNode(cfg.Context, listen, cfg.Peers)
+	err = p.setupNode(cfg.Context, listen)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +77,11 @@ func NewP2P(cfg Config) (*P2P, error) {
 	}
 
 	err = p.setupDiscovery()
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.bootstrapNodes(cfg.Peers)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +168,7 @@ func (p *P2P) Broadcast(topic string, payload transport.Message) error {
 		return err
 	}
 
-	p.logger.Debug(LoggerTag, "Message \"%s\" broadcasted: ", topic, bts)
+	p.logger.Debug(LoggerTag, "Message \"%s\" broadcasted: %s", topic, string(bts))
 	return p.subs[topic].topic.Publish(p.ctx, bts)
 }
 
@@ -180,7 +185,7 @@ func (p *P2P) WaitFor(topic string, payload transport.Message) chan transport.St
 	go func() {
 		msg, err := sub.Next(p.ctx)
 		if err == nil {
-			p.logger.Debug(LoggerTag, "Message \"%s\" received: %s", topic, msg.Data)
+			p.logger.Debug(LoggerTag, "Message \"%s\" received: %s", topic, string(msg.Data))
 		}
 
 		// Try to unmarshall payload ONLY if there is no error.
