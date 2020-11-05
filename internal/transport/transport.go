@@ -36,7 +36,7 @@ type Transport interface {
 	// WaitFor returns a channel which will be blocked until message for given
 	// topic arrives. Then message will be unmarshalled using provided message
 	// structure. Note, that only messages for subscribed topics will be
-	// supported by this method. In case of an error, return will be returned in
+	// supported by this method. In case of an error, error will be returned in
 	// a Status structure.
 	WaitFor(topic string, message Message) chan Status
 	// Close closes connection.
