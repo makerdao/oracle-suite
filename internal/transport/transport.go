@@ -16,7 +16,7 @@
 package transport
 
 type Status struct {
-	Payload Message
+	Message Message
 	Error   error
 }
 
