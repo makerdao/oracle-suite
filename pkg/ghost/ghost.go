@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/logger"
+	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/internal/transport"
@@ -37,8 +37,8 @@ type Ghost struct {
 	wallet    *ethereum.Wallet
 	transport transport.Transport
 	interval  time.Duration
-	logger    logger.Logger
 	pairs     map[graph.Pair]Pair
+	log       log.Logger
 	doneCh    chan struct{}
 }
 
@@ -56,7 +56,7 @@ type Config struct {
 	Interval time.Duration
 	// Logger is a current logger interface used by the Ghost. The Logger is
 	//	// required to monitor asynchronous processes.
-	Logger logger.Logger
+	Logger log.Logger
 	// Pairs is the list supported pairs by Ghost with their configuration.
 	Pairs []Pair
 }
@@ -78,8 +78,8 @@ func NewGhost(config Config) (*Ghost, error) {
 		wallet:    config.Wallet,
 		transport: config.Transport,
 		interval:  config.Interval,
-		logger:    config.Logger,
 		pairs:     make(map[graph.Pair]Pair, 0),
+		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
 		doneCh:    make(chan struct{}),
 	}
 
@@ -105,7 +105,8 @@ func NewGhost(config Config) (*Ghost, error) {
 }
 
 func (g *Ghost) Start() error {
-	g.logger.Info(LoggerTag, "Starting")
+	g.log.Infof("Starting")
+
 	err := g.broadcasterLoop()
 	if err != nil {
 		return err
@@ -115,7 +116,7 @@ func (g *Ghost) Start() error {
 }
 
 func (g *Ghost) Stop() error {
-	defer g.logger.Info(LoggerTag, "Stopped")
+	defer g.log.Infof("Stopped")
 
 	close(g.doneCh)
 	err := g.transport.Unsubscribe(messages.PriceMessageName)
@@ -184,7 +185,9 @@ func (g *Ghost) broadcasterLoop() error {
 				// Fetch prices from exchanges:
 				err := g.gofer.Feed(g.gofer.Pairs()...)
 				if err != nil {
-					g.logger.Warn(LoggerTag, "Unable to fetch prices for some pairs: %s", err)
+					g.log.
+						WithError(err).
+						Warn("Unable to fetch prices for some pairs")
 				}
 
 				// Send prices to the network:
@@ -196,9 +199,14 @@ func (g *Ghost) broadcasterLoop() error {
 					for assetPair, _ := range g.pairs {
 						err := g.broadcast(assetPair)
 						if err != nil {
-							g.logger.Warn(LoggerTag, "Unable to broadcast price: %s", err)
+							g.log.
+								WithFields(log.Fields{"assetPair": assetPair}).
+								WithError(err).
+								Warn("Unable to broadcast price")
 						} else {
-							g.logger.Info(LoggerTag, "Price broadcasted: %s", assetPair)
+							g.log.
+								WithFields(log.Fields{"assetPair": assetPair}).
+								Info("Price broadcasted")
 						}
 					}
 					wg.Done()

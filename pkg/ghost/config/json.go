@@ -26,7 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/logger"
+	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
@@ -46,7 +46,7 @@ type JSONEthereum struct {
 }
 
 type JSONP2P struct {
-	Listen string   `json:"listen"`
+	Listen []string `json:"listen"`
 	Peers  []string `json:"peers"`
 }
 
@@ -68,7 +68,7 @@ type JSONConfigErr struct {
 type Dependencies struct {
 	Context context.Context
 	Gofer   *gofer.Gofer
-	Logger  logger.Logger
+	Logger  log.Logger
 }
 
 type Instances struct {
@@ -116,10 +116,10 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 
 	transport, err := p2p.NewP2P(p2p.Config{
-		Context: deps.Context,
-		Listen:  j.P2P.Listen,
-		Peers:   j.P2P.Peers,
-		Logger:  deps.Logger,
+		Context:        deps.Context,
+		ListenAddrs:    j.P2P.Listen,
+		BootstrapPeers: j.P2P.Peers,
+		Logger:         deps.Logger,
 	})
 	if err != nil {
 		return nil, err

@@ -22,9 +22,10 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/logger"
+	"github.com/makerdao/gofer/internal/log"
 	goferConfig "github.com/makerdao/gofer/pkg/config"
 	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
 	"github.com/makerdao/gofer/pkg/gofer"
@@ -32,17 +33,16 @@ import (
 	"github.com/makerdao/gofer/pkg/origins"
 )
 
-func newLogger(level string, tags []string) (logger.Logger, error) {
-	ll, err := logger.LevelFromString(level)
+func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
+	ll, err := logrus.ParseLevel(level)
 	if err != nil {
 		return nil, err
 	}
 
-	l := logger.NewDefault()
-	l.SetLevel(ll)
-	l.SetTags(tags)
+	lr := logrus.New()
+	lr.SetLevel(ll)
 
-	return l, nil
+	return log.WrapLogger(lr, nil), nil
 }
 
 func newGofer(path string) (*gofer.Gofer, error) {
@@ -64,7 +64,7 @@ func newGofer(path string) (*gofer.Gofer, error) {
 	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
 }
 
-func newGhost(path string, gof *gofer.Gofer, log logger.Logger) (*ghostConfig.Instances, error) {
+func newGhost(path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
