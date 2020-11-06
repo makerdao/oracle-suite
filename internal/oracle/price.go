@@ -19,7 +19,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/log"
 )
 
 const priceMultiplier = 1e18
@@ -106,21 +106,21 @@ func (p *Price) Sign(wallet *ethereum.Wallet) error {
 	return nil
 }
 
-func (p *Price) String() string {
+func (p *Price) Fields() log.Fields {
 	from := "*invalid signature*"
 	if addr, err := p.From(); err == nil {
 		from = addr.String()
 	}
 
-	return fmt.Sprintf(
-		"from: %s, age: %s, val: %s, V: 0x%s, R: 0x%s, S: 0x%s",
-		from,
-		p.Age.String(),
-		p.Val.String(),
-		hex.EncodeToString([]byte{p.V}),
-		hex.EncodeToString(p.R[:]),
-		hex.EncodeToString(p.S[:]),
-	)
+	return log.Fields{
+		"assetPair": p.AssetPair,
+		"form":      from,
+		"age":       p.Age.String(),
+		"val":       p.Val.String(),
+		"V":         hex.EncodeToString([]byte{p.V}),
+		"R":         hex.EncodeToString(p.R[:]),
+		"S":         hex.EncodeToString(p.S[:]),
+	}
 }
 
 func (p *Price) MarshalJSON() ([]byte, error) {

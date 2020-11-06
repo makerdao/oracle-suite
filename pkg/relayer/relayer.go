@@ -126,28 +126,39 @@ func (r *Relayer) Stop() error {
 // collect adds a price from a feeder which may be used to update
 // Oracle contract. The price will be added only if a feeder is
 // allowed to send prices (must be on the r.Feeds list).
-func (r *Relayer) collect(price *oracle.Price) error {
+func (r *Relayer) collect(price *messages.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	from, err := price.From()
+	from, err := price.Price.From()
 	if err != nil {
 		return errors.New("received price has an invalid signature")
 	}
 	if !r.isFeedAllowed(*from) {
 		return errors.New("address is not on feed list")
 	}
-	if price.Val.Cmp(big.NewInt(0)) <= 0 {
+	if price.Price.Val.Cmp(big.NewInt(0)) <= 0 {
 		return errors.New("received price is invalid")
 	}
-	if _, ok := r.pairs[price.AssetPair]; !ok {
+	if _, ok := r.pairs[price.Price.AssetPair]; !ok {
 		return errors.New("received pair is not configured")
 	}
 
-	err = r.pairs[price.AssetPair].store.add(price)
+	err = r.pairs[price.Price.AssetPair].store.add(price.Price)
 	if err != nil {
 		return err
 	}
+
+	// Log received message with it's trace:
+	r.log.
+		WithFields(log.Fields{
+			"assetPair": price.Price.AssetPair,
+			"val":       price.Price.Val.String(),
+			"age":       price.Price.Age.String(),
+			"from":      from.String(),
+			"trace":     string(price.Trace),
+		}).
+		Debug("Price received")
 
 	return nil
 }
@@ -201,14 +212,8 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 		}).
 		Debug("Trying to update Oracle")
 	for _, price := range pair.store.get() {
-		form, _ := price.From()
 		r.log.
-			WithFields(log.Fields{
-				"assetPair": assetPair,
-				"age":       price.Age.String(),
-				"val":       price.Val.String(),
-				"from":      form,
-			}).
+			WithFields(price.Fields()).
 			Debug("Feed")
 	}
 
@@ -253,14 +258,12 @@ func (r *Relayer) collectorLoop() error {
 				}
 
 				// Try to collect received price:
-				err := r.collect(price.Price)
+				err := r.collect(price)
 
 				// Prepare log fields:
 				from, _ := price.Price.From()
 				fields := log.Fields{
 					"assetPair": price.Price.AssetPair,
-					"price":     price.Price.Val.String(),
-					"age":       price.Price.Age.String(),
 				}
 				if from != nil {
 					fields["from"] = from.String()
@@ -275,7 +278,7 @@ func (r *Relayer) collectorLoop() error {
 				} else {
 					r.log.
 						WithFields(fields).
-						Info("Received price")
+						Info("Price received")
 				}
 			}
 		}

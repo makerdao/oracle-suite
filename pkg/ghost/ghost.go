@@ -153,14 +153,24 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	}
 
 	// Broadcast price to P2P network:
-	payload, err := createPriceMessage(price, tick)
+	message, err := createPriceMessage(price, tick)
 	if err != nil {
 		return err
 	}
-	err = g.transport.Broadcast(messages.PriceMessageName, payload)
+	err = g.transport.Broadcast(messages.PriceMessageName, message)
 	if err != nil {
 		return err
 	}
+
+	// Log broadcasted message with it's trace:
+	g.log.
+		WithFields(log.Fields{
+			"assetPair": price.AssetPair,
+			"val":       price.Val.String(),
+			"age":       price.Age.String(),
+			"trace":     string(message.Trace),
+		}).
+		Debug("Price broadcasted")
 
 	return err
 }
@@ -219,7 +229,7 @@ func (g *Ghost) broadcasterLoop() error {
 	return nil
 }
 
-func createPriceMessage(price *oracle.Price, tick graph.AggregatorTick) (transport.Message, error) {
+func createPriceMessage(price *oracle.Price, tick graph.AggregatorTick) (*messages.Price, error) {
 	trace, err := marshal.Marshall(marshal.JSON, tick)
 	if err != nil {
 		return nil, err
