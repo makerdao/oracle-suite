@@ -8,13 +8,16 @@ import (
 
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport"
+	"github.com/makerdao/gofer/internal/transport/p2p/banner"
+	"github.com/makerdao/gofer/internal/transport/p2p/logger"
 )
 
 const LoggerTag = "P2P"
 
 type P2P struct {
-	log  log.Logger
-	node *node
+	log    log.Logger
+	node   *Node
+	banner *banner.Banner
 }
 
 type Config struct {
@@ -31,8 +34,11 @@ func NewP2P(config Config) (*P2P, error) {
 	l := log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
 	p := &P2P{
 		log:  l,
-		node: newNode(config.Context, l),
+		node: NewNode(config.Context, l),
 	}
+
+	logger.Register(p.node, l)
+	p.banner = banner.Register(p.node)
 
 	err = p.startNode(config.ListenAddrs)
 	if err != nil {
@@ -52,17 +58,17 @@ func NewP2P(config Config) (*P2P, error) {
 
 // Subscribe implements the transport.Transport interface.
 func (p *P2P) Subscribe(topic string) error {
-	return p.node.subscribe(topic)
+	return p.node.Subscribe(topic)
 }
 
 // Unsubscribe implements the transport.Transport interface.
 func (p *P2P) Unsubscribe(topic string) error {
-	return p.node.unsubscribe(topic)
+	return p.node.Unsubscribe(topic)
 }
 
 // Broadcast implements the transport.Transport interface.
 func (p *P2P) Broadcast(topic string, message transport.Message) error {
-	sub, err := p.node.subscription(topic)
+	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return err
 	}
@@ -71,7 +77,7 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 
 // WaitFor implements the transport.Transport interface.
 func (p *P2P) WaitFor(topic string, message transport.Message) chan transport.Status {
-	sub, err := p.node.subscription(topic)
+	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil
 	}
@@ -81,7 +87,7 @@ func (p *P2P) WaitFor(topic string, message transport.Message) chan transport.St
 // Close implements the transport.Transport interface.
 func (p *P2P) Close() error {
 	defer p.log.Info("Stopped")
-	return p.node.close()
+	return p.node.Close()
 }
 
 func (p *P2P) startNode(addrs []string) error {
@@ -100,7 +106,7 @@ func (p *P2P) startNode(addrs []string) error {
 	}
 
 	// Connect to P2P network:
-	err := p.node.start(maddrs)
+	err := p.node.Start(maddrs)
 	if err != nil {
 		return err
 	}
@@ -120,7 +126,7 @@ func (p *P2P) bannedPeers(addrs []string) error {
 			return err
 		}
 
-		err = p.node.ban(maddr)
+		err = p.banner.Ban(maddr)
 		if err != nil {
 			p.log.
 				WithFields(log.Fields{"addr": addrstr}).
@@ -138,7 +144,7 @@ func (p *P2P) bootstrapPeers(addrs []string) error {
 			return err
 		}
 
-		err = p.node.connect(maddr)
+		err = p.node.Connect(maddr)
 		if err != nil {
 			p.log.
 				WithFields(log.Fields{"addr": addrstr}).
@@ -151,8 +157,8 @@ func (p *P2P) bootstrapPeers(addrs []string) error {
 
 func (p *P2P) listenAddrStrs() []string {
 	var addrstrs []string
-	for _, addr := range p.node.addrs() {
-		addrstrs = append(addrstrs, fmt.Sprintf("%s/p2p/%s", addr.String(), p.node.id()))
+	for _, addr := range p.node.Addrs() {
+		addrstrs = append(addrstrs, fmt.Sprintf("%s/p2p/%s", addr.String(), p.node.ID()))
 	}
 	return addrstrs
 }
