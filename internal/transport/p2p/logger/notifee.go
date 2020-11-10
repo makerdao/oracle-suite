@@ -1,4 +1,4 @@
-package p2p
+package logger
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
@@ -11,12 +11,6 @@ type notifee struct {
 	log log.Logger
 }
 
-func newNotifee(l log.Logger) *notifee {
-	return &notifee{
-		log: l,
-	}
-}
-
 func (n *notifee) Listen(network.Network, multiaddr.Multiaddr) {}
 
 func (n *notifee) ListenClose(network.Network, multiaddr.Multiaddr) {}
@@ -24,13 +18,13 @@ func (n *notifee) ListenClose(network.Network, multiaddr.Multiaddr) {}
 func (n *notifee) Connected(network network.Network, conn network.Conn) {
 	n.log.
 		WithFields(log.Fields{"ip": conn.LocalMultiaddr().String()}).
-		Debug("Connected to peer")
+		Debug("Connected to host")
 }
 
 func (n *notifee) Disconnected(network network.Network, conn network.Conn) {
 	n.log.
 		WithFields(log.Fields{"ip": conn.LocalMultiaddr().String()}).
-		Debug("Disconnected from peer")
+		Debug("Disconnected from host")
 }
 
 func (n *notifee) OpenedStream(network.Network, network.Stream) {}

@@ -149,17 +149,6 @@ func (r *Relayer) collect(price *messages.Price) error {
 		return err
 	}
 
-	// Log received message with it's trace:
-	r.log.
-		WithFields(log.Fields{
-			"assetPair": price.Price.AssetPair,
-			"val":       price.Price.Val.String(),
-			"age":       price.Price.Age.String(),
-			"from":      from.String(),
-			"trace":     string(price.Trace),
-		}).
-		Debug("Price received")
-
 	return nil
 }
 
@@ -262,9 +251,7 @@ func (r *Relayer) collectorLoop() error {
 
 				// Prepare log fields:
 				from, _ := price.Price.From()
-				fields := log.Fields{
-					"assetPair": price.Price.AssetPair,
-				}
+				fields := log.Fields{"assetPair": price.Price.AssetPair}
 				if from != nil {
 					fields["from"] = from.String()
 				}

@@ -162,16 +162,6 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 		return err
 	}
 
-	// Log broadcasted message with it's trace:
-	g.log.
-		WithFields(log.Fields{
-			"assetPair": price.AssetPair,
-			"val":       price.Val.String(),
-			"age":       price.Age.String(),
-			"trace":     string(message.Trace),
-		}).
-		Debug("Price broadcasted")
-
 	return err
 }
 

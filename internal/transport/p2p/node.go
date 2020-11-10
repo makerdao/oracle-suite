@@ -3,50 +3,58 @@ package p2p
 import (
 	"context"
 	"errors"
-	"net"
 	"sync"
 
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/internal/transport/p2p/sets"
 )
 
 var ConnectionIsClosedErr = errors.New("connection is closed")
 var AlreadySubscribedErr = errors.New("topic is already subscribed")
 var TopicIsNotSubscribedErr = errors.New("topic is not subscribed")
 
-type node struct {
+type Node struct {
 	mu sync.Mutex
 
-	ctx       context.Context
-	host      host.Host
-	pubSub    *pubsub.PubSub
-	notifee   *notifee
-	connGater *connGater
-	subs      map[string]*subscription
-	log       log.Logger
-	closed    bool
+	ctx               context.Context
+	host              host.Host
+	pubSub            *pubsub.PubSub
+	notifeeSet        *sets.NotifeeSet
+	connGaterSet      *sets.ConnGaterSet
+	validatorSet      *sets.ValidatorSet
+	eventHandlerSet   *sets.EventHandlerSet
+	messageHandlerSet *sets.MessageHandlerSet
+	subs              map[string]*subscription
+	log               log.Logger
+	closed            bool
 }
 
-func newNode(ctx context.Context, l log.Logger) *node {
-	return &node{
-		ctx:       ctx,
-		notifee:   newNotifee(l),
-		connGater: newConnGater(l),
-		subs:      make(map[string]*subscription, 0),
-		log:       l,
-		closed:    false,
+func NewNode(ctx context.Context, l log.Logger) *Node {
+	return &Node{
+		ctx:               ctx,
+		notifeeSet:        sets.NewNotifeeSet(),
+		connGaterSet:      sets.NewConnGaterSet(),
+		validatorSet:      sets.NewValidatorSet(),
+		eventHandlerSet:   sets.NewEventHandlerSet(),
+		messageHandlerSet: sets.NewMessageHandlerSet(),
+		subs:              make(map[string]*subscription, 0),
+		log:               l,
+		closed:            false,
 	}
 }
 
-func (n *node) start(maddrs []multiaddr.Multiaddr) error {
+func (n *Node) Start(maddrs []multiaddr.Multiaddr) error {
 	h, err := libp2p.New(n.ctx,
 		libp2p.ListenAddrs(maddrs...),
-		libp2p.ConnectionGater(n.connGater),
+		libp2p.ConnectionGater(n.connGaterSet),
 	)
 	if err != nil {
 		return err
@@ -57,22 +65,25 @@ func (n *node) start(maddrs []multiaddr.Multiaddr) error {
 		return err
 	}
 
-	h.Network().Notify(n.notifee)
-
+	h.Network().Notify(n.notifeeSet)
 	n.host = h
 	n.pubSub = ps
 	return nil
 }
 
-func (n *node) id() peer.ID {
+func (n *Node) ID() peer.ID {
 	return n.host.ID()
 }
 
-func (n *node) addrs() []multiaddr.Multiaddr {
+func (n *Node) Addrs() []multiaddr.Multiaddr {
 	return n.host.Addrs()
 }
 
-func (n *node) connect(maddr multiaddr.Multiaddr) error {
+func (n *Node) PubSub() *pubsub.PubSub {
+	return n.pubSub
+}
+
+func (n *Node) Connect(maddr multiaddr.Multiaddr) error {
 	pi, err := peer.AddrInfoFromP2pAddr(maddr)
 	if err != nil {
 		return err
@@ -86,30 +97,27 @@ func (n *node) connect(maddr multiaddr.Multiaddr) error {
 	return nil
 }
 
-func (n *node) ban(maddr multiaddr.Multiaddr) error {
-	multiaddr.ForEach(maddr, func(c multiaddr.Component) bool {
-		switch c.Protocol().Code {
-		case multiaddr.P_IP4:
-			n.connGater.bannedAddrs.AddFilter(net.IPNet{
-				IP:   net.ParseIP(c.String()),
-				Mask: net.CIDRMask(32, 32),
-			}, multiaddr.ActionDeny)
-		case multiaddr.P_IP6:
-			n.connGater.banIP(net.ParseIP(c.String()))
-		case multiaddr.P_P2P:
-			id, err := peer.IDFromBytes(c.RawValue())
-			if err != nil {
-				return true
-			}
-			n.pubSub.BlacklistPeer(id)
-		}
-		return true
-	})
-
-	return nil
+func (n *Node) AddNotifee(notifees ...network.Notifiee) {
+	n.notifeeSet.Add(notifees...)
 }
 
-func (n *node) subscription(topic string) (*subscription, error) {
+func (n *Node) AddConnectionGater(connGaters ...connmgr.ConnectionGater) {
+	n.connGaterSet.Add(connGaters...)
+}
+
+func (n *Node) AddValidator(topic string, validator pubsub.ValidatorEx) {
+	n.validatorSet.Add(topic, validator)
+}
+
+func (n *Node) AddEventHandler(eventHandler ...sets.EventHandler) {
+	n.eventHandlerSet.Add(eventHandler...)
+}
+
+func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
+	n.messageHandlerSet.Add(messageHandlers...)
+}
+
+func (n *Node) Subscription(topic string) (*subscription, error) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -123,7 +131,7 @@ func (n *node) subscription(topic string) (*subscription, error) {
 	return nil, TopicIsNotSubscribedErr
 }
 
-func (n *node) subscribe(topic string) error {
+func (n *Node) Subscribe(topic string) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -132,6 +140,11 @@ func (n *node) subscribe(topic string) error {
 	}
 	if _, ok := n.subs[topic]; ok {
 		return AlreadySubscribedErr
+	}
+
+	err := n.pubSub.RegisterTopicValidator(topic, n.validatorSet.Validator(topic))
+	if err != nil {
+		return err
 	}
 
 	sub, err := newSubscription(n, topic)
@@ -143,7 +156,7 @@ func (n *node) subscribe(topic string) error {
 	return nil
 }
 
-func (n *node) unsubscribe(topic string) error {
+func (n *Node) Unsubscribe(topic string) error {
 	n.mu.Lock()
 	n.mu.Unlock()
 
@@ -151,7 +164,7 @@ func (n *node) unsubscribe(topic string) error {
 		return ConnectionIsClosedErr
 	}
 
-	sub, err := n.subscription(topic)
+	sub, err := n.Subscription(topic)
 	if err != nil {
 		return err
 	}
@@ -159,7 +172,7 @@ func (n *node) unsubscribe(topic string) error {
 	return sub.close()
 }
 
-func (n *node) close() error {
+func (n *Node) Close() error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
