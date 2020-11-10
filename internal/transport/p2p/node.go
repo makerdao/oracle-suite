@@ -7,6 +7,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -51,11 +52,16 @@ func NewNode(ctx context.Context, l log.Logger) *Node {
 	}
 }
 
-func (n *Node) Start(maddrs []multiaddr.Multiaddr) error {
-	h, err := libp2p.New(n.ctx,
+func (n *Node) Start(pk *crypto.PrivKey, maddrs []multiaddr.Multiaddr) error {
+	opts := []libp2p.Option{
 		libp2p.ListenAddrs(maddrs...),
 		libp2p.ConnectionGater(n.connGaterSet),
-	)
+	}
+	if pk != nil {
+		opts = append(opts, libp2p.Identity(*pk))
+	}
+
+	h, err := libp2p.New(n.ctx, opts...)
 	if err != nil {
 		return err
 	}

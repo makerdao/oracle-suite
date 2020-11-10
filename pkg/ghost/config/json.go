@@ -46,8 +46,10 @@ type JSONEthereum struct {
 }
 
 type JSONP2P struct {
-	Listen []string `json:"listen"`
-	Peers  []string `json:"peers"`
+	Listen         []string `json:"listen"`
+	BootstrapPeers []string `json:"bootstrapPeers"`
+	BannedPeers    []string `json:"bannedPeers"`
+	PrivKey        string   `json:"privKey"`
 }
 
 type JSONOptions struct {
@@ -118,7 +120,9 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	transport, err := p2p.NewP2P(p2p.Config{
 		Context:        deps.Context,
 		ListenAddrs:    j.P2P.Listen,
-		BootstrapPeers: j.P2P.Peers,
+		PrivKey:        j.P2P.PrivKey,
+		BootstrapPeers: j.P2P.BootstrapPeers,
+		BannedPeers:    j.P2P.BannedPeers,
 		Logger:         deps.Logger,
 	})
 	if err != nil {
