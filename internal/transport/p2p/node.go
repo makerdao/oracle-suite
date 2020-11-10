@@ -1,3 +1,18 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package p2p
 
 import (
@@ -7,6 +22,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -51,11 +67,16 @@ func NewNode(ctx context.Context, l log.Logger) *Node {
 	}
 }
 
-func (n *Node) Start(maddrs []multiaddr.Multiaddr) error {
-	h, err := libp2p.New(n.ctx,
+func (n *Node) Start(pk *crypto.PrivKey, maddrs []multiaddr.Multiaddr) error {
+	opts := []libp2p.Option{
 		libp2p.ListenAddrs(maddrs...),
 		libp2p.ConnectionGater(n.connGaterSet),
-	)
+	}
+	if pk != nil {
+		opts = append(opts, libp2p.Identity(*pk))
+	}
+
+	h, err := libp2p.New(n.ctx, opts...)
 	if err != nil {
 		return err
 	}

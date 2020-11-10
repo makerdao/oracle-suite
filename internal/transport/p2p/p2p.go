@@ -1,9 +1,25 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package p2p
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/gofer/internal/log"
@@ -23,6 +39,7 @@ type P2P struct {
 type Config struct {
 	Context        context.Context
 	Logger         log.Logger
+	PrivKey        string
 	ListenAddrs    []string
 	BootstrapPeers []string
 	BannedPeers    []string
@@ -40,7 +57,7 @@ func NewP2P(config Config) (*P2P, error) {
 	logger.Register(p.node, l)
 	p.banner = banner.Register(p.node)
 
-	err = p.startNode(config.ListenAddrs)
+	err = p.startNode(config.PrivKey, config.ListenAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -90,12 +107,12 @@ func (p *P2P) Close() error {
 	return p.node.Close()
 }
 
-func (p *P2P) startNode(addrs []string) error {
+func (p *P2P) startNode(pkStr string, addrs []string) error {
 	if len(addrs) == 0 {
 		addrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	}
 
-	// Parse multiaddresses strings:
+	// Parse multiaddresses strings.
 	var maddrs []multiaddr.Multiaddr
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
@@ -105,13 +122,28 @@ func (p *P2P) startNode(addrs []string) error {
 		maddrs = append(maddrs, maddr)
 	}
 
-	// Connect to P2P network:
-	err := p.node.Start(maddrs)
+	// Convert PK from string. If string is empty, ignore and pass nil
+	// as a value.
+	var ppk *crypto.PrivKey
+	if pkStr != "" {
+		pkBts, err := crypto.ConfigDecodeKey(pkStr)
+		if err != nil {
+			return err
+		}
+		pk, err := crypto.UnmarshalPrivateKey(pkBts)
+		if err != nil {
+			return err
+		}
+		ppk = &pk
+	}
+
+	// Connect to P2P network.
+	err := p.node.Start(ppk, maddrs)
 	if err != nil {
 		return err
 	}
 
-	// Print log with node's parameters:
+	// Print log with node's parameters.
 	p.log.
 		WithFields(log.Fields{"addrs": p.listenAddrStrs()}).
 		Info("Listening")
