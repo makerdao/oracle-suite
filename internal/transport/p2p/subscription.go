@@ -98,8 +98,8 @@ func (s subscription) eventLoop() {
 		for {
 			pe, err := s.teh.NextPeerEvent(s.ctx)
 			if err != nil {
-				// THe only situation when error may be returned here, is when
-				// subscription is canceled.
+				// The only situation when error may be returned here is when
+				// a subscription is canceled.
 				return
 			}
 			s.eventHandler.Handle(s.topic.String(), pe)
@@ -108,6 +108,7 @@ func (s subscription) eventLoop() {
 }
 
 func (s subscription) close() error {
+	s.teh.Cancel()
 	s.sub.Cancel()
 	return s.topic.Close()
 }

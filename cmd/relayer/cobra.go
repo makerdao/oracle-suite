@@ -91,7 +91,7 @@ func NewRunCmd(o *options) *cobra.Command {
 			defer func() {
 				err := ins.Relayer.Stop()
 				if err != nil {
-					log.Error("RELAYER", "Unable to stop relayer: %s", err)
+					log.Errorf("RELAYER", "Unable to stop relayer: %s", err)
 				}
 			}()
 
