@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -26,7 +27,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/transport"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/gofer/internal/log"
@@ -36,6 +39,13 @@ import (
 var ConnectionIsClosedErr = errors.New("connection is closed")
 var AlreadySubscribedErr = errors.New("topic is already subscribed")
 var TopicIsNotSubscribedErr = errors.New("topic is not subscribed")
+
+func init() {
+	// It's required to increase timeouts because signing messages using
+	// ethereum wallets may take more time than default timeout allows:
+	transport.DialTimeout = 120 * time.Second
+	swarm.DialTimeoutLocal = 120 * time.Second
+}
 
 type Node struct {
 	mu sync.Mutex
@@ -67,13 +77,13 @@ func NewNode(ctx context.Context, l log.Logger) *Node {
 	}
 }
 
-func (n *Node) Start(pk *crypto.PrivKey, maddrs []multiaddr.Multiaddr) error {
+func (n *Node) Start(pk crypto.PrivKey, maddrs []multiaddr.Multiaddr) error {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(maddrs...),
 		libp2p.ConnectionGater(n.connGaterSet),
 	}
 	if pk != nil {
-		opts = append(opts, libp2p.Identity(*pk))
+		opts = append(opts, libp2p.Identity(pk))
 	}
 
 	h, err := libp2p.New(n.ctx, opts...)

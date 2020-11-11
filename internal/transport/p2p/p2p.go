@@ -19,12 +19,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
+	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p/banner"
+	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
 	"github.com/makerdao/gofer/internal/transport/p2p/logger"
 )
 
@@ -39,7 +40,7 @@ type P2P struct {
 type Config struct {
 	Context        context.Context
 	Logger         log.Logger
-	PrivKey        string
+	Wallet         *ethereum.Wallet
 	ListenAddrs    []string
 	BootstrapPeers []string
 	BannedPeers    []string
@@ -57,7 +58,7 @@ func NewP2P(config Config) (*P2P, error) {
 	logger.Register(p.node, l)
 	p.banner = banner.Register(p.node)
 
-	err = p.startNode(config.PrivKey, config.ListenAddrs)
+	err = p.startNode(config.Wallet, config.ListenAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +108,12 @@ func (p *P2P) Close() error {
 	return p.node.Close()
 }
 
-func (p *P2P) startNode(pkStr string, addrs []string) error {
+func (p *P2P) startNode(wallet *ethereum.Wallet, addrs []string) error {
 	if len(addrs) == 0 {
 		addrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	}
 
-	// Parse multiaddresses strings.
+	// Parse multiaddresses strings:
 	var maddrs []multiaddr.Multiaddr
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
@@ -122,28 +123,13 @@ func (p *P2P) startNode(pkStr string, addrs []string) error {
 		maddrs = append(maddrs, maddr)
 	}
 
-	// Convert PK from string. If string is empty, ignore and pass nil
-	// as a value.
-	var ppk *crypto.PrivKey
-	if pkStr != "" {
-		pkBts, err := crypto.ConfigDecodeKey(pkStr)
-		if err != nil {
-			return err
-		}
-		pk, err := crypto.UnmarshalPrivateKey(pkBts)
-		if err != nil {
-			return err
-		}
-		ppk = &pk
-	}
-
-	// Connect to P2P network.
-	err := p.node.Start(ppk, maddrs)
+	// Connect to P2P network:
+	err := p.node.Start(ethkey.NewPrivKey(wallet), maddrs)
 	if err != nil {
 		return err
 	}
 
-	// Print log with node's parameters.
+	// Print log with node's parameters:
 	p.log.
 		WithFields(log.Fields{"addrs": p.listenAddrStrs()}).
 		Info("Listening")
