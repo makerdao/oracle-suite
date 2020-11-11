@@ -37,7 +37,7 @@ type Ghost struct {
 	wallet    *ethereum.Wallet
 	transport transport.Transport
 	interval  time.Duration
-	pairs     map[graph.Pair]Pair
+	pairs     map[graph.Pair]*Pair
 	log       log.Logger
 	doneCh    chan struct{}
 }
@@ -58,7 +58,7 @@ type Config struct {
 	//	// required to monitor asynchronous processes.
 	Logger log.Logger
 	// Pairs is the list supported pairs by Ghost with their configuration.
-	Pairs []Pair
+	Pairs []*Pair
 }
 
 type Pair struct {
@@ -78,7 +78,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		wallet:    config.Wallet,
 		transport: config.Transport,
 		interval:  config.Interval,
-		pairs:     make(map[graph.Pair]Pair, 0),
+		pairs:     make(map[graph.Pair]*Pair, 0),
 		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
 		doneCh:    make(chan struct{}),
 	}

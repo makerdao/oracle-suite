@@ -18,6 +18,7 @@ package relayer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -33,30 +34,35 @@ import (
 const LoggerTag = "RELAYER"
 
 type Relayer struct {
-	mu        sync.Mutex
-	feeds     []common.Address
-	transport transport.Transport
-	interval  time.Duration
-	log       log.Logger
-	pairs     map[string]Pair
-	verbose   bool
-	doneCh    chan struct{}
+	mu           sync.Mutex
+	ctx          context.Context
+	transport    transport.Transport
+	interval     time.Duration
+	feedInterval time.Duration
+	log          log.Logger
+	pairs        map[string]*Pair
+	verbose      bool
+	doneCh       chan struct{}
 }
 
 type Config struct {
-	// Feeds is the list of Ethereum addresses from which prices will be
-	// accepted.
-	Feeds []string
+	Context context.Context
 	// Transport is a implementation of transport used to fetch prices from
 	// feeders.
 	Transport transport.Transport
 	// Interval describes how often we should try to update Oracles.
 	Interval time.Duration
+	// FeedsInterval describes how often we should try to update feeds list.
+	FeedsInterval time.Duration
+	// Feeds is the list of Ethereum addresses from which prices will be
+	// accepted. If not provided, feeds will be fetched automatically from
+	// an Oracle contract.
+	Feeds []string
 	// Logger is a current logger interface used by the Relayer. The Logger is
 	// required to monitor asynchronous processes.
 	Logger log.Logger
 	// Pairs is the list supported pairs by Relayer with their configuration.
-	Pairs []Pair
+	Pairs []*Pair
 }
 
 type Pair struct {
@@ -74,26 +80,36 @@ type Pair struct {
 	// Median is the instance of the oracle.Median which is the interface for
 	// the Oracle contract.
 	Median *oracle.Median
+	// feeds is the list of Ethereum addresses from which prices will be
+	// accepted.
+	feeds []common.Address
 	// store contains list of prices form feeders.
 	store *store
 }
 
 func NewRelayer(config Config) *Relayer {
-	r := &Relayer{
-		transport: config.Transport,
-		interval:  config.Interval,
-		pairs:     make(map[string]Pair, 0),
-		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
-		doneCh:    make(chan struct{}),
+	// Disable fetching feeds from the Oracle contract if feed list is already
+	// provided in the config:
+	if len(config.Feeds) > 0 {
+		config.FeedsInterval = 0
 	}
 
-	for _, feed := range config.Feeds {
-		r.feeds = append(r.feeds, common.HexToAddress(feed))
+	r := &Relayer{
+		ctx:          config.Context,
+		transport:    config.Transport,
+		interval:     config.Interval,
+		feedInterval: config.FeedsInterval,
+		pairs:        make(map[string]*Pair, 0),
+		log:          log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
+		doneCh:       make(chan struct{}),
 	}
 
 	for _, pair := range config.Pairs {
 		pair.store = newStore()
 		r.pairs[pair.AssetPair] = pair
+		for _, feed := range config.Feeds {
+			pair.feeds = append(pair.feeds, common.HexToAddress(feed))
+		}
 	}
 
 	return r
@@ -102,7 +118,12 @@ func NewRelayer(config Config) *Relayer {
 func (r *Relayer) Start() error {
 	r.log.Info("Starting")
 
-	err := r.collectorLoop()
+	err := r.feedsLoop()
+	if err != nil {
+		return err
+	}
+
+	err = r.collectorLoop()
 	if err != nil {
 		return err
 	}
@@ -123,6 +144,26 @@ func (r *Relayer) Stop() error {
 	return nil
 }
 
+// updateFeeds updates a list of all Ethereum addresses that are authorized
+// to update Oracle price for given asset pair.
+func (r *Relayer) updateFeeds(assetPair string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	pair, ok := r.pairs[assetPair]
+	if !ok {
+		return fmt.Errorf("asset pair %s does not exists", assetPair)
+	}
+
+	feeds, err := pair.Median.Feeds(r.ctx)
+	if err != nil {
+		return fmt.Errorf("unable to update feeds list for %s: %w", assetPair, err)
+	}
+
+	pair.feeds = feeds
+	return nil
+}
+
 // collect adds a price from a feeder which may be used to update
 // Oracle contract. The price will be added only if a feeder is
 // allowed to send prices (must be on the r.Feeds list).
@@ -134,14 +175,14 @@ func (r *Relayer) collect(price *messages.Price) error {
 	if err != nil {
 		return errors.New("received price has an invalid signature")
 	}
-	if !r.isFeedAllowed(*from) {
+	if _, ok := r.pairs[price.Price.AssetPair]; !ok {
+		return errors.New("received pair is not configured")
+	}
+	if !r.isFeedAllowed(price.Price.AssetPair, *from) {
 		return errors.New("address is not on feed list")
 	}
 	if price.Price.Val.Cmp(big.NewInt(0)) <= 0 {
 		return errors.New("received price is invalid")
-	}
-	if _, ok := r.pairs[price.Price.AssetPair]; !ok {
-		return errors.New("received pair is not configured")
 	}
 
 	err = r.pairs[price.Price.AssetPair].store.add(price.Price)
@@ -158,18 +199,20 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	ctx := context.Background()
-	pair := r.pairs[assetPair]
+	pair, ok := r.pairs[assetPair]
+	if !ok {
+		return nil, fmt.Errorf("asset pair %s does not exists", assetPair)
+	}
 
-	oracleQuorum, err := pair.Median.Bar(ctx)
+	oracleQuorum, err := pair.Median.Bar(r.ctx)
 	if err != nil {
 		return nil, err
 	}
-	oracleTime, err := pair.Median.Age(ctx)
+	oracleTime, err := pair.Median.Age(r.ctx)
 	if err != nil {
 		return nil, err
 	}
-	oraclePrice, err := pair.Median.Price(ctx)
+	oraclePrice, err := pair.Median.Price(r.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +256,7 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 		}
 
 		// Send *actual* transaction to the Ethereum network:
-		tx, err := pair.Median.Poke(ctx, pair.store.get(), true)
+		tx, err := pair.Median.Poke(r.ctx, pair.store.get(), true)
 		// There is no point in keeping the prices that have already been sent,
 		// so we can safely remove them:
 		pair.store.clear()
@@ -277,6 +320,10 @@ func (r *Relayer) collectorLoop() error {
 // collectorLoop creates a asynchronous loop which tries to send an update
 // to an Oracle contract at a specified interval.
 func (r *Relayer) relayerLoop() {
+	if r.interval == 0 {
+		return
+	}
+
 	ticker := time.NewTicker(r.interval)
 	go func() {
 		for {
@@ -313,8 +360,50 @@ func (r *Relayer) relayerLoop() {
 	}()
 }
 
-func (r *Relayer) isFeedAllowed(address common.Address) bool {
-	for _, a := range r.feeds {
+// feedsLoop creates a asynchronous loop which tries to update feeds list
+// for all asset pairs at a specified interval.
+func (r *Relayer) feedsLoop() error {
+	if r.feedInterval == 0 {
+		return nil
+	}
+
+	// It's important to fetch feeds before everything else. Without this
+	// all prices from the network will be ignored.
+	for assetPair, _ := range r.pairs {
+		err := r.updateFeeds(assetPair)
+		if err != nil {
+			return err
+		}
+	}
+
+	ticker := time.NewTicker(r.feedInterval)
+	go func() {
+		for {
+			select {
+			case <-r.doneCh:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				for assetPair, _ := range r.pairs {
+					err := r.updateFeeds(assetPair)
+
+					// Print log in case of an error:
+					if err != nil {
+						r.log.
+							WithFields(log.Fields{"assetPair": assetPair}).
+							WithError(err).
+							Warn("Unable to update feeds")
+					}
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (r *Relayer) isFeedAllowed(assetPair string, address common.Address) bool {
+	for _, a := range r.pairs[assetPair].feeds {
 		if a == address {
 			return true
 		}
