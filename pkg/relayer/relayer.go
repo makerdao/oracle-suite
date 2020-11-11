@@ -52,8 +52,6 @@ type Config struct {
 	Transport transport.Transport
 	// Interval describes how often we should try to update Oracles.
 	Interval time.Duration
-	// FeedsInterval describes how often we should try to update feeds list.
-	FeedsInterval time.Duration
 	// Feeds is the list of Ethereum addresses from which prices will be
 	// accepted. If not provided, feeds will be fetched automatically from
 	// an Oracle contract.
@@ -88,17 +86,10 @@ type Pair struct {
 }
 
 func NewRelayer(config Config) *Relayer {
-	// Disable fetching feeds from the Oracle contract if feed list is already
-	// provided in the config:
-	if len(config.Feeds) > 0 {
-		config.FeedsInterval = 0
-	}
-
 	r := &Relayer{
 		ctx:          config.Context,
 		transport:    config.Transport,
 		interval:     config.Interval,
-		feedInterval: config.FeedsInterval,
 		pairs:        make(map[string]*Pair, 0),
 		log:          log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
 		doneCh:       make(chan struct{}),
@@ -118,12 +109,7 @@ func NewRelayer(config Config) *Relayer {
 func (r *Relayer) Start() error {
 	r.log.Info("Starting")
 
-	err := r.feedsLoop()
-	if err != nil {
-		return err
-	}
-
-	err = r.collectorLoop()
+	err := r.collectorLoop()
 	if err != nil {
 		return err
 	}
@@ -141,26 +127,6 @@ func (r *Relayer) Stop() error {
 		return err
 	}
 
-	return nil
-}
-
-// updateFeeds updates a list of all Ethereum addresses that are authorized
-// to update Oracle price for given asset pair.
-func (r *Relayer) updateFeeds(assetPair string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	pair, ok := r.pairs[assetPair]
-	if !ok {
-		return fmt.Errorf("asset pair %s does not exists", assetPair)
-	}
-
-	feeds, err := pair.Median.Feeds(r.ctx)
-	if err != nil {
-		return fmt.Errorf("unable to update feeds list for %s: %w", assetPair, err)
-	}
-
-	pair.feeds = feeds
 	return nil
 }
 
@@ -358,48 +324,6 @@ func (r *Relayer) relayerLoop() {
 			}
 		}
 	}()
-}
-
-// feedsLoop creates a asynchronous loop which tries to update feeds list
-// for all asset pairs at a specified interval.
-func (r *Relayer) feedsLoop() error {
-	if r.feedInterval == 0 {
-		return nil
-	}
-
-	// It's important to fetch feeds before everything else. Without this
-	// all prices from the network will be ignored.
-	for assetPair, _ := range r.pairs {
-		err := r.updateFeeds(assetPair)
-		if err != nil {
-			return err
-		}
-	}
-
-	ticker := time.NewTicker(r.feedInterval)
-	go func() {
-		for {
-			select {
-			case <-r.doneCh:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				for assetPair, _ := range r.pairs {
-					err := r.updateFeeds(assetPair)
-
-					// Print log in case of an error:
-					if err != nil {
-						r.log.
-							WithFields(log.Fields{"assetPair": assetPair}).
-							WithError(err).
-							Warn("Unable to update feeds")
-					}
-				}
-			}
-		}
-	}()
-
-	return nil
 }
 
 func (r *Relayer) isFeedAllowed(assetPair string, address common.Address) bool {

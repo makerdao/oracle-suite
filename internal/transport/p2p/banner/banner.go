@@ -24,14 +24,14 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-type Node interface {
+type node interface {
 	AddConnectionGater(connGaters ...connmgr.ConnectionGater)
 	PubSub() *pubsub.PubSub
 }
 
-// Register registers extensions to P2P node which will allow to ban nodes
-// using theirs IPs or IDs.
-func Register(node Node) *Banner {
+// Register registers p2p.Node extensions required by the Banner and returns
+// its instance.
+func Register(node node) *Banner {
 	banner := &Banner{
 		connGater: &connGater{},
 		pubSub:    node.PubSub(),
@@ -42,17 +42,19 @@ func Register(node Node) *Banner {
 	return banner
 }
 
+// Banner allow to ban connections to nodes using their IP or ID. All connections
+// to banned nodes will be blocked.
 type Banner struct {
 	connGater *connGater
 	pubSub    *pubsub.PubSub
 }
 
+// Ban bans neither by an IP or a peer ID. If provided multi address contains
+// an IP and a peer ID, both will be blocked separately.
 func (b *Banner) Ban(maddr multiaddr.Multiaddr) error {
 	multiaddr.ForEach(maddr, func(c multiaddr.Component) bool {
 		switch c.Protocol().Code {
-		case multiaddr.P_IP4:
-			b.BanIP(net.ParseIP(c.String()))
-		case multiaddr.P_IP6:
+		case multiaddr.P_IP4, multiaddr.P_IP6:
 			b.BanIP(net.ParseIP(c.String()))
 		case multiaddr.P_P2P:
 			id, err := peer.IDFromBytes(c.RawValue())
@@ -67,10 +69,12 @@ func (b *Banner) Ban(maddr multiaddr.Multiaddr) error {
 	return nil
 }
 
+// BanIP bans given IP address.
 func (b *Banner) BanIP(ip net.IP) {
 	b.connGater.BanIP(ip)
 }
 
+// BanIP bans given peer ID.
 func (b *Banner) BanPeer(id peer.ID) {
 	b.pubSub.BlacklistPeer(id)
 }

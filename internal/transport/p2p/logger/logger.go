@@ -22,15 +22,15 @@ import (
 	"github.com/makerdao/gofer/internal/transport/p2p/sets"
 )
 
-type Node interface {
+type node interface {
 	AddNotifee(notifees ...network.Notifiee)
 	AddEventHandler(eventHandler ...sets.EventHandler)
 	AddMessageHandler(messageHandlers ...sets.MessageHandler)
 }
 
-// Register registers extensions to P2P node which will print additional
+// Register registers p2p.Node extensions which will print additional
 // debug logs.
-func Register(node Node, l log.Logger) {
+func Register(node node, l log.Logger) {
 	node.AddNotifee(&notifee{log: l})
 	node.AddEventHandler(&eventHandler{log: l})
 	node.AddMessageHandler(&messageHandler{log: l})
