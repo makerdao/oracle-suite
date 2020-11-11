@@ -29,6 +29,7 @@ import (
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
+	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
 )
@@ -37,6 +38,7 @@ type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
 	P2P      JSONP2P             `json:"p2p"`
 	Options  JSONOptions         `json:"options"`
+	Feeds    []string            `json:"feeds"`
 	Pairs    map[string]JSONPair `json:"pairs"`
 }
 
@@ -118,14 +120,18 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 
 	// Configure transport:
-	tra, err := p2p.NewP2P(p2p.Config{
+	p2pCfg := p2p.Config{
 		Context:        deps.Context,
 		ListenAddrs:    j.P2P.Listen,
 		Wallet:         wal,
-		BootstrapPeers: j.P2P.BootstrapPeers,
-		BannedPeers:    j.P2P.BannedPeers,
+		BootstrapAddrs: j.P2P.BootstrapPeers,
+		BannedAddrs:    j.P2P.BannedPeers,
 		Logger:         deps.Logger,
-	})
+	}
+	for _, feed := range j.Feeds {
+		p2pCfg.AllowedPeers = append(p2pCfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
+	}
+	tra, err := p2p.NewP2P(p2pCfg)
 	if err != nil {
 		return nil, err
 	}

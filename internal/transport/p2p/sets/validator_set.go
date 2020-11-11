@@ -22,36 +22,30 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
+type Validator func(topic string, ctx context.Context, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult
+
 // ValidatorSet stores multiple instances of validators that implements
 // the pubsub.ValidatorEx functions. Validators are groped by topic.
 type ValidatorSet struct {
-	validators map[string][]pubsub.ValidatorEx
+	validators []Validator
 }
 
 // NewValidatorSet creates new instance of the ValidatorSet.
 func NewValidatorSet() *ValidatorSet {
-	return &ValidatorSet{
-		validators: make(map[string][]pubsub.ValidatorEx, 0),
-	}
+	return &ValidatorSet{}
 }
 
 // Add adds new pubsub.ValidatorEx to the set.
-func (n *ValidatorSet) Add(topic string, validator ...pubsub.ValidatorEx) {
-	if _, ok := n.validators[topic]; !ok {
-		n.validators[topic] = []pubsub.ValidatorEx{}
-	}
-	n.validators[topic] = append(n.validators[topic], validator...)
+func (n *ValidatorSet) Add(validator ...Validator) {
+	n.validators = append(n.validators, validator...)
 }
 
 // Validator returns function that implements pubsub.ValidatorEx. That function
 // will invoke all registered validators for given topic.
 func (n *ValidatorSet) Validator(topic string) pubsub.ValidatorEx {
-	if _, ok := n.validators[topic]; !ok {
-		n.validators[topic] = []pubsub.ValidatorEx{}
-	}
 	return func(ctx context.Context, id peer.ID, message *pubsub.Message) pubsub.ValidationResult {
-		for _, validator := range n.validators[topic] {
-			if result := validator(ctx, id, message); result != pubsub.ValidationAccept {
+		for _, validator := range n.validators {
+			if result := validator(topic, ctx, id, message); result != pubsub.ValidationAccept {
 				return result
 			}
 		}

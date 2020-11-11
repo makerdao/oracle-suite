@@ -42,16 +42,21 @@ var TopicIsNotSubscribedErr = errors.New("topic is not subscribed")
 
 func init() {
 	// It's required to increase timeouts because signing messages using
-	// ethereum wallets may take more time than default timeout allows:
+	// the Ethereum wallet may take more time than default timeout allows:
 	transport.DialTimeout = 120 * time.Second
 	swarm.DialTimeoutLocal = 120 * time.Second
 }
 
 type NodeConfig struct {
-	Context     context.Context
-	Logger      log.Logger
+	Context context.Context
+	Logger  log.Logger
+
+	// ListenAddrs is a list of multi addresses on which node will be
+	// listening on. If empty, localhost and random port will be used.
 	ListenAddrs []multiaddr.Multiaddr
-	PrivateKey  crypto.PrivKey
+	// PrivateKey is a key used to identify itself and for signing published
+	// messages.
+	PrivateKey crypto.PrivKey
 }
 
 type Node struct {
@@ -143,8 +148,8 @@ func (n *Node) AddConnectionGater(connGaters ...connmgr.ConnectionGater) {
 	n.connGaterSet.Add(connGaters...)
 }
 
-func (n *Node) AddValidator(topic string, validator pubsub.ValidatorEx) {
-	n.validatorSet.Add(topic, validator)
+func (n *Node) AddValidator(validator sets.Validator) {
+	n.validatorSet.Add(validator)
 }
 
 func (n *Node) AddEventHandler(eventHandler ...sets.EventHandler) {

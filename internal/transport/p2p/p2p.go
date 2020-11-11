@@ -19,11 +19,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport"
+	"github.com/makerdao/gofer/internal/transport/p2p/allowlist"
 	"github.com/makerdao/gofer/internal/transport/p2p/banner"
 	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
 	"github.com/makerdao/gofer/internal/transport/p2p/logger"
@@ -32,18 +34,31 @@ import (
 const LoggerTag = "P2P"
 
 type P2P struct {
-	log    log.Logger
-	node   *Node
-	banner *banner.Banner
+	log       log.Logger
+	node      *Node
+	banner    *banner.Banner
+	allowlist *allowlist.Allowlist
 }
 
 type Config struct {
-	Context        context.Context
-	Logger         log.Logger
-	Wallet         *ethereum.Wallet
-	ListenAddrs    []string
-	BootstrapPeers []string
-	BannedPeers    []string
+	Context context.Context
+	Logger  log.Logger
+
+	// Wallet is used to sign and verify messages in the network.
+	Wallet *ethereum.Wallet
+	// ListenAddrs is a list of multi addresses on which node will be
+	// listening on. If empty, localhost and random port will be used.
+	ListenAddrs []string
+	// BootstrapAddrs is a list multi addresses of initial peers to connect to.
+	BootstrapAddrs []string
+	// BannedAddrs is a list of multi addresses to which connection will be
+	// blocked. If an address on that list contains an IP and a peer ID, both
+	// will be blocked separately.
+	BannedAddrs []string
+	// AllowedPeers is a list of peer IDs which are allowed to publish messages
+	// to the network. Messages from peers outside this list will be ignored
+	// and not relayed. If empty, all messages will be accepted.
+	AllowedPeers []string
 }
 
 // NewP2P returns new instance of transport implemented using the libp2p
@@ -70,16 +85,21 @@ func NewP2P(config Config) (*P2P, error) {
 
 	logger.Register(p.node, l)
 	p.banner = banner.Register(p.node)
+	p.allowlist = allowlist.Register(p.node)
 
 	err = p.startNode()
 	if err != nil {
 		return nil, err
 	}
-	err = p.bannedPeers(config.BannedPeers)
+	err = p.bannedAddrs(config.BannedAddrs)
 	if err != nil {
 		return nil, err
 	}
-	err = p.bootstrapPeers(config.BootstrapPeers)
+	err = p.allowedPeers(config.AllowedPeers)
+	if err != nil {
+		return nil, err
+	}
+	err = p.bootstrapAddrs(config.BootstrapAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +155,9 @@ func (p *P2P) startNode() error {
 	return nil
 }
 
-// bannedPeers bans all addresses nodes from the addrs list using the
+// bannedAddrs bans all addresses nodes from the addrs list using the
 // banner package.
-func (p *P2P) bannedPeers(addrs []string) error {
+func (p *P2P) bannedAddrs(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {
@@ -155,8 +175,21 @@ func (p *P2P) bannedPeers(addrs []string) error {
 	return nil
 }
 
-// bootstrapPeers connects to all nodes from the addrs list.
-func (p *P2P) bootstrapPeers(addrs []string) error {
+// allowedPeers add peers to allowed list using the allowlist package. Only
+// peers from that list will be allowed to send messages.
+func (p *P2P) allowedPeers(ids []string) error {
+	for _, idstr := range ids {
+		id, err := peer.Decode(idstr)
+		if err != nil {
+			return err
+		}
+		p.allowlist.Allow(id)
+	}
+	return nil
+}
+
+// bootstrapAddrs connects to all nodes from the addrs list.
+func (p *P2P) bootstrapAddrs(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {
