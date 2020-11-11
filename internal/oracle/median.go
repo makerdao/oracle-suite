@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,6 +31,8 @@ import (
 
 // TODO: make it configurable
 const gasLimit = 200000
+const maxReadRetries = 3
+const delayBetweenReadRetries = 5 * time.Second
 
 // Median is an interface for the median oracle contract:
 // https://github.com/makerdao/median/
@@ -86,6 +89,40 @@ func (m *Median) Price(ctx context.Context) (*big.Int, error) {
 	return new(big.Int).SetBytes(b[16:32]), err
 }
 
+// AuthorizedOracles returns a list of all authorized Oracle addresses.
+// Note, that this method need to execute 256 calls to the ethereum client
+// to fetch all addresses.
+func (m *Median) AuthorizedOracles(ctx context.Context) ([]common.Address, error) {
+	var orcl []common.Address
+	var null common.Address
+
+	mu := sync.Mutex{}
+	wg := sync.WaitGroup{}
+
+	wg.Add(256)
+	for i := 0; i < 256; i++ {
+		i := i
+		go func() {
+			defer wg.Done()
+			addr, err := m.read(ctx, "slot", uint8(i))
+			if err != nil {
+				return
+			}
+			if len(addr) != 1 {
+				return
+			}
+			if addr := addr[0].(common.Address); addr != null {
+				mu.Lock()
+				orcl = append(orcl, addr)
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+
+	return orcl, nil
+}
+
 // Poke sends transaction to the smart contract which invokes contract's
 // poke method. If you set simulateBeforeRun to true, then transaction will be
 // simulated on the EVM before actual transaction will be send.
@@ -135,7 +172,11 @@ func (m *Median) read(ctx context.Context, method string, args ...interface{}) (
 		return nil, err
 	}
 
-	data, err := m.ethereum.Call(ctx, m.address, cd)
+	var data []byte
+	err = retry(maxReadRetries, delayBetweenReadRetries, func() error {
+		data, err = m.ethereum.Call(ctx, m.address, cd)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -150,4 +191,18 @@ func (m *Median) write(ctx context.Context, method string, args ...interface{}) 
 	}
 
 	return m.ethereum.SendTransaction(ctx, m.address, gasLimit, cd)
+}
+
+func retry(maxRetries int, delay time.Duration, f func() error) error {
+	for i := 0; ; i++ {
+		err := f()
+		if err == nil {
+			return err
+		}
+		if i >= (maxRetries - 1) {
+			break
+		}
+		time.Sleep(delay)
+	}
+	return nil
 }
