@@ -47,12 +47,21 @@ func init() {
 	swarm.DialTimeoutLocal = 120 * time.Second
 }
 
+type NodeConfig struct {
+	Context     context.Context
+	Logger      log.Logger
+	ListenAddrs []multiaddr.Multiaddr
+	PrivateKey  crypto.PrivKey
+}
+
 type Node struct {
 	mu sync.Mutex
 
 	ctx               context.Context
 	host              host.Host
 	pubSub            *pubsub.PubSub
+	privKey           crypto.PrivKey
+	listenAddrs       []multiaddr.Multiaddr
 	notifeeSet        *sets.NotifeeSet
 	connGaterSet      *sets.ConnGaterSet
 	validatorSet      *sets.ValidatorSet
@@ -63,27 +72,29 @@ type Node struct {
 	closed            bool
 }
 
-func NewNode(ctx context.Context, l log.Logger) *Node {
+func NewNode(config NodeConfig) *Node {
 	return &Node{
-		ctx:               ctx,
+		ctx:               config.Context,
+		privKey:           config.PrivateKey,
+		listenAddrs:       config.ListenAddrs,
 		notifeeSet:        sets.NewNotifeeSet(),
 		connGaterSet:      sets.NewConnGaterSet(),
 		validatorSet:      sets.NewValidatorSet(),
 		eventHandlerSet:   sets.NewEventHandlerSet(),
 		messageHandlerSet: sets.NewMessageHandlerSet(),
 		subs:              make(map[string]*subscription, 0),
-		log:               l,
+		log:               config.Logger,
 		closed:            false,
 	}
 }
 
-func (n *Node) Start(pk crypto.PrivKey, maddrs []multiaddr.Multiaddr) error {
+func (n *Node) Start() error {
 	opts := []libp2p.Option{
-		libp2p.ListenAddrs(maddrs...),
+		libp2p.ListenAddrs(n.listenAddrs...),
 		libp2p.ConnectionGater(n.connGaterSet),
 	}
-	if pk != nil {
-		opts = append(opts, libp2p.Identity(pk))
+	if n.privKey != nil {
+		opts = append(opts, libp2p.Identity(n.privKey))
 	}
 
 	h, err := libp2p.New(n.ctx, opts...)
@@ -102,12 +113,8 @@ func (n *Node) Start(pk crypto.PrivKey, maddrs []multiaddr.Multiaddr) error {
 	return nil
 }
 
-func (n *Node) ID() peer.ID {
-	return n.host.ID()
-}
-
-func (n *Node) Addrs() []multiaddr.Multiaddr {
-	return n.host.Addrs()
+func (n *Node) Host() host.Host {
+	return n.host
 }
 
 func (n *Node) PubSub() *pubsub.PubSub {

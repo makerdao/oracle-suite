@@ -46,19 +46,32 @@ type Config struct {
 	BannedPeers    []string
 }
 
+// NewP2P returns new instance of transport implemented using the libp2p
+// library.
 func NewP2P(config Config) (*P2P, error) {
 	var err error
 
-	l := log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
-	p := &P2P{
-		log:  l,
-		node: NewNode(config.Context, l),
+	if len(config.ListenAddrs) == 0 {
+		config.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	}
+	listenAddrs, err := addrsToMaddrs(config.ListenAddrs)
+	if err != nil {
+		return nil, err
+	}
+
+	l := log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
+	n := NewNode(NodeConfig{
+		Context:     config.Context,
+		Logger:      config.Logger,
+		ListenAddrs: listenAddrs,
+		PrivateKey:  ethkey.NewPrivKey(config.Wallet),
+	})
+	p := &P2P{log: l, node: n}
 
 	logger.Register(p.node, l)
 	p.banner = banner.Register(p.node)
 
-	err = p.startNode(config.Wallet, config.ListenAddrs)
+	err = p.startNode()
 	if err != nil {
 		return nil, err
 	}
@@ -108,35 +121,22 @@ func (p *P2P) Close() error {
 	return p.node.Close()
 }
 
-func (p *P2P) startNode(wallet *ethereum.Wallet, addrs []string) error {
-	if len(addrs) == 0 {
-		addrs = []string{"/ip4/0.0.0.0/tcp/0"}
-	}
-
-	// Parse multiaddresses strings:
-	var maddrs []multiaddr.Multiaddr
-	for _, addrstr := range addrs {
-		maddr, err := multiaddr.NewMultiaddr(addrstr)
-		if err != nil {
-			return err
-		}
-		maddrs = append(maddrs, maddr)
-	}
-
-	// Connect to P2P network:
-	err := p.node.Start(ethkey.NewPrivKey(wallet), maddrs)
+// startNode starts libp2p node.
+func (p *P2P) startNode() error {
+	err := p.node.Start()
 	if err != nil {
 		return err
 	}
 
-	// Print log with node's parameters:
 	p.log.
-		WithFields(log.Fields{"addrs": p.listenAddrStrs()}).
+		WithFields(log.Fields{"addrs": p.listenAddrs()}).
 		Info("Listening")
 
 	return nil
 }
 
+// bannedPeers bans all addresses nodes from the addrs list using the
+// banner package.
 func (p *P2P) bannedPeers(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
@@ -155,6 +155,7 @@ func (p *P2P) bannedPeers(addrs []string) error {
 	return nil
 }
 
+// bootstrapPeers connects to all nodes from the addrs list.
 func (p *P2P) bootstrapPeers(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
@@ -173,10 +174,25 @@ func (p *P2P) bootstrapPeers(addrs []string) error {
 	return nil
 }
 
-func (p *P2P) listenAddrStrs() []string {
-	var addrstrs []string
-	for _, addr := range p.node.Addrs() {
-		addrstrs = append(addrstrs, fmt.Sprintf("%s/p2p/%s", addr.String(), p.node.ID()))
+// listenAddrs returns all node's listen multi addresses as string list.
+func (p *P2P) listenAddrs() []string {
+	var strs []string
+	for _, addr := range p.node.Host().Addrs() {
+		strs = append(strs, fmt.Sprintf("%s/p2p/%s", addr.String(), p.node.Host().ID()))
 	}
-	return addrstrs
+	return strs
+}
+
+// addrsToMaddrs converts multi addresses given as strings to the
+// multiaddr.Multiaddr list.
+func addrsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
+	var maddrs []multiaddr.Multiaddr
+	for _, addrstr := range addrs {
+		maddr, err := multiaddr.NewMultiaddr(addrstr)
+		if err != nil {
+			return nil, err
+		}
+		maddrs = append(maddrs, maddr)
+	}
+	return maddrs, nil
 }
