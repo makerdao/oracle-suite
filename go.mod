@@ -9,6 +9,7 @@ require (
 	github.com/libp2p/go-libp2p v0.11.0
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-pubsub v0.3.6
+	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
