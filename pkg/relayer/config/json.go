@@ -29,6 +29,7 @@ import (
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/pkg/relayer"
 )
@@ -36,8 +37,8 @@ import (
 type JSON struct {
 	Ethereum JSONEthereum        `json:"ethereum"`
 	P2P      JSONP2P             `json:"p2p"`
+	Options  JSONOptions         `json:"options"`
 	Feeds    []string            `json:"feeds"`
-	Options  JSONOptions         `json:"options"` // TODO
 	Pairs    map[string]JSONPair `json:"pairs"`
 }
 
@@ -55,9 +56,8 @@ type JSONP2P struct {
 }
 
 type JSONOptions struct {
-	Interval int  `json:"interval"`
-	MsgLimit int  `json:"msgLimit"`
-	Verbose  bool `json:"verbose"` // TODO
+	Interval      int `json:"interval"`
+	FeedsInterval int `json:"feedsInterval"`
 }
 
 type JSONPair struct {
@@ -77,8 +77,10 @@ type Dependencies struct {
 }
 
 type Instances struct {
-	P2P     *p2p.P2P
-	Relayer *relayer.Relayer
+	Ethereum  *ethereum.Client
+	Wallet    *ethereum.Wallet
+	Transport transport.Transport
+	Relayer   *relayer.Relayer
 }
 
 func (e JSONConfigErr) Error() string {
@@ -111,12 +113,8 @@ func ParseJSON(b []byte) (*JSON, error) {
 }
 
 func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
-	client, err := ethclient.Dial(j.Ethereum.RPC)
-	if err != nil {
-		return nil, err
-	}
-
-	wallet, err := ethereum.NewWallet(
+	// Create wallet for given account and keystore:
+	wal, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
 		common.HexToAddress(j.Ethereum.From),
@@ -125,10 +123,11 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 		return nil, err
 	}
 
-	transport, err := p2p.NewP2P(p2p.Config{
+	// Configure transport:
+	tra, err := p2p.NewP2P(p2p.Config{
 		Context:        deps.Context,
 		ListenAddrs:    j.P2P.Listen,
-		Wallet:         wallet,
+		Wallet:         wal,
 		BootstrapPeers: j.P2P.BootstrapPeers,
 		BannedPeers:    j.P2P.BannedPeers,
 		Logger:         deps.Logger,
@@ -137,18 +136,25 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 		return nil, err
 	}
 
-	eth := ethereum.NewClient(client, wallet)
-
-	config := relayer.Config{
-		Feeds:     j.Feeds,
-		Transport: transport,
-		Interval:  time.Second * time.Duration(j.Options.Interval),
-		Logger:    deps.Logger,
-		Pairs:     nil,
+	// Create Ethereum client:
+	client, err := ethclient.Dial(j.Ethereum.RPC)
+	if err != nil {
+		return nil, err
 	}
+	eth := ethereum.NewClient(client, wal)
 
+	// Create and configure Relayer:
+	cfg := relayer.Config{
+		Context:       deps.Context,
+		Transport:     tra,
+		Interval:      time.Second * time.Duration(j.Options.Interval),
+		FeedsInterval: time.Second * time.Duration(j.Options.FeedsInterval),
+		Feeds:         j.Feeds,
+		Logger:        deps.Logger,
+		Pairs:         nil,
+	}
 	for name, pair := range j.Pairs {
-		config.Pairs = append(config.Pairs, relayer.Pair{
+		cfg.Pairs = append(cfg.Pairs, &relayer.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
@@ -156,11 +162,12 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 			Median:           oracle.NewMedian(eth, common.HexToAddress(pair.Oracle), name),
 		})
 	}
-
-	rel := relayer.NewRelayer(config)
+	rel := relayer.NewRelayer(cfg)
 
 	return &Instances{
-		P2P:     transport,
-		Relayer: rel,
+		Ethereum:  eth,
+		Wallet:    wal,
+		Transport: tra,
+		Relayer:   rel,
 	}, nil
 }

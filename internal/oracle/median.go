@@ -89,10 +89,10 @@ func (m *Median) Price(ctx context.Context) (*big.Int, error) {
 	return new(big.Int).SetBytes(b[16:32]), err
 }
 
-// AuthorizedOracles returns a list of all authorized Oracle addresses.
-// Note, that this method need to execute 256 calls to the ethereum client
-// to fetch all addresses.
-func (m *Median) AuthorizedOracles(ctx context.Context) ([]common.Address, error) {
+// Feeds returns a list of all Ethereum addresses that are authorized to update
+// Oracle prices. Note, that this method need to execute 256 calls to
+// the Ethereum client to fetch all addresses.
+func (m *Median) Feeds(ctx context.Context) ([]common.Address, error) {
 	var orcl []common.Address
 	var null common.Address
 

@@ -27,6 +27,7 @@ import (
 
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
@@ -52,9 +53,7 @@ type JSONP2P struct {
 }
 
 type JSONOptions struct {
-	Interval   int  `json:"interval"`
-	SrcTimeout int  `json:"srcTimeout"` // TODO
-	Verbose    bool `json:"verbose"`    // TODO
+	Interval int `json:"interval"`
 }
 
 type JSONPair struct {
@@ -73,8 +72,9 @@ type Dependencies struct {
 }
 
 type Instances struct {
-	P2P   *p2p.P2P
-	Ghost *ghost.Ghost
+	Wallet    *ethereum.Wallet
+	Transport transport.Transport
+	Ghost     *ghost.Ghost
 }
 
 func (e JSONConfigErr) Error() string {
@@ -107,7 +107,8 @@ func ParseJSON(b []byte) (*JSON, error) {
 }
 
 func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
-	wallet, err := ethereum.NewWallet(
+	// Create wallet for given account and keystore:
+	wal, err := ethereum.NewWallet(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
 		common.HexToAddress(j.Ethereum.From),
@@ -116,10 +117,11 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 		return nil, err
 	}
 
-	transport, err := p2p.NewP2P(p2p.Config{
+	// Configure transport:
+	tra, err := p2p.NewP2P(p2p.Config{
 		Context:        deps.Context,
 		ListenAddrs:    j.P2P.Listen,
-		Wallet:         wallet,
+		Wallet:         wal,
 		BootstrapPeers: j.P2P.BootstrapPeers,
 		BannedPeers:    j.P2P.BannedPeers,
 		Logger:         deps.Logger,
@@ -128,30 +130,30 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 		return nil, err
 	}
 
-	config := ghost.Config{
+	// Create and configure Ghost:
+	cfg := ghost.Config{
 		Gofer:     deps.Gofer,
-		Wallet:    wallet,
-		Transport: transport,
+		Wallet:    wal,
+		Transport: tra,
 		Logger:    deps.Logger,
 		Interval:  time.Second * time.Duration(j.Options.Interval),
 		Pairs:     nil,
 	}
-
 	for name, pair := range j.Pairs {
-		config.Pairs = append(config.Pairs, ghost.Pair{
+		cfg.Pairs = append(cfg.Pairs, &ghost.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.MsgSpread,
 			OracleExpiration: time.Second * time.Duration(pair.MsgExpiration),
 		})
 	}
-
-	gho, err := ghost.NewGhost(config)
+	gho, err := ghost.NewGhost(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Instances{
-		P2P:   transport,
-		Ghost: gho,
+		Wallet:    wal,
+		Transport: tra,
+		Ghost:     gho,
 	}, nil
 }
