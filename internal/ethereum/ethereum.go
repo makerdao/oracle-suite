@@ -13,24 +13,24 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ethkey
+package ethereum
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func TestAddressToPeerID(t *testing.T) {
-	assert.Equal(
-		t,
-		"1Afqz6rsuyYpr7Dpp12PbftE22nYH3k2Fw5",
-		AddressToPeerID("0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0").Pretty(),
-	)
+// Aliases for the go-ethereum types and functions used in multiple packages.
+// These aliases was created not to rely directly on the go-ethereum packages:
 
-	assert.Equal(
-		t,
-		"",
-		AddressToPeerID("").Pretty(),
-	)
+type (
+	Address = common.Address
+	Hash    = common.Hash
+)
+
+var HexToAddress = common.HexToAddress
+
+// SHA3Hash calculates SHA3 hash.
+func SHA3Hash(b []byte) []byte {
+	return crypto.Keccak256Hash(b).Bytes()
 }

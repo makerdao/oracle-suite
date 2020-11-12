@@ -36,9 +36,7 @@ func Register(node node) *Banner {
 		connGater: &connGater{},
 		pubSub:    node.PubSub(),
 	}
-
 	node.AddConnectionGater(banner.connGater)
-
 	return banner
 }
 
@@ -49,7 +47,7 @@ type Banner struct {
 	pubSub    *pubsub.PubSub
 }
 
-// Ban bans neither by an IP or a peer ID. If provided multi address contains
+// Ban bans neither by an IP or a peer ID. If provided multiaddress contains
 // an IP and a peer ID, both will be blocked separately.
 func (b *Banner) Ban(maddr multiaddr.Multiaddr) error {
 	multiaddr.ForEach(maddr, func(c multiaddr.Component) bool {

@@ -33,13 +33,13 @@ func (n *notifee) ListenClose(network.Network, multiaddr.Multiaddr) {}
 func (n *notifee) Connected(network network.Network, conn network.Conn) {
 	n.log.
 		WithFields(log.Fields{"ip": conn.LocalMultiaddr().String()}).
-		Debug("Connected to host")
+		Debug("Connected to a host")
 }
 
 func (n *notifee) Disconnected(network network.Network, conn network.Conn) {
 	n.log.
 		WithFields(log.Fields{"ip": conn.LocalMultiaddr().String()}).
-		Debug("Disconnected from host")
+		Debug("Disconnected from a host")
 }
 
 func (n *notifee) OpenedStream(network.Network, network.Stream) {}

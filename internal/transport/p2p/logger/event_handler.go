@@ -30,10 +30,10 @@ func (e eventHandler) Handle(topic string, event pubsub.PeerEvent) {
 	case pubsub.PeerJoin:
 		e.log.
 			WithFields(log.Fields{"id": event.Peer.Pretty(), "topic": topic}).
-			Debug("Connected to peer")
+			Debug("Connected to a peer")
 	case pubsub.PeerLeave:
 		e.log.
 			WithFields(log.Fields{"id": event.Peer.Pretty(), "topic": topic}).
-			Debug("Disconnected from peer")
+			Debug("Disconnected from a peer")
 	}
 }

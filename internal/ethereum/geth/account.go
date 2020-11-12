@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ethereum
+package geth
 
 import (
 	"errors"
@@ -21,26 +21,27 @@ import (
 	"runtime"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core"
+
+	"github.com/makerdao/gofer/internal/ethereum"
 )
 
-type Wallet struct {
+type Account struct {
 	accountManager *accounts.Manager
 	passphrase     string
-	address        common.Address
+	address        ethereum.Address
 	wallet         accounts.Wallet
 	account        *accounts.Account
 }
 
-func NewWallet(keyStore, passphrase string, address common.Address) (*Wallet, error) {
+func NewAccount(keyStore, passphrase string, address ethereum.Address) (*Account, error) {
 	var err error
 
 	if keyStore == "" {
 		keyStore = defaultKeyStore()
 	}
 
-	w := &Wallet{
+	w := &Account{
 		// Using StartClefAccountManager is not a perfect solution but it's probably little better than
 		// copy-pasting the code.
 		accountManager: core.StartClefAccountManager(keyStore, true, true, ""),
@@ -48,30 +49,34 @@ func NewWallet(keyStore, passphrase string, address common.Address) (*Wallet, er
 		address:        address,
 	}
 
-	if w.wallet, w.account, err = w.findWalletByAddress(address); err != nil {
+	if w.wallet, w.account, err = w.findAccountByAddress(address); err != nil {
 		return nil, err
 	}
 
 	return w, nil
 }
 
-func (s *Wallet) Address() common.Address {
+// Address implements the ethereum.Account interface.
+func (s *Account) Address() ethereum.Address {
 	return s.address
 }
 
-func (s *Wallet) EthWallet() accounts.Wallet {
+// Wallet implements the ethereum.Account interface.
+func (s *Account) Wallet() accounts.Wallet {
 	return s.wallet
 }
 
-func (s *Wallet) EthAccount() *accounts.Account {
+// Account implements the ethereum.Account interface.
+func (s *Account) Account() *accounts.Account {
 	return s.account
 }
 
-func (s *Wallet) Passphrase() string {
+// Passphrase implements the ethereum.Account interface.
+func (s *Account) Passphrase() string {
 	return s.passphrase
 }
 
-func (s *Wallet) findWalletByAddress(from common.Address) (accounts.Wallet, *accounts.Account, error) {
+func (s *Account) findAccountByAddress(from ethereum.Address) (accounts.Wallet, *accounts.Account, error) {
 	for _, wallet := range s.accountManager.Wallets() {
 		for _, account := range wallet.Accounts() {
 			if account.Address == from {
@@ -80,7 +85,7 @@ func (s *Wallet) findWalletByAddress(from common.Address) (accounts.Wallet, *acc
 		}
 	}
 
-	return nil, nil, errors.New("unable to find wallet for requested address")
+	return nil, nil, errors.New("unable to find account for requested address")
 }
 
 // source: https://github.com/dapphub/dapptools/blob/master/src/ethsign/ethsign.go

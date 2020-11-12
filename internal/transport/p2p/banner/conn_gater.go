@@ -31,7 +31,7 @@ type connGater struct {
 func (f *connGater) BanIP(ip net.IP) {
 	f.bannedAddrs.AddFilter(net.IPNet{
 		IP:   ip,
-		Mask: net.CIDRMask(32, 32),
+		Mask: net.CIDRMask(len(ip)*8, len(ip)*8),
 	}, multiaddr.ActionDeny)
 }
 

@@ -23,9 +23,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/internal/ethereum/geth"
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
@@ -59,8 +58,7 @@ type JSONOptions struct {
 }
 
 type JSONPair struct {
-	MsgExpiration int     `json:"msgExpiration"`
-	MsgSpread     float64 `json:"msgSpread"`
+	MsgExpiration int `json:"msgExpiration"`
 }
 
 type JSONConfigErr struct {
@@ -74,7 +72,8 @@ type Dependencies struct {
 }
 
 type Instances struct {
-	Wallet    *ethereum.Wallet
+	Wallet    ethereum.Account
+	Signer    ethereum.Signer
 	Transport transport.Transport
 	Ghost     *ghost.Ghost
 }
@@ -110,20 +109,23 @@ func ParseJSON(b []byte) (*JSON, error) {
 
 func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	// Create wallet for given account and keystore:
-	wal, err := ethereum.NewWallet(
+	wal, err := geth.NewAccount(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
-		common.HexToAddress(j.Ethereum.From),
+		ethereum.HexToAddress(j.Ethereum.From),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create new signer instance:
+	sig := geth.NewSigner(wal)
+
 	// Configure transport:
 	p2pCfg := p2p.Config{
 		Context:        deps.Context,
-		ListenAddrs:    j.P2P.Listen,
 		Wallet:         wal,
+		ListenAddrs:    j.P2P.Listen,
 		BootstrapAddrs: j.P2P.BootstrapPeers,
 		BannedAddrs:    j.P2P.BannedPeers,
 		Logger:         deps.Logger,
@@ -139,7 +141,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	// Create and configure Ghost:
 	cfg := ghost.Config{
 		Gofer:     deps.Gofer,
-		Wallet:    wal,
+		Signer:    sig,
 		Transport: tra,
 		Logger:    deps.Logger,
 		Interval:  time.Second * time.Duration(j.Options.Interval),
@@ -148,7 +150,6 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	for name, pair := range j.Pairs {
 		cfg.Pairs = append(cfg.Pairs, &ghost.Pair{
 			AssetPair:        name,
-			OracleSpread:     pair.MsgSpread,
 			OracleExpiration: time.Second * time.Duration(pair.MsgExpiration),
 		})
 	}
@@ -159,6 +160,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 
 	return &Instances{
 		Wallet:    wal,
+		Signer:    sig,
 		Transport: tra,
 		Ghost:     gho,
 	}, nil

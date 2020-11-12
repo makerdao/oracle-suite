@@ -29,11 +29,11 @@ type messageHandler struct {
 func (m *messageHandler) Published(topic string, raw []byte, message transport.Message) {
 	m.log.
 		WithFields(log.Fields{"topic": topic, "message": string(raw)}).
-		Debug("Published new message")
+		Debug("Published a new message")
 }
 
 func (m *messageHandler) Received(topic string, raw *pubsub.Message, message transport.Message) {
 	m.log.
 		WithFields(log.Fields{"topic": topic, "message": string(raw.Data), "peerID": raw.ReceivedFrom}).
-		Debug("Received new message")
+		Debug("Received a new message")
 }

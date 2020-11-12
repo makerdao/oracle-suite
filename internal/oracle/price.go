@@ -22,9 +22,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
 )
@@ -38,7 +35,6 @@ type Price struct {
 	V         uint8
 	R         [32]byte
 	S         [32]byte
-	from      *common.Address
 }
 
 type jsonPrice struct {
@@ -76,24 +72,17 @@ func (p *Price) Float64Price() float64 {
 	return f
 }
 
-func (p *Price) From() (*common.Address, error) {
-	if p.from != nil {
-		return p.from, nil
-	}
-
+func (p *Price) From(signer ethereum.Signer) (*ethereum.Address, error) {
 	signature := append(append(append([]byte{}, p.R[:]...), p.S[:]...), p.V)
-	signer := ethereum.NewSigner(nil)
 	from, err := signer.Recover(signature, p.hash())
 	if err != nil {
 		return nil, err
 	}
 
-	p.from = from
 	return from, nil
 }
 
-func (p *Price) Sign(wallet *ethereum.Wallet) error {
-	signer := ethereum.NewSigner(wallet)
+func (p *Price) Sign(signer ethereum.Signer) error {
 	signature, err := signer.Signature(p.hash())
 	if err != nil {
 		return err
@@ -106,9 +95,9 @@ func (p *Price) Sign(wallet *ethereum.Wallet) error {
 	return nil
 }
 
-func (p *Price) Fields() log.Fields {
+func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 	from := "*invalid signature*"
-	if addr, err := p.From(); err == nil {
+	if addr, err := p.From(signer); err == nil {
 		from = addr.String()
 	}
 
@@ -175,5 +164,5 @@ func (p *Price) hash() []byte {
 	copy(assetPairB, p.AssetPair)
 	assetPairHex := hex.EncodeToString(assetPairB)
 
-	return crypto.Keccak256Hash([]byte("0x" + medianHex + timeHex + assetPairHex)).Bytes()
+	return ethereum.SHA3Hash([]byte("0x" + medianHex + timeHex + assetPairHex))
 }
