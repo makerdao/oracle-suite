@@ -13,24 +13,29 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ethkey
+package geth
 
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddressToPeerID(t *testing.T) {
-	assert.Equal(
-		t,
-		"1Afqz6rsuyYpr7Dpp12PbftE22nYH3k2Fw5",
-		AddressToPeerID("0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0").Pretty(),
-	)
+var walletAddress = common.HexToAddress("0x2d800d93b065ce011af83f316cef9f0d005b0aa4")
 
-	assert.Equal(
-		t,
-		"",
-		AddressToPeerID("").Pretty(),
-	)
+func TestAccount_ValidAddress(t *testing.T) {
+	wallet, err := NewAccount("./testdata/keystore", "test123", walletAddress)
+	assert.NoError(t, err)
+
+	assert.Equal(t, walletAddress, wallet.Address())
+	assert.Equal(t, "test123", wallet.Passphrase())
+	assert.Equal(t, walletAddress, wallet.Account().Address)
+	assert.NotNil(t, wallet.Wallet())
+}
+
+func TestAccount_InvalidAddress(t *testing.T) {
+	wallet, err := NewAccount("./testdata/keystore", "test123", common.HexToAddress(""))
+	assert.Error(t, err)
+	assert.Nil(t, wallet)
 }

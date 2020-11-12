@@ -22,40 +22,32 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
+	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/oracle"
 )
 
 // store contains a list of oracle.Price's for single asset pair. Only one
-// price from single address can be added to that list.
+// price from a single address can be added to this list.
 type store struct {
 	assetPair string
-	prices    map[common.Address]*oracle.Price
+	prices    map[ethereum.Address]*oracle.Price
 }
 
-// newStore creates the new Prices instance.
+// newStore creates a new store instance.
 func newStore() *store {
 	return &store{
-		prices: make(map[common.Address]*oracle.Price, 0),
+		prices: make(map[ethereum.Address]*oracle.Price, 0),
 	}
 }
 
 // add adds a new price to the list. If a price from same address already
 // exists, the newer one will be used.
-func (p *store) add(price *oracle.Price) error {
-	addr, err := price.From()
-	if err != nil {
-		return err
+func (p *store) add(from ethereum.Address, price *oracle.Price) {
+	if prev, ok := p.prices[from]; ok && prev.Age.After(price.Age) {
+		return
 	}
 
-	// Skip if previous price is newer:
-	if prev, ok := p.prices[*addr]; ok && prev.Age.After(price.Age) {
-		return nil
-	}
-
-	p.prices[*addr] = price
-	return nil
+	p.prices[from] = price
 }
 
 // get returns all prices from the list.
@@ -83,18 +75,18 @@ func (p *store) truncate(n int64) {
 		return
 	}
 
-	prices := p.get()
-	rand.Shuffle(len(prices), func(i, j int) {
-		prices[i], prices[j] = prices[j], prices[i]
-	})
-
+	prices := p.prices
 	p.clear()
-	for _, price := range prices {
-		_ = p.add(price)
+
+	for _, k := range randKeys(prices) {
+		p.add(k, prices[k])
+		if int64(len(p.prices)) == n {
+			break
+		}
 	}
 }
 
-// median calculates median price for all prices in the list.
+// median calculates the median price for all prices in the list.
 func (p *store) median() *big.Int {
 	prices := p.get()
 
@@ -117,8 +109,8 @@ func (p *store) median() *big.Int {
 	return prices[(count-1)/2].Val
 }
 
-// spread calculates spread between given price and a median price. The spread
-// is returned as percentage points.
+// spread calculates the spread between given price and a median price.
+// The spread is returned as percentage points.
 func (p *store) spread(price *big.Int) float64 {
 	oldPriceF := new(big.Float).SetInt(price)
 	newPriceF := new(big.Float).SetInt(p.median())
@@ -142,5 +134,19 @@ func (p *store) clearOlderThan(t time.Time) {
 
 // clear deletes all prices from the list.
 func (p *store) clear() {
-	p.prices = make(map[common.Address]*oracle.Price, 0)
+	p.prices = make(map[ethereum.Address]*oracle.Price, 0)
+}
+
+// randKeys returns v keys in random order.
+func randKeys(v map[ethereum.Address]*oracle.Price) []ethereum.Address {
+	var ks []ethereum.Address
+	for k, _ := range v {
+		ks = append(ks, k)
+	}
+
+	rand.Shuffle(len(ks), func(i, j int) {
+		ks[i], ks[j] = ks[j], ks[i]
+	})
+
+	return ks
 }

@@ -34,7 +34,7 @@ const LoggerTag = "GHOST"
 
 type Ghost struct {
 	gofer     *gofer.Gofer
-	wallet    *ethereum.Wallet
+	signer    ethereum.Signer
 	transport transport.Transport
 	interval  time.Duration
 	pairs     map[graph.Pair]*Pair
@@ -46,16 +46,16 @@ type Config struct {
 	// Gofer is an instance of the gofer.Gofer which will be used to fetch
 	// prices.
 	Gofer *gofer.Gofer
-	// Wallet is an instance of the ethereum.Wallet which will be used to
+	// Signer is an instance of the ethereum.Signer which will be used to
 	// sign prices.
-	Wallet *ethereum.Wallet
+	Signer ethereum.Signer
 	// Transport is a implementation of transport used to send prices to
 	// relayers.
 	Transport transport.Transport
 	// Interval describes how often we should send prices to the network.
 	Interval time.Duration
-	// Logger is a current logger interface used by the Ghost. The Logger is
-	//	// required to monitor asynchronous processes.
+	// Logger is a current logger interface used by the Ghost. The Logger
+	// helps to monitor asynchronous processes.
 	Logger log.Logger
 	// Pairs is the list supported pairs by Ghost with their configuration.
 	Pairs []*Pair
@@ -64,9 +64,6 @@ type Config struct {
 type Pair struct {
 	// AssetPair is the name of asset pair, e.g. ETHUSD.
 	AssetPair string
-	// OracleSpread is the minimum spread between the oracle price and new price
-	// required to send update.
-	OracleSpread float64
 	// OracleExpiration is the minimum time difference between the oracle time
 	// and current time required to send update.
 	OracleExpiration time.Duration
@@ -75,7 +72,7 @@ type Pair struct {
 func NewGhost(config Config) (*Ghost, error) {
 	g := &Ghost{
 		gofer:     config.Gofer,
-		wallet:    config.Wallet,
+		signer:    config.Signer,
 		transport: config.Transport,
 		interval:  config.Interval,
 		pairs:     make(map[graph.Pair]*Pair, 0),
@@ -147,7 +144,7 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	price.Age = tick.Timestamp
 
 	// Sign price:
-	err = price.Sign(g.wallet)
+	err = price.Sign(g.signer)
 	if err != nil {
 		return err
 	}
@@ -168,6 +165,10 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 // broadcasterLoop creates a asynchronous loop which fetches prices from exchanges and then
 // sends them to the network at a specified interval.
 func (g *Ghost) broadcasterLoop() error {
+	if g.interval == 0 {
+		return nil
+	}
+
 	err := g.transport.Subscribe(messages.PriceMessageName)
 	if err != nil {
 		return err

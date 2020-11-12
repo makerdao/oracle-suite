@@ -23,12 +23,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/makerdao/gofer/internal/ethereum"
+	ethereumGeth "github.com/makerdao/gofer/internal/ethereum/geth"
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/internal/oracle"
+	oracleGeth "github.com/makerdao/gofer/internal/oracle/geth"
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
@@ -77,8 +77,9 @@ type Dependencies struct {
 }
 
 type Instances struct {
-	Ethereum  *ethereum.Client
-	Wallet    *ethereum.Wallet
+	Ethereum  ethereum.Client
+	Wallet    ethereum.Account
+	Signer    ethereum.Signer
 	Transport transport.Transport
 	Relayer   *relayer.Relayer
 }
@@ -114,20 +115,23 @@ func ParseJSON(b []byte) (*JSON, error) {
 
 func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	// Create wallet for given account and keystore:
-	wal, err := ethereum.NewWallet(
+	wal, err := ethereumGeth.NewAccount(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
-		common.HexToAddress(j.Ethereum.From),
+		ethereum.HexToAddress(j.Ethereum.From),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create new signer instance:
+	sig := ethereumGeth.NewSigner(wal)
+
 	// Configure transport:
 	p2pCfg := p2p.Config{
 		Context:        deps.Context,
-		ListenAddrs:    j.P2P.Listen,
 		Wallet:         wal,
+		ListenAddrs:    j.P2P.Listen,
 		BootstrapAddrs: j.P2P.BootstrapPeers,
 		BannedAddrs:    j.P2P.BannedPeers,
 		Logger:         deps.Logger,
@@ -145,11 +149,12 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	if err != nil {
 		return nil, err
 	}
-	eth := ethereum.NewClient(client, wal)
+	eth := ethereumGeth.NewClient(client, wal)
 
 	// Create and configure Relayer:
 	cfg := relayer.Config{
 		Context:   deps.Context,
+		Signer:    sig,
 		Transport: tra,
 		Interval:  time.Second * time.Duration(j.Options.Interval),
 		Feeds:     j.Feeds,
@@ -162,7 +167,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
 			PriceExpiration:  time.Second * time.Duration(pair.MsgExpiration),
-			Median:           oracle.NewMedian(eth, common.HexToAddress(pair.Oracle), name),
+			Median:           oracleGeth.NewMedian(eth, ethereum.HexToAddress(pair.Oracle), name),
 		})
 	}
 	rel := relayer.NewRelayer(cfg)
@@ -170,6 +175,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	return &Instances{
 		Ethereum:  eth,
 		Wallet:    wal,
+		Signer:    sig,
 		Transport: tra,
 		Relayer:   rel,
 	}, nil

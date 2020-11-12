@@ -33,11 +33,15 @@ import (
 
 const LoggerTag = "P2P"
 
+// defaultListenAddrs is a list of default multiaddresses on which node will
+// be listening on.
+var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+
 type P2P struct {
 	log       log.Logger
 	node      *Node
-	banner    *banner.Banner
 	allowlist *allowlist.Allowlist
+	banner    *banner.Banner
 }
 
 type Config struct {
@@ -45,13 +49,13 @@ type Config struct {
 	Logger  log.Logger
 
 	// Wallet is used to sign and verify messages in the network.
-	Wallet *ethereum.Wallet
-	// ListenAddrs is a list of multi addresses on which node will be
+	Wallet ethereum.Account
+	// ListenAddrs is a list of multiaddresses on which node will be
 	// listening on. If empty, localhost and random port will be used.
 	ListenAddrs []string
-	// BootstrapAddrs is a list multi addresses of initial peers to connect to.
+	// BootstrapAddrs is a list multiaddresses of initial peers to connect to.
 	BootstrapAddrs []string
-	// BannedAddrs is a list of multi addresses to which connection will be
+	// BannedAddrs is a list of multiaddresses to which connection will be
 	// blocked. If an address on that list contains an IP and a peer ID, both
 	// will be blocked separately.
 	BannedAddrs []string
@@ -67,25 +71,25 @@ func NewP2P(config Config) (*P2P, error) {
 	var err error
 
 	if len(config.ListenAddrs) == 0 {
-		config.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+		config.ListenAddrs = defaultListenAddrs
 	}
 	listenAddrs, err := addrsToMaddrs(config.ListenAddrs)
 	if err != nil {
 		return nil, err
 	}
 
-	l := log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
-	n := NewNode(NodeConfig{
+	p := &P2P{}
+	p.log = log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
+	p.node = NewNode(NodeConfig{
 		Context:     config.Context,
 		Logger:      config.Logger,
 		ListenAddrs: listenAddrs,
 		PrivateKey:  ethkey.NewPrivKey(config.Wallet),
 	})
-	p := &P2P{log: l, node: n}
 
-	logger.Register(p.node, l)
-	p.banner = banner.Register(p.node)
+	logger.Register(p.node, p.log)
 	p.allowlist = allowlist.Register(p.node)
+	p.banner = banner.Register(p.node)
 
 	err = p.startNode()
 	if err != nil {
@@ -123,7 +127,7 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 	if err != nil {
 		return err
 	}
-	return sub.publish(message)
+	return sub.Publish(message)
 }
 
 // WaitFor implements the transport.Transport interface.
@@ -132,7 +136,7 @@ func (p *P2P) WaitFor(topic string, message transport.Message) chan transport.St
 	if err != nil {
 		return nil
 	}
-	return sub.next(message)
+	return sub.Next(message)
 }
 
 // Close implements the transport.Transport interface.
@@ -166,10 +170,7 @@ func (p *P2P) bannedAddrs(addrs []string) error {
 
 		err = p.banner.Ban(maddr)
 		if err != nil {
-			p.log.
-				WithFields(log.Fields{"addr": addrstr}).
-				WithError(err).
-				Warn("Unable to ban given address")
+			return err
 		}
 	}
 	return nil
@@ -207,7 +208,7 @@ func (p *P2P) bootstrapAddrs(addrs []string) error {
 	return nil
 }
 
-// listenAddrs returns all node's listen multi addresses as string list.
+// listenAddrs returns all node's listen multiaddresses as a string list.
 func (p *P2P) listenAddrs() []string {
 	var strs []string
 	for _, addr := range p.node.Host().Addrs() {
@@ -216,8 +217,8 @@ func (p *P2P) listenAddrs() []string {
 	return strs
 }
 
-// addrsToMaddrs converts multi addresses given as strings to the
-// multiaddr.Multiaddr list.
+// addrsToMaddrs converts multiaddresses given as strings to a
+// list of multiaddr.Multiaddr.
 func addrsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 	var maddrs []multiaddr.Multiaddr
 	for _, addrstr := range addrs {

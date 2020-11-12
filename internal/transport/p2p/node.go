@@ -51,8 +51,8 @@ type NodeConfig struct {
 	Context context.Context
 	Logger  log.Logger
 
-	// ListenAddrs is a list of multi addresses on which node will be
-	// listening on. If empty, localhost and random port will be used.
+	// ListenAddrs is a list of multiaddresses on which node will be
+	// listening on.
 	ListenAddrs []multiaddr.Multiaddr
 	// PrivateKey is a key used to identify itself and for signing published
 	// messages.
@@ -106,7 +106,6 @@ func (n *Node) Start() error {
 	if err != nil {
 		return err
 	}
-
 	ps, err := pubsub.NewGossipSub(n.ctx, h)
 	if err != nil {
 		return err
@@ -131,12 +130,10 @@ func (n *Node) Connect(maddr multiaddr.Multiaddr) error {
 	if err != nil {
 		return err
 	}
-
 	err = n.host.Connect(n.ctx, *pi)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -200,9 +197,6 @@ func (n *Node) Subscribe(topic string) error {
 }
 
 func (n *Node) Unsubscribe(topic string) error {
-	n.mu.Lock()
-	n.mu.Unlock()
-
 	if n.closed {
 		return ConnectionIsClosedErr
 	}
@@ -229,6 +223,5 @@ func (n *Node) Close() error {
 
 	n.subs = nil
 	n.closed = true
-
 	return n.host.Close()
 }

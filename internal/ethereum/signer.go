@@ -15,61 +15,11 @@
 
 package ethereum
 
-import (
-	"errors"
-	"fmt"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-)
-
-type Signer struct {
-	wallet *Wallet
-}
-
-// NewSigner returns a new Signer instance. If you don't want to sign any data
-// and only want to recover public addresses, you may use nil as an argument.
-func NewSigner(wallet *Wallet) *Signer {
-	return &Signer{
-		wallet: wallet,
-	}
-}
-
-func (s *Signer) Signature(data []byte) ([]byte, error) {
-	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
-	wallet := s.wallet.EthWallet()
-	account := s.wallet.EthAccount()
-
-	signature, err := wallet.SignDataWithPassphrase(*account, s.wallet.Passphrase(), "", msg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Transform V from 0/1 to 27/28 according to the yellow paper:
-	signature[64] += 27
-
-	return signature, nil
-}
-
-func (s *Signer) Recover(signature []byte, data []byte) (*common.Address, error) {
-	if len(signature) != 65 {
-		return nil, errors.New("signature must be 65 bytes long")
-	}
-	if signature[64] != 27 && signature[64] != 28 {
-		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
-	}
-
-	// Transform yellow paper V from 27/28 to 0/1:
-	signature[64] -= 27
-
-	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
-	hash := crypto.Keccak256(msg)
-
-	rpk, err := crypto.SigToPub(hash, signature)
-	if err != nil {
-		return nil, err
-	}
-
-	address := crypto.PubkeyToAddress(*rpk)
-	return &address, nil
+// Signer implements Signature and Recover functions which must be compatible
+// with the median contract.
+type Signer interface {
+	// Signature signs the hash of the given data and returns it.
+	Signature(data []byte) ([]byte, error)
+	// Recover returns the wallet address that created the given signature.
+	Recover(signature []byte, data []byte) (*Address, error)
 }

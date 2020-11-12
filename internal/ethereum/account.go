@@ -13,24 +13,23 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ethkey
+package ethereum
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/ethereum/go-ethereum/accounts"
 )
 
-func TestAddressToPeerID(t *testing.T) {
-	assert.Equal(
-		t,
-		"1Afqz6rsuyYpr7Dpp12PbftE22nYH3k2Fw5",
-		AddressToPeerID("0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0").Pretty(),
-	)
+// TODO: Merge Signer to Account. This will allow us to hide go-ethereum types
+//       like accounts.Wallet and *accounts.Account.
 
-	assert.Equal(
-		t,
-		"",
-		AddressToPeerID("").Pretty(),
-	)
+// Account represent single Ethereum account.
+type Account interface {
+	// Address returns a address of this account.
+	Address() Address
+	// Passphrase returns a password of this account.
+	Passphrase() string
+	// Wallet returns the go-ethereum wallet to which this account belongs to.
+	Wallet() accounts.Wallet
+	// Account returns the go-ethereum representation of this account.
+	Account() *accounts.Account
 }

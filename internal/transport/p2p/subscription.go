@@ -48,7 +48,7 @@ func newSubscription(node *Node, topic string) (*subscription, error) {
 	if err != nil {
 		return nil, err
 	}
-	teh, err := t.EventHandler()
+	e, err := t.EventHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -57,18 +57,17 @@ func newSubscription(node *Node, topic string) (*subscription, error) {
 		ctx:            node.ctx,
 		topic:          t,
 		sub:            s,
-		teh:            teh,
+		teh:            e,
 		eventHandler:   node.eventHandlerSet,
 		messageHandler: node.messageHandlerSet,
 		statusCh:       make(chan transport.Status, 0),
 	}
 
 	sub.eventLoop()
-
 	return sub, err
 }
 
-func (s subscription) publish(message transport.Message) error {
+func (s subscription) Publish(message transport.Message) error {
 	b, err := message.Marshall()
 	if err != nil {
 		return err
@@ -77,19 +76,20 @@ func (s subscription) publish(message transport.Message) error {
 	return s.topic.Publish(s.ctx, b)
 }
 
-func (s subscription) next(message transport.Message) chan transport.Status {
+func (s subscription) Next(message transport.Message) chan transport.Status {
 	go func() {
 		msg, err := s.sub.Next(s.ctx)
 		if err == nil {
 			err = message.Unmarshall(msg.Data)
 		}
-		s.messageHandler.Received(s.topic.String(), msg, message)
+		if err != nil {
+			s.messageHandler.Received(s.topic.String(), msg, message)
+		}
 		s.statusCh <- transport.Status{
 			Message: message,
 			Error:   err,
 		}
 	}()
-
 	return s.statusCh
 }
 

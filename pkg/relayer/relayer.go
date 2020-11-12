@@ -23,8 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
+	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/internal/transport"
@@ -34,19 +33,23 @@ import (
 const LoggerTag = "RELAYER"
 
 type Relayer struct {
-	mu           sync.Mutex
-	ctx          context.Context
-	transport    transport.Transport
-	interval     time.Duration
-	feedInterval time.Duration
-	log          log.Logger
-	pairs        map[string]*Pair
-	verbose      bool
-	doneCh       chan struct{}
+	mu  sync.Mutex
+	ctx context.Context
+
+	signer    ethereum.Signer
+	transport transport.Transport
+	interval  time.Duration
+	log       log.Logger
+	pairs     map[string]*Pair
+	verbose   bool
+	doneCh    chan struct{}
 }
 
 type Config struct {
 	Context context.Context
+	// Signer is an instance of the ethereum.Signer which will be used to
+	// verify price signatures.
+	Signer ethereum.Signer
 	// Transport is a implementation of transport used to fetch prices from
 	// feeders.
 	Transport transport.Transport
@@ -77,29 +80,30 @@ type Pair struct {
 	PriceExpiration time.Duration
 	// Median is the instance of the oracle.Median which is the interface for
 	// the Oracle contract.
-	Median *oracle.Median
+	Median oracle.Median
 	// feeds is the list of Ethereum addresses from which prices will be
 	// accepted.
-	feeds []common.Address
+	feeds []ethereum.Address
 	// store contains list of prices form feeders.
 	store *store
 }
 
 func NewRelayer(config Config) *Relayer {
 	r := &Relayer{
-		ctx:          config.Context,
-		transport:    config.Transport,
-		interval:     config.Interval,
-		pairs:        make(map[string]*Pair, 0),
-		log:          log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
-		doneCh:       make(chan struct{}),
+		ctx:       config.Context,
+		signer:    config.Signer,
+		transport: config.Transport,
+		interval:  config.Interval,
+		pairs:     make(map[string]*Pair, 0),
+		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
+		doneCh:    make(chan struct{}),
 	}
 
 	for _, pair := range config.Pairs {
 		pair.store = newStore()
 		r.pairs[pair.AssetPair] = pair
 		for _, feed := range config.Feeds {
-			pair.feeds = append(pair.feeds, common.HexToAddress(feed))
+			pair.feeds = append(pair.feeds, ethereum.HexToAddress(feed))
 		}
 	}
 
@@ -137,7 +141,7 @@ func (r *Relayer) collect(price *messages.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	from, err := price.Price.From()
+	from, err := price.Price.From(r.signer)
 	if err != nil {
 		return errors.New("received price has an invalid signature")
 	}
@@ -151,17 +155,13 @@ func (r *Relayer) collect(price *messages.Price) error {
 		return errors.New("received price is invalid")
 	}
 
-	err = r.pairs[price.Price.AssetPair].store.add(price.Price)
-	if err != nil {
-		return err
-	}
-
+	r.pairs[price.Price.AssetPair].store.add(*from, price.Price)
 	return nil
 }
 
 // relay tries to update an Oracle contract for given pair. It'll return
 // transaction hash or nil if there is no need to update Oracle.
-func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
+func (r *Relayer) relay(assetPair string) (*ethereum.Hash, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -211,7 +211,7 @@ func (r *Relayer) relay(assetPair string) (*common.Hash, error) {
 		Debug("Trying to update Oracle")
 	for _, price := range pair.store.get() {
 		r.log.
-			WithFields(price.Fields()).
+			WithFields(price.Fields(r.signer)).
 			Debug("Feed")
 	}
 
@@ -259,7 +259,7 @@ func (r *Relayer) collectorLoop() error {
 				err := r.collect(price)
 
 				// Prepare log fields:
-				from, _ := price.Price.From()
+				from, _ := price.Price.From(r.signer)
 				fields := log.Fields{"assetPair": price.Price.AssetPair}
 				if from != nil {
 					fields["from"] = from.String()
@@ -326,7 +326,7 @@ func (r *Relayer) relayerLoop() {
 	}()
 }
 
-func (r *Relayer) isFeedAllowed(assetPair string, address common.Address) bool {
+func (r *Relayer) isFeedAllowed(assetPair string, address ethereum.Address) bool {
 	for _, a := range r.pairs[assetPair].feeds {
 		if a == address {
 			return true
