@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
@@ -75,11 +76,16 @@ func NewP2P(config Config) (*P2P, error) {
 	}
 
 	l := log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
+
+	privKey, err := ethkey.ReadAndDecryptPrvKey(config.Wallet.Address(), *config.Wallet.EthAccount(), config.Wallet.Passphrase())
+	if err != nil {
+		return nil, err
+	}
 	n := NewNode(NodeConfig{
 		Context:     config.Context,
 		Logger:      config.Logger,
 		ListenAddrs: listenAddrs,
-		PrivateKey:  ethkey.NewPrivKey(config.Wallet),
+		PrivateKey:  privKey,
 	})
 	p := &P2P{log: l, node: n}
 
@@ -211,7 +217,12 @@ func (p *P2P) bootstrapAddrs(addrs []string) error {
 func (p *P2P) listenAddrs() []string {
 	var strs []string
 	for _, addr := range p.node.Host().Addrs() {
-		strs = append(strs, fmt.Sprintf("%s/p2p/%s", addr.String(), p.node.Host().ID()))
+		b, _ := p.node.privKey.Bytes()
+		// b, _ := n.privKey.GetPublic().Bytes()
+		id := common.BytesToAddress(b)
+
+		// id := p.node.Host().ID()
+		strs = append(strs, fmt.Sprintf("%s/p2p/%s", addr.String(), id.String()))
 	}
 	return strs
 }

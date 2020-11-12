@@ -30,6 +30,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/transport"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	swarm "github.com/libp2p/go-libp2p-swarm"
+	basichost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/gofer/internal/log"
@@ -117,6 +118,16 @@ func (n *Node) Start() error {
 	n.pubSub = ps
 	return nil
 }
+
+type EthHost struct {
+	basichost.BasicHost
+}
+
+func (h *EthHost) ID() peer.ID {
+	return h.Network().LocalPeer()
+}
+
+type EthId peer.ID
 
 func (n *Node) Host() host.Host {
 	return n.host

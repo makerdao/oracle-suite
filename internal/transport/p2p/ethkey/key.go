@@ -12,7 +12,6 @@ const KeyType_Eth crypto_pb.KeyType = 10
 
 func init() {
 	crypto.PubKeyUnmarshallers[KeyType_Eth] = UnmarshalEthPublicKey
-	crypto.PrivKeyUnmarshallers[KeyType_Eth] = UnmarshalEthPrivateKey
 }
 
 // AddressToPeerID converts an Ethereum address to a peer ID. If address is
