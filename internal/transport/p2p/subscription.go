@@ -82,7 +82,7 @@ func (s subscription) Next(message transport.Message) chan transport.Status {
 		if err == nil {
 			err = message.Unmarshall(msg.Data)
 		}
-		if err != nil {
+		if msg != nil {
 			s.messageHandler.Received(s.topic.String(), msg, message)
 		}
 		s.statusCh <- transport.Status{

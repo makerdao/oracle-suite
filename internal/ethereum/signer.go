@@ -15,9 +15,12 @@
 
 package ethereum
 
-// Signer implements Signature and Recover functions which must be compatible
-// with the median contract.
 type Signer interface {
+	// Address returns account's address used to sign data. May be empty if
+	// the signer is used only to verify signatures.
+	Address() Address
+	// SignTransaction signs transaction.
+	SignTransaction(transaction *Transaction) error
 	// Signature signs the hash of the given data and returns it.
 	Signature(data []byte) ([]byte, error)
 	// Recover returns the wallet address that created the given signature.

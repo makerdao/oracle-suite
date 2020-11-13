@@ -34,6 +34,7 @@ type Account struct {
 	account        *accounts.Account
 }
 
+// NewAccount returns a new Account instance.
 func NewAccount(keyStore, passphrase string, address ethereum.Address) (*Account, error) {
 	var err error
 
@@ -56,22 +57,12 @@ func NewAccount(keyStore, passphrase string, address ethereum.Address) (*Account
 	return w, nil
 }
 
-// Address implements the ethereum.Account interface.
+// Address returns a address of this account.
 func (s *Account) Address() ethereum.Address {
 	return s.address
 }
 
-// Wallet implements the ethereum.Account interface.
-func (s *Account) Wallet() accounts.Wallet {
-	return s.wallet
-}
-
-// Account implements the ethereum.Account interface.
-func (s *Account) Account() *accounts.Account {
-	return s.account
-}
-
-// Passphrase implements the ethereum.Account interface.
+// Passphrase returns a password of this account.
 func (s *Account) Passphrase() string {
 	return s.passphrase
 }

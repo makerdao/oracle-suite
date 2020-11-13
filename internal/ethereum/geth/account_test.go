@@ -22,20 +22,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var walletAddress = common.HexToAddress("0x2d800d93b065ce011af83f316cef9f0d005b0aa4")
+var accountAddress = common.HexToAddress("0x2d800d93b065ce011af83f316cef9f0d005b0aa4")
 
 func TestAccount_ValidAddress(t *testing.T) {
-	wallet, err := NewAccount("./testdata/keystore", "test123", walletAddress)
+	account, err := NewAccount("./testdata/keystore", "test123", accountAddress)
 	assert.NoError(t, err)
 
-	assert.Equal(t, walletAddress, wallet.Address())
-	assert.Equal(t, "test123", wallet.Passphrase())
-	assert.Equal(t, walletAddress, wallet.Account().Address)
-	assert.NotNil(t, wallet.Wallet())
+	assert.Equal(t, accountAddress, account.Address())
+	assert.Equal(t, "test123", account.Passphrase())
+	assert.Equal(t, accountAddress, account.account.Address)
+	assert.NotNil(t, account.wallet)
 }
 
 func TestAccount_InvalidAddress(t *testing.T) {
-	wallet, err := NewAccount("./testdata/keystore", "test123", common.HexToAddress(""))
+	account, err := NewAccount("./testdata/keystore", "test123", common.HexToAddress(""))
 	assert.Error(t, err)
-	assert.Nil(t, wallet)
+	assert.Nil(t, account)
 }

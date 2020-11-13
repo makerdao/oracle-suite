@@ -24,7 +24,7 @@ import (
 	"github.com/makerdao/gofer/internal/ethereum/geth"
 )
 
-// Eth key type uses the Ethereum wallet to sign and verify messages.
+// Eth key type uses the Ethereum account to sign and verify messages.
 const KeyType_Eth cryptoPB.KeyType = 10
 
 // Signer provider used for signing and verifying data.

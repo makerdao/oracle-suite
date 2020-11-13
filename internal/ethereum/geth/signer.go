@@ -19,30 +19,70 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/makerdao/gofer/internal/ethereum"
 )
 
 type Signer struct {
-	wallet ethereum.Account
+	account *Account
 }
 
 // NewSigner returns a new Signer instance. If you don't want to sign any data
-// and only want to recover public addresses, you may use nil as an argument.
-func NewSigner(wallet ethereum.Account) *Signer {
+// and you only want to recover public addresses, you may use nil as an argument.
+func NewSigner(account *Account) *Signer {
 	return &Signer{
-		wallet: wallet,
+		account: account,
 	}
+}
+
+// Account implements the ethereum.Signer interface.
+func (s *Signer) Address() ethereum.Address {
+	if s.account == nil {
+		return ethereum.Address{}
+	}
+
+	return s.account.address
+}
+
+// SignTransaction implements the ethereum.Signer interface.
+func (s *Signer) SignTransaction(transaction *ethereum.Transaction) error {
+	tx := types.NewTransaction(
+		transaction.Nonce,
+		transaction.Address,
+		nil,
+		transaction.GasLimit.Uint64(),
+		transaction.Gas,
+		transaction.Data,
+	)
+	signedTx, err := s.account.wallet.SignTxWithPassphrase(
+		*s.account.account,
+		s.account.passphrase,
+		tx,
+		transaction.ChainID,
+	)
+	if err != nil {
+		return err
+	}
+	transaction.SignedTx = signedTx
+	return nil
 }
 
 // Signature implements the ethereum.Signer interface.
 func (s *Signer) Signature(data []byte) ([]byte, error) {
-	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
-	wallet := s.wallet.Wallet()
-	account := s.wallet.Account()
+	return Signature(s.account, data)
+}
 
-	signature, err := wallet.SignDataWithPassphrase(*account, s.wallet.Passphrase(), "", msg)
+// Recover implements the ethereum.Signer interface.
+func (s *Signer) Recover(signature []byte, data []byte) (*ethereum.Address, error) {
+	return Recover(signature, data)
+}
+
+func Signature(account *Account, data []byte) ([]byte, error) {
+	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
+
+	signature, err := account.wallet.SignDataWithPassphrase(*account.account, account.passphrase, "", msg)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +93,7 @@ func (s *Signer) Signature(data []byte) ([]byte, error) {
 	return signature, nil
 }
 
-// Recover implements the ethereum.Signer interface.
-func (s *Signer) Recover(signature []byte, data []byte) (*ethereum.Address, error) {
+func Recover(signature []byte, data []byte) (*ethereum.Address, error) {
 	if len(signature) != 65 {
 		return nil, errors.New("signature must be 65 bytes long")
 	}

@@ -48,8 +48,8 @@ type Config struct {
 	Context context.Context
 	Logger  log.Logger
 
-	// Wallet is used to sign and verify messages in the network.
-	Wallet ethereum.Account
+	// Signer is used to sign and verify messages in the network.
+	Signer ethereum.Signer
 	// ListenAddrs is a list of multiaddresses on which node will be
 	// listening on. If empty, localhost and random port will be used.
 	ListenAddrs []string
@@ -84,7 +84,7 @@ func NewP2P(config Config) (*P2P, error) {
 		Context:     config.Context,
 		Logger:      config.Logger,
 		ListenAddrs: listenAddrs,
-		PrivateKey:  ethkey.NewPrivKey(config.Wallet),
+		PrivateKey:  ethkey.NewPrivKey(config.Signer),
 	})
 
 	logger.Register(p.node, p.log)
