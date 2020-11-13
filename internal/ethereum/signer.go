@@ -19,7 +19,8 @@ type Signer interface {
 	// Address returns account's address used to sign data. May be empty if
 	// the signer is used only to verify signatures.
 	Address() Address
-	// SignTransaction signs transaction.
+	// SignTransaction signs transaction. Signed transaction will be set
+	// to the SignedTx field in the Transaction structure.
 	SignTransaction(transaction *Transaction) error
 	// Signature signs the hash of the given data and returns it.
 	Signature(data []byte) ([]byte, error)

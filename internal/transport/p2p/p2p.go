@@ -50,8 +50,8 @@ type Config struct {
 
 	// Signer is used to sign and verify messages in the network.
 	Signer ethereum.Signer
-	// ListenAddrs is a list of multiaddresses on which node will be
-	// listening on. If empty, localhost and random port will be used.
+	// ListenAddrs is a list of multiaddresses on which this node will be
+	// listening on. If empty, the localhost, and a random port will be used.
 	ListenAddrs []string
 	// BootstrapAddrs is a list multiaddresses of initial peers to connect to.
 	BootstrapAddrs []string
@@ -65,8 +65,8 @@ type Config struct {
 	AllowedPeers []string
 }
 
-// NewP2P returns new instance of transport implemented using the libp2p
-// library.
+// NewP2P returns a new instance of a transport, implemented by using
+// the libp2p library.
 func NewP2P(config Config) (*P2P, error) {
 	var err error
 
@@ -145,7 +145,7 @@ func (p *P2P) Close() error {
 	return p.node.Close()
 }
 
-// startNode starts libp2p node.
+// startNode starts a libp2p node.
 func (p *P2P) startNode() error {
 	err := p.node.Start()
 	if err != nil {

@@ -21,13 +21,15 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	cryptoPB "github.com/libp2p/go-libp2p-core/crypto/pb"
+
+	"github.com/makerdao/gofer/internal/ethereum"
 )
 
 type PubKey struct {
-	address [20]byte
+	address ethereum.Address
 }
 
-func NewPubKey(address [20]byte) crypto.PubKey {
+func NewPubKey(address ethereum.Address) crypto.PubKey {
 	return &PubKey{
 		address: address,
 	}
@@ -88,7 +90,7 @@ func UnmarshalEthPublicKey(data []byte) (crypto.PubKey, error) {
 		return nil, errors.New("expect eth public key data size to be 20")
 	}
 
-	var addr [20]byte
+	var addr ethereum.Address
 	copy(addr[:], data)
 	return &PubKey{address: addr}, nil
 }
