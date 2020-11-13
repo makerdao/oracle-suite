@@ -26,12 +26,12 @@ import (
 )
 
 type PrivKey struct {
-	wallet ethereum.Account
+	signer ethereum.Signer
 }
 
-func NewPrivKey(wallet ethereum.Account) crypto.PrivKey {
+func NewPrivKey(signer ethereum.Signer) crypto.PrivKey {
 	return &PrivKey{
-		wallet: wallet,
+		signer: signer,
 	}
 }
 
@@ -60,7 +60,7 @@ func (p *PrivKey) Equals(key crypto.Key) bool {
 
 // Raw implements the crypto.Key interface.
 func (p *PrivKey) Raw() ([]byte, error) {
-	return p.wallet.Address().Bytes(), nil
+	return p.signer.Address().Bytes(), nil
 }
 
 // Type implements the crypto.Key interface.
@@ -70,12 +70,12 @@ func (p *PrivKey) Type() cryptoPB.KeyType {
 
 // Sign implements the crypto.PrivKey interface.
 func (p *PrivKey) Sign(bytes []byte) ([]byte, error) {
-	return NewSigner(p.wallet).Signature(bytes)
+	return p.signer.Signature(bytes)
 }
 
 // GetPublic implements the crypto.PrivKey interface.
 func (p *PrivKey) GetPublic() crypto.PubKey {
-	return NewPubKey(p.wallet.Address())
+	return NewPubKey(p.signer.Address())
 }
 
 // UnmarshalEthPrivateKey should return private key from input bytes, but this

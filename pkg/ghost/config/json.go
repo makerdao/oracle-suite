@@ -72,7 +72,6 @@ type Dependencies struct {
 }
 
 type Instances struct {
-	Wallet    ethereum.Account
 	Signer    ethereum.Signer
 	Transport transport.Transport
 	Ghost     *ghost.Ghost
@@ -109,7 +108,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 
 func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	// Create wallet for given account and keystore:
-	wal, err := geth.NewAccount(
+	acc, err := geth.NewAccount(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
 		ethereum.HexToAddress(j.Ethereum.From),
@@ -119,12 +118,12 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 
 	// Create new signer instance:
-	sig := geth.NewSigner(wal)
+	sig := geth.NewSigner(acc)
 
 	// Configure transport:
 	p2pCfg := p2p.Config{
 		Context:        deps.Context,
-		Wallet:         wal,
+		Signer:         sig,
 		ListenAddrs:    j.P2P.Listen,
 		BootstrapAddrs: j.P2P.BootstrapPeers,
 		BannedAddrs:    j.P2P.BannedPeers,
@@ -159,7 +158,6 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 
 	return &Instances{
-		Wallet:    wal,
 		Signer:    sig,
 		Transport: tra,
 		Ghost:     gho,

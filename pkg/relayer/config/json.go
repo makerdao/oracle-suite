@@ -78,7 +78,6 @@ type Dependencies struct {
 
 type Instances struct {
 	Ethereum  ethereum.Client
-	Wallet    ethereum.Account
 	Signer    ethereum.Signer
 	Transport transport.Transport
 	Relayer   *relayer.Relayer
@@ -115,7 +114,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 
 func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	// Create wallet for given account and keystore:
-	wal, err := ethereumGeth.NewAccount(
+	acc, err := ethereumGeth.NewAccount(
 		j.Ethereum.Keystore,
 		j.Ethereum.Password,
 		ethereum.HexToAddress(j.Ethereum.From),
@@ -125,12 +124,12 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 
 	// Create new signer instance:
-	sig := ethereumGeth.NewSigner(wal)
+	sig := ethereumGeth.NewSigner(acc)
 
 	// Configure transport:
 	p2pCfg := p2p.Config{
 		Context:        deps.Context,
-		Wallet:         wal,
+		Signer:         sig,
 		ListenAddrs:    j.P2P.Listen,
 		BootstrapAddrs: j.P2P.BootstrapPeers,
 		BannedAddrs:    j.P2P.BannedPeers,
@@ -149,7 +148,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	if err != nil {
 		return nil, err
 	}
-	eth := ethereumGeth.NewClient(client, wal)
+	eth := ethereumGeth.NewClient(client, sig)
 
 	// Create and configure Relayer:
 	cfg := relayer.Config{
@@ -174,7 +173,6 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 
 	return &Instances{
 		Ethereum:  eth,
-		Wallet:    wal,
 		Signer:    sig,
 		Transport: tra,
 		Relayer:   rel,

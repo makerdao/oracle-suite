@@ -184,7 +184,11 @@ func (m *Median) write(ctx context.Context, method string, args ...interface{}) 
 		return nil, err
 	}
 
-	return m.ethereum.SendTransaction(ctx, m.address, gasLimit, cd)
+	return m.ethereum.SendTransaction(ctx, &ethereum.Transaction{
+		Address:  m.address,
+		GasLimit: new(big.Int).SetUint64(gasLimit),
+		Data:     cd,
+	})
 }
 
 func retry(maxRetries int, delay time.Duration, f func() error) error {

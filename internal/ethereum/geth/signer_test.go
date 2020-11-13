@@ -26,19 +26,17 @@ var signerAddress = common.HexToAddress("0x2d800d93b065ce011af83f316cef9f0d005b0
 var signerSignature = common.Hex2Bytes("470b7f40fe94916326125b927b4044a496b6fa961beca492b30fce8073f17ff938c2a53ac9c6fb41f7352a38f0ff03bad7d667e91cbf0b3932f7c10fd8475e6b1c")
 
 func TestSigner_Signature(t *testing.T) {
-	wallet, err := NewAccount("./testdata/keystore", "test123", signerAddress)
+	account, err := NewAccount("./testdata/keystore", "test123", signerAddress)
 	assert.NoError(t, err)
 
-	signer := NewSigner(wallet)
-	retSignature, err := signer.Signature([]byte("foo"))
+	retSignature, err := Signature(account, []byte("foo"))
 	assert.NoError(t, err)
 	assert.Len(t, retSignature, 65)
 	assert.Equal(t, signerSignature, retSignature)
 }
 
 func TestSigner_Recover(t *testing.T) {
-	signer := NewSigner(nil)
-	retAddress, err := signer.Recover(signerSignature, []byte("foo"))
+	retAddress, err := Recover(signerSignature, []byte("foo"))
 	assert.NoError(t, err)
 	assert.Equal(t, signerAddress.String(), retAddress.String())
 }

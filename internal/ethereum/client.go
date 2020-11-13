@@ -17,17 +17,37 @@ package ethereum
 
 import (
 	"context"
+	"math/big"
 )
 
-// Client is a wrapper for the Ethereum client.
+type Transaction struct {
+	// Address is the contract's address.
+	Address Address
+	// Nonce is the transaction nonce. If zero, the nonce will be filled
+	// automatically.
+	Nonce uint64
+	// Gas is the gas price. If nil, the suggested gas price will be used.
+	Gas *big.Int
+	// GasLimit is the maximum gas available to be used for this transaction.
+	GasLimit *big.Int
+	// Data is the raw transaction data.
+	Data []byte
+	// ChainID is the transaction chain ID. If nil, the chan ID will be filled
+	// automatically.
+	ChainID *big.Int
+	// SignedTx contains signed transaction. The data type stored here may
+	// be different for various implementations.
+	SignedTx interface{}
+}
+
 type Client interface {
 	// Call executes a message call transaction, which is directly
-	// executed in the VM  of the node, but never mined into the blockchain.
+	// executed in the VM of the node, but never mined into the blockchain.
 	Call(ctx context.Context, address Address, data []byte) ([]byte, error)
 	// Storage returns the value of key in the contract storage of the
 	// given account.
 	Storage(ctx context.Context, address Address, key Hash) ([]byte, error)
 	// SendTransaction injects a signed transaction into the pending pool
-	// for execution. It's uses suggested gas price by default.
-	SendTransaction(ctx context.Context, address Address, gasLimit uint64, data []byte) (*Hash, error)
+	// for execution.
+	SendTransaction(ctx context.Context, transaction *Transaction) (*Hash, error)
 }

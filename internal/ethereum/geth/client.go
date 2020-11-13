@@ -18,6 +18,7 @@ package geth
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"regexp"
@@ -58,21 +59,21 @@ type ethClient interface {
 // Client implements the ethereum.Client interface.
 type Client struct {
 	ethClient ethClient
-	account   internalEthereum.Account
+	signer    internalEthereum.Signer
 }
 
-// NewClient returns new Client.
-func NewClient(ethClient ethClient, account internalEthereum.Account) *Client {
+// NewClient returns a new Client instance.
+func NewClient(ethClient ethClient, signer internalEthereum.Signer) *Client {
 	return &Client{
 		ethClient: ethClient,
-		account:   account,
+		signer:    signer,
 	}
 }
 
 // Call implements the ethereum.Client interface.
 func (e *Client) Call(ctx context.Context, address internalEthereum.Address, data []byte) ([]byte, error) {
 	cm := ethereum.CallMsg{
-		From:     e.account.Address(),
+		From:     e.signer.Address(),
 		To:       &address,
 		Gas:      0,
 		GasPrice: nil,
@@ -100,38 +101,53 @@ func (e *Client) Storage(ctx context.Context, address internalEthereum.Address, 
 }
 
 // SendTransaction implements the ethereum.Client interface.
-func (e *Client) SendTransaction(ctx context.Context, address internalEthereum.Address, gasLimit uint64, data []byte) (*internalEthereum.Hash, error) {
-	nonce, err := e.ethClient.PendingNonceAt(ctx, e.account.Address())
-	if err != nil {
-		return nil, err
+func (e *Client) SendTransaction(ctx context.Context, transaction *internalEthereum.Transaction) (*internalEthereum.Hash, error) {
+	var err error
+
+	tx := &internalEthereum.Transaction{
+		Address:  transaction.Address,
+		Nonce:    transaction.Nonce,
+		Gas:      new(big.Int).Set(transaction.Gas),
+		GasLimit: new(big.Int).Set(transaction.GasLimit),
+		SignedTx: transaction.SignedTx,
 	}
 
-	gas, err := e.ethClient.SuggestGasPrice(ctx)
-	if err != nil {
-		return nil, err
+	copy(tx.Data, transaction.Data)
+
+	if tx.Nonce == 0 {
+		tx.Nonce, err = e.ethClient.PendingNonceAt(ctx, e.signer.Address())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	tx := types.NewTransaction(
-		nonce,
-		address,
-		nil,
-		gasLimit,
-		gas,
-		data,
-	)
-
-	chainID, err := e.ethClient.NetworkID(ctx)
-	if err != nil {
-		return nil, err
+	if tx.Gas == nil {
+		tx.Gas, err = e.ethClient.SuggestGasPrice(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	signedTx, err := e.account.Wallet().SignTxWithPassphrase(*e.account.Account(), e.account.Passphrase(), tx, chainID)
-	if err != nil {
-		return nil, err
+	if tx.ChainID == nil {
+		tx.ChainID, err = e.ethClient.NetworkID(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	hash := signedTx.Hash()
-	return &hash, e.ethClient.SendTransaction(ctx, signedTx)
+	if tx.SignedTx == nil {
+		err = e.signer.SignTransaction(tx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if stx, ok := tx.SignedTx.(*types.Transaction); ok {
+		hash := stx.Hash()
+		return &hash, e.ethClient.SendTransaction(ctx, stx)
+	}
+
+	return nil, errors.New("unable to send transaction, SignedTx field have invalid type")
 }
 
 func isRevertResp(resp []byte) error {
