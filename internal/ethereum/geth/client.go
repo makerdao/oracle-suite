@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -45,25 +46,24 @@ func (e RevertErr) Unwrap() error {
 	return e.Err
 }
 
-// ethClient represents the Ethereum client, like the ethclient.Client.
-type ethClient interface {
-	ethereum.TransactionSender
-	ethereum.ChainStateReader
-	ethereum.ContractCaller
-	ethereum.PendingStateReader
-	ethereum.GasPricer
-
+// EthClient represents the Ethereum client, like the ethclient.Client.
+type EthClient interface {
+	SendTransaction(ctx context.Context, tx *types.Transaction) error
+	StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error)
+	CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error)
+	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	SuggestGasPrice(ctx context.Context) (*big.Int, error)
 	NetworkID(ctx context.Context) (*big.Int, error)
 }
 
 // Client implements the ethereum.Client interface.
 type Client struct {
-	ethClient ethClient
+	ethClient EthClient
 	signer    internalEthereum.Signer
 }
 
 // NewClient returns a new Client instance.
-func NewClient(ethClient ethClient, signer internalEthereum.Signer) *Client {
+func NewClient(ethClient EthClient, signer internalEthereum.Signer) *Client {
 	return &Client{
 		ethClient: ethClient,
 		signer:    signer,
@@ -104,37 +104,38 @@ func (e *Client) Storage(ctx context.Context, address internalEthereum.Address, 
 func (e *Client) SendTransaction(ctx context.Context, transaction *internalEthereum.Transaction) (*internalEthereum.Hash, error) {
 	var err error
 
+	// We don't want to modify passed structure because that would be rude, so
+	// we copy it here:
 	tx := &internalEthereum.Transaction{
 		Address:  transaction.Address,
 		Nonce:    transaction.Nonce,
-		Gas:      new(big.Int).Set(transaction.Gas),
-		GasLimit: new(big.Int).Set(transaction.GasLimit),
+		Gas:      transaction.Gas,
+		GasLimit: transaction.GasLimit,
+		ChainID:  transaction.ChainID,
 		SignedTx: transaction.SignedTx,
 	}
-
+	tx.Data = make([]byte, len(transaction.Data))
 	copy(tx.Data, transaction.Data)
 
+	// Fill optional values if necessary:
 	if tx.Nonce == 0 {
 		tx.Nonce, err = e.ethClient.PendingNonceAt(ctx, e.signer.Address())
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	if tx.Gas == nil {
 		tx.Gas, err = e.ethClient.SuggestGasPrice(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	if tx.ChainID == nil {
 		tx.ChainID, err = e.ethClient.NetworkID(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	if tx.SignedTx == nil {
 		err = e.signer.SignTransaction(tx)
 		if err != nil {
@@ -142,11 +143,11 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *internalEther
 		}
 	}
 
+	// Send transaction:
 	if stx, ok := tx.SignedTx.(*types.Transaction); ok {
 		hash := stx.Hash()
 		return &hash, e.ethClient.SendTransaction(ctx, stx)
 	}
-
 	return nil, errors.New("unable to send transaction, SignedTx field have invalid type")
 }
 

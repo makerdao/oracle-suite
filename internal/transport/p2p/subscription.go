@@ -34,8 +34,8 @@ type subscription struct {
 	messageHandler sets.MessageHandler
 	log            log.Logger
 
-	// statusCh is used to send a notification about new message, it's returned by
-	// transport.WaitFor function.
+	// statusCh is used to send a notification about a new message, it's
+	// returned by the Transport.WaitFor function.
 	statusCh chan transport.Status
 }
 
@@ -98,8 +98,8 @@ func (s subscription) eventLoop() {
 		for {
 			pe, err := s.teh.NextPeerEvent(s.ctx)
 			if err != nil {
-				// The only situation when error may be returned here is when
-				// a subscription is canceled.
+				// The only situation when an error may be returned here is
+				// when the subscription is canceled.
 				return
 			}
 			s.eventHandler.Handle(s.topic.String(), pe)
