@@ -32,7 +32,29 @@ import (
 	internalEthereum "github.com/makerdao/gofer/internal/ethereum"
 )
 
-// RevertErr may be returned by Client.Call method in case of EVN revert.
+const (
+	mainnetChainID = 1
+	kovanChainID   = 42
+	rinkebyChainID = 4
+	gorliChainID   = 5
+	ropstenChainID = 3
+	xdaiChainID    = 100
+)
+
+// Addresses of multicall contracts. They're used to implement
+// the Client.MultiCall function.
+//
+// https://github.com/makerdao/multicall
+var multiCallContracts = map[uint64]common.Address{
+	mainnetChainID: common.HexToAddress("0xeefba1e63905ef1d7acba5a8513c70307c1ce441"),
+	kovanChainID:   common.HexToAddress("0x2cc8688c5f75e365aaeeb4ea8d6a480405a48d2a"),
+	rinkebyChainID: common.HexToAddress("0x42ad527de7d4e9d9d011ac45b31d8551f8fe9821"),
+	gorliChainID:   common.HexToAddress("0x77dca2c955b15e9de4dbbcf1246b4b85b651e50e"),
+	ropstenChainID: common.HexToAddress("0x53c43764255c17bd724f74c4ef150724ac50a3ed"),
+	xdaiChainID:    common.HexToAddress("0xb5b692a88bdfc81ca69dcb1d924f59f0413a602a"),
+}
+
+// RevertErr may be returned by Client.Call method in case of EVM revert.
 type RevertErr struct {
 	Message string
 	Err     error
@@ -71,14 +93,14 @@ func NewClient(ethClient EthClient, signer internalEthereum.Signer) *Client {
 }
 
 // Call implements the ethereum.Client interface.
-func (e *Client) Call(ctx context.Context, address internalEthereum.Address, data []byte) ([]byte, error) {
+func (e *Client) Call(ctx context.Context, call internalEthereum.Call) ([]byte, error) {
 	cm := ethereum.CallMsg{
 		From:     e.signer.Address(),
-		To:       &address,
+		To:       &call.Address,
 		Gas:      0,
 		GasPrice: nil,
 		Value:    nil,
-		Data:     data,
+		Data:     call.Data,
 	}
 
 	resp, err := e.ethClient.CallContract(ctx, cm, nil)
@@ -93,6 +115,44 @@ func (e *Client) Call(ctx context.Context, address internalEthereum.Address, dat
 	}
 
 	return resp, err
+}
+
+// MultiCall implements the ethereum.Client interface.
+func (e *Client) MultiCall(ctx context.Context, calls []internalEthereum.Call) ([][]byte, error) {
+	type abiCall struct {
+		Address common.Address `abi:"target"`
+		Data    []byte         `abi:"callData"`
+	}
+	var abiCalls []abiCall
+	for _, c := range calls {
+		abiCalls = append(abiCalls, abiCall{
+			Address: c.Address,
+			Data:    c.Data,
+		})
+	}
+
+	chainID, err := e.ethClient.NetworkID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	multicallAddr, ok := multiCallContracts[chainID.Uint64()]
+	if !ok {
+		return nil, errors.New("multi call is not supported on current chain")
+	}
+	cd, err := multiCallABI.Pack("aggregate", abiCalls)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := e.Call(ctx, internalEthereum.Call{Address: multicallAddr, Data: cd})
+	if err != nil {
+		return nil, err
+	}
+	results, err := multiCallABI.Unpack("aggregate", resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return results[1].([][]byte), nil
 }
 
 // Storage implements the ethereum.Client interface.
