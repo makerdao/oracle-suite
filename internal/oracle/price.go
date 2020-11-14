@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"time"
 
@@ -27,6 +28,9 @@ import (
 )
 
 const priceMultiplier = 1e18
+
+var PriceNotSetErr = errors.New("unable to sign price because price is not set")
+var WrongSignatureLengthErr = errors.New("signature must be 65 bytes long")
 
 type Price struct {
 	AssetPair string
@@ -83,9 +87,16 @@ func (p *Price) From(signer ethereum.Signer) (*ethereum.Address, error) {
 }
 
 func (p *Price) Sign(signer ethereum.Signer) error {
+	if p.Val == nil {
+		return PriceNotSetErr
+	}
+
 	signature, err := signer.Signature(p.hash())
 	if err != nil {
 		return err
+	}
+	if len(signature) != 65 {
+		return WrongSignatureLengthErr
 	}
 
 	copy(p.R[:], signature[:32])
