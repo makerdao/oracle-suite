@@ -34,8 +34,9 @@ import (
 var clientContractAddress = common.HexToAddress("0x0E30F0FC91FDbc4594b1e2E5d64E6F1f94cAB23D")
 var clientAddress = common.HexToAddress("0x2d800d93b065ce011af83f316cef9f0d005b0aa4")
 var clientCallData = common.Hex2Bytes("095ea7b3000000000000000000000000")
-var clientCallDataResp = common.Hex2Bytes("00000000000000000000000000000000")
-var clientCallDataRevertResp = common.Hex2Bytes("08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000094e6f74206f776e65720000000000000000000000000000000000000000000000")
+var clientCallResp = common.Hex2Bytes("00000000000000000000000000000000")
+var clientCallRevertResp = common.Hex2Bytes("08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000094e6f74206f776e65720000000000000000000000000000000000000000000000")
+var clientMultiCallResp = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000001511c6e00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000005b903dadfd96229cba5eb0e5aa75c578e8f968000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000")
 
 type DataErr struct {
 	Err string
@@ -59,13 +60,16 @@ func TestClient_Call(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		(*big.Int)(nil),
-	).Return(clientCallDataResp, nil)
+	).Return(clientCallResp, nil)
 
-	resp, err := client.Call(context.Background(), clientContractAddress, clientCallData)
+	resp, err := client.Call(
+		context.Background(),
+		internalEthereum.Call{Address: clientContractAddress, Data: clientCallData},
+	)
+
 	cm := ethClient.Calls[0].Arguments.Get(1).(ethereum.CallMsg)
 
-	assert.Equal(t, resp, clientCallDataResp)
-	assert.Equal(t, clientCallData, cm.Data)
+	assert.Equal(t, resp, clientCallResp)
 	assert.Equal(t, clientCallData, cm.Data)
 	assert.Equal(t, clientAddress, cm.From)
 	assert.Equal(t, clientContractAddress, *cm.To)
@@ -82,9 +86,12 @@ func TestClient_Call_Reverted(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		(*big.Int)(nil),
-	).Return(clientCallDataRevertResp, nil)
+	).Return(clientCallRevertResp, nil)
 
-	resp, err := client.Call(context.Background(), clientContractAddress, clientCallData)
+	resp, err := client.Call(
+		context.Background(),
+		internalEthereum.Call{Address: clientContractAddress, Data: clientCallData},
+	)
 
 	assert.Nil(t, resp)
 	assert.Error(t, err)
@@ -102,14 +109,53 @@ func TestClient_Call_RevertedDataError(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		(*big.Int)(nil),
-	).Return([]byte(nil), DataErr{Err: "Reverted: 0x" + hex.EncodeToString(clientCallDataRevertResp)})
+	).Return([]byte(nil), DataErr{Err: "Reverted: 0x" + hex.EncodeToString(clientCallRevertResp)})
 
-	resp, err := client.Call(context.Background(), clientContractAddress, clientCallData)
+	resp, err := client.Call(
+		context.Background(),
+		internalEthereum.Call{Address: clientContractAddress, Data: clientCallData},
+	)
 
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.IsType(t, RevertErr{}, err)
 	assert.Equal(t, "reverted: Not owner", err.Error())
+}
+
+func TestClient_MultiCall(t *testing.T) {
+	account, _ := NewAccount("./testdata/keystore", "test123", clientAddress)
+	ethClient := &mocks.EthClient{}
+	client := NewClient(ethClient, NewSigner(account))
+
+	ethClient.On(
+		"NetworkID",
+		mock.Anything,
+	).Return(big.NewInt(mainnetChainID), nil)
+
+	ethClient.On(
+		"CallContract",
+		mock.Anything,
+		mock.Anything,
+		(*big.Int)(nil),
+	).Return(clientMultiCallResp, nil)
+
+	resp, err := client.MultiCall(
+		context.Background(),
+		[]internalEthereum.Call{
+			{Address: clientContractAddress, Data: clientCallData},
+			{Address: clientContractAddress, Data: clientCallData},
+			{Address: clientContractAddress, Data: clientCallData},
+			{Address: clientContractAddress, Data: clientCallData},
+		},
+	)
+
+	cm := ethClient.Calls[1].Arguments.Get(1).(ethereum.CallMsg)
+
+	assert.NotNil(t, resp)
+	assert.Len(t, resp, 4)
+	assert.Equal(t, clientAddress, cm.From)
+	assert.Equal(t, multiCallContracts[mainnetChainID], *cm.To)
+	assert.NoError(t, err)
 }
 
 func TestClient_Storage(t *testing.T) {
@@ -150,7 +196,7 @@ func TestClient_SendTransaction(t *testing.T) {
 		Gas:      big.NewInt(100),
 		GasLimit: big.NewInt(1000),
 		Data:     clientCallData,
-		ChainID:  big.NewInt(1),
+		ChainID:  big.NewInt(mainnetChainID),
 		SignedTx: nil,
 	}
 
@@ -163,7 +209,7 @@ func TestClient_SendTransaction(t *testing.T) {
 	assert.Equal(t, stx.Nonce(), uint64(10))
 	assert.Equal(t, stx.GasPrice(), big.NewInt(100))
 	assert.Equal(t, stx.Gas(), uint64(1000))
-	assert.Equal(t, stx.ChainId(), big.NewInt(1))
+	assert.Equal(t, stx.ChainId(), big.NewInt(mainnetChainID))
 	assert.Equal(t, stx.Data(), clientCallData)
 }
 
@@ -186,7 +232,7 @@ func TestClient_SendTransaction_Minimal(t *testing.T) {
 	ethClient.On(
 		"NetworkID",
 		mock.Anything,
-	).Return(big.NewInt(1), nil)
+	).Return(big.NewInt(mainnetChainID), nil)
 
 	ethClient.On(
 		"SendTransaction",
@@ -210,5 +256,5 @@ func TestClient_SendTransaction_Minimal(t *testing.T) {
 	assert.Equal(t, stx.Nonce(), uint64(10))
 	assert.Equal(t, stx.GasPrice(), big.NewInt(100))
 	assert.Equal(t, stx.Gas(), uint64(1000))
-	assert.Equal(t, stx.ChainId(), big.NewInt(1))
+	assert.Equal(t, stx.ChainId(), big.NewInt(mainnetChainID))
 }

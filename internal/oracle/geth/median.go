@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -85,36 +84,43 @@ func (m *Median) Price(ctx context.Context) (*big.Int, error) {
 }
 
 // Feeds implements the oracle.Median interface.
-//
-// Note, that this method need to execute 256 calls to the Ethereum client
-// to fetch all addresses.
 func (m *Median) Feeds(ctx context.Context) ([]ethereum.Address, error) {
-	var orcl []ethereum.Address
-	var null ethereum.Address
+	var (
+		err   error
+		null  ethereum.Address
+		orcl  []ethereum.Address
+		calls []ethereum.Call
+	)
 
-	mu := sync.Mutex{}
-	wg := sync.WaitGroup{}
-
-	wg.Add(256)
+	// Prepare the call list:
 	for i := 0; i < 256; i++ {
-		i := i
-		go func() {
-			defer wg.Done()
-			addr, err := m.read(ctx, "slot", uint8(i))
-			if err != nil {
-				return
-			}
-			if len(addr) != 1 {
-				return
-			}
-			if addr := addr[0].(ethereum.Address); addr != null {
-				mu.Lock()
-				orcl = append(orcl, addr)
-				mu.Unlock()
-			}
-		}()
+		cd, err := medianABI.Pack("slot", uint8(i))
+		if err != nil {
+			return nil, err
+		}
+		calls = append(calls, ethereum.Call{
+			Address: m.address,
+			Data:    cd,
+		})
 	}
-	wg.Wait()
+
+	// Call:
+	var results [][]byte
+	err = retry(maxReadRetries, delayBetweenReadRetries, func() error {
+		results, err = m.ethereum.MultiCall(ctx, calls)
+		return err
+	})
+
+	// Parse results:
+	for _, data := range results {
+		addr, err := medianABI.Unpack("slot", data)
+		if err != nil {
+			return nil, err
+		}
+		if len(addr) == 1 && addr[0] != null {
+			orcl = append(orcl, addr[0].(common.Address))
+		}
+	}
 
 	return orcl, nil
 }
@@ -168,7 +174,7 @@ func (m *Median) read(ctx context.Context, method string, args ...interface{}) (
 
 	var data []byte
 	err = retry(maxReadRetries, delayBetweenReadRetries, func() error {
-		data, err = m.ethereum.Call(ctx, m.address, cd)
+		data, err = m.ethereum.Call(ctx, ethereum.Call{Address: m.address, Data: cd})
 		return err
 	})
 	if err != nil {

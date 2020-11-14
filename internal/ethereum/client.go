@@ -40,10 +40,20 @@ type Transaction struct {
 	SignedTx interface{}
 }
 
+type Call struct {
+	// Address is the contract's address.
+	Address Address
+	// Data is the raw call data.
+	Data []byte
+}
+
 type Client interface {
 	// Call executes a message call transaction, which is directly
 	// executed in the VM of the node, but never mined into the blockchain.
-	Call(ctx context.Context, address Address, data []byte) ([]byte, error)
+	Call(ctx context.Context, call Call) ([]byte, error)
+	// MultiCall works like the Call function but allows to execute multiple
+	// calls at once.
+	MultiCall(ctx context.Context, calls []Call) ([][]byte, error)
 	// Storage returns the value of key in the contract storage of the
 	// given account.
 	Storage(ctx context.Context, address Address, key Hash) ([]byte, error)
