@@ -13,33 +13,11 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package messages
+package main
 
-import (
-	"encoding/json"
-
-	"github.com/makerdao/gofer/internal/oracle"
-)
-
-var PriceMessageName = "price"
-
-type Price struct {
-	Price *oracle.Price   `json:"price"`
-	Trace json.RawMessage `json:"trace"`
-}
-
-func (p *Price) Marshall() ([]byte, error) {
-	return json.Marshal(p)
-}
-
-func (p *Price) Unmarshall(b []byte) error {
-	return json.Unmarshal(b, p)
-}
-
-func (p *Price) MarshalBinary() ([]byte, error) {
-	return p.Marshall()
-}
-
-func (p *Price) UnmarshalBinary(data []byte) error {
-	return p.Unmarshall(data)
+// These are the command options that can be set by CLI flags.
+type options struct {
+	LogVerbosity   string
+	LogTags        []string
+	ConfigFilePath string
 }
