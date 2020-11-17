@@ -95,15 +95,15 @@ func NewP2P(config Config) (*P2P, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = p.bannedAddrs(config.BlockedAddrs)
+	err = p.setBlacklist(config.BlockedAddrs)
 	if err != nil {
 		return nil, err
 	}
-	err = p.allowedPeers(config.AllowedPeers)
+	err = p.setAllowlist(config.AllowedPeers)
 	if err != nil {
 		return nil, err
 	}
-	err = p.bootstrapAddrs(config.BootstrapAddrs)
+	err = p.setBootstrapPeers(config.BootstrapAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -159,9 +159,9 @@ func (p *P2P) startNode() error {
 	return nil
 }
 
-// bannedAddrs bans all addresses nodes from the addrs list using the
+// setBlacklist bans all addresses nodes from the addrs list using the
 // denylist package.
-func (p *P2P) bannedAddrs(addrs []string) error {
+func (p *P2P) setBlacklist(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {
@@ -176,9 +176,9 @@ func (p *P2P) bannedAddrs(addrs []string) error {
 	return nil
 }
 
-// allowedPeers add peers to allowed list using the allowlist package. Only
+// setAllowlist add peers to allowed list using the allowlist package. Only
 // peers from that list will be allowed to send messages.
-func (p *P2P) allowedPeers(ids []string) error {
+func (p *P2P) setAllowlist(ids []string) error {
 	for _, idstr := range ids {
 		id, err := peer.Decode(idstr)
 		if err != nil {
@@ -189,8 +189,8 @@ func (p *P2P) allowedPeers(ids []string) error {
 	return nil
 }
 
-// bootstrapAddrs connects to all nodes from the addrs list.
-func (p *P2P) bootstrapAddrs(addrs []string) error {
+// setBootstrapPeers connects to all nodes from the addrs list.
+func (p *P2P) setBootstrapPeers(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {
