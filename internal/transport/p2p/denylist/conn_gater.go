@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package banner
+package denylist
 
 import (
 	"net"
@@ -25,18 +25,18 @@ import (
 )
 
 type connGater struct {
-	bannedAddrs multiaddr.Filters
+	filters multiaddr.Filters
 }
 
-func (f *connGater) BanIP(ip net.IP) {
-	f.bannedAddrs.AddFilter(net.IPNet{
+func (f *connGater) BlockIP(ip net.IP) {
+	f.filters.AddFilter(net.IPNet{
 		IP:   ip,
 		Mask: net.CIDRMask(len(ip)*8, len(ip)*8),
 	}, multiaddr.ActionDeny)
 }
 
 func (f *connGater) InterceptAddrDial(id peer.ID, addr multiaddr.Multiaddr) bool {
-	return !f.bannedAddrs.AddrBlocked(addr)
+	return !f.filters.AddrBlocked(addr)
 }
 
 func (f *connGater) InterceptPeerDial(peer.ID) bool {

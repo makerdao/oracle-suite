@@ -26,7 +26,7 @@ import (
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p/allowlist"
-	"github.com/makerdao/gofer/internal/transport/p2p/banner"
+	"github.com/makerdao/gofer/internal/transport/p2p/denylist"
 	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
 	"github.com/makerdao/gofer/internal/transport/p2p/logger"
 )
@@ -41,7 +41,7 @@ type P2P struct {
 	log       log.Logger
 	node      *Node
 	allowlist *allowlist.Allowlist
-	banner    *banner.Banner
+	denylist  *denylist.Denylist
 }
 
 type Config struct {
@@ -55,14 +55,14 @@ type Config struct {
 	ListenAddrs []string
 	// BootstrapAddrs is a list multiaddresses of initial peers to connect to.
 	BootstrapAddrs []string
-	// BannedAddrs is a list of multiaddresses to which connection will be
-	// blocked. If an address on that list contains an IP and a peer ID, both
-	// will be blocked separately.
-	BannedAddrs []string
 	// AllowedPeers is a list of peer IDs which are allowed to publish messages
 	// to the network. Messages from peers outside this list will be ignored
 	// and not relayed. If empty, all messages will be accepted.
 	AllowedPeers []string
+	// BlockedAddrs is a list of multiaddresses to which connection will be
+	// blocked. If an address on that list contains an IP and a peer ID, both
+	// will be blocked separately.
+	BlockedAddrs []string
 }
 
 // NewP2P returns a new instance of a transport, implemented by using
@@ -89,13 +89,13 @@ func NewP2P(config Config) (*P2P, error) {
 
 	logger.Register(p.node, p.log)
 	p.allowlist = allowlist.Register(p.node)
-	p.banner = banner.Register(p.node)
+	p.denylist = denylist.Register(p.node)
 
 	err = p.startNode()
 	if err != nil {
 		return nil, err
 	}
-	err = p.bannedAddrs(config.BannedAddrs)
+	err = p.bannedAddrs(config.BlockedAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (p *P2P) startNode() error {
 }
 
 // bannedAddrs bans all addresses nodes from the addrs list using the
-// banner package.
+// denylist package.
 func (p *P2P) bannedAddrs(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
@@ -168,7 +168,7 @@ func (p *P2P) bannedAddrs(addrs []string) error {
 			return err
 		}
 
-		err = p.banner.Ban(maddr)
+		err = p.denylist.Deny(maddr)
 		if err != nil {
 			return err
 		}

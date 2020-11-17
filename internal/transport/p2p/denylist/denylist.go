@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package banner
+package denylist
 
 import (
 	"net"
@@ -29,50 +29,46 @@ type node interface {
 	PubSub() *pubsub.PubSub
 }
 
-// Register registers p2p.Node extensions required by the Banner and returns
+// Register registers p2p.Node extensions required by the Denylist and returns
 // its instance.
-func Register(node node) *Banner {
-	banner := &Banner{
+func Register(node node) *Denylist {
+	denylist := &Denylist{
 		connGater: &connGater{},
 		pubSub:    node.PubSub(),
 	}
-	node.AddConnectionGater(banner.connGater)
-	return banner
+	node.AddConnectionGater(denylist.connGater)
+	return denylist
 }
 
-// Banner allow to ban connections to nodes using their IP or ID. All connections
-// to banned nodes will be blocked.
-type Banner struct {
+// Denylist allow to block connections to nodes using their IP or ID.
+type Denylist struct {
 	connGater *connGater
 	pubSub    *pubsub.PubSub
 }
 
-// Ban bans neither by an IP or a peer ID. If provided multiaddress contains
+// Deny blocks neither by an IP or a peer ID. If provided multiaddress contains
 // an IP and a peer ID, both will be blocked separately.
-func (b *Banner) Ban(maddr multiaddr.Multiaddr) error {
+func (b *Denylist) Deny(maddr multiaddr.Multiaddr) error {
 	multiaddr.ForEach(maddr, func(c multiaddr.Component) bool {
 		switch c.Protocol().Code {
 		case multiaddr.P_IP4, multiaddr.P_IP6:
-			b.BanIP(net.ParseIP(c.String()))
+			b.denyIP(net.ParseIP(c.String()))
 		case multiaddr.P_P2P:
 			id, err := peer.IDFromBytes(c.RawValue())
 			if err != nil {
 				return true
 			}
-			b.BanPeer(id)
+			b.denyID(id)
 		}
 		return true
 	})
-
 	return nil
 }
 
-// BanIP bans given IP address.
-func (b *Banner) BanIP(ip net.IP) {
-	b.connGater.BanIP(ip)
+func (b *Denylist) denyIP(ip net.IP) {
+	b.connGater.BlockIP(ip)
 }
 
-// BanIP bans given peer ID.
-func (b *Banner) BanPeer(id peer.ID) {
+func (b *Denylist) denyID(id peer.ID) {
 	b.pubSub.BlacklistPeer(id)
 }
