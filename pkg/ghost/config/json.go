@@ -126,7 +126,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 		Signer:         sig,
 		ListenAddrs:    j.P2P.Listen,
 		BootstrapAddrs: j.P2P.BootstrapPeers,
-		BannedAddrs:    j.P2P.BannedPeers,
+		BlockedAddrs:   j.P2P.BannedPeers,
 		Logger:         deps.Logger,
 	}
 	for _, feed := range j.Feeds {

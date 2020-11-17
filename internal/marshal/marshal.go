@@ -151,7 +151,7 @@ func (b *bufferedMarshaller) Read(p []byte) (int, error) {
 			n, err := b.buffer.Read(p)
 
 			if n == 0 && !b.closed {
-				// Block reader until new data appear:
+				// Deny reader until new data appear:
 				b.cond.Wait()
 				b.cond.L.Unlock()
 				continue
