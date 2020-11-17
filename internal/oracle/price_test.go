@@ -43,8 +43,8 @@ func TestPrice_SetFloat64Price(t *testing.T) {
 		},
 		{
 			// Smallest possible price but greater than 0:
-			name:  "1/priceMultiplier",
-			price: float64(1) / priceMultiplier,
+			name:  "1/PriceMultiplier",
+			price: float64(1) / PriceMultiplier,
 		},
 		{
 			// Zero:
