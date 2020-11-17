@@ -27,7 +27,7 @@ import (
 	"github.com/makerdao/gofer/internal/log"
 )
 
-const priceMultiplier = 1e18
+const PriceMultiplier = 1e18
 
 var PriceNotSetErr = errors.New("unable to sign price because price is not set")
 var WrongSignatureLengthErr = errors.New("signature must be 65 bytes long")
@@ -62,7 +62,7 @@ func NewPrice(assetPair string) *Price {
 
 func (p *Price) SetFloat64Price(price float64) {
 	pf := new(big.Float).SetFloat64(price)
-	pf = new(big.Float).Mul(pf, new(big.Float).SetFloat64(priceMultiplier))
+	pf = new(big.Float).Mul(pf, new(big.Float).SetFloat64(PriceMultiplier))
 	pi, _ := pf.Int(nil)
 
 	p.Val = pi
@@ -70,7 +70,7 @@ func (p *Price) SetFloat64Price(price float64) {
 
 func (p *Price) Float64Price() float64 {
 	x := new(big.Float).SetInt(p.Val)
-	x = new(big.Float).Quo(x, new(big.Float).SetFloat64(priceMultiplier))
+	x = new(big.Float).Quo(x, new(big.Float).SetFloat64(PriceMultiplier))
 	f, _ := x.Float64()
 
 	return f
