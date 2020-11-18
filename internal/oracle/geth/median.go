@@ -200,7 +200,7 @@ func (m *Median) write(ctx context.Context, method string, args ...interface{}) 
 func retry(maxRetries int, delay time.Duration, f func() error) error {
 	for i := 0; ; i++ {
 		err := f()
-		if err == nil {
+		if err != nil {
 			return err
 		}
 		if i >= (maxRetries - 1) {

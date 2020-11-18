@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package relayer
+package spectre
 
 import (
 	"math"
@@ -112,6 +112,10 @@ func (p *store) median() *big.Int {
 // spread calculates the spread between given price and a median price.
 // The spread is returned as percentage points.
 func (p *store) spread(price *big.Int) float64 {
+	if price.Cmp(big.NewInt(0)) == 0 {
+		return math.Inf(1)
+	}
+
 	oldPriceF := new(big.Float).SetInt(price)
 	newPriceF := new(big.Float).SetInt(p.median())
 

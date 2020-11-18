@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/pkg/relayer/config"
+	"github.com/makerdao/gofer/pkg/spectre/config"
 )
 
 func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
@@ -41,7 +41,7 @@ func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
 	return log.WrapLogger(lr, nil), nil
 }
 
-func newRelayer(path string, log logrus.FieldLogger) (*config.Instances, error) {
+func newSpectre(path string, log logrus.FieldLogger) (*config.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -79,19 +79,19 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			ins, err := newRelayer(absPath, log)
+			ins, err := newSpectre(absPath, log)
 			if err != nil {
 				return err
 			}
 
-			err = ins.Relayer.Start()
+			err = ins.Spectre.Start()
 			if err != nil {
 				return err
 			}
 			defer func() {
-				err := ins.Relayer.Stop()
+				err := ins.Spectre.Stop()
 				if err != nil {
-					log.Errorf("RELAYER", "Unable to stop relayer: %s", err)
+					log.Errorf("SPECTRE", "Unable to stop Spectre: %s", err)
 				}
 			}()
 
@@ -106,7 +106,7 @@ func NewRunCmd(o *options) *cobra.Command {
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:           "relayer",
+		Use:           "spectre",
 		Version:       "DEV",
 		Short:         "",
 		Long:          ``,
@@ -116,7 +116,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 
 	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
 	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "relayer-config", "c", "./relayer.json", "relayer config file")
+	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "spectre-config", "c", "./spectre.json", "spectre config file")
 
 	return rootCmd
 }

@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package relayer
+package spectre
 
 import (
 	"context"
@@ -30,9 +30,9 @@ import (
 	"github.com/makerdao/gofer/pkg/messages"
 )
 
-const LoggerTag = "RELAYER"
+const LoggerTag = "SPECTRE"
 
-type Relayer struct {
+type Spectre struct {
 	mu  sync.Mutex
 	ctx context.Context
 
@@ -59,10 +59,10 @@ type Config struct {
 	// accepted. If not provided, feeds will be fetched automatically from
 	// an Oracle contract.
 	Feeds []string
-	// Logger is a current logger interface used by the Relayer. The Logger is
+	// Logger is a current logger interface used by the Spectre. The Logger is
 	// required to monitor asynchronous processes.
 	Logger log.Logger
-	// Pairs is the list supported pairs by Relayer with their configuration.
+	// Pairs is the list supported pairs by Spectre with their configuration.
 	Pairs []*Pair
 }
 
@@ -88,8 +88,8 @@ type Pair struct {
 	store *store
 }
 
-func NewRelayer(config Config) *Relayer {
-	r := &Relayer{
+func NewSpectre(config Config) *Spectre {
+	r := &Spectre{
 		ctx:       config.Context,
 		signer:    config.Signer,
 		transport: config.Transport,
@@ -110,7 +110,7 @@ func NewRelayer(config Config) *Relayer {
 	return r
 }
 
-func (r *Relayer) Start() error {
+func (r *Spectre) Start() error {
 	r.log.Info("Starting")
 
 	err := r.collectorLoop()
@@ -122,7 +122,7 @@ func (r *Relayer) Start() error {
 	return nil
 }
 
-func (r *Relayer) Stop() error {
+func (r *Spectre) Stop() error {
 	defer r.log.Info("Stopped")
 
 	close(r.doneCh)
@@ -137,7 +137,7 @@ func (r *Relayer) Stop() error {
 // collect adds a price from a feeder which may be used to update
 // Oracle contract. The price will be added only if a feeder is
 // allowed to send prices (must be on the r.Feeds list).
-func (r *Relayer) collect(price *messages.Price) error {
+func (r *Spectre) collect(price *messages.Price) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -161,7 +161,7 @@ func (r *Relayer) collect(price *messages.Price) error {
 
 // relay tries to update an Oracle contract for given pair. It'll return
 // transaction hash or nil if there is no need to update Oracle.
-func (r *Relayer) relay(assetPair string) (*ethereum.Hash, error) {
+func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -234,7 +234,7 @@ func (r *Relayer) relay(assetPair string) (*ethereum.Hash, error) {
 }
 
 // collectorLoop creates a asynchronous loop which fetches prices from feeders.
-func (r *Relayer) collectorLoop() error {
+func (r *Spectre) collectorLoop() error {
 	err := r.transport.Subscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func (r *Relayer) collectorLoop() error {
 
 // collectorLoop creates a asynchronous loop which tries to send an update
 // to an Oracle contract at a specified interval.
-func (r *Relayer) relayerLoop() {
+func (r *Spectre) relayerLoop() {
 	if r.interval == 0 {
 		return
 	}
@@ -326,7 +326,7 @@ func (r *Relayer) relayerLoop() {
 	}()
 }
 
-func (r *Relayer) isFeedAllowed(assetPair string, address ethereum.Address) bool {
+func (r *Spectre) isFeedAllowed(assetPair string, address ethereum.Address) bool {
 	for _, a := range r.pairs[assetPair].feeds {
 		if a == address {
 			return true
