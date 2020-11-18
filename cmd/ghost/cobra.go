@@ -125,7 +125,7 @@ func NewRunCmd(o *options) *cobra.Command {
 			defer func() {
 				err := ins.Ghost.Stop()
 				if err != nil {
-					log.Errorf("GHOST", "Unable to stop ghost: %s", err)
+					log.Errorf("GHOST", "Unable to stop Ghost: %s", err)
 				}
 			}()
 

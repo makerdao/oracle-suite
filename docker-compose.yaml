@@ -16,9 +16,9 @@ services:
       - "./gofer.json:/root/gofer.json"
       - "./ghost.json:/root/ghost.json"
 
-  relayer:
+  spectre:
     build:
       context: "."
-      dockerfile: "Dockerfile-relayer"
+      dockerfile: "Dockerfile-spectre"
     volumes:
-      - "./relayer.json:/root/relayer.json"
+      - "./spectre.json:/root/spectre.json"

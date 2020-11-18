@@ -32,7 +32,7 @@ import (
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
-	"github.com/makerdao/gofer/pkg/relayer"
+	"github.com/makerdao/gofer/pkg/spectre"
 )
 
 type JSON struct {
@@ -80,7 +80,7 @@ type Instances struct {
 	Ethereum  ethereum.Client
 	Signer    ethereum.Signer
 	Transport transport.Transport
-	Relayer   *relayer.Relayer
+	Spectre   *spectre.Spectre
 }
 
 func (e JSONConfigErr) Error() string {
@@ -150,8 +150,8 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 	eth := ethereumGeth.NewClient(client, sig)
 
-	// Create and configure Relayer:
-	cfg := relayer.Config{
+	// Create and configure Spectre:
+	cfg := spectre.Config{
 		Context:   deps.Context,
 		Signer:    sig,
 		Transport: tra,
@@ -161,7 +161,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 		Pairs:     nil,
 	}
 	for name, pair := range j.Pairs {
-		cfg.Pairs = append(cfg.Pairs, &relayer.Pair{
+		cfg.Pairs = append(cfg.Pairs, &spectre.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
@@ -169,12 +169,12 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 			Median:           oracleGeth.NewMedian(eth, ethereum.HexToAddress(pair.Oracle), name),
 		})
 	}
-	rel := relayer.NewRelayer(cfg)
+	rel := spectre.NewSpectre(cfg)
 
 	return &Instances{
 		Ethereum:  eth,
 		Signer:    sig,
 		Transport: tra,
-		Relayer:   rel,
+		Spectre:   rel,
 	}, nil
 }

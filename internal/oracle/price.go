@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/internal/ethereum"
@@ -161,19 +162,21 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 
 func (p *Price) hash() []byte {
 	// Median HEX:
-	medianB := make([]byte, 32)
-	p.Val.FillBytes(medianB)
-	medianHex := hex.EncodeToString(medianB)
+	median := make([]byte, 32, 32)
+	p.Val.FillBytes(median)
 
 	// Time HEX:
-	timeHexB := make([]byte, 32)
-	binary.BigEndian.PutUint64(timeHexB[24:], uint64(p.Age.Unix()))
-	timeHex := hex.EncodeToString(timeHexB)
+	age := make([]byte, 32, 32)
+	binary.BigEndian.PutUint64(age[24:], uint64(p.Age.Unix()))
 
 	// Pair HEX:
-	assetPairB := make([]byte, 32)
-	copy(assetPairB, p.AssetPair)
-	assetPairHex := hex.EncodeToString(assetPairB)
+	assetPair := make([]byte, 32, 32)
+	copy(assetPair, strings.ToLower(p.AssetPair))
 
-	return ethereum.SHA3Hash([]byte("0x" + medianHex + timeHex + assetPairHex))
+	hash := make([]byte, 96, 96)
+	copy(hash[0:32], median)
+	copy(hash[32:64], age)
+	copy(hash[64:96], assetPair)
+
+	return ethereum.SHA3Hash(hash)
 }
