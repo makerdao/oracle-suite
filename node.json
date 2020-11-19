@@ -7,7 +7,7 @@
   },
   "p2p": {
     "bootstrapPeers": [
-      "/ip4/192.168.1.7/tcp/64763/p2p/1Afqz6rtMkUj8rcawxBqpGNx9Hg5Lk6dGLP"
+      "/ip4/165.227.139.216/tcp/64763/p2p/1Afqz6rs5LC9MC3FQH7s7xxtqXBiRpHTpzo"
     ]
   },
   "rpc": {
