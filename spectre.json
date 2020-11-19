@@ -1,0 +1,37 @@
+{
+  "ethereum": {
+    "from": "0x0000000000000000000000000000000000000000",
+    "keystore": "",
+    "password": "password",
+    "rpc": "https://kovan.infura.io/v3/xxx"
+  },
+  "p2p": {
+    "bootstrapPeers": [
+      "/ip4/165.227.139.216/tcp/64763/p2p/1Afqz6rs5LC9MC3FQH7s7xxtqXBiRpHTpzo"
+    ]
+  },
+  "feeds": [
+    "0x2d800d93b065ce011af83f316cef9f0d005b0aa4",
+    "0x8eb3daaf5cb4138f5f96711c09c0cfd0288a36e9",
+    "0x89992b18E2f1dd8810F669cE98dF62f6aBbc2A10",
+    "0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0"
+  ],
+  "options": {
+    "interval": 20,
+    "feedsInterval": 3600
+  },
+  "pairs": {
+    "BTCUSD": {
+      "oracle": "0x48ba6a74dacb245bb032a8cc98ce96795b2fd9b2",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ETHUSD": {
+      "oracle": "0x14AAeb9bC811a21982d5F35BD6F9936Fc7b1cA3F",
+      "oracleSpread": 0.5,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    }
+  }
+}

@@ -5,24 +5,18 @@
     "password": "password",
     "rpc": "https://kovan.infura.io/v3/xxx"
   },
-  "options": {
-    "interval": 60
+  "p2p": {
+    "bootstrapPeers": [
+      "/ip4/192.168.1.7/tcp/64763/p2p/1Afqz6rtMkUj8rcawxBqpGNx9Hg5Lk6dGLP"
+    ]
   },
-  "p2p": {},
+  "rpc": {
+    "address": ":8080"
+  },
   "feeds": [
     "0x2d800d93b065ce011af83f316cef9f0d005b0aa4",
     "0x8eb3daaf5cb4138f5f96711c09c0cfd0288a36e9",
     "0x89992b18E2f1dd8810F669cE98dF62f6aBbc2A10",
     "0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0"
-  ],
-  "pairs": {
-    "ETHUSD": {
-      "msgExpiration": 1800,
-      "msgSpread": 0.5
-    },
-    "BTCUSD": {
-      "msgExpiration": 1800,
-      "msgSpread": 0.5
-    }
-  }
+  ]
 }
