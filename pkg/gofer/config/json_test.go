@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 func TestParseJSONFile_ValidConfig(t *testing.T) {

@@ -116,7 +116,7 @@ func TestPrice_Marshall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.JSONEq(t, `
 		{
-		   "ap":"AAABBB",
+		   "wat":"AAABBB",
 		   "val":"42000000000000000000",
 		   "age":1605371361,
 		   "v":170,

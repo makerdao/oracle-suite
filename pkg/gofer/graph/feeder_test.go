@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/origins"
+	"github.com/makerdao/gofer/pkg/gofer/origins"
 )
 
 type mockHandler struct {
