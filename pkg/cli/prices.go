@@ -18,7 +18,7 @@ package cli
 import (
 	"errors"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 type pricer interface {

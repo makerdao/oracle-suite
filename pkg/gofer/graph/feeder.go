@@ -20,7 +20,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/makerdao/gofer/pkg/origins"
+	"github.com/makerdao/gofer/pkg/gofer/origins"
 )
 
 type Feedable interface {

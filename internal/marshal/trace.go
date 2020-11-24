@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 type trace struct {
