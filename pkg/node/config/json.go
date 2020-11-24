@@ -25,8 +25,10 @@ import (
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/ethereum/geth"
 	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
+	"github.com/makerdao/gofer/pkg/datastore"
 	"github.com/makerdao/gofer/pkg/node"
 )
 
@@ -35,6 +37,7 @@ type JSON struct {
 	P2P      JSONP2P      `json:"p2p"`
 	RPC      JSONRPC      `json:"rpc"`
 	Feeds    []string     `json:"feeds"`
+	Pairs    []string     `json:"pairs"`
 }
 
 type JSONEthereum struct {
@@ -45,8 +48,8 @@ type JSONEthereum struct {
 
 type JSONP2P struct {
 	Listen         []string `json:"listen"`
-	BootstrapPeers []string `json:"bootstrapPeers"`
-	BannedPeers    []string `json:"bannedPeers"`
+	BootstrapAddrs []string `json:"bootstrapAddrs"`
+	BlockedAddrs   []string `json:"blockedAddrs"`
 }
 
 type JSONRPC struct {
@@ -92,38 +95,26 @@ func ParseJSON(b []byte) (*JSON, error) {
 }
 
 func (j *JSON) ConfigureServer(deps Dependencies) (*node.Server, error) {
-	// Create wallet for a given account and keystore:
-	acc, err := geth.NewAccount(
-		j.Ethereum.Keystore,
-		j.Ethereum.Password,
-		ethereum.HexToAddress(j.Ethereum.From),
-	)
+	// Ethereum account:
+	acc, err := j.configureAccount()
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a new signer instance:
-	sig := geth.NewSigner(acc)
+	// Signer:
+	sig := j.configureSigner(acc)
 
-	// Configure transport:
-	p2pCfg := p2p.Config{
-		Context:        deps.Context,
-		Signer:         sig,
-		ListenAddrs:    j.P2P.Listen,
-		BootstrapAddrs: j.P2P.BootstrapPeers,
-		BlockedAddrs:   j.P2P.BannedPeers,
-		Logger:         deps.Logger,
-	}
-	for _, feed := range j.Feeds {
-		p2pCfg.AllowedPeers = append(p2pCfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
-	}
-	tra, err := p2p.NewP2P(p2pCfg)
+	// Transport:
+	tra, err := j.configureTransport(deps.Context, sig, deps.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create and configure RPC Server:
-	srv, err := node.NewServer(tra, "tcp", j.RPC.Address)
+	// Datastore:
+	dat := j.configureDatastore(sig, tra, deps.Logger)
+
+	// RPC Server:
+	srv, err := node.NewServer(dat, tra, "tcp", j.RPC.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -133,4 +124,52 @@ func (j *JSON) ConfigureServer(deps Dependencies) (*node.Server, error) {
 
 func (j *JSON) ConfigureClient() (*node.Client, error) {
 	return node.NewClient("tcp", j.RPC.Address), nil
+}
+
+func (j *JSON) configureAccount() (*geth.Account, error) {
+	a, err := geth.NewAccount(
+		j.Ethereum.Keystore,
+		j.Ethereum.Password,
+		ethereum.HexToAddress(j.Ethereum.From),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func (j *JSON) configureSigner(a *geth.Account) ethereum.Signer {
+	return geth.NewSigner(a)
+}
+
+func (j *JSON) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
+	cfg := p2p.Config{
+		Context:        ctx,
+		Signer:         s,
+		ListenAddrs:    j.P2P.Listen,
+		BootstrapAddrs: j.P2P.BootstrapAddrs,
+		BlockedAddrs:   j.P2P.BlockedAddrs,
+		Logger:         l,
+	}
+	for _, feed := range j.Feeds {
+		cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
+	}
+	return p2p.NewP2P(cfg)
+}
+
+func (j *JSON) configureDatastore(s ethereum.Signer, t transport.Transport, l log.Logger) *datastore.Datastore {
+	cfg := datastore.Config{
+		Signer:    s,
+		Transport: t,
+		Pairs:     make(map[string]*datastore.Pair, 0),
+		Logger:    l,
+	}
+	var feeds []ethereum.Address
+	for _, feed := range j.Feeds {
+		feeds = append(feeds, ethereum.HexToAddress(feed))
+	}
+	for _, name := range j.Pairs {
+		cfg.Pairs[name] = &datastore.Pair{Feeds: feeds}
+	}
+	return datastore.NewDatastore(cfg)
 }

@@ -87,7 +87,7 @@ func newClient(path string, log log.Logger) (*node.Client, error) {
 	return c, nil
 }
 
-func NewRunCmd(o *options) *cobra.Command {
+func NewAgentCmd(o *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "agent",
 		Args:  cobra.ExactArgs(0),
@@ -129,13 +129,13 @@ func NewRunCmd(o *options) *cobra.Command {
 	}
 }
 
-func NewPricesCmd(o *options) *cobra.Command {
+func NewGetPricesCmd(o *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "prices",
-		Args:  cobra.ExactArgs(0),
+		Use:   "get-prices",
+		Args:  cobra.ExactArgs(1),
 		Short: "",
 		Long:  ``,
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
 				return err
@@ -162,26 +162,17 @@ func NewPricesCmd(o *options) *cobra.Command {
 				}
 			}()
 
-			go func() {
-				for {
-					p, err := cli.WaitForPrice()
-					if err != nil {
-						l.WithError(err).Fatalf("RPC", "Unable to fetch prices")
-					}
+			p, err := cli.GetPrices(args[0])
+			if err != nil {
+				return err
+			}
 
-					bts, err := json.Marshal(p)
-					if err != nil {
-						l.WithError(err).Errorf("RPC", "Unable to parse message")
-						continue
-					}
+			bts, err := json.Marshal(p)
+			if err != nil {
+				return err
+			}
 
-					fmt.Printf("%s\n", string(bts))
-				}
-			}()
-
-			c := make(chan os.Signal)
-			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-			<-c
+			fmt.Printf("%s\n", string(bts))
 
 			return nil
 		},

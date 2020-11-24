@@ -139,9 +139,8 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	}
 
 	// Create price:
-	price := oracle.NewPrice(pair.AssetPair)
+	price := &oracle.Price{AssetPair: pair.AssetPair, Age: tick.Timestamp}
 	price.SetFloat64Price(tick.Price)
-	price.Age = tick.Timestamp
 
 	// Sign price:
 	err = price.Sign(g.signer)
