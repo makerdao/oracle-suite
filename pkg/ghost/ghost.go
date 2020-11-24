@@ -24,10 +24,10 @@ import (
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/internal/oracle"
-	"github.com/makerdao/gofer/internal/transport"
+	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 const LoggerTag = "GHOST"

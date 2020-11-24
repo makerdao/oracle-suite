@@ -33,7 +33,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/internal/transport/p2p/sets"
+	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 
 var ConnectionIsClosedErr = errors.New("connection is closed")

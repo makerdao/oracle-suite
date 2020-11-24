@@ -19,7 +19,7 @@ import (
 	"sync"
 
 	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 // PriceStore contains a list of messages.Price's.

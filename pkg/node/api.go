@@ -1,9 +1,9 @@
 package node
 
 import (
-	"github.com/makerdao/gofer/internal/transport"
+	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/datastore"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 type NoArgument = struct{}

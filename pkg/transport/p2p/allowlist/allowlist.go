@@ -22,7 +22,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/makerdao/gofer/internal/transport/p2p/sets"
+	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 
 type node interface {
