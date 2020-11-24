@@ -19,25 +19,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/oracle"
-	"github.com/makerdao/gofer/internal/transport"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/datastore"
 )
 
 const LoggerTag = "SPECTRE"
+
+type Datastore interface {
+	Prices() *datastore.PriceStore
+	Start() error
+	Stop() error
+}
 
 type Spectre struct {
 	mu  sync.Mutex
 	ctx context.Context
 
 	signer    ethereum.Signer
-	transport transport.Transport
+	datastore Datastore
 	interval  time.Duration
 	log       log.Logger
 	pairs     map[string]*Pair
@@ -46,19 +50,11 @@ type Spectre struct {
 }
 
 type Config struct {
-	Context context.Context
-	// Signer is an instance of the ethereum.Signer which will be used to
-	// verify price signatures.
 	Signer ethereum.Signer
-	// Transport is a implementation of transport used to fetch prices from
-	// feeders.
-	Transport transport.Transport
+	// Datastore provides prices for Spectre.
+	Datastore Datastore
 	// Interval describes how often we should try to update Oracles.
 	Interval time.Duration
-	// Feeds is the list of Ethereum addresses from which prices will be
-	// accepted. If not provided, feeds will be fetched automatically from
-	// an Oracle contract.
-	Feeds []string
 	// Logger is a current logger interface used by the Spectre. The Logger is
 	// required to monitor asynchronous processes.
 	Logger log.Logger
@@ -81,30 +77,17 @@ type Pair struct {
 	// Median is the instance of the oracle.Median which is the interface for
 	// the Oracle contract.
 	Median oracle.Median
-	// feeds is the list of Ethereum addresses from which prices will be
-	// accepted.
-	feeds []ethereum.Address
-	// store contains list of prices form feeders.
-	store *store
 }
 
 func NewSpectre(config Config) *Spectre {
 	r := &Spectre{
-		ctx:       config.Context,
+		ctx:       context.Background(),
 		signer:    config.Signer,
-		transport: config.Transport,
+		datastore: config.Datastore,
 		interval:  config.Interval,
 		pairs:     make(map[string]*Pair, 0),
 		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
 		doneCh:    make(chan struct{}),
-	}
-
-	for _, pair := range config.Pairs {
-		pair.store = newStore()
-		r.pairs[pair.AssetPair] = pair
-		for _, feed := range config.Feeds {
-			pair.feeds = append(pair.feeds, ethereum.HexToAddress(feed))
-		}
 	}
 
 	return r
@@ -112,8 +95,7 @@ func NewSpectre(config Config) *Spectre {
 
 func (r *Spectre) Start() error {
 	r.log.Info("Starting")
-
-	err := r.collectorLoop()
+	err := r.datastore.Start()
 	if err != nil {
 		return err
 	}
@@ -124,38 +106,12 @@ func (r *Spectre) Start() error {
 
 func (r *Spectre) Stop() error {
 	defer r.log.Info("Stopped")
-
-	close(r.doneCh)
-	err := r.transport.Unsubscribe(messages.PriceMessageName)
+	err := r.datastore.Stop()
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// collect adds a price from a feeder which may be used to update
-// Oracle contract. The price will be added only if a feeder is
-// allowed to send prices (must be on the r.Feeds list).
-func (r *Spectre) collect(price *messages.Price) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	from, err := price.Price.From(r.signer)
-	if err != nil {
-		return errors.New("received price has an invalid signature")
-	}
-	if _, ok := r.pairs[price.Price.AssetPair]; !ok {
-		return errors.New("received pair is not configured")
-	}
-	if !r.isFeedAllowed(price.Price.AssetPair, *from) {
-		return errors.New("address is not on feed list")
-	}
-	if price.Price.Val.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New("received price is invalid")
-	}
-
-	r.pairs[price.Price.AssetPair].store.add(*from, price.Price)
+	close(r.doneCh)
 	return nil
 }
 
@@ -168,6 +124,11 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	pair, ok := r.pairs[assetPair]
 	if !ok {
 		return nil, fmt.Errorf("asset pair %s does not exists", assetPair)
+	}
+
+	prices := r.datastore.Prices().AssetPair(assetPair)
+	if prices == nil || prices.Len() == 0 {
+		return nil, fmt.Errorf("there is no prices for %s asset price", assetPair)
 	}
 
 	oracleQuorum, err := pair.Median.Bar(r.ctx)
@@ -184,13 +145,13 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	}
 
 	// Clear expired prices:
-	pair.store.clearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
-	pair.store.clearOlderThan(oracleTime)
+	prices.ClearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
+	prices.ClearOlderThan(oracleTime)
 
 	// Use only a minimum prices required to achieve a quorum:
-	pair.store.truncate(oracleQuorum)
+	prices.Truncate(oracleQuorum)
 
-	spread := pair.store.spread(oraclePrice)
+	spread := prices.Spread(oraclePrice)
 	isExpired := oracleTime.Add(pair.OracleExpiration).Before(time.Now())
 	isStale := spread >= pair.OracleSpread
 
@@ -209,7 +170,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 			"currentSpread":    spread,
 		}).
 		Debug("Trying to update Oracle")
-	for _, price := range pair.store.get() {
+	for _, price := range prices.OraclePrices() {
 		r.log.
 			WithFields(price.Fields(r.signer)).
 			Debug("Feed")
@@ -217,15 +178,12 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 
 	if isExpired || isStale {
 		// Check if there are enough prices to achieve a quorum:
-		if pair.store.len() != oracleQuorum {
+		if int64(prices.Len()) != oracleQuorum {
 			return nil, errors.New("unable to update Oracle, there is not enough prices to achieve a quorum")
 		}
 
 		// Send *actual* transaction to the Ethereum network:
-		tx, err := pair.Median.Poke(r.ctx, pair.store.get(), true)
-		// There is no point in keeping the prices that have already been sent,
-		// so we can safely remove them:
-		pair.store.clear()
+		tx, err := pair.Median.Poke(r.ctx, prices.OraclePrices(), true)
 		return tx, err
 	}
 
@@ -233,57 +191,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	return nil, nil
 }
 
-// collectorLoop creates a asynchronous loop which fetches prices from feeders.
-func (r *Spectre) collectorLoop() error {
-	err := r.transport.Subscribe(messages.PriceMessageName)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for {
-			price := &messages.Price{}
-			select {
-			case <-r.doneCh:
-				return
-			case status := <-r.transport.WaitFor(messages.PriceMessageName, price):
-				// If there was a problem while reading prices from the transport:
-				if status.Error != nil {
-					r.log.
-						WithError(status.Error).
-						Warn("Unable to read prices from the network")
-					continue
-				}
-
-				// Try to collect received price:
-				err := r.collect(price)
-
-				// Prepare log fields:
-				from, _ := price.Price.From(r.signer)
-				fields := log.Fields{"assetPair": price.Price.AssetPair}
-				if from != nil {
-					fields["from"] = from.String()
-				}
-
-				// Print logs:
-				if err != nil {
-					r.log.
-						WithError(err).
-						WithFields(fields).
-						Warn("Received invalid price")
-				} else {
-					r.log.
-						WithFields(fields).
-						Info("Price received")
-				}
-			}
-		}
-	}()
-
-	return nil
-}
-
-// collectorLoop creates a asynchronous loop which tries to send an update
+// relayerLoop creates a asynchronous loop which tries to send an update
 // to an Oracle contract at a specified interval.
 func (r *Spectre) relayerLoop() {
 	if r.interval == 0 {
@@ -324,13 +232,4 @@ func (r *Spectre) relayerLoop() {
 			}
 		}
 	}()
-}
-
-func (r *Spectre) isFeedAllowed(assetPair string, address ethereum.Address) bool {
-	for _, a := range r.pairs[assetPair].feeds {
-		if a == address {
-			return true
-		}
-	}
-	return false
 }

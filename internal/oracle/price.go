@@ -43,22 +43,12 @@ type Price struct {
 }
 
 type jsonPrice struct {
-	AssetPair string `json:"ap"`
+	AssetPair string `json:"wat"`
 	Val       string `json:"val"`
 	Age       int64  `json:"age"`
 	V         uint8  `json:"v"`
 	R         string `json:"r"`
 	S         string `json:"s"`
-}
-
-func NewPrice(assetPair string) *Price {
-	return &Price{
-		AssetPair: assetPair,
-		Val:       nil,
-		V:         0,
-		R:         [32]byte{},
-		S:         [32]byte{},
-	}
 }
 
 func (p *Price) SetFloat64Price(price float64) {
@@ -161,15 +151,15 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 }
 
 func (p *Price) hash() []byte {
-	// Median HEX:
+	// Median:
 	median := make([]byte, 32, 32)
 	p.Val.FillBytes(median)
 
-	// Time HEX:
+	// Time:
 	age := make([]byte, 32, 32)
 	binary.BigEndian.PutUint64(age[24:], uint64(p.Age.Unix()))
 
-	// Pair HEX:
+	// Pair:
 	assetPair := make([]byte, 32, 32)
 	copy(assetPair, strings.ToLower(p.AssetPair))
 

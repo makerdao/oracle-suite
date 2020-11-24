@@ -22,8 +22,8 @@ func main() {
 	rootCmd := NewRootCommand(&opts)
 
 	rootCmd.AddCommand(
-		NewRunCmd(&opts),
-		NewPricesCmd(&opts),
+		NewAgentCmd(&opts),
+		NewGetPricesCmd(&opts),
 		NewBroadcastPriceCmd(&opts),
 	)
 

@@ -32,6 +32,7 @@ import (
 	"github.com/makerdao/gofer/internal/transport"
 	"github.com/makerdao/gofer/internal/transport/p2p"
 	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
+	"github.com/makerdao/gofer/pkg/datastore"
 	"github.com/makerdao/gofer/pkg/spectre"
 )
 
@@ -150,13 +151,27 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	}
 	eth := ethereumGeth.NewClient(client, sig)
 
-	// Create and configure Spectre:
-	cfg := spectre.Config{
-		Context:   deps.Context,
+	// Configure datastore:
+	datCfg := datastore.Config{
 		Signer:    sig,
 		Transport: tra,
+		Pairs:     make(map[string]*datastore.Pair, 0),
+		Logger:    deps.Logger,
+	}
+	var feeds []ethereum.Address
+	for _, feed := range j.Feeds {
+		feeds = append(feeds, ethereum.HexToAddress(feed))
+	}
+	for name, _ := range j.Pairs {
+		datCfg.Pairs[name] = &datastore.Pair{Feeds: feeds}
+	}
+	dat := datastore.NewDatastore(datCfg)
+
+	// Create and configure Spectre:
+	cfg := spectre.Config{
+		Signer:    sig,
 		Interval:  time.Second * time.Duration(j.Options.Interval),
-		Feeds:     j.Feeds,
+		Datastore: dat,
 		Logger:    deps.Logger,
 		Pairs:     nil,
 	}

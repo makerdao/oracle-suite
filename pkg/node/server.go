@@ -16,9 +16,12 @@ type Server struct {
 	address  string
 }
 
-func NewServer(tranport transport.Transport, network, address string) (*Server, error) {
+func NewServer(datastore Datastore, transport transport.Transport, network, address string) (*Server, error) {
 	server := &Server{
-		api:     &Api{transport: tranport},
+		api: &Api{
+			datastore: datastore,
+			transport: transport,
+		},
 		rpc:     rpc.NewServer(),
 		network: network,
 		address: address,
@@ -37,7 +40,7 @@ func (s *Server) Start() error {
 	if err != nil {
 		return err
 	}
-	err = s.api.subscribe()
+	err = s.api.datastore.Start()
 	if err != nil {
 		return err
 	}
@@ -47,7 +50,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Stop() error {
-	err := s.api.unsubscribe()
+	err := s.api.datastore.Start()
 	if err != nil {
 		return err
 	}

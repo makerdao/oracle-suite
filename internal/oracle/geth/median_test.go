@@ -91,21 +91,21 @@ func TestMedian_Poke(t *testing.T) {
 	a := ethereum.Address{}
 	m := NewMedian(c, a, "AAABBB")
 
-	p1 := oracle.NewPrice("AAABBB")
+	p1 := &oracle.Price{AssetPair: "AAABBB"}
 	p1.SetFloat64Price(10)
 	p1.Age = time.Unix(0xAAAAAAAA, 0)
 	p1.V = 0xA1
 	p1.R = [32]byte{0xA2}
 	p1.S = [32]byte{0xA3}
 
-	p2 := oracle.NewPrice("AAABBB")
+	p2 := &oracle.Price{AssetPair: "AAABBB"}
 	p2.SetFloat64Price(30)
 	p2.Age = time.Unix(0xBBBBBBBB, 0)
 	p2.V = 0xB1
 	p2.R = [32]byte{0xB2}
 	p2.S = [32]byte{0xB3}
 
-	p3 := oracle.NewPrice("AAABBB")
+	p3 := &oracle.Price{AssetPair: "AAABBB"}
 	p3.SetFloat64Price(20)
 	p3.Age = time.Unix(0xCCCCCCCC, 0)
 	p3.V = 0xC1

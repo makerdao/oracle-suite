@@ -40,11 +40,11 @@ func (s *Client) BroadcastPrice(price *messages.Price) error {
 	return nil
 }
 
-func (s *Client) WaitForPrice() (*messages.Price, error) {
-	price := &messages.Price{}
-	err := s.rpc.Call("Api.WaitForPrice", &NoArgument{}, price)
+func (s *Client) GetPrices(assetPair string) ([]*messages.Price, error) {
+	prices := &[]*messages.Price{}
+	err := s.rpc.Call("Api.GetPrices", assetPair, prices)
 	if err != nil {
 		return nil, err
 	}
-	return price, nil
+	return *prices, nil
 }
