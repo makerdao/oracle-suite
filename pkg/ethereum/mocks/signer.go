@@ -18,7 +18,7 @@ package mocks
 import (
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum"
 )
 
 type Signer struct {

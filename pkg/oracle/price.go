@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/log"
 )
 
 const PriceMultiplier = 1e18

@@ -20,7 +20,7 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )

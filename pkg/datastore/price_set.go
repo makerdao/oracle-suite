@@ -22,7 +22,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/pkg/oracle"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 

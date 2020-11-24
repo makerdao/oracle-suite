@@ -22,8 +22,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/internal/marshal/testutil"
 	"github.com/makerdao/gofer/pkg/graph"
+
+	"github.com/makerdao/gofer/internal/marshal/testutil"
 )
 
 func TestPlain_Graph(t *testing.T) {

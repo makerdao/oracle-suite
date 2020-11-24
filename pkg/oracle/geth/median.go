@@ -25,8 +25,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/oracle"
 )
 
 // TODO: make it configurable
