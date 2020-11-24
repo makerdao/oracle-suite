@@ -1,8 +1,8 @@
 package node
 
 import (
-	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/datastore"
+	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 

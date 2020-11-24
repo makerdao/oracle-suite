@@ -27,9 +27,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/ethereum/mocks"
-	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum/mocks"
+	"github.com/makerdao/gofer/pkg/oracle"
 )
 
 func TestMedian_Age(t *testing.T) {

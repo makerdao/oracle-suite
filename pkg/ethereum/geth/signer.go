@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum"
 )
 
 type Signer struct {

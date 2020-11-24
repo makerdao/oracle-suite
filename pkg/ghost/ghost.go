@@ -20,13 +20,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/log"
 	"github.com/makerdao/gofer/internal/marshal"
-	"github.com/makerdao/gofer/internal/oracle"
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/gofer/pkg/oracle"
+	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 

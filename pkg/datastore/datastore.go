@@ -4,8 +4,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )

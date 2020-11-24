@@ -22,8 +22,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/oracle"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/oracle"
 )
 
 // store contains a list of oracle.Price's for single asset pair. Only one

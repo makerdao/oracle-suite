@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/internal/oracle"
 	"github.com/makerdao/gofer/pkg/datastore"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/gofer/pkg/oracle"
 )
 
 const LoggerTag = "SPECTRE"

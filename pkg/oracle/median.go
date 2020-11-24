@@ -20,7 +20,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum"
 )
 
 // Median is an interface for the median oracle contract:

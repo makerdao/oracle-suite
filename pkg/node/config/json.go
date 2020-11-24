@@ -22,14 +22,14 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/makerdao/gofer/internal/ethereum"
-	"github.com/makerdao/gofer/internal/ethereum/geth"
-	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/pkg/datastore"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum/geth"
+	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/gofer/pkg/node"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/p2p"
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
-	"github.com/makerdao/gofer/pkg/datastore"
-	"github.com/makerdao/gofer/pkg/node"
 )
 
 type JSON struct {

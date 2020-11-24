@@ -18,7 +18,7 @@ package datastore
 import (
 	"sync"
 
-	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 

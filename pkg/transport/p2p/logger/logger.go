@@ -18,7 +18,7 @@ package logger
 import (
 	"github.com/libp2p/go-libp2p-core/network"
 
-	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 

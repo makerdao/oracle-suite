@@ -23,7 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/signer/core"
 
-	"github.com/makerdao/gofer/internal/ethereum"
+	"github.com/makerdao/gofer/pkg/ethereum"
 )
 
 type Account struct {

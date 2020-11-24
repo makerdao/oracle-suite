@@ -25,7 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/log"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/spectre/config"
 )
 

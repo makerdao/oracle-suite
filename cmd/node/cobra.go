@@ -28,10 +28,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/node"
 	"github.com/makerdao/gofer/pkg/node/config"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
