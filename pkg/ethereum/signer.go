@@ -15,6 +15,10 @@
 
 package ethereum
 
+// SignatureLength is the length of the signature returned by the Signature
+// function from the Signer interface.
+const SignatureLength = 65
+
 type Signer interface {
 	// Address returns account's address used to sign data. May be empty if
 	// the signer is used only to verify signatures.

@@ -19,13 +19,15 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"time"
 )
 
 // Default retry amount
 const defaultRetry = 5
+
+// Default delay between retries
+const defaultDelayBetweenRetries = 1 * time.Second
 
 // Default timeout for HTTP Request
 const defaultTimeoutInSeconds = 15
@@ -70,7 +72,7 @@ func MakeHTTPRequest(r *HTTPRequest) *HTTPResponse {
 	for step <= r.Retry {
 		res, err = doMakeHTTPRequest(r)
 		if err != nil {
-			time.Sleep(getTimeoutBetweenRequests())
+			time.Sleep(defaultDelayBetweenRetries)
 			step++
 			continue
 		}
@@ -122,9 +124,4 @@ func doMakeHTTPRequest(r *HTTPRequest) ([]byte, error) {
 	defer resp.Body.Close()
 
 	return ioutil.ReadAll(resp.Body)
-}
-
-// getTimeoutBetweenRequests geenrate random timeout between retry queries
-func getTimeoutBetweenRequests() time.Duration {
-	return time.Duration(100 + rand.Intn(900))
 }

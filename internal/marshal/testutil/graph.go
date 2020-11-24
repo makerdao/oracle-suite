@@ -19,7 +19,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 func Graph(p graph.Pair) *graph.MedianAggregatorNode {

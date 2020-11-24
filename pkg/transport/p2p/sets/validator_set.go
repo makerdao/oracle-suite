@@ -22,7 +22,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-type Validator func(topic string, ctx context.Context, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult
+type Validator func(ctx context.Context, topic string, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult
 
 // ValidatorSet stores multiple instances of validators that implements
 // the pubsub.ValidatorEx functions. Validators are groped by topic.
@@ -45,7 +45,7 @@ func (n *ValidatorSet) Add(validator ...Validator) {
 func (n *ValidatorSet) Validator(topic string) pubsub.ValidatorEx {
 	return func(ctx context.Context, id peer.ID, message *pubsub.Message) pubsub.ValidationResult {
 		for _, validator := range n.validators {
-			if result := validator(topic, ctx, id, message); result != pubsub.ValidationAccept {
+			if result := validator(ctx, topic, id, message); result != pubsub.ValidationAccept {
 				return result
 			}
 		}

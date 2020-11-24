@@ -83,17 +83,18 @@ func (s *Account) findAccountByAddress(from ethereum.Address) (accounts.Wallet, 
 func defaultKeyStore() string {
 	var defaultKeyStores []string
 
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		defaultKeyStores = []string{
 			os.Getenv("HOME") + "/Library/Ethereum/keystore",
 			os.Getenv("HOME") + "/Library/Application Support/io.parity.ethereum/keys/ethereum",
 		}
-	} else if runtime.GOOS == "windows" {
+	case "windows":
 		defaultKeyStores = []string{
 			os.Getenv("APPDATA") + "/Ethereum/keystore",
 			os.Getenv("APPDATA") + "/Parity/Ethereum/keys",
 		}
-	} else {
+	default:
 		defaultKeyStores = []string{
 			os.Getenv("HOME") + "/.ethereum/keystore",
 			os.Getenv("HOME") + "/.local/share/io.parity.ethereum/keys/ethereum",

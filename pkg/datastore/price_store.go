@@ -32,7 +32,7 @@ type PriceStore struct {
 // NewPriceStore creates a new store instance.
 func NewPriceStore() *PriceStore {
 	return &PriceStore{
-		prices: make(map[string]map[ethereum.Address]*messages.Price, 0),
+		prices: make(map[string]map[ethereum.Address]*messages.Price),
 	}
 }
 
@@ -43,7 +43,7 @@ func (p *PriceStore) Add(from ethereum.Address, msg *messages.Price) {
 	defer p.mu.Unlock()
 
 	if _, ok := p.prices[msg.Price.AssetPair]; !ok {
-		p.prices[msg.Price.AssetPair] = make(map[ethereum.Address]*messages.Price, 0)
+		p.prices[msg.Price.AssetPair] = make(map[ethereum.Address]*messages.Price)
 	}
 
 	if prev, ok := p.prices[msg.Price.AssetPair][from]; ok && prev.Price.Age.After(msg.Price.Age) {

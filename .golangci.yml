@@ -76,7 +76,7 @@ linters-settings:
       mnd:
         # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
         checks: argument,case,condition,operation,return,assign
-        ignored-numbers: 0,1,2,3,4,5,6,7,8,9,10,1000
+        ignored-numbers: 0,1,2,3,4,5,6,7,8,9,10,60,100,1000,3600
   govet:
     # report about shadowed variables
     check-shadowing: false # disabled due to false-positives which can't be ignored using "nolint"
@@ -101,23 +101,17 @@ linters-settings:
     list-type: blacklist
     include-go-root: false
     packages:
+      - log
       - github.com/sirupsen/logrus
     packages-with-error-message:
-      # specify an error message to output when a blacklisted package is used
-      - github.com/sirupsen/logrus: "logging is allowed only by logutils.Log"
+      - log: "logging is allowed only by pkg/log"
+      - github.com/sirupsen/logrus: "logging is allowed only by pkg/log"
   lll:
     # max line length, lines longer will be reported. Default is 120.
     # '\t' is counted as 1 character by default, and can be changed with the tab-width option
     line-length: 120
     # tab width in spaces. Default to 1.
     tab-width: 1
-  misspell:
-    # Correct spellings using locale preferences for US or UK.
-    # Default is to use a neutral variety of English.
-    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
-    locale: US
-    ignore-words:
-      - marshalled
   nakedret:
     # make an issue if func has more lines of code than this setting and it has naked returns; default is 30
     max-func-lines: 30
@@ -149,7 +143,6 @@ linters:
     - dupl
     - errcheck
     - funlen
-    - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
@@ -165,7 +158,6 @@ linters:
     - ineffassign
     - interfacer
     - lll
-    - misspell
     - nakedret
     - nolintlint
     - rowserrcheck
@@ -180,6 +172,8 @@ linters:
     - whitespace
 
   # don't enable:
+  # - misspell
+  # - gochecknoinits
   # - asciicheck
   # - exhaustive (TODO: enable after next release; current release at time of writing is v1.27)
   # - gochecknoglobals
@@ -203,12 +197,24 @@ issues:
         - scopelint
         - unused
         - errcheck
+        - gosec
+    - path: /mocks/
+      linters:
+        - dupl
+        - funlen
+        - gomnd
+        - lll
+        - scopelint
+        - unused
+        - errcheck
+        - gosec
     - path: exchange/
       linters:
         - dupl
-    - path: /mock/
-      linters:
-        - gosec
+    - path: cmd/
+      text: "logging is allowed only by pkg/log"
+    - path: pkg/log/
+      text: "logging is allowed only by pkg/log"
 
   # Show only new issues: if there are unstaged changes or untracked files,
   # only those changes are analyzed, else only changes in HEAD~ are analyzed.

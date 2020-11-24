@@ -20,7 +20,6 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
@@ -32,7 +31,6 @@ type subscription struct {
 	teh            *pubsub.TopicEventHandler
 	eventHandler   sets.EventHandler
 	messageHandler sets.MessageHandler
-	log            log.Logger
 
 	// statusCh is used to send a notification about a new message, it's
 	// returned by the Transport.WaitFor function.
@@ -60,7 +58,7 @@ func newSubscription(node *Node, topic string) (*subscription, error) {
 		teh:            e,
 		eventHandler:   node.eventHandlerSet,
 		messageHandler: node.messageHandlerSet,
-		statusCh:       make(chan transport.Status, 0),
+		statusCh:       make(chan transport.Status),
 	}
 
 	sub.eventLoop()

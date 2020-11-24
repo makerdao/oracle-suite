@@ -36,15 +36,16 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 
-var ConnectionIsClosedErr = errors.New("connection is closed")
-var AlreadySubscribedErr = errors.New("topic is already subscribed")
-var TopicIsNotSubscribedErr = errors.New("topic is not subscribed")
+var ErrConnectionIsClosed = errors.New("connection is closed")
+var ErrAlreadySubscribed = errors.New("topic is already subscribed")
+var ErrTopicIsNotSubscribed = errors.New("topic is not subscribed")
 
 func init() {
 	// It's required to increase timeouts because signing messages using
 	// the Ethereum wallet may take more time than default timeout allows:
-	transport.DialTimeout = 120 * time.Second
-	swarm.DialTimeoutLocal = 120 * time.Second
+	const timeout = 120 * time.Second
+	transport.DialTimeout = timeout
+	swarm.DialTimeoutLocal = timeout
 }
 
 type NodeConfig struct {
@@ -87,7 +88,7 @@ func NewNode(config NodeConfig) *Node {
 		validatorSet:      sets.NewValidatorSet(),
 		eventHandlerSet:   sets.NewEventHandlerSet(),
 		messageHandlerSet: sets.NewMessageHandlerSet(),
-		subs:              make(map[string]*subscription, 0),
+		subs:              make(map[string]*subscription),
 		log:               config.Logger,
 		closed:            false,
 	}
@@ -157,29 +158,15 @@ func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
 	n.messageHandlerSet.Add(messageHandlers...)
 }
 
-func (n *Node) Subscription(topic string) (*subscription, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	if n.closed {
-		return nil, ConnectionIsClosedErr
-	}
-	if sub, ok := n.subs[topic]; ok {
-		return sub, nil
-	}
-
-	return nil, TopicIsNotSubscribedErr
-}
-
 func (n *Node) Subscribe(topic string) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return ConnectionIsClosedErr
+		return ErrConnectionIsClosed
 	}
 	if _, ok := n.subs[topic]; ok {
-		return AlreadySubscribedErr
+		return ErrAlreadySubscribed
 	}
 
 	err := n.pubSub.RegisterTopicValidator(topic, n.validatorSet.Validator(topic))
@@ -198,10 +185,10 @@ func (n *Node) Subscribe(topic string) error {
 
 func (n *Node) Unsubscribe(topic string) error {
 	if n.closed {
-		return ConnectionIsClosedErr
+		return ErrConnectionIsClosed
 	}
 
-	sub, err := n.Subscription(topic)
+	sub, err := n.subscription(topic)
 	if err != nil {
 		return err
 	}
@@ -214,7 +201,7 @@ func (n *Node) Close() error {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return ConnectionIsClosedErr
+		return ErrConnectionIsClosed
 	}
 
 	for _, s := range n.subs {
@@ -224,4 +211,18 @@ func (n *Node) Close() error {
 	n.subs = nil
 	n.closed = true
 	return n.host.Close()
+}
+
+func (n *Node) subscription(topic string) (*subscription, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if n.closed {
+		return nil, ErrConnectionIsClosed
+	}
+	if sub, ok := n.subs[topic]; ok {
+		return sub, nil
+	}
+
+	return nil, ErrTopicIsNotSubscribed
 }

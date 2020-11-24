@@ -22,3 +22,10 @@ services:
       dockerfile: "Dockerfile-spectre"
     volumes:
       - "./spectre.json:/root/spectre.json"
+
+  spire:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-spire"
+    volumes:
+      - "./spire.json:/root/spire.json"

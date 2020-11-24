@@ -33,7 +33,7 @@ import (
 	"github.com/makerdao/gofer/pkg/log"
 )
 
-func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
+func newLogger(level string) (log.Logger, error) {
 	ll, err := logrus.ParseLevel(level)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			log, err := newLogger(o.LogVerbosity, o.LogTags)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
@@ -113,7 +113,7 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			ins, err := newGhost(ghostAbsPath, gof, log)
+			ins, err := newGhost(ghostAbsPath, gof, l)
 			if err != nil {
 				return err
 			}
@@ -125,11 +125,11 @@ func NewRunCmd(o *options) *cobra.Command {
 			defer func() {
 				err := ins.Ghost.Stop()
 				if err != nil {
-					log.Errorf("GHOST", "Unable to stop Ghost: %s", err)
+					l.Errorf("GHOST", "Unable to stop Ghost: %s", err)
 				}
 			}()
 
-			c := make(chan os.Signal)
+			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
 
@@ -148,10 +148,24 @@ func NewRootCommand(opts *options) *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
-	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
-	rootCmd.PersistentFlags().StringVarP(&opts.GhostConfigFilePath, "config", "c", "./ghost.json", "ghost config file")
-	rootCmd.PersistentFlags().StringVar(&opts.GoferConfigFilePath, "gofer-config", "./gofer.json", "gofer config file")
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity", "v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.GhostConfigFilePath,
+		"config", "c",
+		"./ghost.json",
+		"ghost config file",
+	)
+	rootCmd.PersistentFlags().StringVar(
+		&opts.GoferConfigFilePath,
+		"config.gofer",
+		"./gofer.json",
+		"gofer config file",
+	)
 
 	return rootCmd
 }

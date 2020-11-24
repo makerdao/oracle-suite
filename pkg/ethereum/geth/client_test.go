@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	internalEthereum "github.com/makerdao/gofer/pkg/ethereum"
+	pkgEthereum "github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/ethereum/geth/mocks"
 )
 
@@ -64,7 +64,7 @@ func TestClient_Call(t *testing.T) {
 
 	resp, err := client.Call(
 		context.Background(),
-		internalEthereum.Call{Address: clientContractAddress, Data: clientCallData},
+		pkgEthereum.Call{Address: clientContractAddress, Data: clientCallData},
 	)
 
 	cm := ethClient.Calls[0].Arguments.Get(1).(ethereum.CallMsg)
@@ -90,7 +90,7 @@ func TestClient_Call_Reverted(t *testing.T) {
 
 	resp, err := client.Call(
 		context.Background(),
-		internalEthereum.Call{Address: clientContractAddress, Data: clientCallData},
+		pkgEthereum.Call{Address: clientContractAddress, Data: clientCallData},
 	)
 
 	assert.Nil(t, resp)
@@ -113,7 +113,7 @@ func TestClient_Call_RevertedDataError(t *testing.T) {
 
 	resp, err := client.Call(
 		context.Background(),
-		internalEthereum.Call{Address: clientContractAddress, Data: clientCallData},
+		pkgEthereum.Call{Address: clientContractAddress, Data: clientCallData},
 	)
 
 	assert.Nil(t, resp)
@@ -141,7 +141,7 @@ func TestClient_MultiCall(t *testing.T) {
 
 	resp, err := client.MultiCall(
 		context.Background(),
-		[]internalEthereum.Call{
+		[]pkgEthereum.Call{
 			{Address: clientContractAddress, Data: clientCallData},
 			{Address: clientContractAddress, Data: clientCallData},
 			{Address: clientContractAddress, Data: clientCallData},
@@ -190,7 +190,7 @@ func TestClient_SendTransaction(t *testing.T) {
 		mock.Anything,
 	).Return(nil)
 
-	tx := &internalEthereum.Transaction{
+	tx := &pkgEthereum.Transaction{
 		Address:  clientContractAddress,
 		Nonce:    10,
 		Gas:      big.NewInt(100),
@@ -240,7 +240,7 @@ func TestClient_SendTransaction_Minimal(t *testing.T) {
 		mock.Anything,
 	).Return(nil)
 
-	tx := &internalEthereum.Transaction{
+	tx := &pkgEthereum.Transaction{
 		Address:  clientContractAddress,
 		GasLimit: big.NewInt(1000),
 		Data:     clientCallData,

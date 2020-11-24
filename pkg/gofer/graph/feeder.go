@@ -55,7 +55,7 @@ type Feeder struct {
 func NewFeeder(set *origins.Set) *Feeder {
 	return &Feeder{
 		set:    set,
-		doneCh: make(chan bool, 0),
+		doneCh: make(chan bool),
 	}
 }
 

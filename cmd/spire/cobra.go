@@ -29,12 +29,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/node"
-	"github.com/makerdao/gofer/pkg/node/config"
+	"github.com/makerdao/gofer/pkg/spire"
+	"github.com/makerdao/gofer/pkg/spire/config"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
-func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
+func newLogger(level string) (log.Logger, error) {
 	ll, err := logrus.ParseLevel(level)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
 	return log.WrapLogger(lr, nil), nil
 }
 
-func newServer(path string, log log.Logger) (*node.Server, error) {
+func newServer(path string, log log.Logger) (*spire.Server, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func newServer(path string, log log.Logger) (*node.Server, error) {
 	return s, nil
 }
 
-func newClient(path string, log log.Logger) (*node.Client, error) {
+func newClient(path string) (*spire.Client, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func NewAgentCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity, o.LogTags)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
@@ -120,7 +120,7 @@ func NewAgentCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			c := make(chan os.Signal)
+			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
 
@@ -141,12 +141,12 @@ func NewGetPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity, o.LogTags)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
 
-			cli, err := newClient(absPath, l)
+			cli, err := newClient(absPath)
 			if err != nil {
 				return err
 			}
@@ -191,12 +191,12 @@ func NewBroadcastPriceCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity, o.LogTags)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
 
-			cli, err := newClient(absPath, l)
+			cli, err := newClient(absPath)
 			if err != nil {
 				return err
 			}
@@ -237,7 +237,7 @@ func NewBroadcastPriceCmd(o *options) *cobra.Command {
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:           "node",
+		Use:           "spire",
 		Version:       "DEV",
 		Short:         "",
 		Long:          ``,
@@ -245,9 +245,20 @@ func NewRootCommand(opts *options) *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
-	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./node.json", "node config file")
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity",
+		"v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigFilePath,
+		"config",
+		"c",
+		"./spire.json",
+		"spire config file",
+	)
 
 	return rootCmd
 }

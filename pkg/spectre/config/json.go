@@ -155,14 +155,14 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	datCfg := datastore.Config{
 		Signer:    sig,
 		Transport: tra,
-		Pairs:     make(map[string]*datastore.Pair, 0),
+		Pairs:     make(map[string]*datastore.Pair),
 		Logger:    deps.Logger,
 	}
 	var feeds []ethereum.Address
 	for _, feed := range j.Feeds {
 		feeds = append(feeds, ethereum.HexToAddress(feed))
 	}
-	for name, _ := range j.Pairs {
+	for name := range j.Pairs {
 		datCfg.Pairs[name] = &datastore.Pair{Feeds: feeds}
 	}
 	dat := datastore.NewDatastore(datCfg)

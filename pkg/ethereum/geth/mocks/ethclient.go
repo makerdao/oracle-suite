@@ -34,13 +34,13 @@ func (e *EthClient) SendTransaction(ctx context.Context, tx *types.Transaction) 
 	return args.Error(0)
 }
 
-func (e *EthClient) StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error) {
-	args := e.Called(ctx, account, key, blockNumber)
+func (e *EthClient) StorageAt(ctx context.Context, acc common.Address, key common.Hash, block *big.Int) ([]byte, error) {
+	args := e.Called(ctx, acc, key, block)
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (e *EthClient) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
-	args := e.Called(ctx, call, blockNumber)
+func (e *EthClient) CallContract(ctx context.Context, call ethereum.CallMsg, block *big.Int) ([]byte, error) {
+	args := e.Called(ctx, call, block)
 	return args.Get(0).([]byte), args.Error(1)
 }
 

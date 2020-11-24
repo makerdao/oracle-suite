@@ -94,14 +94,14 @@ func Signature(account *Account, data []byte) ([]byte, error) {
 }
 
 func Recover(signature []byte, data []byte) (*ethereum.Address, error) {
-	if len(signature) != 65 {
+	if len(signature) != ethereum.SignatureLength {
 		return nil, errors.New("signature must be 65 bytes long")
 	}
 	if signature[64] != 27 && signature[64] != 28 {
 		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
 	}
 
-	// Transform yellow paper V from 27/28 to 0/1:
+	// Transform V from 27/28 to 0/1 according to yellow paper:
 	signature[64] -= 27
 
 	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))

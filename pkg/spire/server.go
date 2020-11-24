@@ -1,4 +1,19 @@
-package node
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package spire
 
 import (
 	"net"
@@ -9,7 +24,7 @@ import (
 )
 
 type Server struct {
-	api      *Api
+	api      *API
 	rpc      *rpc.Server
 	listener net.Listener
 	network  string
@@ -18,7 +33,7 @@ type Server struct {
 
 func NewServer(datastore Datastore, transport transport.Transport, network, address string) (*Server, error) {
 	server := &Server{
-		api: &Api{
+		api: &API{
 			datastore: datastore,
 			transport: transport,
 		},
@@ -45,7 +60,10 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	go http.Serve(s.listener, nil)
+	go func() {
+		_ = http.Serve(s.listener, nil)
+	}()
+
 	return nil
 }
 

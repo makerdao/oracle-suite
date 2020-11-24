@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-pubsub"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
@@ -49,7 +49,7 @@ func (a *Allowlist) Allow(id peer.ID) {
 	a.peers = append(a.peers, id)
 }
 
-func (a *Allowlist) validator(topic string, ctx context.Context, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult {
+func (a *Allowlist) validator(ctx context.Context, _ string, id peer.ID, _ *pubsub.Message) pubsub.ValidationResult {
 	if len(a.peers) == 0 {
 		return pubsub.ValidationAccept
 	}

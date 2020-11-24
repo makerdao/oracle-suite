@@ -72,15 +72,20 @@ func (m *Median) Bar(ctx context.Context) (int64, error) {
 
 // Price implements the oracle.Median interface.
 func (m *Median) Price(ctx context.Context) (*big.Int, error) {
+	const (
+		offset = 16
+		length = 16
+	)
+
 	b, err := m.ethereum.Storage(ctx, m.address, common.BigToHash(big.NewInt(1)))
 	if err != nil {
 		return nil, err
 	}
-	if len(b) < 32 {
+	if len(b) < (offset + length) {
 		return nil, errors.New("oracle contract storage query failed")
 	}
 
-	return new(big.Int).SetBytes(b[16:32]), err
+	return new(big.Int).SetBytes(b[length : offset+length]), err
 }
 
 // Feeds implements the oracle.Median interface.
