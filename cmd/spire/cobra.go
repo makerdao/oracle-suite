@@ -29,8 +29,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/node"
-	"github.com/makerdao/gofer/pkg/node/config"
+	"github.com/makerdao/gofer/pkg/spire"
+	"github.com/makerdao/gofer/pkg/spire/config"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
@@ -46,7 +46,7 @@ func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
 	return log.WrapLogger(lr, nil), nil
 }
 
-func newServer(path string, log log.Logger) (*node.Server, error) {
+func newServer(path string, log log.Logger) (*spire.Server, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func newServer(path string, log log.Logger) (*node.Server, error) {
 	return s, nil
 }
 
-func newClient(path string, log log.Logger) (*node.Client, error) {
+func newClient(path string, log log.Logger) (*spire.Client, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func NewBroadcastPriceCmd(o *options) *cobra.Command {
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:           "node",
+		Use:           "spire",
 		Version:       "DEV",
 		Short:         "",
 		Long:          ``,
@@ -247,7 +247,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 
 	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
 	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./node.json", "node config file")
+	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./spire.json", "spire config file")
 
 	return rootCmd
 }

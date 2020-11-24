@@ -21,7 +21,7 @@ import (
 )
 
 // Aliases for the go-ethereum types and functions used in multiple packages.
-// These aliases was created not to rely directly on the go-ethereum packages:
+// These aliases was created to not rely directly on the go-ethereum packages.
 
 type (
 	Address = common.Address

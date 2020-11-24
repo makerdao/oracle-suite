@@ -1,4 +1,4 @@
-package node
+package spire
 
 import (
 	"github.com/makerdao/gofer/pkg/datastore"

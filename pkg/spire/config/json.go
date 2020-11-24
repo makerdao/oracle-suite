@@ -26,7 +26,7 @@ import (
 	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/ethereum/geth"
 	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/node"
+	"github.com/makerdao/gofer/pkg/spire"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/p2p"
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
@@ -94,7 +94,7 @@ func ParseJSON(b []byte) (*JSON, error) {
 	return j, nil
 }
 
-func (j *JSON) ConfigureServer(deps Dependencies) (*node.Server, error) {
+func (j *JSON) ConfigureServer(deps Dependencies) (*spire.Server, error) {
 	// Ethereum account:
 	acc, err := j.configureAccount()
 	if err != nil {
@@ -114,7 +114,7 @@ func (j *JSON) ConfigureServer(deps Dependencies) (*node.Server, error) {
 	dat := j.configureDatastore(sig, tra, deps.Logger)
 
 	// RPC Server:
-	srv, err := node.NewServer(dat, tra, "tcp", j.RPC.Address)
+	srv, err := spire.NewServer(dat, tra, "tcp", j.RPC.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (j *JSON) ConfigureServer(deps Dependencies) (*node.Server, error) {
 	return srv, nil
 }
 
-func (j *JSON) ConfigureClient() (*node.Client, error) {
-	return node.NewClient("tcp", j.RPC.Address), nil
+func (j *JSON) ConfigureClient() (*spire.Client, error) {
+	return spire.NewClient("tcp", j.RPC.Address), nil
 }
 
 func (j *JSON) configureAccount() (*geth.Account, error) {

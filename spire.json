@@ -1,12 +1,12 @@
 {
   "ethereum": {
-    "from": "0x0000000000000000000000000000000000000000",
+    "from": "0x89992b18e2f1dd8810f669ce98df62f6abbc2a10",
     "keystore": "",
-    "password": "password",
-    "rpc": "https://kovan.infura.io/v3/xxx"
+    "password": "jajko12",
+    "rpc": "https://kovan.infura.io/v3/bfe01745653c4443a6eff182a543be21"
   },
   "p2p": {
-    "bootstrapPeers": [
+    "bootstrapAddrs": [
       "/ip4/165.227.139.216/tcp/64763/p2p/1Afqz6rs5LC9MC3FQH7s7xxtqXBiRpHTpzo"
     ]
   },
@@ -18,5 +18,6 @@
     "0x8eb3daaf5cb4138f5f96711c09c0cfd0288a36e9",
     "0x89992b18E2f1dd8810F669cE98dF62f6aBbc2A10",
     "0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0"
-  ]
+  ],
+  "pairs": ["ETHUSD", "BTCUSD"]
 }
