@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/internal/oracle"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 // PriceSet contains a list of messages.Price's for single asset pair. Only one

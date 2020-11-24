@@ -26,11 +26,11 @@ import (
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/ethereum/geth"
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/internal/transport"
-	"github.com/makerdao/gofer/internal/transport/p2p"
-	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/gofer/pkg/transport/p2p"
+	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 )
 
 type JSON struct {

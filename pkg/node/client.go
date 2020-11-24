@@ -3,7 +3,7 @@ package node
 import (
 	"net/rpc"
 
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 type Client struct {

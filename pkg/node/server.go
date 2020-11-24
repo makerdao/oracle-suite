@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/rpc"
 
-	"github.com/makerdao/gofer/internal/transport"
+	"github.com/makerdao/gofer/pkg/transport"
 )
 
 type Server struct {

@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 	"github.com/makerdao/gofer/pkg/node"
 	"github.com/makerdao/gofer/pkg/node/config"
 )

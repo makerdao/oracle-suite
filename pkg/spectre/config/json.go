@@ -29,9 +29,9 @@ import (
 	ethereumGeth "github.com/makerdao/gofer/internal/ethereum/geth"
 	"github.com/makerdao/gofer/internal/log"
 	oracleGeth "github.com/makerdao/gofer/internal/oracle/geth"
-	"github.com/makerdao/gofer/internal/transport"
-	"github.com/makerdao/gofer/internal/transport/p2p"
-	"github.com/makerdao/gofer/internal/transport/p2p/ethkey"
+	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/gofer/pkg/transport/p2p"
+	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 	"github.com/makerdao/gofer/pkg/datastore"
 	"github.com/makerdao/gofer/pkg/spectre"
 )

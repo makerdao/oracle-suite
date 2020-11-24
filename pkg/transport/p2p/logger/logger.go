@@ -16,24 +16,22 @@
 package logger
 
 import (
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/internal/transport"
+	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 
-type messageHandler struct {
-	log log.Logger
+type node interface {
+	AddNotifee(notifees ...network.Notifiee)
+	AddEventHandler(eventHandler ...sets.EventHandler)
+	AddMessageHandler(messageHandlers ...sets.MessageHandler)
 }
 
-func (m *messageHandler) Published(topic string, raw []byte, message transport.Message) {
-	m.log.
-		WithFields(log.Fields{"topic": topic, "message": string(raw)}).
-		Debug("Published a new message")
-}
-
-func (m *messageHandler) Received(topic string, raw *pubsub.Message, message transport.Message) {
-	m.log.
-		WithFields(log.Fields{"topic": topic, "message": string(raw.Data), "peerID": raw.ReceivedFrom}).
-		Debug("Received a new message")
+// Register registers p2p.Node extensions which will print additional
+// debug logs.
+func Register(node node, l log.Logger) {
+	node.AddNotifee(&notifee{log: l})
+	node.AddEventHandler(&eventHandler{log: l})
+	node.AddMessageHandler(&messageHandler{log: l})
 }

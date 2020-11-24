@@ -6,8 +6,8 @@ import (
 
 	"github.com/makerdao/gofer/internal/ethereum"
 	"github.com/makerdao/gofer/internal/log"
-	"github.com/makerdao/gofer/internal/transport"
-	"github.com/makerdao/gofer/pkg/messages"
+	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
 const LoggerTag = "DATASTORE"
