@@ -18,7 +18,7 @@ package gofer
 import (
 	"fmt"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 type Gofer struct {

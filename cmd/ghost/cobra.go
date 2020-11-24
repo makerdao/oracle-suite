@@ -26,11 +26,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/internal/log"
-	goferConfig "github.com/makerdao/gofer/pkg/config"
 	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/graph"
-	"github.com/makerdao/gofer/pkg/origins"
+	goferConfig "github.com/makerdao/gofer/pkg/gofer/config"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer/origins"
 )
 
 func newLogger(level string, tags []string) (logrus.FieldLogger, error) {

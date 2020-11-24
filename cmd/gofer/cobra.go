@@ -26,10 +26,10 @@ import (
 
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
-	"github.com/makerdao/gofer/pkg/config"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/graph"
-	"github.com/makerdao/gofer/pkg/origins"
+	"github.com/makerdao/gofer/pkg/gofer/config"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer/origins"
 	"github.com/makerdao/gofer/pkg/web"
 )
 

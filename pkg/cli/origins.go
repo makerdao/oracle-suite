@@ -18,7 +18,7 @@ package cli
 import (
 	"sort"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 type originsLister interface {

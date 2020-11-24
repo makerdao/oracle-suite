@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 const defaultMaxTTL = 60 * time.Second

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 type json struct {
