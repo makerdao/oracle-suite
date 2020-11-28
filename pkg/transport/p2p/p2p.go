@@ -95,7 +95,7 @@ func NewP2P(config Config) (*P2P, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = p.setBlacklist(config.BlockedAddrs)
+	err = p.setDenylist(config.BlockedAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (p *P2P) Unsubscribe(topic string) error {
 
 // Broadcast implements the transport.Transport interface.
 func (p *P2P) Broadcast(topic string, message transport.Message) error {
-	sub, err := p.node.Subscription(topic)
+	sub, err := p.node.subscription(topic)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 
 // WaitFor implements the transport.Transport interface.
 func (p *P2P) WaitFor(topic string, message transport.Message) chan transport.Status {
-	sub, err := p.node.Subscription(topic)
+	sub, err := p.node.subscription(topic)
 	if err != nil {
 		return nil
 	}
@@ -159,9 +159,9 @@ func (p *P2P) startNode() error {
 	return nil
 }
 
-// setBlacklist bans all addresses nodes from the addrs list using the
+// setDenylist bans all addresses nodes from the addrs list using the
 // denylist package.
-func (p *P2P) setBlacklist(addrs []string) error {
+func (p *P2P) setDenylist(addrs []string) error {
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {

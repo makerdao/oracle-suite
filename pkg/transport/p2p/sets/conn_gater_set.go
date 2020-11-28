@@ -35,13 +35,13 @@ func NewConnGaterSet() *ConnGaterSet {
 }
 
 // Add adds new connmgr.ConnectionGater to the set.
-func (n *ConnGaterSet) Add(connGaters ...connmgr.ConnectionGater) {
-	n.connGaters = append(n.connGaters, connGaters...)
+func (c *ConnGaterSet) Add(connGaters ...connmgr.ConnectionGater) {
+	c.connGaters = append(c.connGaters, connGaters...)
 }
 
 // InterceptAddrDial implements the connmgr.ConnectionGater interface.
-func (f *ConnGaterSet) InterceptAddrDial(id peer.ID, addr multiaddr.Multiaddr) bool {
-	for _, connGater := range f.connGaters {
+func (c *ConnGaterSet) InterceptAddrDial(id peer.ID, addr multiaddr.Multiaddr) bool {
+	for _, connGater := range c.connGaters {
 		if !connGater.InterceptAddrDial(id, addr) {
 			return false
 		}
@@ -50,8 +50,8 @@ func (f *ConnGaterSet) InterceptAddrDial(id peer.ID, addr multiaddr.Multiaddr) b
 }
 
 // InterceptPeerDial implements the connmgr.ConnectionGater interface.
-func (f *ConnGaterSet) InterceptPeerDial(id peer.ID) bool {
-	for _, connGater := range f.connGaters {
+func (c *ConnGaterSet) InterceptPeerDial(id peer.ID) bool {
+	for _, connGater := range c.connGaters {
 		if !connGater.InterceptPeerDial(id) {
 			return false
 		}
@@ -60,8 +60,8 @@ func (f *ConnGaterSet) InterceptPeerDial(id peer.ID) bool {
 }
 
 // InterceptAccept implements the connmgr.ConnectionGater interface.
-func (f *ConnGaterSet) InterceptAccept(network network.ConnMultiaddrs) bool {
-	for _, connGater := range f.connGaters {
+func (c *ConnGaterSet) InterceptAccept(network network.ConnMultiaddrs) bool {
+	for _, connGater := range c.connGaters {
 		if !connGater.InterceptAccept(network) {
 			return false
 		}
@@ -70,8 +70,8 @@ func (f *ConnGaterSet) InterceptAccept(network network.ConnMultiaddrs) bool {
 }
 
 // InterceptSecured implements the connmgr.ConnectionGater interface.
-func (f *ConnGaterSet) InterceptSecured(dir network.Direction, id peer.ID, network network.ConnMultiaddrs) bool {
-	for _, connGater := range f.connGaters {
+func (c *ConnGaterSet) InterceptSecured(dir network.Direction, id peer.ID, network network.ConnMultiaddrs) bool {
+	for _, connGater := range c.connGaters {
 		if !connGater.InterceptSecured(dir, id, network) {
 			return false
 		}
@@ -80,8 +80,8 @@ func (f *ConnGaterSet) InterceptSecured(dir network.Direction, id peer.ID, netwo
 }
 
 // InterceptUpgraded implements the connmgr.ConnectionGater interface.
-func (f *ConnGaterSet) InterceptUpgraded(conn network.Conn) (bool, control.DisconnectReason) {
-	for _, connGater := range f.connGaters {
+func (c *ConnGaterSet) InterceptUpgraded(conn network.Conn) (bool, control.DisconnectReason) {
+	for _, connGater := range c.connGaters {
 		if allow, reason := connGater.InterceptUpgraded(conn); !allow {
 			return allow, reason
 		}

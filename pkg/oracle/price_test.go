@@ -99,7 +99,7 @@ func TestPrice_Sign_NoPrice(t *testing.T) {
 	p := &Price{AssetPair: "AAABBB"}
 
 	err := p.Sign(s)
-	assert.Equal(t, PriceNotSetErr, err)
+	assert.Equal(t, ErrPriceNotSet, err)
 }
 
 func TestPrice_Marshall(t *testing.T) {

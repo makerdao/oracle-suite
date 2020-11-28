@@ -29,7 +29,7 @@ import (
 	"github.com/makerdao/gofer/pkg/spectre/config"
 )
 
-func newLogger(level string, tags []string) (logrus.FieldLogger, error) {
+func newLogger(level string) (log.Logger, error) {
 	ll, err := logrus.ParseLevel(level)
 	if err != nil {
 		return nil, err
@@ -74,12 +74,12 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			log, err := newLogger(o.LogVerbosity, o.LogTags)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
 
-			ins, err := newSpectre(absPath, log)
+			ins, err := newSpectre(absPath, l)
 			if err != nil {
 				return err
 			}
@@ -91,11 +91,11 @@ func NewRunCmd(o *options) *cobra.Command {
 			defer func() {
 				err := ins.Spectre.Stop()
 				if err != nil {
-					log.Errorf("SPECTRE", "Unable to stop Spectre: %s", err)
+					l.Errorf("SPECTRE", "Unable to stop Spectre: %s", err)
 				}
 			}()
 
-			c := make(chan os.Signal)
+			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
 
@@ -114,9 +114,20 @@ func NewRootCommand(opts *options) *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.LogVerbosity, "log.verbosity", "v", "info", "verbosity level")
-	rootCmd.PersistentFlags().StringSliceVar(&opts.LogTags, "log.tags", nil, "list of log tags to be printed")
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "spectre-config", "c", "./spectre.json", "spectre config file")
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity",
+		"v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigFilePath,
+		"spectre-config",
+		"c",
+		"./spectre.json",
+		"spectre config file",
+	)
 
 	return rootCmd
 }

@@ -25,9 +25,9 @@ import (
 )
 
 // Eth key type uses the Ethereum account to sign and verify messages.
-const KeyType_Eth cryptoPB.KeyType = 10
+const KeyType_Eth cryptoPB.KeyType = 10 //nolint:golint,stylecheck
 
-// Signer provider used for signing and verifying data.
+// NewSigner points to a function which create new signer.
 var NewSigner = geth.NewSigner
 
 func init() {

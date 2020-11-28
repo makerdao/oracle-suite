@@ -161,7 +161,7 @@ func (j *JSON) configureDatastore(s ethereum.Signer, t transport.Transport, l lo
 	cfg := datastore.Config{
 		Signer:    s,
 		Transport: t,
-		Pairs:     make(map[string]*datastore.Pair, 0),
+		Pairs:     make(map[string]*datastore.Pair),
 		Logger:    l,
 	}
 	var feeds []ethereum.Address

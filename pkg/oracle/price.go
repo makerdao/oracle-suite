@@ -30,8 +30,8 @@ import (
 
 const PriceMultiplier = 1e18
 
-var PriceNotSetErr = errors.New("unable to sign price because price is not set")
-var WrongSignatureLengthErr = errors.New("signature must be 65 bytes long")
+var ErrPriceNotSet = errors.New("unable to sign price because price is not set")
+var ErrWrongSignatureLength = errors.New("signature must be 65 bytes long")
 
 type Price struct {
 	AssetPair string
@@ -79,15 +79,15 @@ func (p *Price) From(signer ethereum.Signer) (*ethereum.Address, error) {
 
 func (p *Price) Sign(signer ethereum.Signer) error {
 	if p.Val == nil {
-		return PriceNotSetErr
+		return ErrPriceNotSet
 	}
 
 	signature, err := signer.Signature(p.hash())
 	if err != nil {
 		return err
 	}
-	if len(signature) != 65 {
-		return WrongSignatureLengthErr
+	if len(signature) != ethereum.SignatureLength {
+		return ErrWrongSignatureLength
 	}
 
 	copy(p.R[:], signature[:32])
@@ -152,18 +152,18 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 
 func (p *Price) hash() []byte {
 	// Median:
-	median := make([]byte, 32, 32)
+	median := make([]byte, 32)
 	p.Val.FillBytes(median)
 
 	// Time:
-	age := make([]byte, 32, 32)
+	age := make([]byte, 32)
 	binary.BigEndian.PutUint64(age[24:], uint64(p.Age.Unix()))
 
 	// Pair:
-	assetPair := make([]byte, 32, 32)
+	assetPair := make([]byte, 32)
 	copy(assetPair, strings.ToLower(p.AssetPair))
 
-	hash := make([]byte, 96, 96)
+	hash := make([]byte, 96)
 	copy(hash[0:32], median)
 	copy(hash[32:64], age)
 	copy(hash[64:96], assetPair)

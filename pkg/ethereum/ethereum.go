@@ -23,11 +23,15 @@ import (
 // Aliases for the go-ethereum types and functions used in multiple packages.
 // These aliases was created to not rely directly on the go-ethereum packages.
 
+// AddressLength is the expected length of the address
+const AddressLength = common.AddressLength
+
 type (
 	Address = common.Address
 	Hash    = common.Hash
 )
 
+// HexToAddress returns Address from hex representation.
 var HexToAddress = common.HexToAddress
 
 // SHA3Hash calculates SHA3 hash.

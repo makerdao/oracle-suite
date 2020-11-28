@@ -71,7 +71,6 @@ func (suite *MakeRequestSuite) TestMakingRequestToNotFound() {
 
 	assert.Error(suite.T(), err)
 	assert.Empty(suite.T(), data)
-
 }
 
 func (suite *MakeRequestSuite) TestMakingRequestWithHeaders() {

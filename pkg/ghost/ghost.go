@@ -75,7 +75,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		signer:    config.Signer,
 		transport: config.Transport,
 		interval:  config.Interval,
-		pairs:     make(map[graph.Pair]*Pair, 0),
+		pairs:     make(map[graph.Pair]*Pair),
 		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
 		doneCh:    make(chan struct{}),
 	}
@@ -196,7 +196,7 @@ func (g *Ghost) broadcasterLoop() error {
 				// we're using goroutines here.
 				wg.Add(1)
 				go func() {
-					for assetPair, _ := range g.pairs {
+					for assetPair := range g.pairs {
 						err := g.broadcast(assetPair)
 						if err != nil {
 							g.log.

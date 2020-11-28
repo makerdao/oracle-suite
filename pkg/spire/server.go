@@ -9,7 +9,7 @@ import (
 )
 
 type Server struct {
-	api      *Api
+	api      *API
 	rpc      *rpc.Server
 	listener net.Listener
 	network  string
@@ -18,7 +18,7 @@ type Server struct {
 
 func NewServer(datastore Datastore, transport transport.Transport, network, address string) (*Server, error) {
 	server := &Server{
-		api: &Api{
+		api: &API{
 			datastore: datastore,
 			transport: transport,
 		},
@@ -45,7 +45,10 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	go http.Serve(s.listener, nil)
+	go func() {
+		_ = http.Serve(s.listener, nil)
+	}()
+
 	return nil
 }
 

@@ -29,7 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	internalEthereum "github.com/makerdao/gofer/pkg/ethereum"
+	pkgEthereum "github.com/makerdao/gofer/pkg/ethereum"
 )
 
 const (
@@ -71,8 +71,8 @@ func (e RevertErr) Unwrap() error {
 // EthClient represents the Ethereum client, like the ethclient.Client.
 type EthClient interface {
 	SendTransaction(ctx context.Context, tx *types.Transaction) error
-	StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error)
-	CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error)
+	StorageAt(ctx context.Context, account common.Address, key common.Hash, block *big.Int) ([]byte, error)
+	CallContract(ctx context.Context, call ethereum.CallMsg, block *big.Int) ([]byte, error)
 	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
 	NetworkID(ctx context.Context) (*big.Int, error)
@@ -81,11 +81,11 @@ type EthClient interface {
 // Client implements the ethereum.Client interface.
 type Client struct {
 	ethClient EthClient
-	signer    internalEthereum.Signer
+	signer    pkgEthereum.Signer
 }
 
 // NewClient returns a new Client instance.
-func NewClient(ethClient EthClient, signer internalEthereum.Signer) *Client {
+func NewClient(ethClient EthClient, signer pkgEthereum.Signer) *Client {
 	return &Client{
 		ethClient: ethClient,
 		signer:    signer,
@@ -93,7 +93,7 @@ func NewClient(ethClient EthClient, signer internalEthereum.Signer) *Client {
 }
 
 // Call implements the ethereum.Client interface.
-func (e *Client) Call(ctx context.Context, call internalEthereum.Call) ([]byte, error) {
+func (e *Client) Call(ctx context.Context, call pkgEthereum.Call) ([]byte, error) {
 	cm := ethereum.CallMsg{
 		From:     e.signer.Address(),
 		To:       &call.Address,
@@ -118,7 +118,7 @@ func (e *Client) Call(ctx context.Context, call internalEthereum.Call) ([]byte, 
 }
 
 // MultiCall implements the ethereum.Client interface.
-func (e *Client) MultiCall(ctx context.Context, calls []internalEthereum.Call) ([][]byte, error) {
+func (e *Client) MultiCall(ctx context.Context, calls []pkgEthereum.Call) ([][]byte, error) {
 	type abiCall struct {
 		Address common.Address `abi:"target"`
 		Data    []byte         `abi:"callData"`
@@ -143,7 +143,7 @@ func (e *Client) MultiCall(ctx context.Context, calls []internalEthereum.Call) (
 	if err != nil {
 		return nil, err
 	}
-	resp, err := e.Call(ctx, internalEthereum.Call{Address: multicallAddr, Data: cd})
+	resp, err := e.Call(ctx, pkgEthereum.Call{Address: multicallAddr, Data: cd})
 	if err != nil {
 		return nil, err
 	}
@@ -156,17 +156,17 @@ func (e *Client) MultiCall(ctx context.Context, calls []internalEthereum.Call) (
 }
 
 // Storage implements the ethereum.Client interface.
-func (e *Client) Storage(ctx context.Context, address internalEthereum.Address, key internalEthereum.Hash) ([]byte, error) {
+func (e *Client) Storage(ctx context.Context, address pkgEthereum.Address, key pkgEthereum.Hash) ([]byte, error) {
 	return e.ethClient.StorageAt(ctx, address, key, nil)
 }
 
 // SendTransaction implements the ethereum.Client interface.
-func (e *Client) SendTransaction(ctx context.Context, transaction *internalEthereum.Transaction) (*internalEthereum.Hash, error) {
+func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.Transaction) (*pkgEthereum.Hash, error) {
 	var err error
 
 	// We don't want to modify passed structure because that would be rude, so
 	// we copy it here:
-	tx := &internalEthereum.Transaction{
+	tx := &pkgEthereum.Transaction{
 		Address:  transaction.Address,
 		Nonce:    transaction.Nonce,
 		Gas:      transaction.Gas,
@@ -221,8 +221,7 @@ func isRevertResp(resp []byte) error {
 }
 
 func isRevertErr(vmErr error) error {
-	switch terr := vmErr.(type) {
-	case rpc.DataError:
+	if terr, is := vmErr.(rpc.DataError); is {
 		// Some RPC servers returns "revert" data as a hex encoded string, here
 		// we're trying to parse it:
 		if str, ok := terr.ErrorData().(string); ok {

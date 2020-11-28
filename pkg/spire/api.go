@@ -14,16 +14,16 @@ type Datastore interface {
 	Stop() error
 }
 
-type Api struct {
+type API struct {
 	transport transport.Transport
 	datastore Datastore
 }
 
-func (n *Api) BroadcastPrice(price *messages.Price, _ *NoArgument) error {
+func (n *API) BroadcastPrice(price *messages.Price, _ *NoArgument) error {
 	return n.transport.Broadcast(messages.PriceMessageName, price)
 }
 
-func (n *Api) GetPrices(assetPair *string, prices *[]*messages.Price) error {
+func (n *API) GetPrices(assetPair *string, prices *[]*messages.Price) error {
 	*prices = n.datastore.Prices().AssetPair(*assetPair).Messages()
 	return nil
 }

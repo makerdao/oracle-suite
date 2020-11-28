@@ -33,7 +33,7 @@ func (s *Client) Stop() error {
 }
 
 func (s *Client) BroadcastPrice(price *messages.Price) error {
-	err := s.rpc.Call("Api.BroadcastPrice", price, &NoArgument{})
+	err := s.rpc.Call("API.BroadcastPrice", price, &NoArgument{})
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (s *Client) BroadcastPrice(price *messages.Price) error {
 
 func (s *Client) GetPrices(assetPair string) ([]*messages.Price, error) {
 	prices := &[]*messages.Price{}
-	err := s.rpc.Call("Api.GetPrices", assetPair, prices)
+	err := s.rpc.Call("API.GetPrices", assetPair, prices)
 	if err != nil {
 		return nil, err
 	}

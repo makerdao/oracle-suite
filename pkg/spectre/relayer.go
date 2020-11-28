@@ -45,7 +45,6 @@ type Spectre struct {
 	interval  time.Duration
 	log       log.Logger
 	pairs     map[string]*Pair
-	verbose   bool
 	doneCh    chan struct{}
 }
 
@@ -85,7 +84,7 @@ func NewSpectre(config Config) *Spectre {
 		signer:    config.Signer,
 		datastore: config.Datastore,
 		interval:  config.Interval,
-		pairs:     make(map[string]*Pair, 0),
+		pairs:     make(map[string]*Pair),
 		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
 		doneCh:    make(chan struct{}),
 	}
@@ -166,7 +165,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 			"stale":            isStale,
 			"oracleExpiration": pair.OracleExpiration.String(),
 			"oracleSpread":     pair.OracleSpread,
-			"timeToExpiration": time.Now().Sub(oracleTime).String(),
+			"timeToExpiration": time.Since(oracleTime).String(),
 			"currentSpread":    spread,
 		}).
 		Debug("Trying to update Oracle")
@@ -206,7 +205,7 @@ func (r *Spectre) relayerLoop() {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				for assetPair, _ := range r.pairs {
+				for assetPair := range r.pairs {
 					tx, err := r.relay(assetPair)
 
 					// Print log in case of an error:
