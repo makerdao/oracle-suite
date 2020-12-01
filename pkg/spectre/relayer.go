@@ -85,7 +85,7 @@ func NewSpectre(config Config) *Spectre {
 		datastore: config.Datastore,
 		interval:  config.Interval,
 		pairs:     make(map[string]*Pair),
-		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
+		log:       config.Logger.WithField("tag", LoggerTag),
 		doneCh:    make(chan struct{}),
 	}
 

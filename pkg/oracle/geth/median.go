@@ -146,10 +146,10 @@ func (m *Median) Poke(ctx context.Context, prices []*oracle.Price, simulateBefor
 	)
 
 	for _, arg := range prices {
-		if arg.AssetPair != m.assetPair {
+		if arg.Wat != m.assetPair {
 			return nil, fmt.Errorf(
 				"incompatible asset pair, %s given but %s expected",
-				arg.AssetPair,
+				arg.Wat,
 				m.assetPair,
 			)
 		}

@@ -70,7 +70,11 @@ func (p *PrivKey) Type() cryptoPB.KeyType {
 
 // Sign implements the crypto.PrivKey interface.
 func (p *PrivKey) Sign(bytes []byte) ([]byte, error) {
-	return p.signer.Signature(bytes)
+	s, err := p.signer.Signature(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return s.Bytes(), nil
 }
 
 // GetPublic implements the crypto.PrivKey interface.

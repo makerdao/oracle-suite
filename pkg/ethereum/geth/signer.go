@@ -70,33 +70,30 @@ func (s *Signer) SignTransaction(transaction *ethereum.Transaction) error {
 }
 
 // Signature implements the ethereum.Signer interface.
-func (s *Signer) Signature(data []byte) ([]byte, error) {
+func (s *Signer) Signature(data []byte) (ethereum.Signature, error) {
 	return Signature(s.account, data)
 }
 
 // Recover implements the ethereum.Signer interface.
-func (s *Signer) Recover(signature []byte, data []byte) (*ethereum.Address, error) {
+func (s *Signer) Recover(signature ethereum.Signature, data []byte) (*ethereum.Address, error) {
 	return Recover(signature, data)
 }
 
-func Signature(account *Account, data []byte) ([]byte, error) {
+func Signature(account *Account, data []byte) (ethereum.Signature, error) {
 	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
 
 	signature, err := account.wallet.SignDataWithPassphrase(*account.account, account.passphrase, "", msg)
 	if err != nil {
-		return nil, err
+		return ethereum.Signature{}, err
 	}
 
 	// Transform V from 0/1 to 27/28 according to the yellow paper:
 	signature[64] += 27
 
-	return signature, nil
+	return ethereum.SignatureFromBytes(signature), nil
 }
 
-func Recover(signature []byte, data []byte) (*ethereum.Address, error) {
-	if len(signature) != ethereum.SignatureLength {
-		return nil, errors.New("signature must be 65 bytes long")
-	}
+func Recover(signature ethereum.Signature, data []byte) (*ethereum.Address, error) {
 	if signature[64] != 27 && signature[64] != 28 {
 		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
 	}
@@ -107,7 +104,7 @@ func Recover(signature []byte, data []byte) (*ethereum.Address, error) {
 	msg := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))
 	hash := crypto.Keccak256(msg)
 
-	rpk, err := crypto.SigToPub(hash, signature)
+	rpk, err := crypto.SigToPub(hash, signature[:])
 	if err != nil {
 		return nil, err
 	}

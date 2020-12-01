@@ -18,6 +18,7 @@ package datastore
 import (
 	"errors"
 	"math/big"
+	"sync"
 
 	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/log"
@@ -29,6 +30,8 @@ const LoggerTag = "DATASTORE"
 
 // Datastore reads and stores prices from the P2P network.
 type Datastore struct {
+	mu sync.Mutex
+
 	signer     ethereum.Signer
 	transport  transport.Transport
 	pairs      map[string]*Pair
@@ -64,13 +67,16 @@ func NewDatastore(config Config) *Datastore {
 		transport:  config.Transport,
 		pairs:      config.Pairs,
 		priceStore: NewPriceStore(),
-		log:        log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
+		log:        config.Logger.WithField("tag", LoggerTag),
 		doneCh:     make(chan struct{}),
 	}
 }
 
 func (c *Datastore) Start() error {
 	c.log.Info("Starting")
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	err := c.transport.Subscribe(messages.PriceMessageName)
 	if err != nil {
@@ -84,6 +90,9 @@ func (c *Datastore) Stop() error {
 	defer c.log.Info("Stopped")
 
 	close(c.doneCh)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	err := c.transport.Unsubscribe(messages.PriceMessageName)
 	if err != nil {
 		return err
@@ -104,10 +113,10 @@ func (c *Datastore) collectPrice(msg *messages.Price) error {
 	if err != nil {
 		return errors.New("received price has an invalid signature")
 	}
-	if _, ok := c.pairs[msg.Price.AssetPair]; !ok {
+	if _, ok := c.pairs[msg.Price.Wat]; !ok {
 		return errors.New("received pair is not configured")
 	}
-	if !c.isFeedAllowed(msg.Price.AssetPair, *from) {
+	if !c.isFeedAllowed(msg.Price.Wat, *from) {
 		return errors.New("feeder is not allowed to send prices")
 	}
 	if msg.Price.Val.Cmp(big.NewInt(0)) <= 0 {
@@ -122,6 +131,9 @@ func (c *Datastore) collectPrice(msg *messages.Price) error {
 // collectorLoop creates a asynchronous loop which fetches prices from feeders.
 func (c *Datastore) collectorLoop() error {
 	go func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
 		for {
 			price := &messages.Price{}
 			select {
@@ -141,7 +153,7 @@ func (c *Datastore) collectorLoop() error {
 
 				// Prepare log fields:
 				from, _ := price.Price.From(c.signer)
-				fields := log.Fields{"assetPair": price.Price.AssetPair}
+				fields := log.Fields{"assetPair": price.Price.Wat}
 				if from != nil {
 					fields["from"] = from.String()
 				}

@@ -139,7 +139,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	for _, feed := range j.Feeds {
 		p2pCfg.AllowedPeers = append(p2pCfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
 	}
-	tra, err := p2p.NewP2P(p2pCfg)
+	tra, err := p2p.New(p2pCfg)
 	if err != nil {
 		return nil, err
 	}

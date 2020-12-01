@@ -26,8 +26,7 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
-// PriceSet contains a list of messages.Price's for single asset pair. Only one
-// price from a single address can be added to this list.
+// PriceSet contains a list of messages.Price's for a single asset pair.
 type PriceSet struct {
 	msgs []*messages.Price
 }
@@ -49,7 +48,7 @@ func (p *PriceSet) Messages() []*messages.Price {
 	return p.msgs
 }
 
-// Prices returns oracle prices.
+// OraclePrices returns oracle prices.
 func (p *PriceSet) OraclePrices() []*oracle.Price {
 	var prices []*oracle.Price
 	for _, price := range p.msgs {
@@ -58,8 +57,8 @@ func (p *PriceSet) OraclePrices() []*oracle.Price {
 	return prices
 }
 
-// Truncate removes random msgs until the number of remaining msgs is equal
-// to n. If number of msgs is less or equal to n, it does nothing.
+// Truncate removes random msgs until the number of remaining prices is equal
+// to n. If the number of prices is less or equal to n, it does nothing.
 //
 // This method is used to reduce number of arguments in transaction which will
 // reduce transaction costs.
@@ -99,7 +98,7 @@ func (p *PriceSet) Median() *big.Int {
 // Spread calculates the Spread between given price and a Median price.
 // The Spread is returned as percentage points.
 func (p *PriceSet) Spread(price *big.Int) float64 {
-	if price.Cmp(big.NewInt(0)) == 0 {
+	if len(p.msgs) == 0 || price.Cmp(big.NewInt(0)) == 0 {
 		return math.Inf(1)
 	}
 
@@ -118,7 +117,7 @@ func (p *PriceSet) Spread(price *big.Int) float64 {
 func (p *PriceSet) ClearOlderThan(t time.Time) {
 	var prices []*messages.Price
 	for _, price := range p.msgs {
-		if price.Price.Age.After(t) {
+		if !price.Price.Age.Before(t) {
 			prices = append(prices, price)
 		}
 	}

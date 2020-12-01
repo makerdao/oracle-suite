@@ -38,10 +38,10 @@ const LoggerTag = "P2P"
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
 type P2P struct {
-	log       log.Logger
 	node      *Node
 	allowlist *allowlist.Allowlist
 	denylist  *denylist.Denylist
+	log       log.Logger
 }
 
 type Config struct {
@@ -65,9 +65,9 @@ type Config struct {
 	BlockedAddrs []string
 }
 
-// NewP2P returns a new instance of a transport, implemented by using
+// New returns a new instance of a transport, implemented by using
 // the libp2p library.
-func NewP2P(config Config) (*P2P, error) {
+func New(config Config) (*P2P, error) {
 	var err error
 
 	if len(config.ListenAddrs) == 0 {
@@ -78,14 +78,15 @@ func NewP2P(config Config) (*P2P, error) {
 		return nil, err
 	}
 
-	p := &P2P{}
-	p.log = log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag})
-	p.node = NewNode(NodeConfig{
-		Context:     config.Context,
-		Logger:      config.Logger,
-		ListenAddrs: listenAddrs,
-		PrivateKey:  ethkey.NewPrivKey(config.Signer),
-	})
+	p := &P2P{
+		node: NewNode(NodeConfig{
+			Context:     config.Context,
+			Logger:      config.Logger,
+			ListenAddrs: listenAddrs,
+			PrivateKey:  ethkey.NewPrivKey(config.Signer),
+		}),
+		log: config.Logger.WithField("tag", LoggerTag),
+	}
 
 	logger.Register(p.node, p.log)
 	p.allowlist = allowlist.Register(p.node)

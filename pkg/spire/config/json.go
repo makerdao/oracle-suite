@@ -154,7 +154,7 @@ func (j *JSON) configureTransport(ctx context.Context, s ethereum.Signer, l log.
 	for _, feed := range j.Feeds {
 		cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
 	}
-	return p2p.NewP2P(cfg)
+	return p2p.New(cfg)
 }
 
 func (j *JSON) configureDatastore(s ethereum.Signer, t transport.Transport, l log.Logger) *datastore.Datastore {

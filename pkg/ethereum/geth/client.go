@@ -139,15 +139,15 @@ func (e *Client) MultiCall(ctx context.Context, calls []pkgEthereum.Call) ([][]b
 	if !ok {
 		return nil, errors.New("multi call is not supported on current chain")
 	}
-	cd, err := multiCallABI.Pack("aggregate", abiCalls)
+	callData, err := multiCallABI.Pack("aggregate", abiCalls)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := e.Call(ctx, pkgEthereum.Call{Address: multicallAddr, Data: cd})
+	response, err := e.Call(ctx, pkgEthereum.Call{Address: multicallAddr, Data: callData})
 	if err != nil {
 		return nil, err
 	}
-	results, err := multiCallABI.Unpack("aggregate", resp)
+	results, err := multiCallABI.Unpack("aggregate", response)
 	if err != nil {
 		return nil, err
 	}

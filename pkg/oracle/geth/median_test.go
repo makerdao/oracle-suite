@@ -86,37 +86,37 @@ func TestMedian_Price(t *testing.T) {
 
 func TestMedian_Poke(t *testing.T) {
 	// Prepare test data:
-	s := &mocks.Signer{}
 	c := &mocks.Client{}
 	a := ethereum.Address{}
+	s := &mocks.Signer{}
 	m := NewMedian(c, a, "AAABBB")
 
-	p1 := &oracle.Price{AssetPair: "AAABBB"}
+	p1 := &oracle.Price{Wat: "AAABBB"}
 	p1.SetFloat64Price(10)
 	p1.Age = time.Unix(0xAAAAAAAA, 0)
 	p1.V = 0xA1
 	p1.R = [32]byte{0xA2}
 	p1.S = [32]byte{0xA3}
 
-	p2 := &oracle.Price{AssetPair: "AAABBB"}
+	p2 := &oracle.Price{Wat: "AAABBB"}
 	p2.SetFloat64Price(30)
 	p2.Age = time.Unix(0xBBBBBBBB, 0)
 	p2.V = 0xB1
 	p2.R = [32]byte{0xB2}
 	p2.S = [32]byte{0xB3}
 
-	p3 := &oracle.Price{AssetPair: "AAABBB"}
+	p3 := &oracle.Price{Wat: "AAABBB"}
 	p3.SetFloat64Price(20)
 	p3.Age = time.Unix(0xCCCCCCCC, 0)
 	p3.V = 0xC1
 	p3.R = [32]byte{0xC2}
 	p3.S = [32]byte{0xC3}
 
-	s.On("Signature", mock.Anything).Return(bytes.Repeat([]byte{0xAA}, 65), nil).Once()
+	s.On("Signature", mock.Anything).Return(ethereum.SignatureFromBytes(bytes.Repeat([]byte{0xAA}, 65)), nil).Once()
 	p1.Sign(s)
-	s.On("Signature", mock.Anything).Return(bytes.Repeat([]byte{0xBB}, 65), nil).Once()
+	s.On("Signature", mock.Anything).Return(ethereum.SignatureFromBytes(bytes.Repeat([]byte{0xBB}, 65)), nil).Once()
 	p2.Sign(s)
-	s.On("Signature", mock.Anything).Return(bytes.Repeat([]byte{0xCC}, 65), nil).Once()
+	s.On("Signature", mock.Anything).Return(ethereum.SignatureFromBytes(bytes.Repeat([]byte{0xCC}, 65)), nil).Once()
 	p3.Sign(s)
 
 	c.On("SendTransaction", mock.Anything, mock.Anything).Return(&ethereum.Hash{}, nil)

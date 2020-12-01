@@ -31,24 +31,26 @@ import (
 const PriceMultiplier = 1e18
 
 var ErrPriceNotSet = errors.New("unable to sign price because price is not set")
-var ErrWrongSignatureLength = errors.New("signature must be 65 bytes long")
 
 type Price struct {
-	AssetPair string
-	Val       *big.Int
-	Age       time.Time
-	V         uint8
-	R         [32]byte
-	S         [32]byte
+	Wat string    // Wat is the asset name.
+	Val *big.Int  // Val is the asset price multiplied by PriceMultiplier.
+	Age time.Time // Age is time when price was obtained.
+
+	// Signature:
+	V uint8
+	R [32]byte
+	S [32]byte
 }
 
+// jsonPrice is the JSON representation of the Price structure.
 type jsonPrice struct {
-	AssetPair string `json:"wat"`
-	Val       string `json:"val"`
-	Age       int64  `json:"age"`
-	V         uint8  `json:"v"`
-	R         string `json:"r"`
-	S         string `json:"s"`
+	Wat string `json:"wat"`
+	Val string `json:"val"`
+	Age int64  `json:"age"`
+	V   uint8  `json:"v"`
+	R   string `json:"r"`
+	S   string `json:"s"`
 }
 
 func (p *Price) SetFloat64Price(price float64) {
@@ -68,8 +70,7 @@ func (p *Price) Float64Price() float64 {
 }
 
 func (p *Price) From(signer ethereum.Signer) (*ethereum.Address, error) {
-	signature := append(append(append([]byte{}, p.R[:]...), p.S[:]...), p.V)
-	from, err := signer.Recover(signature, p.hash())
+	from, err := signer.Recover(p.Signature(), p.hash())
 	if err != nil {
 		return nil, err
 	}
@@ -86,15 +87,14 @@ func (p *Price) Sign(signer ethereum.Signer) error {
 	if err != nil {
 		return err
 	}
-	if len(signature) != ethereum.SignatureLength {
-		return ErrWrongSignatureLength
-	}
 
-	copy(p.R[:], signature[:32])
-	copy(p.S[:], signature[32:64])
-	p.V = signature[64]
+	p.V, p.R, p.S = signature.VRS()
 
 	return nil
+}
+
+func (p *Price) Signature() ethereum.Signature {
+	return ethereum.SignatureFromVRS(p.V, p.R, p.S)
 }
 
 func (p *Price) Fields(signer ethereum.Signer) log.Fields {
@@ -104,7 +104,7 @@ func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 	}
 
 	return log.Fields{
-		"assetPair": p.AssetPair,
+		"assetPair": p.Wat,
 		"form":      from,
 		"age":       p.Age.String(),
 		"val":       p.Val.String(),
@@ -116,12 +116,12 @@ func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 
 func (p *Price) MarshalJSON() ([]byte, error) {
 	return json.Marshal(jsonPrice{
-		AssetPair: p.AssetPair,
-		Val:       p.Val.String(),
-		Age:       p.Age.Unix(),
-		V:         p.V,
-		R:         hex.EncodeToString(p.R[:]),
-		S:         hex.EncodeToString(p.S[:]),
+		Wat: p.Wat,
+		Val: p.Val.String(),
+		Age: p.Age.Unix(),
+		V:   p.V,
+		R:   hex.EncodeToString(p.R[:]),
+		S:   hex.EncodeToString(p.S[:]),
 	})
 }
 
@@ -132,7 +132,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	p.AssetPair = j.AssetPair
+	p.Wat = j.Wat
 	p.Val, _ = new(big.Int).SetString(j.Val, 10)
 	p.Age = time.Unix(j.Age, 0)
 	p.V = j.V
@@ -159,14 +159,14 @@ func (p *Price) hash() []byte {
 	age := make([]byte, 32)
 	binary.BigEndian.PutUint64(age[24:], uint64(p.Age.Unix()))
 
-	// Pair:
-	assetPair := make([]byte, 32)
-	copy(assetPair, strings.ToLower(p.AssetPair))
+	// Asset name:
+	wat := make([]byte, 32)
+	copy(wat, strings.ToLower(p.Wat))
 
 	hash := make([]byte, 96)
 	copy(hash[0:32], median)
 	copy(hash[32:64], age)
-	copy(hash[64:96], assetPair)
+	copy(hash[64:96], wat)
 
 	return ethereum.SHA3Hash(hash)
 }

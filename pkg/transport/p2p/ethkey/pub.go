@@ -70,12 +70,8 @@ func (p *PubKey) Type() cryptoPB.KeyType {
 
 // Verify implements the crypto.PubKey interface.
 func (p *PubKey) Verify(data []byte, sig []byte) (bool, error) {
-	// Trim sig to 65 bytes:
-	b := make([]byte, ethereum.SignatureLength)
-	copy(b, sig)
-
 	// Fetch public address from signature:
-	addr, err := NewSigner(nil).Recover(b, data)
+	addr, err := NewSigner(nil).Recover(ethereum.SignatureFromBytes(sig), data)
 	if err != nil {
 		return false, err
 	}
