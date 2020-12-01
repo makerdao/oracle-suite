@@ -31,6 +31,7 @@ import (
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 )
 
 func newLogger(level string) (log.Logger, error) {
@@ -42,7 +43,7 @@ func newLogger(level string) (log.Logger, error) {
 	lr := logrus.New()
 	lr.SetLevel(ll)
 
-	return log.WrapLogger(lr, nil), nil
+	return logLogrus.New(lr), nil
 }
 
 func newGofer(path string) (*gofer.Gofer, error) {

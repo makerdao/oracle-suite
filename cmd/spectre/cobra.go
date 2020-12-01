@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 	"github.com/makerdao/gofer/pkg/spectre/config"
 )
 
@@ -38,10 +39,10 @@ func newLogger(level string) (log.Logger, error) {
 	lr := logrus.New()
 	lr.SetLevel(ll)
 
-	return log.WrapLogger(lr, nil), nil
+	return logLogrus.New(lr), nil
 }
 
-func newSpectre(path string, log logrus.FieldLogger) (*config.Instances, error) {
+func newSpectre(path string, log log.Logger) (*config.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err

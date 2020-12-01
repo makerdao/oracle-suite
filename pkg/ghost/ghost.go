@@ -76,7 +76,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		transport: config.Transport,
 		interval:  config.Interval,
 		pairs:     make(map[graph.Pair]*Pair),
-		log:       log.WrapLogger(config.Logger, log.Fields{"tag": LoggerTag}),
+		log:       config.Logger.WithField("tag", LoggerTag),
 		doneCh:    make(chan struct{}),
 	}
 
@@ -139,7 +139,7 @@ func (g *Ghost) broadcast(goferPair graph.Pair) error {
 	}
 
 	// Create price:
-	price := &oracle.Price{AssetPair: pair.AssetPair, Age: tick.Timestamp}
+	price := &oracle.Price{Wat: pair.AssetPair, Age: tick.Timestamp}
 	price.SetFloat64Price(tick.Price)
 
 	// Sign price:

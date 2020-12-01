@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 	"github.com/makerdao/gofer/pkg/spire"
 	"github.com/makerdao/gofer/pkg/spire/config"
 	"github.com/makerdao/gofer/pkg/transport/messages"
@@ -43,7 +44,7 @@ func newLogger(level string) (log.Logger, error) {
 	lr := logrus.New()
 	lr.SetLevel(ll)
 
-	return log.WrapLogger(lr, nil), nil
+	return logLogrus.New(lr), nil
 }
 
 func newServer(path string, log log.Logger) (*spire.Server, error) {

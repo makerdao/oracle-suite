@@ -56,7 +56,7 @@ func TestPrice_SetFloat64Price(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Price is stored internally in different format so we want to
 			// be sure, that the price is not changed during that conversion.
-			p := &Price{AssetPair: "AAABBB"}
+			p := &Price{Wat: "AAABBB"}
 			p.SetFloat64Price(tt.price)
 			assert.Equal(t, tt.price, p.Float64Price())
 		})
@@ -65,14 +65,14 @@ func TestPrice_SetFloat64Price(t *testing.T) {
 
 func TestPrice_Sign(t *testing.T) {
 	s := &mocks.Signer{}
-	p := &Price{AssetPair: "AAABBB"}
+	p := &Price{Wat: "AAABBB"}
 	p.Age = time.Unix(1605371361, 0)
 	p.SetFloat64Price(42)
 
 	// Generate a random signature and address:
-	sig := make([]byte, 65)
+	sig := ethereum.Signature{}
 	var addr ethereum.Address
-	rand.Read(sig)
+	rand.Read(sig[:])
 	rand.Read(addr[:])
 
 	// Test Sign:
@@ -96,14 +96,14 @@ func TestPrice_Sign(t *testing.T) {
 
 func TestPrice_Sign_NoPrice(t *testing.T) {
 	s := &mocks.Signer{}
-	p := &Price{AssetPair: "AAABBB"}
+	p := &Price{Wat: "AAABBB"}
 
 	err := p.Sign(s)
 	assert.Equal(t, ErrPriceNotSet, err)
 }
 
 func TestPrice_Marshall(t *testing.T) {
-	p := &Price{AssetPair: "AAABBB"}
+	p := &Price{Wat: "AAABBB"}
 	p.Age = time.Unix(1605371361, 0)
 	p.SetFloat64Price(42)
 	p.V = 0xAA
@@ -130,7 +130,7 @@ func TestPrice_Marshall(t *testing.T) {
 	var p2 Price
 	err = p2.UnmarshalJSON(j)
 	assert.NoError(t, err)
-	assert.Equal(t, p.AssetPair, p2.AssetPair)
+	assert.Equal(t, p.Wat, p2.Wat)
 	assert.Equal(t, p.Age, p2.Age)
 	assert.Equal(t, p.Val, p2.Val)
 	assert.Equal(t, p.V, p2.V)

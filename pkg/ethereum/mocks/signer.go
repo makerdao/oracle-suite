@@ -35,12 +35,12 @@ func (s *Signer) SignTransaction(transaction *ethereum.Transaction) error {
 	return args.Error(0)
 }
 
-func (s *Signer) Signature(data []byte) ([]byte, error) {
+func (s *Signer) Signature(data []byte) (ethereum.Signature, error) {
 	args := s.Called(data)
-	return args.Get(0).([]byte), args.Error(1)
+	return args.Get(0).(ethereum.Signature), args.Error(1)
 }
 
-func (s *Signer) Recover(signature []byte, data []byte) (*ethereum.Address, error) {
+func (s *Signer) Recover(signature ethereum.Signature, data []byte) (*ethereum.Address, error) {
 	args := s.Called(signature, data)
 	return args.Get(0).(*ethereum.Address), args.Error(1)
 }

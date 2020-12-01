@@ -42,15 +42,15 @@ func (p *PriceStore) Add(from ethereum.Address, msg *messages.Price) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if _, ok := p.prices[msg.Price.AssetPair]; !ok {
-		p.prices[msg.Price.AssetPair] = make(map[ethereum.Address]*messages.Price)
+	if _, ok := p.prices[msg.Price.Wat]; !ok {
+		p.prices[msg.Price.Wat] = make(map[ethereum.Address]*messages.Price)
 	}
 
-	if prev, ok := p.prices[msg.Price.AssetPair][from]; ok && prev.Price.Age.After(msg.Price.Age) {
+	if prev, ok := p.prices[msg.Price.Wat][from]; ok && prev.Price.Age.After(msg.Price.Age) {
 		return
 	}
 
-	p.prices[msg.Price.AssetPair][from] = msg
+	p.prices[msg.Price.Wat][from] = msg
 }
 
 // AssetPair returns all prices for given asset pair.
