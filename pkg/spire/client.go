@@ -34,15 +34,16 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	Signer           ethereum.Signer
-	Network, address string
-	Logger           log.Logger
+	Signer  ethereum.Signer
+	Network string
+	Address string
+	Logger  log.Logger
 }
 
 func NewClient(cfg ClientConfig) *Client {
 	return &Client{
 		network: cfg.Network,
-		address: cfg.address,
+		address: cfg.Address,
 		signer:  cfg.Signer,
 		log:     cfg.Logger.WithField("tag", ClientLoggerTag),
 	}

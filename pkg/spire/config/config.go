@@ -105,6 +105,7 @@ func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
 	return spire.NewClient(spire.ClientConfig{
 		Signer:  sig,
 		Network: "tcp",
+		Address: c.RPC.Address,
 		Logger:  deps.Logger,
 	}), nil
 }

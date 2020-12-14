@@ -84,7 +84,7 @@ func newClientServer() (*Server, *Client) {
 	cli := NewClient(ClientConfig{
 		Signer:  sig,
 		Network: "tcp",
-		address: srv.listener.Addr().String(),
+		Address: srv.listener.Addr().String(),
 		Logger:  log,
 	})
 	err = cli.Start()
