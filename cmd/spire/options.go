@@ -15,8 +15,11 @@
 
 package main
 
+import "github.com/makerdao/gofer/pkg/spire/config"
+
 // These are the command options that can be set by CLI flags.
 type options struct {
-	LogVerbosity   string
-	ConfigFilePath string
+	Verbosity  string
+	ConfigPath string
+	Config     config.Config
 }

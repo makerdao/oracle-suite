@@ -29,7 +29,7 @@ import (
 )
 
 // Hash for the AAABBB asset pair, with the price set to 42 and the age to 1605371361:
-var priceHash = "9243cb46647cd59a8a41b7a474b9a2e45826673bf096b742c0365d5ccb63a9cb"
+var priceHash = "c678b27c20ef30b95452d8d61f8f3916899717692d8a01c595971035b25a00ff"
 
 func TestPrice_SetFloat64Price(t *testing.T) {
 	tests := []struct {
@@ -119,7 +119,7 @@ func TestPrice_Marshall(t *testing.T) {
 		   "wat":"AAABBB",
 		   "val":"42000000000000000000",
 		   "age":1605371361,
-		   "v":170,
+		   "v":"aa",
 		   "r":"0100000000000000000000000000000000000000000000000000000000000000",
 		   "s":"0200000000000000000000000000000000000000000000000000000000000000"
 		}`,

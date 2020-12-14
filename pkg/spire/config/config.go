@@ -17,10 +17,6 @@ package config
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
 
 	"github.com/makerdao/gofer/pkg/datastore"
 	"github.com/makerdao/gofer/pkg/ethereum"
@@ -32,32 +28,28 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 )
 
-type JSON struct {
-	Ethereum JSONEthereum `json:"ethereum"`
-	P2P      JSONP2P      `json:"p2p"`
-	RPC      JSONRPC      `json:"rpc"`
-	Feeds    []string     `json:"feeds"`
-	Pairs    []string     `json:"pairs"`
+type Config struct {
+	Ethereum Ethereum `json:"ethereum"`
+	P2P      P2P      `json:"p2p"`
+	RPC      RPC      `json:"rpc"`
+	Feeds    []string `json:"feeds"`
+	Pairs    []string `json:"pairs"`
 }
 
-type JSONEthereum struct {
+type Ethereum struct {
 	From     string `json:"from"`
 	Keystore string `json:"keystore"`
 	Password string `json:"password"`
 }
 
-type JSONP2P struct {
+type P2P struct {
 	Listen         []string `json:"listen"`
 	BootstrapAddrs []string `json:"bootstrapAddrs"`
 	BlockedAddrs   []string `json:"blockedAddrs"`
 }
 
-type JSONRPC struct {
+type RPC struct {
 	Address string `json:"address"`
-}
-
-type JSONConfigErr struct {
-	Err error
 }
 
 type Dependencies struct {
@@ -65,56 +57,34 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (e JSONConfigErr) Error() string {
-	return e.Err.Error()
-}
-
-func ParseJSONFile(path string) (*JSON, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load JSON config file: %w", err)
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, JSONConfigErr{fmt.Errorf("failed to load JSON config file: %w", err)}
-	}
-
-	return ParseJSON(b)
-}
-
-func ParseJSON(b []byte) (*JSON, error) {
-	j := &JSON{}
-	err := json.Unmarshal(b, j)
-	if err != nil {
-		return nil, JSONConfigErr{err}
-	}
-
-	return j, nil
-}
-
-func (j *JSON) ConfigureServer(deps Dependencies) (*spire.Server, error) {
+func (c *Config) ConfigureServer(deps Dependencies) (*spire.Server, error) {
 	// Ethereum account:
-	acc, err := j.configureAccount()
+	acc, err := c.configureAccount()
 	if err != nil {
 		return nil, err
 	}
 
 	// Signer:
-	sig := j.configureSigner(acc)
+	sig := c.configureSigner(acc)
 
 	// Transport:
-	tra, err := j.configureTransport(deps.Context, sig, deps.Logger)
+	tra, err := c.configureTransport(deps.Context, sig, deps.Logger)
 	if err != nil {
 		return nil, err
 	}
 
 	// Datastore:
-	dat := j.configureDatastore(sig, tra, deps.Logger)
+	dat := c.configureDatastore(sig, tra, deps.Logger)
 
 	// RPC Server:
-	srv, err := spire.NewServer(dat, tra, "tcp", j.RPC.Address)
+	srv, err := spire.NewServer(spire.ServerConfig{
+		Datastore: dat,
+		Transport: tra,
+		Signer:    sig,
+		Network:   "tcp",
+		Address:   c.RPC.Address,
+		Logger:    deps.Logger,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -122,15 +92,29 @@ func (j *JSON) ConfigureServer(deps Dependencies) (*spire.Server, error) {
 	return srv, nil
 }
 
-func (j *JSON) ConfigureClient() (*spire.Client, error) {
-	return spire.NewClient("tcp", j.RPC.Address), nil
+func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
+	// Ethereum account:
+	acc, err := c.configureAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	// Signer:
+	sig := c.configureSigner(acc)
+
+	return spire.NewClient(spire.ClientConfig{
+		Signer:  sig,
+		Network: "tcp",
+		Address: c.RPC.Address,
+		Logger:  deps.Logger,
+	}), nil
 }
 
-func (j *JSON) configureAccount() (*geth.Account, error) {
+func (c *Config) configureAccount() (*geth.Account, error) {
 	a, err := geth.NewAccount(
-		j.Ethereum.Keystore,
-		j.Ethereum.Password,
-		ethereum.HexToAddress(j.Ethereum.From),
+		c.Ethereum.Keystore,
+		c.Ethereum.Password,
+		ethereum.HexToAddress(c.Ethereum.From),
 	)
 	if err != nil {
 		return nil, err
@@ -138,26 +122,26 @@ func (j *JSON) configureAccount() (*geth.Account, error) {
 	return a, nil
 }
 
-func (j *JSON) configureSigner(a *geth.Account) ethereum.Signer {
+func (c *Config) configureSigner(a *geth.Account) ethereum.Signer {
 	return geth.NewSigner(a)
 }
 
-func (j *JSON) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
+func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
 	cfg := p2p.Config{
 		Context:        ctx,
 		Signer:         s,
-		ListenAddrs:    j.P2P.Listen,
-		BootstrapAddrs: j.P2P.BootstrapAddrs,
-		BlockedAddrs:   j.P2P.BlockedAddrs,
+		ListenAddrs:    c.P2P.Listen,
+		BootstrapAddrs: c.P2P.BootstrapAddrs,
+		BlockedAddrs:   c.P2P.BlockedAddrs,
 		Logger:         l,
 	}
-	for _, feed := range j.Feeds {
+	for _, feed := range c.Feeds {
 		cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
 	}
 	return p2p.New(cfg)
 }
 
-func (j *JSON) configureDatastore(s ethereum.Signer, t transport.Transport, l log.Logger) *datastore.Datastore {
+func (c *Config) configureDatastore(s ethereum.Signer, t transport.Transport, l log.Logger) *datastore.Datastore {
 	cfg := datastore.Config{
 		Signer:    s,
 		Transport: t,
@@ -165,10 +149,10 @@ func (j *JSON) configureDatastore(s ethereum.Signer, t transport.Transport, l lo
 		Logger:    l,
 	}
 	var feeds []ethereum.Address
-	for _, feed := range j.Feeds {
+	for _, feed := range c.Feeds {
 		feeds = append(feeds, ethereum.HexToAddress(feed))
 	}
-	for _, name := range j.Pairs {
+	for _, name := range c.Pairs {
 		cfg.Pairs[name] = &datastore.Pair{Feeds: feeds}
 	}
 	return datastore.NewDatastore(cfg)

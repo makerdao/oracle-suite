@@ -107,7 +107,7 @@ func (c *Datastore) Prices() *PriceStore {
 
 // collectPrice adds a price from a feeder which may be used to update
 // Oracle contract. The price will be added only if a feeder is
-// allowed to send prices (must be on the r.Feeds list).
+// allowed to send prices.
 func (c *Datastore) collectPrice(msg *messages.Price) error {
 	from, err := msg.Price.From(c.signer)
 	if err != nil {

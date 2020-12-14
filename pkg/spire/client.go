@@ -18,23 +18,40 @@ package spire
 import (
 	"net/rpc"
 
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
+
+const ClientLoggerTag = "SPIRE_CLIENT"
 
 type Client struct {
 	rpc     *rpc.Client
 	network string
 	address string
+	signer  ethereum.Signer
+	log     log.Logger
 }
 
-func NewClient(network, address string) *Client {
+type ClientConfig struct {
+	Signer  ethereum.Signer
+	Network string
+	Address string
+	Logger  log.Logger
+}
+
+func NewClient(cfg ClientConfig) *Client {
 	return &Client{
-		network: network,
-		address: address,
+		network: cfg.Network,
+		address: cfg.Address,
+		signer:  cfg.Signer,
+		log:     cfg.Logger.WithField("tag", ClientLoggerTag),
 	}
 }
 
 func (s *Client) Start() error {
+	s.log.Infof("Starting")
+
 	client, err := rpc.DialHTTP(s.network, s.address)
 	if err != nil {
 		return err
@@ -44,22 +61,46 @@ func (s *Client) Start() error {
 }
 
 func (s *Client) Stop() error {
+	defer s.log.Infof("Stopped")
+
 	return s.rpc.Close()
 }
 
-func (s *Client) BroadcastPrice(price *messages.Price) error {
-	err := s.rpc.Call("API.BroadcastPrice", price, &NoArgument{})
+func (s *Client) PublishPrice(price *messages.Price) error {
+	s.log.
+		WithFields(price.Price.Fields(s.signer)).
+		Info("Publishing price")
+
+	err := s.rpc.Call("API.PublishPrice", PublishPriceArg{Price: price}, &Nothing{})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Client) GetPrices(assetPair string) ([]*messages.Price, error) {
-	prices := &[]*messages.Price{}
-	err := s.rpc.Call("API.GetPrices", assetPair, prices)
+func (s *Client) PullPrices(assetPair string) ([]*messages.Price, error) {
+	s.log.
+		WithField("assetPair", assetPair).
+		Info("Pulling prices")
+
+	resp := &PullPricesResp{}
+	err := s.rpc.Call("API.PullPrices", PullPricesArg{AssetPair: assetPair}, resp)
 	if err != nil {
 		return nil, err
 	}
-	return *prices, nil
+	return resp.Prices, nil
+}
+
+func (s *Client) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
+	s.log.
+		WithField("assetPair", assetPair).
+		WithField("feeder", feeder).
+		Info("Pulling price")
+
+	resp := &PullPriceResp{}
+	err := s.rpc.Call("API.PullPrice", PullPriceArg{AssetPair: assetPair, Feeder: feeder}, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Price, nil
 }
