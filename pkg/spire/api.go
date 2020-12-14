@@ -17,11 +17,13 @@ package spire
 
 import (
 	"github.com/makerdao/gofer/pkg/datastore"
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
-type NoArgument = struct{}
+type Nothing = struct{}
 
 type Datastore interface {
 	Prices() *datastore.PriceStore
@@ -32,13 +34,60 @@ type Datastore interface {
 type API struct {
 	transport transport.Transport
 	datastore Datastore
+	signer    ethereum.Signer
+	log       log.Logger
 }
 
-func (n *API) BroadcastPrice(price *messages.Price, _ *NoArgument) error {
-	return n.transport.Broadcast(messages.PriceMessageName, price)
+type PublishPriceArg struct {
+	Price *messages.Price
 }
 
-func (n *API) GetPrices(assetPair *string, prices *[]*messages.Price) error {
-	*prices = n.datastore.Prices().AssetPair(*assetPair).Messages()
+type PullPricesArg struct {
+	AssetPair string
+}
+
+type PullPricesResp struct {
+	Prices []*messages.Price
+}
+
+type PullPriceArg struct {
+	AssetPair string
+	Feeder    string
+}
+
+type PullPriceResp struct {
+	Price *messages.Price
+}
+
+func (n *API) PublishPrice(arg *PublishPriceArg, _ *Nothing) error {
+	n.log.
+		WithFields(arg.Price.Price.Fields(n.signer)).
+		Info("Publishing arg")
+
+	return n.transport.Broadcast(messages.PriceMessageName, arg.Price)
+}
+
+func (n *API) PullPrices(arg *PullPricesArg, resp *PullPricesResp) error {
+	n.log.
+		WithField("arg", arg.AssetPair).
+		Info("Pulling prices")
+
+	*resp = PullPricesResp{
+		Prices: n.datastore.Prices().AssetPair(arg.AssetPair).Messages(),
+	}
+
+	return nil
+}
+
+func (n *API) PullPrice(arg *PullPriceArg, resp *PullPriceResp) error {
+	n.log.
+		WithField("assetPair", arg.AssetPair).
+		WithField("feeder", arg.Feeder).
+		Info("Pulling resp")
+
+	*resp = PullPriceResp{
+		Price: n.datastore.Prices().Feeder(arg.AssetPair, ethereum.HexToAddress(arg.Feeder)),
+	}
+
 	return nil
 }

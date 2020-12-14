@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -32,7 +33,14 @@ import (
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 	"github.com/makerdao/gofer/pkg/spire"
 	"github.com/makerdao/gofer/pkg/spire/config"
+	configCobra "github.com/makerdao/gofer/pkg/spire/config/cobra"
+	configJSON "github.com/makerdao/gofer/pkg/spire/config/json"
 	"github.com/makerdao/gofer/pkg/transport/messages"
+)
+
+var (
+	logger log.Logger
+	client *spire.Client
 )
 
 func newLogger(level string) (log.Logger, error) {
@@ -47,18 +55,20 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newServer(path string, log log.Logger) (*spire.Server, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
+func newServer(opts *options, log log.Logger) (*spire.Server, error) {
+	if opts.ConfigPath != "" {
+		absPath, err := filepath.Abs(opts.ConfigPath)
+		if err != nil {
+			return nil, err
+		}
+
+		err = configJSON.ParseJSONFile(&opts.Config, absPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	j, err := config.ParseJSONFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := j.ConfigureServer(config.Dependencies{
+	s, err := opts.Config.ConfigureServer(config.Dependencies{
 		Context: context.Background(),
 		Logger:  log,
 	})
@@ -69,18 +79,23 @@ func newServer(path string, log log.Logger) (*spire.Server, error) {
 	return s, nil
 }
 
-func newClient(path string) (*spire.Client, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
+func newClient(opts *options, log log.Logger) (*spire.Client, error) {
+	if opts.ConfigPath != "" {
+		absPath, err := filepath.Abs(opts.ConfigPath)
+		if err != nil {
+			return nil, err
+		}
+
+		err = configJSON.ParseJSONFile(&opts.Config, absPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	j, err := config.ParseJSONFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := j.ConfigureClient()
+	c, err := opts.Config.ConfigureClient(config.Dependencies{
+		Context: context.Background(),
+		Logger:  log,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -88,38 +103,65 @@ func newClient(path string) (*spire.Client, error) {
 	return c, nil
 }
 
-func NewAgentCmd(o *options) *cobra.Command {
+func NewRootCommand(opts *options) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:           "spire",
+		Version:       "DEV",
+		Short:         "",
+		Long:          ``,
+		SilenceErrors: false,
+		SilenceUsage:  true,
+	}
+
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.Verbosity,
+		"verbosity",
+		"v",
+		"error",
+		"log verbosity level",
+	)
+
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigPath,
+		"config",
+		"c",
+		"./spire.json",
+		"spire config file",
+	)
+
+	configCobra.RegisterFlags(&opts.Config, rootCmd.PersistentFlags())
+
+	return rootCmd
+}
+
+func NewAgentCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "agent",
 		Args:  cobra.ExactArgs(0),
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			absPath, err := filepath.Abs(o.ConfigFilePath)
+			var err error
+
+			logger, err = newLogger(opts.Verbosity)
+			if err != nil {
+				return err
+			}
+			srv, err := newServer(opts, logger)
 			if err != nil {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity)
-			if err != nil {
-				return err
-			}
-
-			srv, err := newServer(absPath, l)
+			err = srv.Start()
 			if err != nil {
 				return err
 			}
 			defer func() {
 				err := srv.Stop()
 				if err != nil {
-					l.Errorf("RPC", "Unable to stop RPC Server: %s", err)
+					logger.WithError(err).Error("Unable to stop RPC Server")
 				}
 			}()
-
-			err = srv.Start()
-			if err != nil {
-				return err
-			}
 
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -130,40 +172,74 @@ func NewAgentCmd(o *options) *cobra.Command {
 	}
 }
 
-func NewGetPricesCmd(o *options) *cobra.Command {
+func NewPullCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "get-prices",
+		Use:   "pull",
+		Args:  cobra.ExactArgs(1),
+		Short: "",
+		Long:  ``,
+		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
+			var err error
+
+			logger, err = newLogger(opts.Verbosity)
+			if err != nil {
+				return err
+			}
+			client, err = newClient(opts, logger)
+			if err != nil {
+				return err
+			}
+
+			return client.Start()
+		},
+		PersistentPostRunE: func(_ *cobra.Command, args []string) error {
+			err := client.Stop()
+			if err != nil {
+				logger.WithError(err).Error("Unable to stop RPC Client")
+			}
+			return nil
+		},
+	}
+}
+
+func NewPushCmd(opts *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "push",
+		Args:  cobra.ExactArgs(1),
+		Short: "",
+		Long:  ``,
+		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
+			var err error
+
+			logger, err = newLogger(opts.Verbosity)
+			if err != nil {
+				return err
+			}
+			client, err = newClient(opts, logger)
+			if err != nil {
+				return err
+			}
+
+			return client.Start()
+		},
+		PersistentPostRunE: func(_ *cobra.Command, args []string) error {
+			err := client.Stop()
+			if err != nil {
+				logger.WithError(err).Error("Unable to stop RPC Client")
+			}
+			return nil
+		},
+	}
+}
+
+func NewPullPricesCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "prices",
 		Args:  cobra.ExactArgs(1),
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			absPath, err := filepath.Abs(o.ConfigFilePath)
-			if err != nil {
-				return err
-			}
-
-			l, err := newLogger(o.LogVerbosity)
-			if err != nil {
-				return err
-			}
-
-			cli, err := newClient(absPath)
-			if err != nil {
-				return err
-			}
-
-			err = cli.Start()
-			if err != nil {
-				return err
-			}
-			defer func() {
-				err := cli.Stop()
-				if err != nil {
-					l.Errorf("RPC", "Unable to stop RPC Client: %s", err)
-				}
-			}()
-
-			p, err := cli.GetPrices(args[0])
+			p, err := client.PullPrices(args[0])
 			if err != nil {
 				return err
 			}
@@ -180,41 +256,52 @@ func NewGetPricesCmd(o *options) *cobra.Command {
 	}
 }
 
-func NewBroadcastPriceCmd(o *options) *cobra.Command {
+func NewPullPriceCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "broadcast-price",
-		Args:  cobra.ExactArgs(0),
+		Use:   "price",
+		Args:  cobra.ExactArgs(2),
 		Short: "",
 		Long:  ``,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			absPath, err := filepath.Abs(o.ConfigFilePath)
+		RunE: func(_ *cobra.Command, args []string) error {
+			p, err := client.PullPrice(args[0], args[1])
+			if err != nil {
+				return err
+			}
+			if p == nil {
+				return errors.New("there is no price in the datastore for a given feeder and asset pair")
+			}
+
+			bts, err := json.Marshal(p)
 			if err != nil {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity)
-			if err != nil {
-				return err
-			}
+			fmt.Printf("%s\n", string(bts))
 
-			cli, err := newClient(absPath)
-			if err != nil {
-				return err
-			}
+			return nil
+		},
+	}
+}
 
-			err = cli.Start()
-			if err != nil {
-				return err
-			}
-			defer func() {
-				err := cli.Stop()
+func NewPushPriceCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "price",
+		Args:  cobra.MaximumNArgs(1),
+		Short: "",
+		Long:  ``,
+		RunE: func(_ *cobra.Command, args []string) error {
+			var err error
+
+			in := os.Stdin
+			if len(args) == 1 {
+				in, err = os.Open(args[0])
 				if err != nil {
-					l.Errorf("RPC", "Unable to stop RPC Client: %s", err)
+					return err
 				}
-			}()
+			}
 
 			// Fetch json from stdin for parse it:
-			input, err := ReadAll(os.Stdin)
+			input, err := ReadAll(in)
 			if err != nil {
 				return err
 			}
@@ -226,7 +313,7 @@ func NewBroadcastPriceCmd(o *options) *cobra.Command {
 			}
 
 			// Send price message to RPC client:
-			err = cli.BroadcastPrice(msg)
+			err = client.PublishPrice(msg)
 			if err != nil {
 				return err
 			}
@@ -234,34 +321,6 @@ func NewBroadcastPriceCmd(o *options) *cobra.Command {
 			return nil
 		},
 	}
-}
-
-func NewRootCommand(opts *options) *cobra.Command {
-	rootCmd := &cobra.Command{
-		Use:           "spire",
-		Version:       "DEV",
-		Short:         "",
-		Long:          ``,
-		SilenceErrors: false,
-		SilenceUsage:  true,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(
-		&opts.LogVerbosity,
-		"log.verbosity",
-		"v",
-		"info",
-		"verbosity level",
-	)
-	rootCmd.PersistentFlags().StringVarP(
-		&opts.ConfigFilePath,
-		"config",
-		"c",
-		"./spire.json",
-		"spire config file",
-	)
-
-	return rootCmd
 }
 
 func ReadAll(r io.Reader) ([]byte, error) {

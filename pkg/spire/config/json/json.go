@@ -13,27 +13,44 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package json
 
-import "os"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
 
-func main() {
-	var opts options
-	rootCmd := NewRootCommand(&opts)
-	pullCmd := NewPullCmd(&opts)
-	pushCmd := NewPushCmd(&opts)
+	"github.com/makerdao/gofer/pkg/spire/config"
+)
 
-	rootCmd.AddCommand(
-		NewAgentCmd(&opts),
-		pullCmd,
-		pushCmd,
-	)
+type ConfigErr struct {
+	Err error
+}
 
-	pullCmd.AddCommand(NewPullPricesCmd())
-	pullCmd.AddCommand(NewPullPriceCmd())
-	pushCmd.AddCommand(NewPushPriceCmd())
+func (e ConfigErr) Error() string {
+	return e.Err.Error()
+}
 
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
+func ParseJSONFile(cfg *config.Config, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to load JSON config file: %w", err)
 	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return ConfigErr{fmt.Errorf("failed to load JSON config file: %w", err)}
+	}
+
+	return ParseJSON(cfg, b)
+}
+
+func ParseJSON(cfg *config.Config, b []byte) error {
+	err := json.Unmarshal(b, cfg)
+	if err != nil {
+		return ConfigErr{err}
+	}
+	return nil
 }

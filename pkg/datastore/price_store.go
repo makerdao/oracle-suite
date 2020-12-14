@@ -69,3 +69,17 @@ func (p *PriceStore) AssetPair(assetPair string) *PriceSet {
 
 	return NewPriceSet(prices)
 }
+
+// Feeder returns the latest price for given asset pair sent by given feeder.
+func (p *PriceStore) Feeder(assetPair string, feeder ethereum.Address) *messages.Price {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if _, ok := p.prices[assetPair]; !ok {
+		return nil
+	}
+	if m, ok := p.prices[assetPair][feeder]; ok {
+		return m
+	}
+	return nil
+}

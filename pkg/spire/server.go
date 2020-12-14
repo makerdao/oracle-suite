@@ -16,12 +16,17 @@
 package spire
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"net/rpc"
 
+	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
 )
+
+const ServerLoggerTag = "SPIRE_SERVER"
 
 type Server struct {
 	api      *API
@@ -29,17 +34,30 @@ type Server struct {
 	listener net.Listener
 	network  string
 	address  string
+	log      log.Logger
 }
 
-func NewServer(datastore Datastore, transport transport.Transport, network, address string) (*Server, error) {
+type ServerConfig struct {
+	Datastore Datastore
+	Transport transport.Transport
+	Signer    ethereum.Signer
+	Network   string
+	Address   string
+	Logger    log.Logger
+}
+
+func NewServer(cfg ServerConfig) (*Server, error) {
 	server := &Server{
 		api: &API{
-			datastore: datastore,
-			transport: transport,
+			datastore: cfg.Datastore,
+			transport: cfg.Transport,
+			signer:    cfg.Signer,
+			log:       cfg.Logger.WithField("tag", ServerLoggerTag),
 		},
 		rpc:     rpc.NewServer(),
-		network: network,
-		address: address,
+		network: cfg.Network,
+		address: cfg.Address,
+		log:     cfg.Logger.WithField("tag", ServerLoggerTag),
 	}
 	err := server.rpc.Register(server.api)
 	if err != nil {
@@ -50,6 +68,8 @@ func NewServer(datastore Datastore, transport transport.Transport, network, addr
 }
 
 func (s *Server) Start() error {
+	s.log.Infof("Starting")
+
 	var err error
 	s.listener, err = net.Listen(s.network, s.address)
 	if err != nil {
@@ -61,14 +81,19 @@ func (s *Server) Start() error {
 	}
 
 	go func() {
-		_ = http.Serve(s.listener, nil)
+		err := http.Serve(s.listener, nil)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.log.Error(err.Error())
+		}
 	}()
 
 	return nil
 }
 
 func (s *Server) Stop() error {
-	err := s.api.datastore.Start()
+	defer s.log.Infof("Stopped")
+
+	err := s.api.datastore.Stop()
 	if err != nil {
 		return err
 	}

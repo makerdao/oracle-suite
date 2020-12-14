@@ -31,14 +31,15 @@ import (
 const PriceMultiplier = 1e18
 
 var ErrPriceNotSet = errors.New("unable to sign price because price is not set")
+var ErrInvalidJSONSignature = errors.New("unable to unmarshal given JSON, VRS fields contain invalid signature")
 
 type Price struct {
 	Wat string    // Wat is the asset name.
 	Val *big.Int  // Val is the asset price multiplied by PriceMultiplier.
-	Age time.Time // Age is time when price was obtained.
+	Age time.Time // Age is the time when the price was obtained.
 
 	// Signature:
-	V uint8
+	V byte
 	R [32]byte
 	S [32]byte
 }
@@ -48,7 +49,7 @@ type jsonPrice struct {
 	Wat string `json:"wat"`
 	Val string `json:"val"`
 	Age int64  `json:"age"`
-	V   uint8  `json:"v"`
+	V   string `json:"v"`
 	R   string `json:"r"`
 	S   string `json:"s"`
 }
@@ -119,7 +120,7 @@ func (p *Price) MarshalJSON() ([]byte, error) {
 		Wat: p.Wat,
 		Val: p.Val.String(),
 		Age: p.Age.Unix(),
-		V:   p.V,
+		V:   hex.EncodeToString([]byte{p.V}),
 		R:   hex.EncodeToString(p.R[:]),
 		S:   hex.EncodeToString(p.S[:]),
 	})
@@ -132,10 +133,20 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
+	if len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64 {
+		return ErrInvalidJSONSignature
+	}
+
 	p.Wat = j.Wat
 	p.Val, _ = new(big.Int).SetString(j.Val, 10)
 	p.Age = time.Unix(j.Age, 0)
-	p.V = j.V
+
+	v := [1]byte{}
+	_, err = hex.Decode(v[:], []byte(j.V))
+	if err != nil {
+		return err
+	}
+	p.V = v[0]
 
 	_, err = hex.Decode(p.R[:], []byte(j.R))
 	if err != nil {
@@ -150,6 +161,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+// hash is an equivalent of keccak256(abi.encodePacked(val_, age_, wat))) in Solidity.
 func (p *Price) hash() []byte {
 	// Median:
 	median := make([]byte, 32)

@@ -57,3 +57,19 @@ func TestPriceStore_Add_UseNewerPrice(t *testing.T) {
 	assert.Equal(t, testutil.PriceAAABBB2, aaabbb.Messages()[0])
 	assert.Equal(t, testutil.PriceXXXYYY2, xxxyyy.Messages()[0])
 }
+
+func TestPriceStore_Feeder(t *testing.T) {
+	ps := NewPriceStore()
+
+	ps.Add(testutil.Address1, testutil.PriceAAABBB1)
+	ps.Add(testutil.Address1, testutil.PriceAAABBB2)
+	ps.Add(testutil.Address1, testutil.PriceXXXYYY1)
+	ps.Add(testutil.Address1, testutil.PriceXXXYYY2)
+	ps.Add(testutil.Address2, testutil.PriceAAABBB1)
+	ps.Add(testutil.Address2, testutil.PriceAAABBB2)
+	ps.Add(testutil.Address2, testutil.PriceXXXYYY1)
+	ps.Add(testutil.Address2, testutil.PriceXXXYYY2)
+
+	assert.Equal(t, testutil.PriceAAABBB2, ps.Feeder("AAABBB", testutil.Address1))
+	assert.Equal(t, testutil.PriceXXXYYY2, ps.Feeder("XXXYYY", testutil.Address1))
+}
