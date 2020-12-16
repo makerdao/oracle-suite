@@ -72,12 +72,12 @@ func TestMedian_Price(t *testing.T) {
 	a := ethereum.Address{}
 	m := NewMedian(c, a, "AAABBB")
 
-	// Call Price function:
+	// Call Val function:
 	bts := make([]byte, 32)
 	val := new(big.Int).Mul(big.NewInt(42), big.NewInt(oracle.PriceMultiplier))
 	val.FillBytes(bts)
 	c.On("Storage", mock.Anything, a, common.BigToHash(big.NewInt(1))).Return(bts, nil)
-	price, err := m.Price(context.Background())
+	price, err := m.Val(context.Background())
 
 	// Verify:
 	assert.NoError(t, err)

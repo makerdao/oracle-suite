@@ -138,7 +138,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	if err != nil {
 		return nil, err
 	}
-	oraclePrice, err := pair.Median.Price(r.ctx)
+	oraclePrice, err := pair.Median.Val(r.ctx)
 	if err != nil {
 		return nil, err
 	}

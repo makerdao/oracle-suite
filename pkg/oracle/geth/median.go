@@ -70,8 +70,8 @@ func (m *Median) Bar(ctx context.Context) (int64, error) {
 	return r[0].(*big.Int).Int64(), nil
 }
 
-// Price implements the oracle.Median interface.
-func (m *Median) Price(ctx context.Context) (*big.Int, error) {
+// Val implements the oracle.Median interface.
+func (m *Median) Val(ctx context.Context) (*big.Int, error) {
 	const (
 		offset = 16
 		length = 16
@@ -161,7 +161,6 @@ func (m *Median) Poke(ctx context.Context, prices []*oracle.Price, simulateBefor
 		s = append(s, arg.S)
 	}
 
-	// Simulate transaction to not waste a gas in case of an error:
 	if simulateBeforeRun {
 		if _, err := m.read(ctx, "poke", val, age, v, r, s); err != nil {
 			return nil, err
@@ -169,6 +168,39 @@ func (m *Median) Poke(ctx context.Context, prices []*oracle.Price, simulateBefor
 	}
 
 	return m.write(ctx, "poke", val, age, v, r, s)
+}
+
+// Lift implements the oracle.Median interface.
+func (m *Median) Lift(ctx context.Context, addresses []common.Address, simulateBeforeRun bool) (*ethereum.Hash, error) {
+	if simulateBeforeRun {
+		if _, err := m.read(ctx, "lift", addresses); err != nil {
+			return nil, err
+		}
+	}
+
+	return m.write(ctx, "lift", addresses)
+}
+
+// Drop implements the oracle.Median interface.
+func (m *Median) Drop(ctx context.Context, addresses []common.Address, simulateBeforeRun bool) (*ethereum.Hash, error) {
+	if simulateBeforeRun {
+		if _, err := m.read(ctx, "drop", addresses); err != nil {
+			return nil, err
+		}
+	}
+
+	return m.write(ctx, "drop", addresses)
+}
+
+// SetBar implements the oracle.Median interface.
+func (m *Median) SetBar(ctx context.Context, bar *big.Int, simulateBeforeRun bool) (*ethereum.Hash, error) {
+	if simulateBeforeRun {
+		if _, err := m.read(ctx, "setBar", bar); err != nil {
+			return nil, err
+		}
+	}
+
+	return m.write(ctx, "setBar", bar)
 }
 
 func (m *Median) read(ctx context.Context, method string, args ...interface{}) ([]interface{}, error) {
