@@ -181,7 +181,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
 			PriceExpiration:  time.Second * time.Duration(pair.MsgExpiration),
-			Median:           oracleGeth.NewMedian(eth, ethereum.HexToAddress(pair.Oracle), name),
+			Median:           oracleGeth.NewMedian(eth, ethereum.HexToAddress(pair.Oracle)),
 		})
 	}
 	rel := spectre.NewSpectre(cfg)

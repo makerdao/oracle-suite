@@ -18,7 +18,6 @@ package geth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"sort"
 	"time"
@@ -36,17 +35,15 @@ const delayBetweenReadRetries = 5 * time.Second
 
 // Median implements the oracle.Median interface using go-ethereum packages.
 type Median struct {
-	ethereum  ethereum.Client
-	address   ethereum.Address
-	assetPair string
+	ethereum ethereum.Client
+	address  ethereum.Address
 }
 
 // NewMedian creates the new Median instance.
-func NewMedian(ethereum ethereum.Client, address ethereum.Address, assetPair string) *Median {
+func NewMedian(ethereum ethereum.Client, address ethereum.Address) *Median {
 	return &Median{
-		ethereum:  ethereum,
-		address:   address,
-		assetPair: assetPair,
+		ethereum: ethereum,
+		address:  address,
 	}
 }
 
@@ -68,6 +65,17 @@ func (m *Median) Bar(ctx context.Context) (int64, error) {
 	}
 
 	return r[0].(*big.Int).Int64(), nil
+}
+
+// Wat implements the oracle.Median interface.
+func (m *Median) Wat(ctx context.Context) (string, error) {
+	r, err := m.read(ctx, "wat")
+	if err != nil {
+		return "", err
+	}
+
+	b := r[0].([32]byte)
+	return string(b[:]), nil
 }
 
 // Val implements the oracle.Median interface.
@@ -146,14 +154,6 @@ func (m *Median) Poke(ctx context.Context, prices []*oracle.Price, simulateBefor
 	)
 
 	for _, arg := range prices {
-		if arg.Wat != m.assetPair {
-			return nil, fmt.Errorf(
-				"incompatible asset pair, %s given but %s expected",
-				arg.Wat,
-				m.assetPair,
-			)
-		}
-
 		val = append(val, arg.Val)
 		age = append(age, big.NewInt(arg.Age.Unix()))
 		v = append(v, arg.V)
