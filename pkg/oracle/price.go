@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/pkg/ethereum"
@@ -105,13 +104,14 @@ func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 	}
 
 	return log.Fields{
-		"assetPair": p.Wat,
-		"form":      from,
-		"age":       p.Age.String(),
-		"val":       p.Val.String(),
-		"V":         hex.EncodeToString([]byte{p.V}),
-		"R":         hex.EncodeToString(p.R[:]),
-		"S":         hex.EncodeToString(p.S[:]),
+		"form": from,
+		"wat":  p.Wat,
+		"age":  p.Age.String(),
+		"val":  p.Val.String(),
+		"hash": hex.EncodeToString(p.hash()),
+		"V":    hex.EncodeToString([]byte{p.V}),
+		"R":    hex.EncodeToString(p.R[:]),
+		"S":    hex.EncodeToString(p.S[:]),
 	}
 }
 
@@ -173,7 +173,7 @@ func (p *Price) hash() []byte {
 
 	// Asset name:
 	wat := make([]byte, 32)
-	copy(wat, strings.ToLower(p.Wat))
+	copy(wat, p.Wat)
 
 	hash := make([]byte, 96)
 	copy(hash[0:32], median)
