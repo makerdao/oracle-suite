@@ -34,7 +34,6 @@ import (
 
 type medianOptions struct {
 	Address string
-	Wat     string
 }
 
 var median oracle.Median
@@ -65,7 +64,7 @@ func NewMedianCmd(opts *options) *cobra.Command {
 			gethClient := ethereumGeth.NewClient(client, signer)
 
 			// Median instance:
-			median = oracleGeth.NewMedian(gethClient, ethereum.HexToAddress(medianOpts.Address), medianOpts.Wat)
+			median = oracleGeth.NewMedian(gethClient, ethereum.HexToAddress(medianOpts.Address))
 
 			return nil
 		},
@@ -78,17 +77,11 @@ func NewMedianCmd(opts *options) *cobra.Command {
 		"Median contract address",
 	)
 
-	cmd.PersistentFlags().StringVar(
-		&medianOpts.Wat,
-		"median-wat",
-		"",
-		"Median contract asset name",
-	)
-
 	cmd.AddCommand(
 		NewMedianAgeCmd(opts, &medianOpts),
 		NewMedianBarCmd(opts, &medianOpts),
-		NewMedianPriceCmd(opts, &medianOpts),
+		NewMedianWatCmd(opts, &medianOpts),
+		NewMedianValCmd(opts, &medianOpts),
 		NewMedianFeedsCmd(opts, &medianOpts),
 		NewMedianPokeCmd(opts, &medianOpts),
 		NewMedianLiftCmd(opts, &medianOpts),
@@ -139,7 +132,27 @@ func NewMedianBarCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianPriceCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianWatCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:   "wat",
+		Args:  cobra.ExactArgs(0),
+		Short: "Returns contract wat (asset name)",
+		Long:  ``,
+		RunE: func(_ *cobra.Command, args []string) error {
+			wat, err := median.Wat(context.Background())
+			if err != nil {
+				return err
+			}
+
+			// Print wat:
+			fmt.Println(wat)
+
+			return nil
+		},
+	}
+}
+
+func NewMedianValCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "val",
 		Args:  cobra.ExactArgs(0),

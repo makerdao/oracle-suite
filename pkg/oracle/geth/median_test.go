@@ -36,7 +36,7 @@ func TestMedian_Age(t *testing.T) {
 	// Prepare test data:
 	c := &mocks.Client{}
 	a := ethereum.Address{}
-	m := NewMedian(c, a, "AAABBB")
+	m := NewMedian(c, a)
 
 	// Call Age function:
 	bts := make([]byte, 32)
@@ -53,7 +53,7 @@ func TestMedian_Bar(t *testing.T) {
 	// Prepare test data:
 	c := &mocks.Client{}
 	a := ethereum.Address{}
-	m := NewMedian(c, a, "AAABBB")
+	m := NewMedian(c, a)
 
 	// Call Bar function:
 	bts := make([]byte, 32)
@@ -70,7 +70,7 @@ func TestMedian_Price(t *testing.T) {
 	// Prepare test data:
 	c := &mocks.Client{}
 	a := ethereum.Address{}
-	m := NewMedian(c, a, "AAABBB")
+	m := NewMedian(c, a)
 
 	// Call Val function:
 	bts := make([]byte, 32)
@@ -89,7 +89,7 @@ func TestMedian_Poke(t *testing.T) {
 	c := &mocks.Client{}
 	a := ethereum.Address{}
 	s := &mocks.Signer{}
-	m := NewMedian(c, a, "AAABBB")
+	m := NewMedian(c, a)
 
 	p1 := &oracle.Price{Wat: "AAABBB"}
 	p1.SetFloat64Price(10)

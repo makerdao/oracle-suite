@@ -39,6 +39,8 @@ type Median interface {
 	Bar(ctx context.Context) (int64, error)
 	// Val returns current asset price form the contract's storage.
 	Val(ctx context.Context) (*big.Int, error)
+	// Val returns asset name.
+	Wat(ctx context.Context) (string, error)
 	// Feeds returns a list of all Ethereum addresses that are authorized to update
 	// Oracle prices (orcls).
 	Feeds(ctx context.Context) ([]ethereum.Address, error)
