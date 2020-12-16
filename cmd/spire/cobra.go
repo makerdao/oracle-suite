@@ -300,7 +300,7 @@ func NewPushPriceCmd() *cobra.Command {
 				}
 			}
 
-			// Fetch json from stdin for parse it:
+			// Read JSON and parse it:
 			input, err := ReadAll(in)
 			if err != nil {
 				return err
