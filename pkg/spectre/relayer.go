@@ -78,15 +78,19 @@ type Pair struct {
 	Median oracle.Median
 }
 
-func NewSpectre(config Config) *Spectre {
+func NewSpectre(cfg Config) *Spectre {
 	r := &Spectre{
 		ctx:       context.Background(),
-		signer:    config.Signer,
-		datastore: config.Datastore,
-		interval:  config.Interval,
+		signer:    cfg.Signer,
+		datastore: cfg.Datastore,
+		interval:  cfg.Interval,
 		pairs:     make(map[string]*Pair),
-		log:       config.Logger.WithField("tag", LoggerTag),
+		log:       cfg.Logger.WithField("tag", LoggerTag),
 		doneCh:    make(chan struct{}),
+	}
+
+	for _, p := range cfg.Pairs {
+		r.pairs[p.AssetPair] = p
 	}
 
 	return r
