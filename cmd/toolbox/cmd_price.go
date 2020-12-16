@@ -112,7 +112,7 @@ func NewPriceVerifyCmd(opts *options) *cobra.Command {
 			// Print message parameters:
 			fields := msg.Price.Fields(signer)
 			for _, k := range sortFields(fields) {
-				fmt.Printf("%-5s: %s\n", k, fields[k])
+				fmt.Printf("%-4s %s\n", k, fields[k])
 			}
 
 			return nil
