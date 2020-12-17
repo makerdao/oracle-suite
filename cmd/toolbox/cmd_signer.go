@@ -37,11 +37,15 @@ func NewSignerCmd(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "signer",
 		Args:  cobra.ExactArgs(0),
-		Short: "Commands used to sign and verify data",
+		Short: "commands used to sign and verify data",
 		Long:  ``,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if opts.EthereumAddress != "" {
-				account, err := geth.NewAccount(opts.EthereumKeystore, opts.EthereumPassword, ethereum.HexToAddress(opts.EthereumAddress))
+				account, err := geth.NewAccount(
+					opts.EthereumKeystore,
+					opts.EthereumPassword,
+					ethereum.HexToAddress(opts.EthereumAddress),
+				)
 				if err != nil {
 					return err
 				}
@@ -58,27 +62,29 @@ func NewSignerCmd(opts *options) *cobra.Command {
 		&signerOpts.Hex,
 		"hex",
 		false,
-		"Is input encoded as a string",
+		"is input encoded as a string",
 	)
 
 	cmd.AddCommand(
-		NewSignerSignCmd(opts, &signerOpts),
-		NewSignerVerifyCmd(opts, &signerOpts),
+		NewSignerSignCmd(&signerOpts),
+		NewSignerVerifyCmd(&signerOpts),
 	)
 
 	return cmd
 }
 
-func NewSignerSignCmd(opts *options, signerOpts *signerOptions) *cobra.Command {
+func NewSignerSignCmd(signerOpts *signerOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sign [input]",
 		Args:  cobra.MaximumNArgs(1),
-		Short: "Signs given input (stdin is used if input argument is empty)",
+		Short: "signs given input (stdin is used if input argument is empty)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			var err error
-
 			in, err := readInput(args, 0)
+			if err != nil {
+				return err
+			}
+
 			if signerOpts.Hex {
 				in, err = hex.DecodeString(string(in))
 				if err != nil {
@@ -98,16 +104,18 @@ func NewSignerSignCmd(opts *options, signerOpts *signerOptions) *cobra.Command {
 	}
 }
 
-func NewSignerVerifyCmd(opts *options, signerOpts *signerOptions) *cobra.Command {
+func NewSignerVerifyCmd(signerOpts *signerOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "verify signature [input]",
-		Args:  cobra.MinimumNArgs(1),
-		Short: "Verifies given signature (stdin is used if input argument is empty)",
+		Args:  cobra.MaximumNArgs(1),
+		Short: "verifies given signature (stdin is used if input argument is empty)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			var err error
-
 			in, err := readInput(args, 1)
+			if err != nil {
+				return err
+			}
+
 			if signerOpts.Hex {
 				in, err = hex.DecodeString(string(in))
 				if err != nil {

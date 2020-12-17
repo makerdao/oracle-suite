@@ -44,13 +44,17 @@ func NewMedianCmd(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "median",
 		Args:  cobra.ExactArgs(0),
-		Short: "Commands related to the Medianizer contract",
+		Short: "commands related to the Medianizer contract",
 		Long:  ``,
 		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
 			var err error
 
 			// Create signer:
-			account, err := ethereumGeth.NewAccount(opts.EthereumKeystore, opts.EthereumPassword, ethereum.HexToAddress(opts.EthereumAddress))
+			account, err := ethereumGeth.NewAccount(
+				opts.EthereumKeystore,
+				opts.EthereumPassword,
+				ethereum.HexToAddress(opts.EthereumAddress),
+			)
 			if err != nil {
 				return err
 			}
@@ -74,29 +78,29 @@ func NewMedianCmd(opts *options) *cobra.Command {
 		&medianOpts.Address,
 		"median-address",
 		"",
-		"Median contract address",
+		"median contract address",
 	)
 
 	cmd.AddCommand(
-		NewMedianAgeCmd(opts, &medianOpts),
-		NewMedianBarCmd(opts, &medianOpts),
-		NewMedianWatCmd(opts, &medianOpts),
-		NewMedianValCmd(opts, &medianOpts),
-		NewMedianFeedsCmd(opts, &medianOpts),
-		NewMedianPokeCmd(opts, &medianOpts),
-		NewMedianLiftCmd(opts, &medianOpts),
-		NewMedianDropCmd(opts, &medianOpts),
-		NewMedianSetBarCmd(opts, &medianOpts),
+		NewMedianAgeCmd(),
+		NewMedianBarCmd(),
+		NewMedianWatCmd(),
+		NewMedianValCmd(),
+		NewMedianFeedsCmd(),
+		NewMedianPokeCmd(),
+		NewMedianLiftCmd(),
+		NewMedianDropCmd(),
+		NewMedianSetBarCmd(),
 	)
 
 	return cmd
 }
 
-func NewMedianAgeCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianAgeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "age",
 		Args:  cobra.ExactArgs(0),
-		Short: "Returns contract age (last update time)",
+		Short: "returns the age value (last update time)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			age, err := median.Age(context.Background())
@@ -112,11 +116,11 @@ func NewMedianAgeCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianBarCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianBarCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "bar",
 		Args:  cobra.ExactArgs(0),
-		Short: "Returns contract bar (required quorum)",
+		Short: "returns the bar value (required quorum)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			bar, err := median.Bar(context.Background())
@@ -132,11 +136,11 @@ func NewMedianBarCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianWatCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianWatCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "wat",
 		Args:  cobra.ExactArgs(0),
-		Short: "Returns contract wat (asset name)",
+		Short: "returns the wat value (asset name)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			wat, err := median.Wat(context.Background())
@@ -152,11 +156,11 @@ func NewMedianWatCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianValCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianValCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "val",
 		Args:  cobra.ExactArgs(0),
-		Short: "Returns oracle val (asset price)",
+		Short: "returns the val value (asset price)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			price, err := median.Val(context.Background())
@@ -172,11 +176,11 @@ func NewMedianValCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianFeedsCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianFeedsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "feeds",
 		Args:  cobra.ExactArgs(0),
-		Short: "Returns list of feeds which are allowed to send prices",
+		Short: "returns list of feeds which are allowed to send prices",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			feeds, err := median.Feeds(context.Background())
@@ -194,11 +198,11 @@ func NewMedianFeedsCmd(opts *options, medianOpts *medianOptions) *cobra.Command 
 	}
 }
 
-func NewMedianPokeCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianPokeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "poke [json_messages_list]",
 		Args:  cobra.ExactArgs(1),
-		Short: "Directly invokes poke method",
+		Short: "directly invokes poke method",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
@@ -232,11 +236,11 @@ func NewMedianPokeCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianLiftCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianLiftCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "lift [addresses...]",
 		Args:  cobra.MinimumNArgs(1),
-		Short: "Adds given addresses to the feeders list",
+		Short: "adds given addresses to the feeders list",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
@@ -258,11 +262,11 @@ func NewMedianLiftCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianDropCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianDropCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "drop [addresses...]",
 		Args:  cobra.MinimumNArgs(1),
-		Short: "Removes given addresses from the feeders list",
+		Short: "removes given addresses from the feeders list",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
@@ -284,11 +288,11 @@ func NewMedianDropCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
 	}
 }
 
-func NewMedianSetBarCmd(opts *options, medianOpts *medianOptions) *cobra.Command {
+func NewMedianSetBarCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-bar bar",
 		Args:  cobra.ExactArgs(1),
-		Short: "Sets bar variable (quorum)",
+		Short: "sets bar variable (quorum)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error

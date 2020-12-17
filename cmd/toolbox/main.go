@@ -40,10 +40,9 @@ type options struct {
 	EthereumRPC      string
 }
 
-
 func NewRootCommand() *cobra.Command {
 	var opts options
-	
+
 	rootCmd := &cobra.Command{
 		Use:           "toolbox",
 		Version:       "DEV",
@@ -57,28 +56,28 @@ func NewRootCommand() *cobra.Command {
 		&opts.EthereumKeystore,
 		"eth-keystore",
 		"",
-		"Ethereum keystore path",
+		"ethereum keystore path",
 	)
 
 	rootCmd.PersistentFlags().StringVar(
 		&opts.EthereumPassword,
 		"eth-password",
 		"",
-		"Ethereum keystore password",
+		"ethereum keystore password",
 	)
 
 	rootCmd.PersistentFlags().StringVar(
 		&opts.EthereumAddress,
 		"eth-address",
 		"",
-		"Ethereum account address",
+		"ethereum account address",
 	)
 
 	rootCmd.PersistentFlags().StringVar(
 		&opts.EthereumRPC,
 		"eth-rpc",
 		"",
-		"Ethereum RPC address",
+		"ethereum RPC address",
 	)
 
 	rootCmd.AddCommand(
