@@ -16,6 +16,7 @@
 package logger
 
 import (
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/gofer/pkg/log"
@@ -23,7 +24,8 @@ import (
 )
 
 type messageHandler struct {
-	log log.Logger
+	peerStore peerstore.Peerstore
+	log       log.Logger
 }
 
 func (m *messageHandler) Published(topic string, raw []byte, message transport.Message) {
@@ -33,7 +35,15 @@ func (m *messageHandler) Published(topic string, raw []byte, message transport.M
 }
 
 func (m *messageHandler) Received(topic string, raw *pubsub.Message, message transport.Message) {
+	addrs := m.peerStore.PeerInfo(raw.ReceivedFrom).Addrs
+
 	m.log.
-		WithFields(log.Fields{"topic": topic, "message": string(raw.Data), "peerID": raw.ReceivedFrom}).
+		WithFields(log.Fields{
+			"topic":              topic,
+			"message":            string(raw.Data),
+			"peerID":             raw.GetFrom().String(),
+			"receivedFromPeerID": raw.ReceivedFrom.String(),
+			"receivedFromAddrs":  addrs,
+		}).
 		Debug("Received a new message")
 }

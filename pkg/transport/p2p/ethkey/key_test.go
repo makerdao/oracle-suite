@@ -18,6 +18,7 @@ package ethkey
 import (
 	"testing"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,5 +33,15 @@ func TestAddressToPeerID(t *testing.T) {
 		t,
 		"",
 		AddressToPeerID("").Pretty(),
+	)
+}
+
+func TestPeerIDToAddress(t *testing.T) {
+	id, _ := peer.Decode("1Afqz6rsuyYpr7Dpp12PbftE22nYH3k2Fw5")
+
+	assert.Equal(
+		t,
+		"0x69B352cbE6Fc5C130b6F62cc8f30b9d7B0DC27d0",
+		PeerIDToAddress(id).String(),
 	)
 }

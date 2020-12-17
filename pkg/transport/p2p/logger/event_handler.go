@@ -16,24 +16,36 @@
 package logger
 
 import (
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/gofer/pkg/log"
 )
 
 type eventHandler struct {
-	log log.Logger
+	peerStore peerstore.Peerstore
+	log       log.Logger
 }
 
 func (e eventHandler) Handle(topic string, event pubsub.PeerEvent) {
+	addrs := e.peerStore.PeerInfo(event.Peer).Addrs
+
 	switch event.Type {
 	case pubsub.PeerJoin:
 		e.log.
-			WithFields(log.Fields{"id": event.Peer.Pretty(), "topic": topic}).
+			WithFields(log.Fields{
+				"peerID": event.Peer.String(),
+				"topic":  topic,
+				"addrs":  addrs,
+			}).
 			Debug("Connected to a peer")
 	case pubsub.PeerLeave:
 		e.log.
-			WithFields(log.Fields{"id": event.Peer.Pretty(), "topic": topic}).
+			WithFields(log.Fields{
+				"peerID": event.Peer.String(),
+				"topic":  topic,
+				"addrs":  addrs,
+			}).
 			Debug("Disconnected from a peer")
 	}
 }
