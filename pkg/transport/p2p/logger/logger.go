@@ -16,6 +16,7 @@
 package logger
 
 import (
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/makerdao/gofer/pkg/log"
@@ -23,6 +24,7 @@ import (
 )
 
 type node interface {
+	Host() host.Host
 	AddNotifee(notifees ...network.Notifiee)
 	AddEventHandler(eventHandler ...sets.EventHandler)
 	AddMessageHandler(messageHandlers ...sets.MessageHandler)
@@ -32,6 +34,6 @@ type node interface {
 // debug logs.
 func Register(node node, l log.Logger) {
 	node.AddNotifee(&notifee{log: l})
-	node.AddEventHandler(&eventHandler{log: l})
-	node.AddMessageHandler(&messageHandler{log: l})
+	node.AddEventHandler(&eventHandler{peerStore: node.Host().Peerstore(), log: l})
+	node.AddMessageHandler(&messageHandler{peerStore: node.Host().Peerstore(), log: l})
 }

@@ -17,7 +17,6 @@ package p2p
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -25,10 +24,7 @@ import (
 	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
-	"github.com/makerdao/gofer/pkg/transport/p2p/allowlist"
-	"github.com/makerdao/gofer/pkg/transport/p2p/denylist"
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
-	"github.com/makerdao/gofer/pkg/transport/p2p/logger"
 )
 
 const LoggerTag = "P2P"
@@ -38,10 +34,7 @@ const LoggerTag = "P2P"
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
 type P2P struct {
-	node      *Node
-	allowlist *allowlist.Allowlist
-	denylist  *denylist.Denylist
-	log       log.Logger
+	node *Node
 }
 
 type Config struct {
@@ -55,56 +48,55 @@ type Config struct {
 	ListenAddrs []string
 	// BootstrapAddrs is a list multiaddresses of initial peers to connect to.
 	BootstrapAddrs []string
-	// AllowedPeers is a list of peer IDs which are allowed to publish messages
-	// to the network. Messages from peers outside this list will be ignored
-	// and not relayed. If empty, all messages will be accepted.
-	AllowedPeers []string
 	// BlockedAddrs is a list of multiaddresses to which connection will be
 	// blocked. If an address on that list contains an IP and a peer ID, both
 	// will be blocked separately.
 	BlockedAddrs []string
+	// AllowedPeers is a list of peer IDs which are allowed to publish messages
+	// to the network. Messages from peers outside this list will be ignored
+	// and not relayed. If empty, all messages will be accepted.
+	AllowedPeers []string
 }
 
 // New returns a new instance of a transport, implemented by using
 // the libp2p library.
-func New(config Config) (*P2P, error) {
+func New(cfg Config) (*P2P, error) {
 	var err error
 
-	if len(config.ListenAddrs) == 0 {
-		config.ListenAddrs = defaultListenAddrs
+	if len(cfg.ListenAddrs) == 0 {
+		cfg.ListenAddrs = defaultListenAddrs
 	}
-	listenAddrs, err := addrsToMaddrs(config.ListenAddrs)
+
+	listenAddrs, err := strsToMaddrs(cfg.ListenAddrs)
+	if err != nil {
+		return nil, err
+	}
+	bootstrapAddrs, err := strsToMaddrs(cfg.BootstrapAddrs)
+	if err != nil {
+		return nil, err
+	}
+	blockedAddrs, err := strsToMaddrs(cfg.BlockedAddrs)
+	if err != nil {
+		return nil, err
+	}
+	allowedPeers, err := strsToPeerIDs(cfg.AllowedPeers)
 	if err != nil {
 		return nil, err
 	}
 
 	p := &P2P{
 		node: NewNode(NodeConfig{
-			Context:     config.Context,
-			Logger:      config.Logger,
-			ListenAddrs: listenAddrs,
-			PrivateKey:  ethkey.NewPrivKey(config.Signer),
+			Context:        cfg.Context,
+			Logger:         cfg.Logger.WithField("tag", LoggerTag),
+			ListenAddrs:    listenAddrs,
+			BootstrapAddrs: bootstrapAddrs,
+			BlockedAddrs:   blockedAddrs,
+			AllowedPeers:   allowedPeers,
+			PrivateKey:     ethkey.NewPrivKey(cfg.Signer),
 		}),
-		log: config.Logger.WithField("tag", LoggerTag),
 	}
 
-	logger.Register(p.node, p.log)
-	p.allowlist = allowlist.Register(p.node)
-	p.denylist = denylist.Register(p.node)
-
-	err = p.startNode()
-	if err != nil {
-		return nil, err
-	}
-	err = p.setDenylist(config.BlockedAddrs)
-	if err != nil {
-		return nil, err
-	}
-	err = p.setAllowlist(config.AllowedPeers)
-	if err != nil {
-		return nil, err
-	}
-	err = p.setBootstrapPeers(config.BootstrapAddrs)
+	err = p.node.Start()
 	if err != nil {
 		return nil, err
 	}
@@ -142,85 +134,12 @@ func (p *P2P) WaitFor(topic string, message transport.Message) chan transport.St
 
 // Close implements the transport.Transport interface.
 func (p *P2P) Close() error {
-	defer p.log.Info("Stopped")
-	return p.node.Close()
+	return p.node.Stop()
 }
 
-// startNode starts a libp2p node.
-func (p *P2P) startNode() error {
-	err := p.node.Start()
-	if err != nil {
-		return err
-	}
-
-	p.log.
-		WithFields(log.Fields{"addrs": p.listenAddrs()}).
-		Info("Listening")
-
-	return nil
-}
-
-// setDenylist bans all addresses nodes from the addrs list using the
-// denylist package.
-func (p *P2P) setDenylist(addrs []string) error {
-	for _, addrstr := range addrs {
-		maddr, err := multiaddr.NewMultiaddr(addrstr)
-		if err != nil {
-			return err
-		}
-
-		err = p.denylist.Deny(maddr)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// setAllowlist add peers to allowed list using the allowlist package. Only
-// peers from that list will be allowed to send messages.
-func (p *P2P) setAllowlist(ids []string) error {
-	for _, idstr := range ids {
-		id, err := peer.Decode(idstr)
-		if err != nil {
-			return err
-		}
-		p.allowlist.Allow(id)
-	}
-	return nil
-}
-
-// setBootstrapPeers connects to all nodes from the addrs list.
-func (p *P2P) setBootstrapPeers(addrs []string) error {
-	for _, addrstr := range addrs {
-		maddr, err := multiaddr.NewMultiaddr(addrstr)
-		if err != nil {
-			return err
-		}
-
-		err = p.node.Connect(maddr)
-		if err != nil {
-			p.log.
-				WithFields(log.Fields{"addr": addrstr}).
-				WithError(err).
-				Warn("Unable to connect to bootstrap peer")
-		}
-	}
-	return nil
-}
-
-// listenAddrs returns all node's listen multiaddresses as a string list.
-func (p *P2P) listenAddrs() []string {
-	var strs []string
-	for _, addr := range p.node.Host().Addrs() {
-		strs = append(strs, fmt.Sprintf("%s/p2p/%s", addr.String(), p.node.Host().ID()))
-	}
-	return strs
-}
-
-// addrsToMaddrs converts multiaddresses given as strings to a
+// strsToMaddrs converts multiaddresses given as strings to a
 // list of multiaddr.Multiaddr.
-func addrsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
+func strsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 	var maddrs []multiaddr.Multiaddr
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
@@ -230,4 +149,18 @@ func addrsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 		maddrs = append(maddrs, maddr)
 	}
 	return maddrs, nil
+}
+
+// strsToPeerIDs converts peer IDs given as strings to a
+// list of peer.ID.
+func strsToPeerIDs(ids []string) ([]peer.ID, error) {
+	var pIDs []peer.ID
+	for _, s := range ids {
+		pID, err := peer.Decode(s)
+		if err != nil {
+			return nil, err
+		}
+		pIDs = append(pIDs, pID)
+	}
+	return pIDs, nil
 }

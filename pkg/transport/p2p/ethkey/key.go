@@ -21,6 +21,7 @@ import (
 	cryptoPB "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
 
+	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/ethereum/geth"
 )
 
@@ -48,4 +49,8 @@ func AddressToPeerID(a string) peer.ID {
 		return ""
 	}
 	return id
+}
+
+func PeerIDToAddress(id peer.ID) ethereum.Address {
+	return common.BytesToAddress([]byte(id))
 }

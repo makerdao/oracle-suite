@@ -29,13 +29,13 @@ func NewPriceCmd(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "price",
 		Args:  cobra.ExactArgs(0),
-		Short: "Commands related to the price messages",
+		Short: "commands related to the price messages",
 		Long:  ``,
 	}
 
 	cmd.AddCommand(
 		NewPriceSignCmd(opts),
-		NewPriceVerifyCmd(opts),
+		NewPriceVerifyCmd(),
 	)
 
 	return cmd
@@ -44,13 +44,17 @@ func NewPriceCmd(opts *options) *cobra.Command {
 func NewPriceSignCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sign [json_message]",
-		Args:  cobra.ExactArgs(1),
-		Short: "Signs given JSON price message and returns JSON with VRS fields",
+		Args:  cobra.MaximumNArgs(1),
+		Short: "signs given JSON price message and returns JSON with VRS fields",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
 
-			account, err := geth.NewAccount(opts.EthereumKeystore, opts.EthereumPassword, ethereum.HexToAddress(opts.EthereumAddress))
+			account, err := geth.NewAccount(
+				opts.EthereumKeystore,
+				opts.EthereumPassword,
+				ethereum.HexToAddress(opts.EthereumAddress),
+			)
 			if err != nil {
 				return err
 			}
@@ -87,11 +91,11 @@ func NewPriceSignCmd(opts *options) *cobra.Command {
 	}
 }
 
-func NewPriceVerifyCmd(opts *options) *cobra.Command {
+func NewPriceVerifyCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "verify [json_message]",
-		Args:  cobra.ExactArgs(1),
-		Short: "Verifies given JSON price message",
+		Args:  cobra.MaximumNArgs(1),
+		Short: "verifies given JSON price message",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
@@ -99,7 +103,7 @@ func NewPriceVerifyCmd(opts *options) *cobra.Command {
 			signer := geth.NewSigner(nil)
 
 			// Read JSON and parse it:
-			input, err :=  readInput(args, 0)
+			input, err := readInput(args, 0)
 			if err != nil {
 				return err
 			}

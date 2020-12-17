@@ -22,6 +22,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
+	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 
@@ -31,17 +32,16 @@ type node interface {
 
 // Register registers p2p.Node extensions required by the Allowlist and returns
 // its instance.
-func Register(node node) *Allowlist {
-	allowlist := &Allowlist{}
+func Register(node node, log log.Logger) *Allowlist {
+	allowlist := &Allowlist{log: log}
 	node.AddValidator(allowlist.validator)
 	return allowlist
 }
 
 // Allowlist allows to define a list of peers allowed to publish messages.
-// Until the first peer is added to this list, everyone will be allowed to
-// publish messages.
 type Allowlist struct {
 	peers []peer.ID
+	log   log.Logger
 }
 
 // Allow adds a peer ID to the list of allowed peers.
@@ -49,14 +49,16 @@ func (a *Allowlist) Allow(id peer.ID) {
 	a.peers = append(a.peers, id)
 }
 
-func (a *Allowlist) validator(ctx context.Context, _ string, id peer.ID, _ *pubsub.Message) pubsub.ValidationResult {
-	if len(a.peers) == 0 {
-		return pubsub.ValidationAccept
-	}
+func (a *Allowlist) validator(ctx context.Context, _ string, id peer.ID, m *pubsub.Message) pubsub.ValidationResult {
 	for _, allowed := range a.peers {
-		if bytes.Equal([]byte(allowed), []byte(id)) {
+		if bytes.Equal([]byte(allowed), []byte(m.GetFrom())) {
 			return pubsub.ValidationAccept
 		}
 	}
+
+	a.log.
+		WithField("peerID", m.GetFrom().String()).
+		Debug("Message was ignored because the peer is not allowed to send messages")
+
 	return pubsub.ValidationIgnore
 }
