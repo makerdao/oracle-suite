@@ -29,7 +29,7 @@ import (
 	ghostJSON "github.com/makerdao/gofer/pkg/ghost/config/json"
 	"github.com/makerdao/gofer/pkg/gofer"
 	goferJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer/feeder"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 	"github.com/makerdao/gofer/pkg/log"
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
@@ -63,7 +63,7 @@ func newGofer(opts *options, path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
+	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet())), nil
 }
 
 func newGhost(opts *options, path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {

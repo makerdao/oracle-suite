@@ -29,30 +29,30 @@ import (
 
 const LoggerTag = "SPECTRE"
 
-type ErrNotEnoughPricesForQuorum struct {
+type errNotEnoughPricesForQuorum struct {
 	AssetPair string
 }
 
-func (e ErrNotEnoughPricesForQuorum) Error() string {
+func (e errNotEnoughPricesForQuorum) Error() string {
 	return fmt.Sprintf(
 		"unable to update the Oracle for %s pair, there is not enough prices to achieve a quorum",
 		e.AssetPair,
 	)
 }
 
-type ErrUnknownAsset struct {
+type errUnknownAsset struct {
 	AssetPair string
 }
 
-func (e ErrUnknownAsset) Error() string {
+func (e errUnknownAsset) Error() string {
 	return fmt.Sprintf("pair %s does not exists", e.AssetPair)
 }
 
-type ErrNoPrices struct {
+type errNoPrices struct {
 	AssetPair string
 }
 
-func (e ErrNoPrices) Error() string {
+func (e errNoPrices) Error() string {
 	return fmt.Sprintf("there is no prices in the datastore for %s pair", e.AssetPair)
 }
 
@@ -152,12 +152,12 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 
 	pair, ok := r.pairs[assetPair]
 	if !ok {
-		return nil, ErrUnknownAsset{AssetPair: assetPair}
+		return nil, errUnknownAsset{AssetPair: assetPair}
 	}
 
 	prices := r.datastore.Prices().AssetPair(assetPair)
 	if prices == nil || prices.Len() == 0 {
-		return nil, ErrNoPrices{AssetPair: assetPair}
+		return nil, errNoPrices{AssetPair: assetPair}
 	}
 
 	oracleQuorum, err := pair.Median.Bar(r.ctx)
@@ -208,7 +208,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	if isExpired || isStale {
 		// Check if there are enough prices to achieve a quorum:
 		if int64(prices.Len()) != oracleQuorum {
-			return nil, ErrNotEnoughPricesForQuorum{AssetPair: assetPair}
+			return nil, errNotEnoughPricesForQuorum{AssetPair: assetPair}
 		}
 
 		// Send *actual* transaction to the Ethereum network:
