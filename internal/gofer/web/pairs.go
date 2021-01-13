@@ -19,8 +19,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/internal/gofer/cli"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
 )
 

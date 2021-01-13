@@ -20,8 +20,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/internal/gofer/cli"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
 )
 
