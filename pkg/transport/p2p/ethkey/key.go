@@ -25,7 +25,7 @@ import (
 	"github.com/makerdao/gofer/pkg/ethereum/geth"
 )
 
-// Eth key type uses the Ethereum account to sign and verify messages.
+// Eth key type uses the Ethereum keys to sign and verify messages.
 const KeyType_Eth cryptoPB.KeyType = 10 //nolint:golint,stylecheck
 
 // NewSigner points to a function which create new signer.

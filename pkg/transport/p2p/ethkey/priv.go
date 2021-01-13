@@ -68,7 +68,7 @@ func (p *PrivKey) Type() cryptoPB.KeyType {
 	return KeyType_Eth
 }
 
-// Sign implements the crypto.PrivKey interface.
+// Sign implements the crypto.PrivateKey interface.
 func (p *PrivKey) Sign(bytes []byte) ([]byte, error) {
 	s, err := p.signer.Signature(bytes)
 	if err != nil {
@@ -77,7 +77,7 @@ func (p *PrivKey) Sign(bytes []byte) ([]byte, error) {
 	return s.Bytes(), nil
 }
 
-// GetPublic implements the crypto.PrivKey interface.
+// GetPublic implements the crypto.PrivateKey interface.
 func (p *PrivKey) GetPublic() crypto.PubKey {
 	return NewPubKey(p.signer.Address())
 }

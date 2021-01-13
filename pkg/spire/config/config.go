@@ -129,7 +129,7 @@ func (c *Config) configureSigner(a *geth.Account) ethereum.Signer {
 func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
 	cfg := p2p.Config{
 		Context:        ctx,
-		Signer:         s,
+		PrivateKey:     ethkey.NewPrivKey(s),
 		ListenAddrs:    c.P2P.Listen,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
