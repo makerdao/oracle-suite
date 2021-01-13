@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package config
+package json
 
 import (
 	"testing"
@@ -21,76 +21,33 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/makerdao/gofer/pkg/gofer/config"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 func TestParseJSONFile_ValidConfig(t *testing.T) {
-	_, err := ParseJSONFile("./testdata/config.valid.json")
+	err := ParseJSONFile(&config.Config{}, "./testdata/config.valid.json")
 	assert.NoError(t, err)
 }
 
 func TestParseJSONFile_MissingFile(t *testing.T) {
-	_, err := ParseJSONFile("missing")
+	err := ParseJSONFile(&config.Config{}, "missing")
 	assert.Error(t, err)
 }
 
-func TestBuildGraphs_ValidConfig(t *testing.T) {
-	f, err1 := ParseJSONFile("./testdata/config.valid.json")
-	assert.Nil(t, err1)
-
-	j, err2 := f.BuildGraphs()
-	assert.Nil(t, err2)
-
-	// List of pairs used in config file:
-	ab := graph.Pair{Base: "A", Quote: "B"}
-	bc := graph.Pair{Base: "B", Quote: "C"}
-	ac := graph.Pair{Base: "A", Quote: "C"}
-
-	// Check if all three pairs was loaded correctly:
-	assert.Contains(t, j, bc)
-	assert.Contains(t, j, ac)
-	assert.IsType(t, &graph.MedianAggregatorNode{}, j[bc])
-	assert.IsType(t, &graph.MedianAggregatorNode{}, j[ac])
-
-	// --- Tests for B/C pair ---
-	assert.Len(t, j[bc].Children(), 2)
-	// Sources have only one pair so we expect OriginNodes instead of
-	// the IndirectAggregatorNode:
-	assert.IsType(t, &graph.OriginNode{}, j[bc].Children()[0])
-	assert.IsType(t, &graph.OriginNode{}, j[bc].Children()[1])
-	// Check if pairs was assigned correctly to nodes:
-	assert.Equal(t, "bc1", j[bc].Children()[0].(*graph.OriginNode).OriginPair().Origin)
-	assert.Equal(t, "bc2", j[bc].Children()[1].(*graph.OriginNode).OriginPair().Origin)
-	assert.Equal(t, bc, j[bc].Children()[0].(*graph.OriginNode).OriginPair().Pair)
-	assert.Equal(t, bc, j[bc].Children()[1].(*graph.OriginNode).OriginPair().Pair)
-
-	// --- Tests for A/C pair ---
-	assert.Len(t, j[ac].Children(), 2)
-	// Sources have more than one pair so now we expect the
-	// IndirectAggregatorNode.
-	assert.IsType(t, &graph.IndirectAggregatorNode{}, j[ac].Children()[0])
-	assert.IsType(t, &graph.IndirectAggregatorNode{}, j[ac].Children()[1])
-	// Check if pairs was assigned correctly to nodes:
-	assert.Equal(t, ac, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Pair())
-	assert.Equal(t, ac, j[ac].Children()[1].(*graph.IndirectAggregatorNode).Pair())
-	assert.Equal(t, ab, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[0].(*graph.OriginNode).OriginPair().Pair)
-	assert.Equal(t, bc, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[1].(*graph.OriginNode).OriginPair().Pair)
-	// In a second source, there is a reference to another root node. We should
-	// use previously created instance instead creating new one:
-	assert.Same(t, j[bc], j[ac].Children()[1].(*graph.IndirectAggregatorNode).Children()[1])
-}
-
 func TestBuildGraphs_CyclicConfig(t *testing.T) {
-	f, err1 := ParseJSONFile("./testdata/config.cyclic.json")
+	c := &config.Config{}
+	err1 := ParseJSONFile(c, "./testdata/config.cyclic.json")
 	assert.Nil(t, err1)
 
-	_, err2 := f.BuildGraphs()
+	_, err2 := c.BuildGraphs()
 	assert.Error(t, err2)
 }
 
 func TestBuildGraphs_NoSources(t *testing.T) {
 	// Price model without sources should be parsed without an error:
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -102,13 +59,14 @@ func TestBuildGraphs_NoSources(t *testing.T) {
 	`))
 	assert.Nil(t, err1)
 
-	_, err2 := f.BuildGraphs()
+	_, err2 := c.BuildGraphs()
 	assert.Nil(t, err2)
 }
 
 func TestBuildGraphs_MissingParams(t *testing.T) {
 	// The "params" may be skipped:
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -122,13 +80,14 @@ func TestBuildGraphs_MissingParams(t *testing.T) {
 	`))
 	assert.Nil(t, err1)
 
-	_, err2 := f.BuildGraphs()
+	_, err2 := c.BuildGraphs()
 	assert.Nil(t, err2)
 }
 
 func TestBuildGraphs_InvalidPairName(t *testing.T) {
 	// The "A_B" is incorrect, "A/B" should be used instead:
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A_B": {
@@ -140,12 +99,13 @@ func TestBuildGraphs_InvalidPairName(t *testing.T) {
 	`))
 	assert.Nil(t, err1)
 
-	_, err2 := f.BuildGraphs()
+	_, err2 := c.BuildGraphs()
 	assert.Error(t, err2)
 }
 
 func TestBuildGraphs_ReferenceToMissingPair(t *testing.T) {
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -159,12 +119,13 @@ func TestBuildGraphs_ReferenceToMissingPair(t *testing.T) {
 	`))
 	assert.Nil(t, err1)
 
-	_, err2 := f.BuildGraphs()
+	_, err2 := c.BuildGraphs()
 	assert.Error(t, err2)
 }
 
 func TestBuildGraphs_ReferenceToSelf(t *testing.T) {
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -178,12 +139,13 @@ func TestBuildGraphs_ReferenceToSelf(t *testing.T) {
 	`))
 	assert.Nil(t, err1)
 
-	_, err2 := f.BuildGraphs()
+	_, err2 := c.BuildGraphs()
 	assert.Error(t, err2)
 }
 
 func TestBuildGraphs_DefaultTTL(t *testing.T) {
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -198,14 +160,15 @@ func TestBuildGraphs_DefaultTTL(t *testing.T) {
 	assert.Nil(t, err1)
 
 	p, _ := graph.NewPair("A/B")
-	g, _ := f.BuildGraphs()
+	g, _ := c.BuildGraphs()
 
-	assert.Equal(t, defaultMaxTTL, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, defaultMaxTTL-minTTLDifference, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 30*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
 
 func TestBuildGraphs_OriginTTL(t *testing.T) {
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -220,14 +183,15 @@ func TestBuildGraphs_OriginTTL(t *testing.T) {
 	assert.Nil(t, err1)
 
 	p, _ := graph.NewPair("A/B")
-	g, _ := f.BuildGraphs()
+	g, _ := c.BuildGraphs()
 
 	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
 	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
 
 func TestBuildGraphs_MedianTTL(t *testing.T) {
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -243,14 +207,15 @@ func TestBuildGraphs_MedianTTL(t *testing.T) {
 	assert.Nil(t, err1)
 
 	p, _ := graph.NewPair("A/B")
-	g, _ := f.BuildGraphs()
+	g, _ := c.BuildGraphs()
 
 	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
 	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }
 
 func TestBuildGraphs_MedianAndOriginTTL(t *testing.T) {
-	f, err1 := ParseJSON([]byte(`
+	c := &config.Config{}
+	err1 := ParseJSON(c, []byte(`
 		{
 		  "pricemodels": {
 			"A/B": {
@@ -266,7 +231,7 @@ func TestBuildGraphs_MedianAndOriginTTL(t *testing.T) {
 	assert.Nil(t, err1)
 
 	p, _ := graph.NewPair("A/B")
-	g, _ := f.BuildGraphs()
+	g, _ := c.BuildGraphs()
 
 	// TTL assigned TTL should have higher priority:
 	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())

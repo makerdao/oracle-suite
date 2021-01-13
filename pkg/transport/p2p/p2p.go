@@ -40,7 +40,7 @@ type Config struct {
 	Context context.Context
 	Logger  log.Logger
 
-	// PrivateKey is used to sign and verify messages in the network.
+	// PrivateKey is a key used to sign and verify messages in the network.
 	PrivateKey crypto.PrivKey
 	// ListenAddrs is a list of multiaddresses on which this node will be
 	// listening on. If empty, the localhost, and a random port will be used.
@@ -57,7 +57,7 @@ type Config struct {
 	AllowedPeers []string
 }
 
-// New returns a new instance of a transport, implemented by using
+// New returns a new instance of a transport, implemented with
 // the libp2p library.
 func New(cfg Config) (*P2P, error) {
 	var err error

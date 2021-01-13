@@ -13,13 +13,44 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package json
 
-import "github.com/makerdao/gofer/pkg/spectre/config"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
 
-// These are the command options that can be set by CLI flags.
-type options struct {
-	LogVerbosity   string
-	ConfigFilePath string
-	Config         config.Config
+	"github.com/makerdao/gofer/pkg/gofer/config"
+)
+
+type ConfigErr struct {
+	Err error
+}
+
+func (e ConfigErr) Error() string {
+	return e.Err.Error()
+}
+
+func ParseJSONFile(cfg *config.Config, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to load JSON config file: %w", err)
+	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return ConfigErr{fmt.Errorf("failed to load JSON config file: %w", err)}
+	}
+
+	return ParseJSON(cfg, b)
+}
+
+func ParseJSON(cfg *config.Config, b []byte) error {
+	err := json.Unmarshal(b, cfg)
+	if err != nil {
+		return ConfigErr{err}
+	}
+	return nil
 }

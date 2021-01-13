@@ -17,12 +17,16 @@ package config
 
 import (
 	"context"
+	"time"
+
+	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/makerdao/gofer/pkg/datastore"
 	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/geth"
+	ethereumGeth "github.com/makerdao/gofer/pkg/ethereum/geth"
 	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/spire"
+	oracleGeth "github.com/makerdao/gofer/pkg/oracle/geth"
+	"github.com/makerdao/gofer/pkg/spectre"
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/messages"
 	"github.com/makerdao/gofer/pkg/transport/p2p"
@@ -30,17 +34,18 @@ import (
 )
 
 type Config struct {
-	Ethereum Ethereum `json:"ethereum"`
-	P2P      P2P      `json:"p2p"`
-	RPC      RPC      `json:"rpc"`
-	Feeds    []string `json:"feeds"`
-	Pairs    []string `json:"pairs"`
+	Ethereum Ethereum        `json:"ethereum"`
+	P2P      P2P             `json:"p2p"`
+	Options  Options         `json:"options"`
+	Feeds    []string        `json:"feeds"`
+	Pairs    map[string]Pair `json:"pairs"`
 }
 
 type Ethereum struct {
 	From     string `json:"from"`
 	Keystore string `json:"keystore"`
 	Password string `json:"password"`
+	RPC      string `json:"rpc"`
 }
 
 type P2P struct {
@@ -49,8 +54,15 @@ type P2P struct {
 	BlockedAddrs   []string `json:"blockedAddrs"`
 }
 
-type RPC struct {
-	Address string `json:"address"`
+type Options struct {
+	Interval int `json:"interval"`
+}
+
+type Pair struct {
+	Oracle           string  `json:"oracle"`
+	OracleSpread     float64 `json:"oracleSpread"`
+	OracleExpiration int64   `json:"oracleExpiration"`
+	MsgExpiration    int64   `json:"msgExpiration"`
 }
 
 type Dependencies struct {
@@ -58,7 +70,14 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (c *Config) ConfigureServer(deps Dependencies) (*spire.Server, error) {
+type Instances struct {
+	Ethereum  ethereum.Client
+	Signer    ethereum.Signer
+	Transport transport.Transport
+	Spectre   *spectre.Spectre
+}
+
+func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
 	if err != nil {
@@ -74,45 +93,28 @@ func (c *Config) ConfigureServer(deps Dependencies) (*spire.Server, error) {
 		return nil, err
 	}
 
+	// Create Ethereum client:
+	eth, err := c.configureEthClient(sig)
+	if err != nil {
+		return nil, err
+	}
+
 	// Datastore:
 	dat := c.configureDatastore(sig, tra, deps.Logger)
 
-	// RPC Server:
-	srv, err := spire.NewServer(spire.ServerConfig{
-		Datastore: dat,
-		Transport: tra,
+	// Create and configure Spectre:
+	spe := c.configureSpectre(sig, dat, deps.Logger, eth)
+
+	return &Instances{
+		Ethereum:  eth,
 		Signer:    sig,
-		Network:   "tcp",
-		Address:   c.RPC.Address,
-		Logger:    deps.Logger,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return srv, nil
+		Transport: tra,
+		Spectre:   spe,
+	}, nil
 }
 
-func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
-	// Ethereum account:
-	acc, err := c.configureAccount()
-	if err != nil {
-		return nil, err
-	}
-
-	// Signer:
-	sig := c.configureSigner(acc)
-
-	return spire.NewClient(spire.ClientConfig{
-		Signer:  sig,
-		Network: "tcp",
-		Address: c.RPC.Address,
-		Logger:  deps.Logger,
-	}), nil
-}
-
-func (c *Config) configureAccount() (*geth.Account, error) {
-	a, err := geth.NewAccount(
+func (c *Config) configureAccount() (*ethereumGeth.Account, error) {
+	a, err := ethereumGeth.NewAccount(
 		c.Ethereum.Keystore,
 		c.Ethereum.Password,
 		ethereum.HexToAddress(c.Ethereum.From),
@@ -120,12 +122,11 @@ func (c *Config) configureAccount() (*geth.Account, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return a, nil
 }
 
-func (c *Config) configureSigner(a *geth.Account) ethereum.Signer {
-	return geth.NewSigner(a)
+func (c *Config) configureSigner(a *ethereumGeth.Account) ethereum.Signer {
+	return ethereumGeth.NewSigner(a)
 }
 
 func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
@@ -155,6 +156,15 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	return p, nil
 }
 
+func (c *Config) configureEthClient(s ethereum.Signer) (*ethereumGeth.Client, error) {
+	client, err := ethclient.Dial(c.Ethereum.RPC)
+	if err != nil {
+		return nil, err
+	}
+
+	return ethereumGeth.NewClient(client, s), nil
+}
+
 func (c *Config) configureDatastore(s ethereum.Signer, t transport.Transport, l log.Logger) *datastore.Datastore {
 	cfg := datastore.Config{
 		Signer:    s,
@@ -168,9 +178,37 @@ func (c *Config) configureDatastore(s ethereum.Signer, t transport.Transport, l 
 		feeds = append(feeds, ethereum.HexToAddress(feed))
 	}
 
-	for _, pair := range c.Pairs {
-		cfg.Pairs[pair] = &datastore.Pair{Feeds: feeds}
+	for name := range c.Pairs {
+		cfg.Pairs[name] = &datastore.Pair{Feeds: feeds}
 	}
 
 	return datastore.NewDatastore(cfg)
+}
+
+func (c *Config) configureSpectre(
+	s ethereum.Signer,
+	d spectre.Datastore,
+	l log.Logger,
+	e ethereum.Client,
+) *spectre.Spectre {
+
+	cfg := spectre.Config{
+		Signer:    s,
+		Interval:  time.Second * time.Duration(c.Options.Interval),
+		Datastore: d,
+		Logger:    l,
+		Pairs:     nil,
+	}
+
+	for name, pair := range c.Pairs {
+		cfg.Pairs = append(cfg.Pairs, &spectre.Pair{
+			AssetPair:        name,
+			OracleSpread:     pair.OracleSpread,
+			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
+			PriceExpiration:  time.Second * time.Duration(pair.MsgExpiration),
+			Median:           oracleGeth.NewMedian(e, ethereum.HexToAddress(pair.Oracle)),
+		})
+	}
+
+	return spectre.NewSpectre(cfg)
 }

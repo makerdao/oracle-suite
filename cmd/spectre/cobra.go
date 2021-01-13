@@ -28,6 +28,7 @@ import (
 	"github.com/makerdao/gofer/pkg/log"
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 	"github.com/makerdao/gofer/pkg/spectre/config"
+	configJSON "github.com/makerdao/gofer/pkg/spectre/config/json"
 )
 
 func newLogger(level string) (log.Logger, error) {
@@ -42,24 +43,25 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newSpectre(path string, log log.Logger) (*config.Instances, error) {
+func newSpectre(opts *options, path string, log log.Logger) (*config.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	j, err := config.ParseJSONFile(absPath)
+	err = configJSON.ParseJSONFile(&opts.Config, absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	i, err := j.Configure(config.Dependencies{
+	i, err := opts.Config.Configure(config.Dependencies{
 		Context: context.Background(),
 		Logger:  log,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	return i, nil
 }
 
@@ -80,7 +82,7 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			ins, err := newSpectre(absPath, l)
+			ins, err := newSpectre(o, absPath, l)
 			if err != nil {
 				return err
 			}

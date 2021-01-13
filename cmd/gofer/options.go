@@ -20,12 +20,14 @@ import (
 	"strings"
 
 	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/pkg/gofer/config"
 )
 
 // These are the command options that can be set by CLI flags.
 type options struct {
 	ConfigFilePath string
 	OutputFormat   formatTypeValue
+	Config         config.Config
 }
 
 var formatMap = map[marshal.FormatType]string{
