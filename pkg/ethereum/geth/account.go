@@ -21,10 +21,12 @@ import (
 	"runtime"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/signer/core"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/makerdao/gofer/pkg/ethereum"
 )
+
+var ErrUnableToFindAccount = errors.New("unable to find account for requested address")
 
 type Account struct {
 	accountManager *accounts.Manager
@@ -35,17 +37,16 @@ type Account struct {
 }
 
 // NewAccount returns a new Account instance.
-func NewAccount(keyStore, passphrase string, address ethereum.Address) (*Account, error) {
+func NewAccount(keyStorePath, passphrase string, address ethereum.Address) (*Account, error) {
 	var err error
 
-	if keyStore == "" {
-		keyStore = defaultKeyStore()
+	if keyStorePath == "" {
+		keyStorePath = defaultKeyStorePath()
 	}
 
+	ks := keystore.NewKeyStore(keyStorePath, keystore.LightScryptN, keystore.LightScryptP)
 	w := &Account{
-		// Using StartClefAccountManager is not a perfect solution but it's probably little better than
-		// copy-pasting the code.
-		accountManager: core.StartClefAccountManager(keyStore, true, true, ""),
+		accountManager: accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: false}, ks),
 		passphrase:     passphrase,
 		address:        address,
 	}
@@ -76,11 +77,11 @@ func (s *Account) findAccountByAddress(from ethereum.Address) (accounts.Wallet, 
 		}
 	}
 
-	return nil, nil, errors.New("unable to find account for requested address")
+	return nil, nil, ErrUnableToFindAccount
 }
 
 // source: https://github.com/dapphub/dapptools/blob/master/src/ethsign/ethsign.go
-func defaultKeyStore() string {
+func defaultKeyStorePath() string {
 	var defaultKeyStores []string
 
 	switch runtime.GOOS {

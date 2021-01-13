@@ -130,7 +130,7 @@ func (j *JSON) Configure(deps Dependencies) (*Instances, error) {
 	// Configure transport:
 	p2pCfg := p2p.Config{
 		Context:        deps.Context,
-		Signer:         sig,
+		PrivateKey:     ethkey.NewPrivKey(sig),
 		ListenAddrs:    j.P2P.Listen,
 		BootstrapAddrs: j.P2P.BootstrapPeers,
 		BlockedAddrs:   j.P2P.BannedPeers,

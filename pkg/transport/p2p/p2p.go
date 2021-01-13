@@ -18,13 +18,12 @@ package p2p
 import (
 	"context"
 
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/transport"
-	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 )
 
 const LoggerTag = "P2P"
@@ -41,8 +40,8 @@ type Config struct {
 	Context context.Context
 	Logger  log.Logger
 
-	// Signer is used to sign and verify messages in the network.
-	Signer ethereum.Signer
+	// PrivateKey is used to sign and verify messages in the network.
+	PrivateKey crypto.PrivKey
 	// ListenAddrs is a list of multiaddresses on which this node will be
 	// listening on. If empty, the localhost, and a random port will be used.
 	ListenAddrs []string
@@ -92,7 +91,7 @@ func New(cfg Config) (*P2P, error) {
 			BootstrapAddrs: bootstrapAddrs,
 			BlockedAddrs:   blockedAddrs,
 			AllowedPeers:   allowedPeers,
-			PrivateKey:     ethkey.NewPrivKey(cfg.Signer),
+			PrivateKey:     cfg.PrivateKey,
 		}),
 	}
 
