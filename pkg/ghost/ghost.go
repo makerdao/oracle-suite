@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/gofer/graph"

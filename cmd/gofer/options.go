@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer/config"
 )
 

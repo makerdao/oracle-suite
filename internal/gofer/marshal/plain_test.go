@@ -24,7 +24,7 @@ import (
 
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 
-	"github.com/makerdao/gofer/internal/marshal/testutil"
+	"github.com/makerdao/gofer/internal/gofer/marshal/testutil"
 )
 
 func TestPlain_Graph(t *testing.T) {

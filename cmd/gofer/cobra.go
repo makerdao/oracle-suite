@@ -24,13 +24,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/marshal"
-	"github.com/makerdao/gofer/pkg/cli"
+	"github.com/makerdao/gofer/internal/gofer/cli"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
+	"github.com/makerdao/gofer/internal/gofer/web"
 	"github.com/makerdao/gofer/pkg/gofer"
 	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
-	"github.com/makerdao/gofer/pkg/web"
 )
 
 func newGofer(opts *options, path string) (*gofer.Gofer, error) {
