@@ -13,23 +13,24 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package feeder
 
 import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 )
 
 type Feedable interface {
 	// OriginPair returns the origin and pair which are acceptable for
 	// this Node.
-	OriginPair() OriginPair
+	OriginPair() graph.OriginPair
 	// Ingest sets the Tick for this Node. It may return error if
 	// the OriginTick contains incompatible origin or pair.
-	Ingest(tick OriginTick) error
+	Ingest(tick graph.OriginTick) error
 	// MinTTL is the amount of time during which the Tick shouldn't be updated.
 	MinTTL() time.Duration
 	// MaxTTL is the maximum amount of time during which the Tick can be used.
@@ -42,7 +43,7 @@ type Feedable interface {
 	// Tick returns the Tick assigned in the Ingest method. If the Tick is
 	// expired then a ErrTickTTLExpired error will be set in
 	// the OriginTick.Error field.
-	Tick() OriginTick
+	Tick() graph.OriginTick
 }
 
 // Feeder sets ticks from origins to the Feedable nodes.
@@ -66,11 +67,11 @@ func NewFeeder(set *origins.Set) *Feeder {
 // despite this there may be enough data to calculate prices. To check that,
 // invoke the Tick() method on the root node and check if there is an error
 // in AggregatorTick.Error field.
-func (f *Feeder) Feed(nodes []Node) error {
+func (f *Feeder) Feed(nodes []graph.Node) error {
 	return f.fetchTicksAndFeedThemToFeedableNodes(f.findFeedableNodes(nodes))
 }
 
-func (f *Feeder) Start(nodes []Node) error {
+func (f *Feeder) Start(nodes []graph.Node) error {
 	// TODO: log errors
 	_ = f.Feed(nodes)
 
@@ -97,11 +98,11 @@ func (f *Feeder) Stop() {
 
 // findFeedableNodes returns a list of children nodes from given root nodes
 // which implement Feedable interface.
-func (f *Feeder) findFeedableNodes(nodes []Node) []Feedable {
+func (f *Feeder) findFeedableNodes(nodes []graph.Node) []Feedable {
 	tn := time.Now()
 
 	var feedables []Feedable
-	Walk(func(node Node) {
+	graph.Walk(func(node graph.Node) {
 		if feedable, ok := node.(Feedable); ok {
 			tr := tn.Add(-1 * feedable.MinTTL())
 			if feedable.Tick().Timestamp.Before(tr) {
@@ -200,10 +201,10 @@ func appendNodeIfUnique(nodes []Feedable, node Feedable) []Feedable {
 	return nodes
 }
 
-func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
-	return OriginTick{
-		Tick: Tick{
-			Pair: Pair{
+func mapOriginResult(origin string, fr origins.FetchResult) graph.OriginTick {
+	return graph.OriginTick{
+		Tick: graph.Tick{
+			Pair: graph.Pair{
 				Base:  fr.Tick.Pair.Base,
 				Quote: fr.Tick.Pair.Quote,
 			},
@@ -218,9 +219,9 @@ func mapOriginResult(origin string, fr origins.FetchResult) OriginTick {
 	}
 }
 
-func getMinTTL(nodes []Node) time.Duration {
+func getMinTTL(nodes []graph.Node) time.Duration {
 	minTTL := time.Duration(0)
-	Walk(func(node Node) {
+	graph.Walk(func(node graph.Node) {
 		if feedable, ok := node.(Feedable); ok {
 			if minTTL == 0 || feedable.MinTTL() < minTTL {
 				minTTL = feedable.MinTTL()

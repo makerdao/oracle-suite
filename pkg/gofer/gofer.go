@@ -18,15 +18,24 @@ package gofer
 import (
 	"fmt"
 
+	"github.com/makerdao/gofer/pkg/gofer/feeder"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
-type Gofer struct {
-	graphs map[graph.Pair]graph.Aggregator
-	feeder *graph.Feeder
+type ErrPairNotFound struct {
+	AssetPair string
 }
 
-func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *graph.Feeder) *Gofer {
+func (e ErrPairNotFound) Error() string {
+	return fmt.Sprintf("unable to find %s pair", e.AssetPair)
+}
+
+type Gofer struct {
+	graphs map[graph.Pair]graph.Aggregator
+	feeder *feeder.Feeder
+}
+
+func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *feeder.Feeder) *Gofer {
 	return &Gofer{
 		graphs: graphs,
 		feeder: feeder,
@@ -37,7 +46,7 @@ func (g *Gofer) Graphs() map[graph.Pair]graph.Aggregator {
 	return g.graphs
 }
 
-func (g *Gofer) Feeder() *graph.Feeder {
+func (g *Gofer) Feeder() *feeder.Feeder {
 	return g.feeder
 }
 
@@ -79,7 +88,7 @@ func (g *Gofer) Tick(pair graph.Pair) (graph.AggregatorTick, error) {
 		return node.Tick(), nil
 	}
 
-	return graph.AggregatorTick{}, fmt.Errorf("unable to find %s pair", pair)
+	return graph.AggregatorTick{}, ErrPairNotFound{AssetPair: pair.String()}
 }
 
 func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
@@ -107,7 +116,7 @@ func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 				}
 			}, pairGraph)
 		} else {
-			return nil, fmt.Errorf("unable to find %s pair", pair)
+			return nil, ErrPairNotFound{AssetPair: pair.String()}
 		}
 	}
 
@@ -120,7 +129,7 @@ func (g *Gofer) getNodesForPairs(pairs []graph.Pair) ([]graph.Node, error) {
 		if pairGraph, ok := g.graphs[pair]; ok {
 			graphs = append(graphs, pairGraph)
 		} else {
-			return nil, fmt.Errorf("unable to find %s pair", pair)
+			return nil, ErrPairNotFound{AssetPair: pair.String()}
 		}
 	}
 	return graphs, nil

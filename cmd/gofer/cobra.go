@@ -29,7 +29,7 @@ import (
 	"github.com/makerdao/gofer/internal/gofer/web"
 	"github.com/makerdao/gofer/pkg/gofer"
 	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer/feeder"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 )
 
@@ -49,7 +49,7 @@ func newGofer(opts *options, path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
+	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet())), nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.
@@ -239,8 +239,25 @@ with aggregates that increase reliability in the DeFi environment.`,
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./gofer.json", "config file")
-	rootCmd.PersistentFlags().VarP(&opts.OutputFormat, "format", "f", "output format")
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity", "v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigFilePath,
+		"config",
+		"c",
+		"./gofer.json",
+		"config file",
+	)
+	rootCmd.PersistentFlags().VarP(
+		&opts.OutputFormat,
+		"format",
+		"f",
+		"output format",
+	)
 
 	return rootCmd
 }
