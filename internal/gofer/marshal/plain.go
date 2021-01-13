@@ -34,7 +34,7 @@ func newPlain() *plain {
 				strs[n] = string(s)
 			}
 
-			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
+			return []marshalledItem{[]byte(strings.Join(strs, "\n")+"\n")}, nil
 		}
 
 		var err error
@@ -84,10 +84,6 @@ func plainHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) {
 
 func plainHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
 	for p, os := range origins {
-		*ret = append(*ret, []byte(p.String()+":"))
-		for _, o := range os {
-			*ret = append(*ret, []byte(o))
-		}
-		*ret = append(*ret, []byte{})
+		*ret = append(*ret, []byte(p.String()+":\n"+strings.Join(os, "\n")))
 	}
 }

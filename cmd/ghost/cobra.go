@@ -47,7 +47,7 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newGofer(opts *options, path string) (*gofer.Gofer, error) {
+func newGofer(opts *options, path string, log log.Logger) (*gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func newGofer(opts *options, path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet())), nil
+	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet(), log)), nil
 }
 
 func newGhost(opts *options, path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
@@ -111,7 +111,7 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			gof, err := newGofer(o, goferAbsPath)
+			gof, err := newGofer(o, goferAbsPath, l)
 			if err != nil {
 				return err
 			}
