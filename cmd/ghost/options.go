@@ -15,9 +15,16 @@
 
 package main
 
+import (
+	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
+	goferConfig "github.com/makerdao/gofer/pkg/gofer/config"
+)
+
 // These are the command options that can be set by CLI flags.
 type options struct {
 	LogVerbosity        string
 	GhostConfigFilePath string
 	GoferConfigFilePath string
+	GhostConfig         ghostConfig.Config
+	GoferConfig         goferConfig.Config
 }

@@ -128,7 +128,6 @@ func NewMedianBarCmd() *cobra.Command {
 				return err
 			}
 
-			// Print bar:
 			fmt.Println(bar)
 
 			return nil
@@ -148,7 +147,6 @@ func NewMedianWatCmd() *cobra.Command {
 				return err
 			}
 
-			// Print wat:
 			fmt.Println(wat)
 
 			return nil
@@ -168,7 +166,6 @@ func NewMedianValCmd() *cobra.Command {
 				return err
 			}
 
-			// Print price:
 			fmt.Println(price.String())
 
 			return nil
@@ -188,7 +185,6 @@ func NewMedianFeedsCmd() *cobra.Command {
 				return err
 			}
 
-			// Print feeds:
 			for _, f := range feeds {
 				fmt.Println(f.String())
 			}

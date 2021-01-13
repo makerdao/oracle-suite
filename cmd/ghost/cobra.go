@@ -26,8 +26,9 @@ import (
 	"github.com/spf13/cobra"
 
 	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
+	ghostJSON "github.com/makerdao/gofer/pkg/ghost/config/json"
 	"github.com/makerdao/gofer/pkg/gofer"
-	goferConfig "github.com/makerdao/gofer/pkg/gofer/config"
+	goferJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 	"github.com/makerdao/gofer/pkg/log"
@@ -46,18 +47,18 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newGofer(path string) (*gofer.Gofer, error) {
+func newGofer(opts *options, path string) (*gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	j, err := goferConfig.ParseJSONFile(absPath)
+	err = goferJSON.ParseJSONFile(&opts.GoferConfig, absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	g, err := j.BuildGraphs()
+	g, err := opts.GoferConfig.BuildGraphs()
 	if err != nil {
 		return nil, err
 	}
@@ -65,18 +66,18 @@ func newGofer(path string) (*gofer.Gofer, error) {
 	return gofer.NewGofer(g, graph.NewFeeder(origins.DefaultSet())), nil
 }
 
-func newGhost(path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
+func newGhost(opts *options, path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	j, err := ghostConfig.ParseJSONFile(absPath)
+	err = ghostJSON.ParseJSONFile(&opts.GhostConfig, absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	i, err := j.Configure(ghostConfig.Dependencies{
+	i, err := opts.GhostConfig.Configure(ghostConfig.Dependencies{
 		Context: context.Background(),
 		Gofer:   gof,
 		Logger:  log,
@@ -84,6 +85,7 @@ func newGhost(path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Insta
 	if err != nil {
 		return nil, err
 	}
+
 	return i, nil
 }
 
@@ -109,12 +111,12 @@ func NewRunCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			gof, err := newGofer(goferAbsPath)
+			gof, err := newGofer(o, goferAbsPath)
 			if err != nil {
 				return err
 			}
 
-			ins, err := newGhost(ghostAbsPath, gof, l)
+			ins, err := newGhost(o, ghostAbsPath, gof, l)
 			if err != nil {
 				return err
 			}

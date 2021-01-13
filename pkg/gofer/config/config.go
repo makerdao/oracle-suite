@@ -19,8 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -32,20 +30,20 @@ import (
 const defaultMaxTTL = 60 * time.Second
 const minTTLDifference = 30 * time.Second
 
-type JSON struct {
-	Origins     map[string]JSONOrigin     `json:"origins"`
-	PriceModels map[string]JSONPriceModel `json:"priceModels"`
+type Config struct {
+	Origins     map[string]Origin     `json:"origins"`
+	PriceModels map[string]PriceModel `json:"priceModels"`
 }
 
-type JSONOrigin struct {
+type Origin struct {
 	Type   string          `json:"type"`
 	Name   string          `json:"name"`
 	Params json.RawMessage `json:"params"`
 }
 
-type JSONPriceModel struct {
+type PriceModel struct {
 	Method  string          `json:"method"`
-	Sources [][]JSONSource  `json:"sources"`
+	Sources [][]Source      `json:"sources"`
 	Params  json.RawMessage `json:"params"`
 	TTL     int             `json:"ttl"`
 }
@@ -54,46 +52,13 @@ type MedianPriceModel struct {
 	MinSourceSuccess int `json:"minimumSuccessfulSources"`
 }
 
-type JSONSource struct {
+type Source struct {
 	Origin string `json:"origin"`
 	Pair   string `json:"pair"`
 	TTL    int    `json:"ttl"`
 }
 
-type JSONConfigErr struct {
-	Err error
-}
-
-func (e JSONConfigErr) Error() string {
-	return e.Err.Error()
-}
-
-func ParseJSONFile(path string) (*JSON, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load JSON config file: %w", err)
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, JSONConfigErr{fmt.Errorf("failed to load JSON config file: %w", err)}
-	}
-
-	return ParseJSON(b)
-}
-
-func ParseJSON(b []byte) (*JSON, error) {
-	j := &JSON{}
-	err := json.Unmarshal(b, j)
-	if err != nil {
-		return nil, JSONConfigErr{err}
-	}
-
-	return j, nil
-}
-
-func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
+func (j *Config) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	var err error
 
 	graphs := map[graph.Pair]graph.Aggregator{}
@@ -102,23 +67,23 @@ func (j *JSON) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	// may refer to another root nodes instances.
 	err = j.buildRoots(graphs)
 	if err != nil {
-		return nil, JSONConfigErr{err}
+		return nil, err
 	}
 
 	err = j.buildBranches(graphs)
 	if err != nil {
-		return nil, JSONConfigErr{err}
+		return nil, err
 	}
 
 	err = j.detectCycle(graphs)
 	if err != nil {
-		return nil, JSONConfigErr{err}
+		return nil, err
 	}
 
 	return graphs, nil
 }
 
-func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
+func (j *Config) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 	for name, model := range j.PriceModels {
 		modelPair, err := graph.NewPair(name)
 		if err != nil {
@@ -143,7 +108,7 @@ func (j *JSON) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
+func (j *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	for name, model := range j.PriceModels {
 		// We can ignore error here, because it was checked already
 		// in buildRoots method.
@@ -202,7 +167,7 @@ func (j *JSON) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (j *JSON) reference(graphs map[graph.Pair]graph.Aggregator, source JSONSource) (graph.Node, error) {
+func (j *Config) reference(graphs map[graph.Pair]graph.Aggregator, source Source) (graph.Node, error) {
 	sourcePair, err := graph.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
@@ -218,7 +183,7 @@ func (j *JSON) reference(graphs map[graph.Pair]graph.Aggregator, source JSONSour
 	return graphs[sourcePair].(graph.Node), nil
 }
 
-func (j *JSON) originNode(model JSONPriceModel, source JSONSource) (graph.Node, error) {
+func (j *Config) originNode(model PriceModel, source Source) (graph.Node, error) {
 	sourcePair, err := graph.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
@@ -240,7 +205,7 @@ func (j *JSON) originNode(model JSONPriceModel, source JSONSource) (graph.Node, 
 	return graph.NewOriginNode(originPair, ttl-minTTLDifference, ttl), nil
 }
 
-func (j *JSON) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
+func (j *Config) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
 	for _, p := range sortGraphs(graphs) {
 		if c := graph.DetectCycle(graphs[p]); len(c) > 0 {
 			errMsg := strings.Builder{}

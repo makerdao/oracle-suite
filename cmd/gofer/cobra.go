@@ -27,24 +27,24 @@ import (
 	"github.com/makerdao/gofer/internal/marshal"
 	"github.com/makerdao/gofer/pkg/cli"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/config"
+	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 	"github.com/makerdao/gofer/pkg/web"
 )
 
-func newGofer(path string) (*gofer.Gofer, error) {
+func newGofer(opts *options, path string) (*gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	j, err := config.ParseJSONFile(absPath)
+	err = configJSON.ParseJSONFile(&opts.Config, absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	g, err := j.BuildGraphs()
+	g, err := opts.Config.BuildGraphs()
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := newGofer(o, absPath)
 			if err != nil {
 				return err
 			}
@@ -138,7 +138,7 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := newGofer(o, absPath)
 			if err != nil {
 				return err
 			}
@@ -177,7 +177,7 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := newGofer(o, absPath)
 			if err != nil {
 				return err
 			}
@@ -208,7 +208,7 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(absPath)
+			g, err := newGofer(o, absPath)
 			if err != nil {
 				return err
 			}
@@ -235,7 +235,7 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: false,
+		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
 
