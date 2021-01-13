@@ -3,8 +3,18 @@
     "B/C": {
       "method": "median",
       "sources": [
-        [{"origin": "bc1", "pair": "B/C"}],
-        [{"origin": "bc2", "pair": "B/C"}]
+        [
+          {
+            "origin": "bc1",
+            "pair": "B/C"
+          }
+        ],
+        [
+          {
+            "origin": "bc2",
+            "pair": "B/C"
+          }
+        ]
       ],
       "params": {
         "minimumSuccessfulSources": 3
@@ -13,8 +23,26 @@
     "A/C": {
       "method": "median",
       "sources": [
-        [{"origin": "ab1", "pair": "A/B"}, {"origin": "bc1", "pair": "B/C"}],
-        [{"origin": "ab2", "pair": "A/B"}, {"origin": ".", "pair": "B/C"}]
+        [
+          {
+            "origin": "ab1",
+            "pair": "A/B"
+          },
+          {
+            "origin": "bc1",
+            "pair": "B/C"
+          }
+        ],
+        [
+          {
+            "origin": "ab2",
+            "pair": "A/B"
+          },
+          {
+            "origin": ".",
+            "pair": "B/C"
+          }
+        ]
       ],
       "params": {
         "minimumSuccessfulSources": 3

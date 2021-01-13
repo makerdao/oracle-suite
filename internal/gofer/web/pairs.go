@@ -18,21 +18,15 @@ package web
 import (
 	"log"
 	"net/http"
-	"net/url"
 
-	"github.com/makerdao/gofer/internal/marshal"
-	"github.com/makerdao/gofer/pkg/cli"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
+	"github.com/makerdao/gofer/internal/gofer/cli"
 	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func PricesHandler(g *gofer.Gofer) http.HandlerFunc {
+func PairsHandler(g *gofer.Gofer) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
-		values, err := url.ParseQuery(r.URL.RawQuery)
-		if err != nil {
-			return err
-		}
-
-		err = cli.Prices(values["pair"], g, m)
+		err := cli.Pairs(g, m)
 		if err != nil {
 			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
 		}

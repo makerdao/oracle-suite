@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/makerdao/gofer/internal/marshal"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
 )
 
 func StartServer(addr string) error {
