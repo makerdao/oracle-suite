@@ -23,12 +23,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type IngestedIncompatiblePairErr struct {
+type ErrIncompatiblePair struct {
 	Given    Pair
 	Expected Pair
 }
 
-func (e IngestedIncompatiblePairErr) Error() string {
+func (e ErrIncompatiblePair) Error() string {
 	return fmt.Sprintf(
 		"a tick with different pair ignested to the OriginNode, %s given but %s was expected",
 		e.Given,
@@ -36,12 +36,12 @@ func (e IngestedIncompatiblePairErr) Error() string {
 	)
 }
 
-type IngestedIncompatibleOriginErr struct {
+type IncompatibleOriginErr struct {
 	Given    string
 	Expected string
 }
 
-func (e IngestedIncompatibleOriginErr) Error() string {
+func (e IncompatibleOriginErr) Error() string {
 	return fmt.Sprintf(
 		"a tick from different origin ignested to the OriginNode, %s given but %s was expected",
 		e.Given,
@@ -49,12 +49,12 @@ func (e IngestedIncompatibleOriginErr) Error() string {
 	)
 }
 
-type TickTTLExpiredErr struct {
+type ErrTickTTLExpired struct {
 	Tick OriginTick
 	TTL  time.Duration
 }
 
-func (e TickTTLExpiredErr) Error() string {
+func (e ErrTickTTLExpired) Error() string {
 	return fmt.Sprintf(
 		"the tick TTL for the pair %s expired",
 		e.Tick.Pair,
@@ -93,14 +93,14 @@ func (n *OriginNode) Ingest(tick OriginTick) error {
 
 	var err error
 	if !tick.Pair.Equal(n.originPair.Pair) {
-		err = multierror.Append(err, IngestedIncompatiblePairErr{
+		err = multierror.Append(err, ErrIncompatiblePair{
 			Given:    tick.Pair,
 			Expected: n.originPair.Pair,
 		})
 	}
 
 	if tick.Origin != n.originPair.Origin {
-		err = multierror.Append(err, IngestedIncompatibleOriginErr{
+		err = multierror.Append(err, IncompatibleOriginErr{
 			Given:    tick.Origin,
 			Expected: n.originPair.Origin,
 		})
@@ -135,7 +135,7 @@ func (n *OriginNode) Tick() OriginTick {
 
 	if n.tick.Error == nil {
 		if n.Expired() {
-			n.tick.Error = TickTTLExpiredErr{
+			n.tick.Error = ErrTickTTLExpired{
 				Tick: n.tick,
 				TTL:  n.maxTTL,
 			}

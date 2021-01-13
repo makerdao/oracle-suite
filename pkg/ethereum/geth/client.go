@@ -54,6 +54,9 @@ var multiCallContracts = map[uint64]common.Address{
 	xdaiChainID:    common.HexToAddress("0xb5b692a88bdfc81ca69dcb1d924f59f0413a602a"),
 }
 
+var ErrMulticallNotSupported = errors.New("multicall is not supported on current chain")
+var ErrInvalidSignedTxType = errors.New("unable to send transaction, SignedTx field have invalid type")
+
 // RevertErr may be returned by Client.Call method in case of EVM revert.
 type RevertErr struct {
 	Message string
@@ -137,7 +140,7 @@ func (e *Client) MultiCall(ctx context.Context, calls []pkgEthereum.Call) ([][]b
 	}
 	multicallAddr, ok := multiCallContracts[chainID.Uint64()]
 	if !ok {
-		return nil, errors.New("multi call is not supported on current chain")
+		return nil, ErrMulticallNotSupported
 	}
 	callData, err := multiCallABI.Pack("aggregate", abiCalls)
 	if err != nil {
@@ -208,7 +211,7 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 		hash := stx.Hash()
 		return &hash, e.ethClient.SendTransaction(ctx, stx)
 	}
-	return nil, errors.New("unable to send transaction, SignedTx field have invalid type")
+	return nil, ErrInvalidSignedTxType
 }
 
 func isRevertResp(resp []byte) error {

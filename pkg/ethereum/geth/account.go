@@ -26,7 +26,7 @@ import (
 	"github.com/makerdao/gofer/pkg/ethereum"
 )
 
-var ErrUnableToFindAccount = errors.New("unable to find account for requested address")
+var ErrMissingAccount = errors.New("unable to find account for requested address")
 
 type Account struct {
 	accountManager *accounts.Manager
@@ -77,7 +77,7 @@ func (s *Account) findAccountByAddress(from ethereum.Address) (accounts.Wallet, 
 		}
 	}
 
-	return nil, nil, ErrUnableToFindAccount
+	return nil, nil, ErrMissingAccount
 }
 
 // source: https://github.com/dapphub/dapptools/blob/master/src/ethsign/ethsign.go

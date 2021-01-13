@@ -28,6 +28,11 @@ import (
 
 const LoggerTag = "DATASTORE"
 
+var ErrInvalidSignature = errors.New("received price has an invalid signature")
+var ErrInvalidPrice = errors.New("received price is invalid")
+var ErrUnknownPair = errors.New("received pair is not configured")
+var ErrUnknownFeeder = errors.New("feeder is not allowed to send prices")
+
 // Datastore reads and stores prices from the P2P network.
 type Datastore struct {
 	mu sync.Mutex
@@ -111,16 +116,16 @@ func (c *Datastore) Prices() *PriceStore {
 func (c *Datastore) collectPrice(msg *messages.Price) error {
 	from, err := msg.Price.From(c.signer)
 	if err != nil {
-		return errors.New("received price has an invalid signature")
+		return ErrInvalidSignature
 	}
 	if _, ok := c.pairs[msg.Price.Wat]; !ok {
-		return errors.New("received pair is not configured")
+		return ErrUnknownPair
 	}
 	if !c.isFeedAllowed(msg.Price.Wat, *from) {
-		return errors.New("feeder is not allowed to send prices")
+		return ErrUnknownFeeder
 	}
 	if msg.Price.Val.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New("received price is invalid")
+		return ErrInvalidPrice
 	}
 
 	c.priceStore.Add(*from, msg)

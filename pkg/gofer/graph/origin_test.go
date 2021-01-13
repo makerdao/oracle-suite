@@ -85,7 +85,7 @@ func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
-	assert.True(t, errors.As(err, &IngestedIncompatiblePairErr{}))
+	assert.True(t, errors.As(err, &ErrIncompatiblePair{}))
 	assert.NoError(t, o.tick.Error)
 }
 
@@ -111,7 +111,7 @@ func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
-	assert.True(t, errors.As(err, &IngestedIncompatibleOriginErr{}))
+	assert.True(t, errors.As(err, &IncompatibleOriginErr{}))
 	assert.NoError(t, o.tick.Error)
 }
 
@@ -137,8 +137,8 @@ func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
 	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	err := o.Ingest(ot)
 
-	assert.True(t, errors.As(err, &IngestedIncompatibleOriginErr{}))
-	assert.True(t, errors.As(err, &IngestedIncompatiblePairErr{}))
+	assert.True(t, errors.As(err, &IncompatibleOriginErr{}))
+	assert.True(t, errors.As(err, &ErrIncompatiblePair{}))
 	assert.NoError(t, o.tick.Error)
 }
 
@@ -193,5 +193,5 @@ func TestOriginNode_Tick_Expired(t *testing.T) {
 	_ = o.Ingest(ot)
 	tick := o.Tick()
 
-	assert.True(t, errors.As(tick.Error, &TickTTLExpiredErr{}))
+	assert.True(t, errors.As(tick.Error, &ErrTickTTLExpired{}))
 }

@@ -22,7 +22,7 @@ import (
 )
 
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
-var ErrTopicIsNotSubscribed = errors.New("topic is not subscribed")
+var ErrNotSubscribed = errors.New("topic is not subscribed")
 
 // Local is a simple implementation of the transport.Transport interface
 // using local channels.
@@ -66,7 +66,7 @@ func (l *Local) Unsubscribe(topic string) error {
 		delete(l.subs, topic)
 		return nil
 	}
-	return ErrTopicIsNotSubscribed
+	return ErrNotSubscribed
 }
 
 // Broadcast implements the transport.Transport interface.
@@ -79,7 +79,7 @@ func (l *Local) Broadcast(topic string, message transport.Message) error {
 		sub.msgs <- b
 		return nil
 	}
-	return ErrTopicIsNotSubscribed
+	return ErrNotSubscribed
 }
 
 // WaitFor implements the transport.Transport interface.

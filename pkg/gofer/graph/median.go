@@ -24,12 +24,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type NotEnoughSourcesErr struct {
+type ErrNotEnoughSources struct {
 	Given int
 	Min   int
 }
 
-func (e NotEnoughSourcesErr) Error() string {
+func (e ErrNotEnoughSources) Error() string {
 	return fmt.Sprintf(
 		"not enough sources to calculate median, %d given but at least %d required",
 		e.Given,
@@ -37,12 +37,12 @@ func (e NotEnoughSourcesErr) Error() string {
 	)
 }
 
-type IncompatiblePairsErr struct {
+type ErrIncompatiblePairs struct {
 	Given    Pair
 	Expected Pair
 }
 
-func (e IncompatiblePairsErr) Error() string {
+func (e ErrIncompatiblePairs) Error() string {
 	return fmt.Sprintf(
 		"unable to calculate median for different pairs, %s given but %s was expected",
 		e.Given,
@@ -121,7 +121,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 		if !n.pair.Equal(tick.Pair) {
 			err = multierror.Append(
 				err,
-				IncompatiblePairsErr{Given: tick.Pair, Expected: n.pair},
+				ErrIncompatiblePairs{Given: tick.Pair, Expected: n.pair},
 			)
 			continue
 		}
@@ -143,7 +143,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 	if len(prices) < n.minSources {
 		err = multierror.Append(
 			err,
-			NotEnoughSourcesErr{Given: len(prices), Min: n.minSources},
+			ErrNotEnoughSources{Given: len(prices), Min: n.minSources},
 		)
 	}
 

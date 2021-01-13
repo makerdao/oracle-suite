@@ -29,7 +29,7 @@ import (
 
 const PriceMultiplier = 1e18
 
-var ErrPriceNotSet = errors.New("unable to sign price because price is not set")
+var ErrPriceNotSet = errors.New("unable to sign a price because the price is not set")
 var ErrInvalidJSONSignature = errors.New("unable to unmarshal given JSON, VRS fields contain invalid signature")
 
 type Price struct {

@@ -289,7 +289,7 @@ func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	m.AddChild(c1)
 	m.AddChild(c2)
 
-	assert.True(t, errors.As(m.Tick().Error, &TickErr{}))
+	assert.True(t, errors.As(m.Tick().Error, &ErrTick{}))
 }
 
 func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
@@ -333,7 +333,7 @@ func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
 	m.AddChild(c1)
 	m.AddChild(c2)
 
-	assert.True(t, errors.As(m.Tick().Error, &ResolveErr{}))
+	assert.True(t, errors.As(m.Tick().Error, &ErrResolve{}))
 }
 
 func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
@@ -378,7 +378,7 @@ func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
 	m.AddChild(c2)
 
 	// Resolved to the A/D pair but the A/C pair was expected:
-	assert.True(t, errors.As(m.Tick().Error, &NoCommonPartErr{}))
+	assert.True(t, errors.As(m.Tick().Error, &ErrNoCommonPart{}))
 }
 
 func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
@@ -422,8 +422,8 @@ func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
 	m.AddChild(c2)
 
 	// Conversion between the A/B and the C/B requires division. The C/B pair
-	// reports 0 as its price so the DivByZeroErr error should be returned:
-	assert.True(t, errors.As(m.Tick().Error, &DivByZeroErr{}))
+	// reports 0 as its price so the ErrDivByZero error should be returned:
+	assert.True(t, errors.As(m.Tick().Error, &ErrDivByZero{}))
 }
 
 func Test_crossRate(t *testing.T) {
