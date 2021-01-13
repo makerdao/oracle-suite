@@ -17,6 +17,7 @@ package cli
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
@@ -51,6 +52,10 @@ func Prices(args []string, l pricer, m itemWriter) error {
 		return err
 	}
 
+	sort.SliceStable(ticks, func(i, j int) bool {
+		return ticks[i].Pair.String() < ticks[j].Pair.String()
+	})
+
 	for _, t := range ticks {
 		err = m.Write(t)
 		if err != nil {
@@ -60,7 +65,7 @@ func Prices(args []string, l pricer, m itemWriter) error {
 
 	for _, t := range ticks {
 		if t.Error != nil {
-			return errors.New("some of the prices was returned with an error")
+			return errors.New("some prices were returned with an error")
 		}
 	}
 

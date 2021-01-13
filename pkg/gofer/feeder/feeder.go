@@ -22,7 +22,10 @@ import (
 
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/log"
 )
+
+const LoggerTag = "FEEDER"
 
 type Feedable interface {
 	// OriginPair returns the origin and pair which are acceptable for
@@ -49,13 +52,15 @@ type Feedable interface {
 // Feeder sets ticks from origins to the Feedable nodes.
 type Feeder struct {
 	set    *origins.Set
+	log    log.Logger
 	doneCh chan bool
 }
 
 // NewFeeder creates new Feeder instance.
-func NewFeeder(set *origins.Set) *Feeder {
+func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
 	return &Feeder{
 		set:    set,
+		log:    log.WithField("tag", LoggerTag),
 		doneCh: make(chan bool),
 	}
 }
@@ -72,8 +77,12 @@ func (f *Feeder) Feed(nodes []graph.Node) error {
 }
 
 func (f *Feeder) Start(nodes []graph.Node) error {
-	// TODO: log errors
-	_ = f.Feed(nodes)
+	f.log.Infof("Starting")
+
+	err := f.Feed(nodes)
+	if err != nil {
+		f.log.WithError(err).Info("Unable to feed some nodes")
+	}
 
 	ticker := time.NewTicker(getMinTTL(nodes))
 	go func() {
@@ -83,8 +92,10 @@ func (f *Feeder) Start(nodes []graph.Node) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				// TODO: log errors
-				_ = f.Feed(nodes)
+				err := f.Feed(nodes)
+				if err != nil {
+					f.log.WithError(err).Info("Unable to feed some nodes")
+				}
 			}
 		}
 	}()
@@ -93,6 +104,8 @@ func (f *Feeder) Start(nodes []graph.Node) error {
 }
 
 func (f *Feeder) Stop() {
+	defer f.log.Infof("Stopped")
+
 	f.doneCh <- true
 }
 
@@ -162,7 +175,7 @@ func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 				if tick.Error != nil && !feedable.Expired() {
 					err = multierror.Append(err, tick.Error)
 				} else if iErr := feedable.Ingest(tick); iErr != nil {
-					err = multierror.Append(err, feedable.Ingest(tick))
+					err = multierror.Append(iErr, feedable.Ingest(tick))
 				}
 			}
 		}

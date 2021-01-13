@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/internal/gofer/cli"
@@ -31,9 +32,23 @@ import (
 	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
 	"github.com/makerdao/gofer/pkg/gofer/feeder"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 )
 
-func newGofer(opts *options, path string) (*gofer.Gofer, error) {
+func newLogger(level string) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(level)
+	if err != nil {
+		return nil, err
+	}
+
+	lr := logrus.New()
+	lr.SetLevel(ll)
+
+	return logLogrus.New(lr), nil
+}
+
+func newGofer(opts *options, path string, log log.Logger) (*gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -49,7 +64,7 @@ func newGofer(opts *options, path string) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet())), nil
+	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet(), log)), nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.
@@ -99,7 +114,12 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(o, absPath)
+			l, err := newLogger(o.LogVerbosity)
+			if err != nil {
+				return err
+			}
+
+			g, err := newGofer(o, absPath, l)
 			if err != nil {
 				return err
 			}
@@ -138,7 +158,12 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			g, err := newGofer(o, absPath)
+			l, err := newLogger(o.LogVerbosity)
+			if err != nil {
+				return err
+			}
+
+			g, err := newGofer(o, absPath, l)
 			if err != nil {
 				return err
 			}
@@ -177,7 +202,12 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(o, absPath)
+			l, err := newLogger(o.LogVerbosity)
+			if err != nil {
+				return err
+			}
+
+			g, err := newGofer(o, absPath, l)
 			if err != nil {
 				return err
 			}
@@ -208,7 +238,12 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := newGofer(o, absPath)
+			l, err := newLogger(o.LogVerbosity)
+			if err != nil {
+				return err
+			}
+
+			g, err := newGofer(o, absPath, l)
 			if err != nil {
 				return err
 			}
@@ -217,8 +252,11 @@ func NewServerCmd(o *options) *cobra.Command {
 			http.HandleFunc("/v1/origins/", web.OriginsHandler(g))
 			http.HandleFunc("/v1/prices/", web.PricesHandler(g))
 
-			// TODO: log errors
-			_ = g.StartFeeder(g.Pairs()...)
+			err = g.StartFeeder(g.Pairs()...)
+			if err != nil {
+				return err
+			}
+			defer g.StopFeeder()
 
 			return web.StartServer(":8080")
 		},
@@ -235,7 +273,7 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: true,
+		SilenceErrors: false,
 		SilenceUsage:  true,
 	}
 

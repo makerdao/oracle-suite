@@ -23,6 +23,7 @@ import (
 
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/log/null"
 )
 
 type mockHandler struct {
@@ -61,7 +62,7 @@ func originsSetMock(ticks map[string][]origins.Tick) *origins.Set {
 }
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil))
+	f := NewFeeder(originsSetMock(nil), null.New())
 	err := f.Feed([]graph.Node{})
 
 	assert.NoError(t, err)
@@ -70,7 +71,7 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil))
+	f := NewFeeder(originsSetMock(nil), null.New())
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
 	err := f.Feed([]graph.Node{g})
 
@@ -93,7 +94,7 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s)
+	f := NewFeeder(s, null.New())
 
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
 	o := graph.NewOriginNode(graph.OriginPair{
@@ -145,7 +146,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s)
+	f := NewFeeder(s, null.New())
 
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
 	o1 := graph.NewOriginNode(graph.OriginPair{
@@ -228,7 +229,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s)
+	f := NewFeeder(s, null.New())
 
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
 	i := graph.NewIndirectAggregatorNode(graph.Pair{Base: "A", Quote: "B"})
@@ -264,7 +265,7 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s)
+	f := NewFeeder(s, null.New())
 
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
 	o := graph.NewOriginNode(graph.OriginPair{
@@ -311,7 +312,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 		},
 	})
 
-	f := NewFeeder(s)
+	f := NewFeeder(s, null.New())
 
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
 	o := graph.NewOriginNode(graph.OriginPair{
