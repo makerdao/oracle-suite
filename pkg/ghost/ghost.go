@@ -32,6 +32,14 @@ import (
 
 const LoggerTag = "GHOST"
 
+type ErrUnableToFindAsset struct {
+	AssetName string
+}
+
+func (e ErrUnableToFindAsset) Error() string {
+	return fmt.Sprintf("unable to find the %s in Gofer price models", e.AssetName)
+}
+
 type Ghost struct {
 	gofer     *gofer.Gofer
 	signer    ethereum.Signer
@@ -94,7 +102,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		}
 
 		if !found {
-			return nil, fmt.Errorf("unable to find the %s pair in the Gofer price models", pair.AssetPair)
+			return nil, ErrUnableToFindAsset{AssetName: pair.AssetPair}
 		}
 	}
 

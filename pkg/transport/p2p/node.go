@@ -42,9 +42,9 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
 
-var ErrConnectionIsClosed = errors.New("connection is closed")
+var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
-var ErrTopicIsNotSubscribed = errors.New("topic is not subscribed")
+var ErrNotSubscribed = errors.New("topic is not subscribed")
 
 const rendezvousString = "spire/0.0-dev"
 
@@ -185,7 +185,7 @@ func (n *Node) Start() error {
 
 func (n *Node) Stop() error {
 	if n.closed {
-		return ErrConnectionIsClosed
+		return ErrConnectionClosed
 	}
 
 	defer n.log.Info("Stopped")
@@ -263,7 +263,7 @@ func (n *Node) Subscribe(topic string) error {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return ErrConnectionIsClosed
+		return ErrConnectionClosed
 	}
 	if _, ok := n.subs[topic]; ok {
 		return ErrAlreadySubscribed
@@ -285,7 +285,7 @@ func (n *Node) Subscribe(topic string) error {
 
 func (n *Node) Unsubscribe(topic string) error {
 	if n.closed {
-		return ErrConnectionIsClosed
+		return ErrConnectionClosed
 	}
 
 	sub, err := n.subscription(topic)
@@ -301,13 +301,13 @@ func (n *Node) subscription(topic string) (*subscription, error) {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return nil, ErrConnectionIsClosed
+		return nil, ErrConnectionClosed
 	}
 	if sub, ok := n.subs[topic]; ok {
 		return sub, nil
 	}
 
-	return nil, ErrTopicIsNotSubscribed
+	return nil, ErrNotSubscribed
 }
 
 // nodeListenAddrs returns all node's listen multiaddresses as a string list.

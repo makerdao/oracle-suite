@@ -28,6 +28,8 @@ import (
 	"github.com/makerdao/gofer/pkg/oracle"
 )
 
+var ErrStorageQueryFailed = errors.New("oracle contract storage query failed")
+
 // TODO: make it configurable
 const gasLimit = 200000
 const maxReadRetries = 3
@@ -90,7 +92,7 @@ func (m *Median) Val(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 	if len(b) < (offset + length) {
-		return nil, errors.New("oracle contract storage query failed")
+		return nil, ErrStorageQueryFailed
 	}
 
 	return new(big.Int).SetBytes(b[length : offset+length]), err

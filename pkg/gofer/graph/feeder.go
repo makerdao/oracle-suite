@@ -34,13 +34,13 @@ type Feedable interface {
 	MinTTL() time.Duration
 	// MaxTTL is the maximum amount of time during which the Tick can be used.
 	// After that time, the Tick method will return a OriginTick with
-	// a TickTTLExpiredErr error.
+	// a ErrTickTTLExpired error.
 	MaxTTL() time.Duration
 	// Expired returns true if the Tick is expired. This is based on the MaxTTL
 	// value.
 	Expired() bool
 	// Tick returns the Tick assigned in the Ingest method. If the Tick is
-	// expired then a TickTTLExpiredErr error will be set in
+	// expired then a ErrTickTTLExpired error will be set in
 	// the OriginTick.Error field.
 	Tick() OriginTick
 }

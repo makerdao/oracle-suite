@@ -25,6 +25,8 @@ import (
 	"github.com/makerdao/gofer/pkg/ethereum"
 )
 
+var ErrInvalidSignature = errors.New("invalid Ethereum signature (V is not 27 or 28)")
+
 type Signer struct {
 	account *Account
 }
@@ -95,7 +97,7 @@ func Signature(account *Account, data []byte) (ethereum.Signature, error) {
 
 func Recover(signature ethereum.Signature, data []byte) (*ethereum.Address, error) {
 	if signature[64] != 27 && signature[64] != 28 {
-		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
+		return nil, ErrInvalidSignature
 	}
 
 	// Transform V from 27/28 to 0/1 according to yellow paper:

@@ -21,12 +21,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type TickErr struct {
+type ErrTick struct {
 	Pair Pair
 	Err  error
 }
 
-func (e TickErr) Error() string {
+func (e ErrTick) Error() string {
 	return fmt.Sprintf(
 		"the tick for the %s pair was returned with the following error: %s",
 		e.Pair,
@@ -34,12 +34,12 @@ func (e TickErr) Error() string {
 	)
 }
 
-type ResolveErr struct {
+type ErrResolve struct {
 	ExpectedPair Pair
 	ResolvedPair Pair
 }
 
-func (e ResolveErr) Error() string {
+func (e ErrResolve) Error() string {
 	return fmt.Sprintf(
 		"the tick was resolved to the %s pair but the %s pair was expected",
 		e.ResolvedPair,
@@ -47,23 +47,23 @@ func (e ResolveErr) Error() string {
 	)
 }
 
-type PriceIsZeroOrLessErr struct {
+type ErrInvalidPrice struct {
 	Pair Pair
 }
 
-func (e PriceIsZeroOrLessErr) Error() string {
+func (e ErrInvalidPrice) Error() string {
 	return fmt.Sprintf(
 		"the calculated price for the %s pair is zero or less",
 		e.Pair,
 	)
 }
 
-type NoCommonPartErr struct {
+type ErrNoCommonPart struct {
 	PairA Pair
 	PairB Pair
 }
 
-func (e NoCommonPartErr) Error() string {
+func (e ErrNoCommonPart) Error() string {
 	return fmt.Sprintf(
 		"unable to calculate cross rate for the %s pair with the %s pair, because they have no common part",
 		e.PairA,
@@ -71,12 +71,12 @@ func (e NoCommonPartErr) Error() string {
 	)
 }
 
-type DivByZeroErr struct {
+type ErrDivByZero struct {
 	PairA Pair
 	PairB Pair
 }
 
-func (e DivByZeroErr) Error() string {
+func (e ErrDivByZero) Error() string {
 	return fmt.Sprintf(
 		"unable to calculate cross rate for the %s pair with the %s pair, because it requires division by zero",
 		e.PairA,
@@ -143,7 +143,7 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 			if tick.Error != nil {
 				err = multierror.Append(
 					err,
-					TickErr{
+					ErrTick{
 						Pair: tick.Pair,
 						Err:  tick.Error,
 					},
@@ -156,7 +156,7 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 			if tick.Error != nil {
 				err = multierror.Append(
 					err,
-					TickErr{
+					ErrTick{
 						Pair: tick.Pair,
 						Err:  tick.Error,
 					},
@@ -173,7 +173,7 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 	if !indirectTick.Pair.Equal(n.pair) {
 		err = multierror.Append(
 			err,
-			ResolveErr{
+			ErrResolve{
 				ExpectedPair: n.pair,
 				ResolvedPair: indirectTick.Pair,
 			},
@@ -183,7 +183,7 @@ func (n *IndirectAggregatorNode) Tick() AggregatorTick {
 	if indirectTick.Price <= 0 {
 		err = multierror.Append(
 			err,
-			PriceIsZeroOrLessErr{
+			ErrInvalidPrice{
 				Pair: indirectTick.Pair,
 			},
 		)
@@ -224,7 +224,7 @@ func crossRate(t []Tick) (Tick, error) {
 			if b.Price > 0 {
 				price = a.Price / b.Price
 			} else {
-				err = multierror.Append(err, DivByZeroErr{a.Pair, b.Pair})
+				err = multierror.Append(err, ErrDivByZero{a.Pair, b.Pair})
 				price = 0
 			}
 
@@ -246,7 +246,7 @@ func crossRate(t []Tick) (Tick, error) {
 			if a.Price > 0 {
 				price = b.Price / a.Price
 			} else {
-				err = multierror.Append(err, DivByZeroErr{a.Pair, b.Pair})
+				err = multierror.Append(err, ErrDivByZero{a.Pair, b.Pair})
 				price = 0
 			}
 
@@ -274,7 +274,7 @@ func crossRate(t []Tick) (Tick, error) {
 			if a.Price > 0 && b.Price > 0 {
 				price = (float64(1) / b.Price) / a.Price
 			} else {
-				err = multierror.Append(err, DivByZeroErr{a.Pair, b.Pair})
+				err = multierror.Append(err, ErrDivByZero{a.Pair, b.Pair})
 				price = 0
 			}
 
@@ -290,7 +290,7 @@ func crossRate(t []Tick) (Tick, error) {
 				ask = 0
 			}
 		default:
-			err = multierror.Append(err, NoCommonPartErr{a.Pair, b.Pair})
+			err = multierror.Append(err, ErrNoCommonPart{a.Pair, b.Pair})
 
 			return a, err
 		}
