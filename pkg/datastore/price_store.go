@@ -22,17 +22,22 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
+type FeederPrice struct {
+	AssetPair string
+	Feeder    ethereum.Address
+}
+
 // PriceStore contains a list of messages.Price's.
 type PriceStore struct {
 	mu sync.RWMutex
 
-	prices map[string]map[ethereum.Address]*messages.Price
+	prices map[FeederPrice]*messages.Price
 }
 
 // NewPriceStore creates a new store instance.
 func NewPriceStore() *PriceStore {
 	return &PriceStore{
-		prices: make(map[string]map[ethereum.Address]*messages.Price),
+		prices: make(map[FeederPrice]*messages.Price),
 	}
 }
 
@@ -42,15 +47,28 @@ func (p *PriceStore) Add(from ethereum.Address, msg *messages.Price) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if _, ok := p.prices[msg.Price.Wat]; !ok {
-		p.prices[msg.Price.Wat] = make(map[ethereum.Address]*messages.Price)
+	fp := FeederPrice{
+		AssetPair: msg.Price.Wat,
+		Feeder:    from,
 	}
 
-	if prev, ok := p.prices[msg.Price.Wat][from]; ok && prev.Price.Age.After(msg.Price.Age) {
+	if prev, ok := p.prices[fp]; ok && prev.Price.Age.After(msg.Price.Age) {
 		return
 	}
 
-	p.prices[msg.Price.Wat][from] = msg
+	p.prices[fp] = msg
+}
+
+// All returns all prices.
+func (p *PriceStore) All() map[FeederPrice]*messages.Price {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	r := map[FeederPrice]*messages.Price{}
+	for k, v := range p.prices {
+		r[k] = v
+	}
+	return r
 }
 
 // AssetPair returns all prices for given asset pair.
@@ -58,12 +76,11 @@ func (p *PriceStore) AssetPair(assetPair string) *PriceSet {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	if _, ok := p.prices[assetPair]; !ok {
-		return NewPriceSet(nil)
-	}
-
 	var prices []*messages.Price
-	for _, price := range p.prices[assetPair] {
+	for fp, price := range p.prices {
+		if fp.AssetPair != assetPair {
+			continue
+		}
 		prices = append(prices, price)
 	}
 
@@ -75,11 +92,14 @@ func (p *PriceStore) Feeder(assetPair string, feeder ethereum.Address) *messages
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	if _, ok := p.prices[assetPair]; !ok {
-		return nil
+	fp := FeederPrice{
+		AssetPair: assetPair,
+		Feeder:    feeder,
 	}
-	if m, ok := p.prices[assetPair][feeder]; ok {
+
+	if m, ok := p.prices[fp]; ok {
 		return m
 	}
+
 	return nil
 }
