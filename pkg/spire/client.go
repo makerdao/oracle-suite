@@ -78,13 +78,13 @@ func (s *Client) PublishPrice(price *messages.Price) error {
 	return nil
 }
 
-func (s *Client) PullPrices(assetPair string) ([]*messages.Price, error) {
+func (s *Client) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
 	s.log.
 		WithField("assetPair", assetPair).
 		Info("Pulling prices")
 
 	resp := &PullPricesResp{}
-	err := s.rpc.Call("API.PullPrices", PullPricesArg{AssetPair: assetPair}, resp)
+	err := s.rpc.Call("API.PullPrices", PullPricesArg{FilterAssetPair: assetPair, FilterFeeder: feeder}, resp)
 	if err != nil {
 		return nil, err
 	}

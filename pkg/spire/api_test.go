@@ -134,7 +134,7 @@ func TestClient_PullPrice(t *testing.T) {
 	assertEqualPrices(t, testPriceAAABBB, price)
 }
 
-func TestClient_PullPrices(t *testing.T) {
+func TestClient_PullPrices_ByAssetPrice(t *testing.T) {
 	var err error
 	var prices []*messages.Price
 
@@ -142,7 +142,24 @@ func TestClient_PullPrices(t *testing.T) {
 	assert.NoError(t, err)
 
 	wait(func() bool {
-		prices, err = client.PullPrices("AAABBB")
+		prices, err = client.PullPrices("AAABBB", "")
+		return len(prices) == 0
+	}, time.Second)
+
+	assert.NoError(t, err)
+	assert.Len(t, prices, 1)
+	assertEqualPrices(t, testPriceAAABBB, prices[0])
+}
+
+func TestClient_PullPrices_ByFeeder(t *testing.T) {
+	var err error
+	var prices []*messages.Price
+
+	err = client.PublishPrice(testPriceAAABBB)
+	assert.NoError(t, err)
+
+	wait(func() bool {
+		prices, err = client.PullPrices("", testAddress.String())
 		return len(prices) == 0
 	}, time.Second)
 

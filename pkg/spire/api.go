@@ -43,7 +43,8 @@ type PublishPriceArg struct {
 }
 
 type PullPricesArg struct {
-	AssetPair string
+	FilterAssetPair string
+	FilterFeeder    string
 }
 
 type PullPricesResp struct {
@@ -69,12 +70,22 @@ func (n *API) PublishPrice(arg *PublishPriceArg, _ *Nothing) error {
 
 func (n *API) PullPrices(arg *PullPricesArg, resp *PullPricesResp) error {
 	n.log.
-		WithField("arg", arg.AssetPair).
+		WithField("assetPair", arg.FilterAssetPair).
+		WithField("feeder", arg.FilterFeeder).
 		Info("Pulling prices")
 
-	*resp = PullPricesResp{
-		Prices: n.datastore.Prices().AssetPair(arg.AssetPair).Messages(),
+	var prices []*messages.Price
+	for fp, p := range n.datastore.Prices().All() {
+		if arg.FilterAssetPair != "" && arg.FilterAssetPair != fp.AssetPair {
+			continue
+		}
+		if arg.FilterFeeder != "" && arg.FilterFeeder != fp.Feeder.String() {
+			continue
+		}
+		prices = append(prices, p)
 	}
+
+	*resp = PullPricesResp{Prices: prices}
 
 	return nil
 }
