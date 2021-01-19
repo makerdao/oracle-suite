@@ -30,17 +30,14 @@ func (n *Null) Debugf(_ string, _ ...interface{})            {}
 func (n *Null) Infof(_ string, _ ...interface{})             {}
 func (n *Null) Warnf(_ string, _ ...interface{})             {}
 func (n *Null) Errorf(_ string, _ ...interface{})            {}
-func (n *Null) Fatalf(_ string, _ ...interface{})            {}
 func (n *Null) Panicf(_ string, _ ...interface{})            {}
 func (n *Null) Debug(_ ...interface{})                       {}
 func (n *Null) Info(_ ...interface{})                        {}
 func (n *Null) Warn(_ ...interface{})                        {}
 func (n *Null) Error(_ ...interface{})                       {}
-func (n *Null) Fatal(_ ...interface{})                       {}
 func (n *Null) Panic(_ ...interface{})                       {}
 func (n *Null) Debugln(_ ...interface{})                     {}
 func (n *Null) Infoln(_ ...interface{})                      {}
 func (n *Null) Warnln(_ ...interface{})                      {}
 func (n *Null) Errorln(_ ...interface{})                     {}
-func (n *Null) Fatalln(_ ...interface{})                     {}
 func (n *Null) Panicln(_ ...interface{})                     {}

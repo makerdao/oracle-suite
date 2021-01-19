@@ -61,10 +61,6 @@ func (d *Logger) Errorf(format string, args ...interface{}) {
 	d.Logger.Errorf(format, args...)
 }
 
-func (d *Logger) Fatalf(format string, args ...interface{}) {
-	d.Logger.Fatalf(format, args...)
-}
-
 func (d *Logger) Panicf(format string, args ...interface{}) {
 	d.Logger.Panicf(format, args...)
 }
@@ -85,10 +81,6 @@ func (d *Logger) Error(args ...interface{}) {
 	d.Logger.Error(args...)
 }
 
-func (d *Logger) Fatal(args ...interface{}) {
-	d.Logger.Fatal(args...)
-}
-
 func (d *Logger) Panic(args ...interface{}) {
 	d.Logger.Panic(args...)
 }
@@ -107,10 +99,6 @@ func (d *Logger) Warnln(args ...interface{}) {
 
 func (d *Logger) Errorln(args ...interface{}) {
 	d.Logger.Errorln(args...)
-}
-
-func (d *Logger) Fatalln(args ...interface{}) {
-	d.Logger.Fatalln(args...)
 }
 
 func (d *Logger) Panicln(args ...interface{}) {
