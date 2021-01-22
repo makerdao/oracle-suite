@@ -17,12 +17,15 @@ package p2p
 
 import (
 	"context"
+	"errors"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/gofer/pkg/transport"
 	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
 )
+
+var ErrNilMessage = errors.New("message is nil")
 
 type subscription struct {
 	ctx            context.Context
@@ -70,6 +73,9 @@ func (s subscription) Publish(message transport.Message) error {
 	if err != nil {
 		return err
 	}
+	if b == nil {
+		return ErrNilMessage
+	}
 	s.messageHandler.Published(s.topic.String(), b, message)
 	return s.topic.Publish(s.ctx, b)
 }
@@ -80,7 +86,7 @@ func (s subscription) Next(message transport.Message) chan transport.Status {
 		if err == nil {
 			err = message.Unmarshall(msg.Data)
 		}
-		if msg != nil {
+		if msg != nil && err != nil {
 			s.messageHandler.Received(s.topic.String(), msg, message)
 		}
 		s.statusCh <- transport.Status{

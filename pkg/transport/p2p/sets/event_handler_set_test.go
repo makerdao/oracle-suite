@@ -13,26 +13,35 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package logger
+package sets
 
 import (
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
+	"testing"
 
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/stretchr/testify/assert"
 )
 
-type node interface {
-	Host() host.Host
-	AddNotifee(notifees ...network.Notifiee)
-	AddEventHandler(eventHandler ...sets.EventHandler)
-	AddMessageHandler(messageHandlers ...sets.MessageHandler)
-}
+func TestEventHandlerSet_Handle(t *testing.T) {
+	ehs := NewEventHandlerSet()
 
-// Register registers loggers in p2p.Node.
-func Register(n node, l log.Logger) {
-	n.AddNotifee(&notifee{log: l})
-	n.AddEventHandler(&eventHandler{peerStore: n.Host().Peerstore(), log: l})
-	n.AddMessageHandler(&messageHandler{peerStore: n.Host().Peerstore(), log: l})
+	pe := pubsub.PeerEvent{
+		Type: 1,
+		Peer: "a",
+	}
+
+	// All event handlers should be invoked:
+	calls := 0
+	ehs.Add(EventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
+		assert.Equal(t, "foo", topic)
+		assert.Equal(t, pe, event)
+		calls++
+	}))
+	ehs.Add(EventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
+		assert.Equal(t, "foo", topic)
+		assert.Equal(t, pe, event)
+		calls++
+	}))
+	ehs.Handle("foo", pe)
+	assert.Equal(t, 2, calls)
 }

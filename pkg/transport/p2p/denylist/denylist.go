@@ -29,14 +29,13 @@ type node interface {
 	PubSub() *pubsub.PubSub
 }
 
-// Register registers p2p.Node extensions required by the Denylist and returns
-// its instance.
-func Register(node node) *Denylist {
+// Register registers Denylist in p2p.Node.
+func Register(n node) *Denylist {
 	denylist := &Denylist{
 		connGater: &connGater{},
-		pubSub:    node.PubSub(),
+		pubSub:    n.PubSub(),
 	}
-	node.AddConnectionGater(denylist.connGater)
+	n.AddConnectionGater(denylist.connGater)
 	return denylist
 }
 

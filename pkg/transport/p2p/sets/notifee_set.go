@@ -77,3 +77,5 @@ func (n *NotifeeSet) ClosedStream(network network.Network, stream network.Stream
 		notifee.ClosedStream(network, stream)
 	}
 }
+
+var _ network.Notifiee = (*NotifeeSet)(nil)

@@ -20,6 +20,13 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/pkg/ethereum"
+)
+
+var (
+	testAddress1 = ethereum.HexToAddress("0x2d800d93b065ce011af83f316cef9f0d005b0aa4")
+	testAddress2 = ethereum.HexToAddress("0x8eb3daaf5cb4138f5f96711c09c0cfd0288a36e9")
 )
 
 func TestAddressToPeerID(t *testing.T) {

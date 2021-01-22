@@ -45,22 +45,18 @@ func (n *MessageHandlerSet) Add(messageHandler ...MessageHandler) {
 	n.messageHandler = append(n.messageHandler, messageHandler...)
 }
 
-// Handle invokes all registered handlers for given topic.
+// Published invokes all registered handlers.
 func (n *MessageHandlerSet) Published(topic string, raw []byte, message transport.Message) {
-	if raw == nil {
-		return
-	}
 	for _, messageHandler := range n.messageHandler {
 		messageHandler.Published(topic, raw, message)
 	}
 }
 
-// Handle invokes all registered handlers for given topic.
+// Received invokes all registered handlers.
 func (n *MessageHandlerSet) Received(topic string, raw *pubsub.Message, message transport.Message) {
-	if raw == nil {
-		return
-	}
 	for _, messageHandler := range n.messageHandler {
 		messageHandler.Received(topic, raw, message)
 	}
 }
+
+var _ MessageHandler = (*MessageHandlerSet)(nil)

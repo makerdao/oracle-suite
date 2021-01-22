@@ -23,9 +23,9 @@ func New() *Null {
 	return &Null{}
 }
 
-func (n *Null) WithField(_ string, _ interface{}) log.Logger { return &Null{} }
-func (n *Null) WithFields(_ log.Fields) log.Logger           { return &Null{} }
-func (n *Null) WithError(_ error) log.Logger                 { return &Null{} }
+func (n *Null) WithField(_ string, _ interface{}) log.Logger { return n }
+func (n *Null) WithFields(_ log.Fields) log.Logger           { return n }
+func (n *Null) WithError(_ error) log.Logger                 { return n }
 func (n *Null) Debugf(_ string, _ ...interface{})            {}
 func (n *Null) Infof(_ string, _ ...interface{})             {}
 func (n *Null) Warnf(_ string, _ ...interface{})             {}
