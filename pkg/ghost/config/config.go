@@ -45,9 +45,9 @@ type Ethereum struct {
 }
 
 type P2P struct {
-	Listen         []string `json:"listen"`
+	ListenAddrs    []string `json:"listenAddrs"`
 	BootstrapAddrs []string `json:"bootstrapAddrs"`
-	BlockedAddrs   []string `json:"BlockedAddrs"`
+	BlockedAddrs   []string `json:"blockedAddrs"`
 }
 
 type Options struct {
@@ -120,7 +120,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	cfg := p2p.Config{
 		Context:        ctx,
 		PrivateKey:     ethkey.NewPrivKey(s),
-		ListenAddrs:    c.P2P.Listen,
+		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
 		Logger:         l,

@@ -26,7 +26,7 @@ func RegisterFlags(cfg *config.Config, flags *pflag.FlagSet) {
 	flags.StringVar(&cfg.Ethereum.Keystore, "config.ethereum.keystore", "", "")
 	flags.StringVar(&cfg.Ethereum.Password, "config.ethereum.password", "", "")
 
-	flags.StringSliceVar(&cfg.P2P.Listen, "config.p2p.listen", nil, "")
+	flags.StringSliceVar(&cfg.P2P.ListenAddrs, "config.p2p.listen", nil, "")
 	flags.StringSliceVar(&cfg.P2P.BootstrapAddrs, "config.p2p.boostrap", nil, "")
 	flags.StringSliceVar(&cfg.P2P.BlockedAddrs, "config.p2p.blocked", nil, "")
 

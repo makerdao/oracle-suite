@@ -148,7 +148,7 @@ func TestConnGaterSet_InterceptUpgraded(t *testing.T) {
 
 	a.Allow = true
 	b.Allow = true
-	allow, reason = gns.InterceptUpgraded((network.Conn)(nil))
+	allow, _ = gns.InterceptUpgraded((network.Conn)(nil))
 	assert.True(t, allow)
 
 	a.Allow = false
