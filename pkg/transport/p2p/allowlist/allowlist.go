@@ -30,11 +30,10 @@ type node interface {
 	AddValidator(validator sets.Validator)
 }
 
-// Register registers p2p.Node extensions required by the Allowlist and returns
-// its instance.
-func Register(node node, log log.Logger) *Allowlist {
-	allowlist := &Allowlist{log: log}
-	node.AddValidator(allowlist.validator)
+// Register registers Allowlist in p2p.Node.
+func Register(n node, l log.Logger) *Allowlist {
+	allowlist := &Allowlist{log: l}
+	n.AddValidator(allowlist.validator)
 	return allowlist
 }
 

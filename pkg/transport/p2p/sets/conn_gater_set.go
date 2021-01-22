@@ -88,3 +88,5 @@ func (c *ConnGaterSet) InterceptUpgraded(conn network.Conn) (bool, control.Disco
 	}
 	return true, 0
 }
+
+var _ connmgr.ConnectionGater = (*ConnGaterSet)(nil)

@@ -19,6 +19,14 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
+// EventHandlerFunc is a adapter for the EventHandler interface.
+type EventHandlerFunc func(topic string, event pubsub.PeerEvent)
+
+// Handle calls f(topic, event).
+func (f EventHandlerFunc) Handle(topic string, event pubsub.PeerEvent) {
+	f(topic, event)
+}
+
 // EventHandler can ba implemented by type that supports handling the PubSub
 // system events.
 type EventHandler interface {
@@ -47,3 +55,5 @@ func (n *EventHandlerSet) Handle(topic string, event pubsub.PeerEvent) {
 		eventHandler.Handle(topic, event)
 	}
 }
+
+var _ EventHandler = (*EventHandlerSet)(nil)

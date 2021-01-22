@@ -28,8 +28,11 @@ import (
 // Eth key type uses the Ethereum keys to sign and verify messages.
 const KeyType_Eth cryptoPB.KeyType = 10 //nolint:golint,stylecheck
 
-// NewSigner points to a function which create new signer.
-var NewSigner = geth.NewSigner
+// NewSigner points to a function which create new Ethereum signer used to
+// verify signatures.
+var NewSigner = func() ethereum.Signer {
+	return geth.NewSigner(nil)
+}
 
 func init() {
 	crypto.PubKeyUnmarshallers[KeyType_Eth] = UnmarshalEthPublicKey

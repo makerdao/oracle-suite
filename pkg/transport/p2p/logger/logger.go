@@ -30,10 +30,9 @@ type node interface {
 	AddMessageHandler(messageHandlers ...sets.MessageHandler)
 }
 
-// Register registers p2p.Node extensions which will print additional
-// debug logs.
-func Register(node node, l log.Logger) {
-	node.AddNotifee(&notifee{log: l})
-	node.AddEventHandler(&eventHandler{peerStore: node.Host().Peerstore(), log: l})
-	node.AddMessageHandler(&messageHandler{peerStore: node.Host().Peerstore(), log: l})
+// Register registers loggers in p2p.Node.
+func Register(n node, l log.Logger) {
+	n.AddNotifee(&notifee{log: l})
+	n.AddEventHandler(&eventHandler{peerStore: n.Host().Peerstore(), log: l})
+	n.AddMessageHandler(&messageHandler{peerStore: n.Host().Peerstore(), log: l})
 }

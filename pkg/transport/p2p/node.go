@@ -28,6 +28,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/libp2p/go-libp2p-core/transport"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -56,6 +57,11 @@ func init() {
 	swarm.DialTimeoutLocal = timeout
 }
 
+type routerCloser interface {
+	routing.Routing
+	Close() error
+}
+
 type NodeConfig struct {
 	Context context.Context
 	Logger  log.Logger
@@ -73,7 +79,7 @@ type Node struct {
 	ctx               context.Context
 	host              host.Host
 	pubSub            *pubsub.PubSub
-	dht               *dht.IpfsDHT
+	dht               routerCloser
 	privKey           crypto.PrivKey
 	listenAddrs       []multiaddr.Multiaddr
 	bootstrapAddrs    []multiaddr.Multiaddr
@@ -89,10 +95,14 @@ type Node struct {
 	subs              map[string]*subscription
 	log               log.Logger
 	closed            bool
+
+	newHost   func(n *Node) (host.Host, error)
+	newPubSub func(n *Node) (*pubsub.PubSub, error)
+	newDHT    func(n *Node) (routerCloser, error)
 }
 
 func NewNode(cfg NodeConfig) *Node {
-	return &Node{
+	n := &Node{
 		ctx:               cfg.Context,
 		privKey:           cfg.PrivateKey,
 		bootstrapAddrs:    cfg.BootstrapAddrs,
@@ -108,32 +118,42 @@ func NewNode(cfg NodeConfig) *Node {
 		log:               cfg.Logger,
 		closed:            false,
 	}
+
+	// Systems providers:
+	n.newHost = func(h *Node) (host.Host, error) {
+		opts := []libp2p.Option{
+			libp2p.ListenAddrs(n.listenAddrs...),
+			libp2p.ConnectionGater(n.connGaterSet),
+		}
+		if n.privKey != nil {
+			opts = append(opts, libp2p.Identity(n.privKey))
+		}
+		return libp2p.New(h.ctx, opts...)
+	}
+	n.newPubSub = func(h *Node) (*pubsub.PubSub, error) {
+		return pubsub.NewGossipSub(n.ctx, n.host)
+	}
+	n.newDHT = func(h *Node) (routerCloser, error) {
+		return dht.New(n.ctx, n.host)
+	}
+
+	return n
 }
 
 func (n *Node) Start() error {
 	n.log.Info("Starting")
-
 	var err error
 
-	// Options:
-	opts := []libp2p.Option{
-		libp2p.ListenAddrs(n.listenAddrs...),
-		libp2p.ConnectionGater(n.connGaterSet),
-	}
-	if n.privKey != nil {
-		opts = append(opts, libp2p.Identity(n.privKey))
-	}
-
 	// Systems:
-	n.host, err = libp2p.New(n.ctx, opts...)
+	n.host, err = n.newHost(n)
 	if err != nil {
 		return err
 	}
-	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host)
+	n.pubSub, err = n.newPubSub(n)
 	if err != nil {
 		return err
 	}
-	n.dht, err = dht.New(n.ctx, n.host)
+	n.dht, err = n.newDHT(n)
 	if err != nil {
 		return err
 	}
