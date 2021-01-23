@@ -1,0 +1,18 @@
+{
+  "ethereum": {
+    "from": "",
+    "keystore": "",
+    "password": "",
+    "rpc": ""
+  },
+  "p2p": {
+    "listenAddrs": [],
+    "bootstrapAddrs": [],
+    "blockedAddrs": []
+  },
+  "rpc": {
+    "address": ":8080"
+  },
+  "feeds": [],
+  "pairs": ["ETHUSD", "BTCUSD"]
+}

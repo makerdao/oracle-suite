@@ -1,0 +1,27 @@
+{
+  "ethereum": {
+    "from": "",
+    "keystore": "",
+    "password": "",
+    "rpc": ""
+  },
+  "options": {
+    "interval": 60
+  },
+  "p2p": {
+    "listenAddrs": [],
+    "bootstrapAddrs": [],
+    "blockedAddrs": []
+  },
+  "feeds": [],
+  "pairs": {
+    "ETHUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    },
+    "BTCUSD": {
+      "msgExpiration": 1800,
+      "msgSpread": 0.5
+    }
+  }
+}
