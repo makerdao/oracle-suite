@@ -34,10 +34,10 @@ func TestPriceStore_Add(t *testing.T) {
 	aaabbb := ps.AssetPair("AAABBB")
 	xxxyyy := ps.AssetPair("XXXYYY")
 
-	assert.Equal(t, 2, aaabbb.Len())
-	assert.Equal(t, 2, xxxyyy.Len())
-	assert.Contains(t, aaabbb.Messages(), testutil.PriceAAABBB1)
-	assert.Contains(t, xxxyyy.Messages(), testutil.PriceXXXYYY1)
+	assert.Equal(t, 2, len(aaabbb))
+	assert.Equal(t, 2, len(xxxyyy))
+	assert.Contains(t, aaabbb, testutil.PriceAAABBB1)
+	assert.Contains(t, xxxyyy, testutil.PriceXXXYYY1)
 }
 
 func TestPriceStore_Add_UseNewerPrice(t *testing.T) {
@@ -54,8 +54,8 @@ func TestPriceStore_Add_UseNewerPrice(t *testing.T) {
 	aaabbb := ps.AssetPair("AAABBB")
 	xxxyyy := ps.AssetPair("XXXYYY")
 
-	assert.Equal(t, testutil.PriceAAABBB2, aaabbb.Messages()[0])
-	assert.Equal(t, testutil.PriceXXXYYY2, xxxyyy.Messages()[0])
+	assert.Equal(t, testutil.PriceAAABBB2, aaabbb[0])
+	assert.Equal(t, testutil.PriceXXXYYY2, xxxyyy[0])
 }
 
 func TestPriceStore_Feeder(t *testing.T) {

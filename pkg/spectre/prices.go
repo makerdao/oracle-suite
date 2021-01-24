@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package datastore
+package spectre
 
 import (
 	"math"
@@ -26,30 +26,30 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
-// PriceSet contains a list of messages.Price's for a single asset pair.
-type PriceSet struct {
+// prices contains a list of messages.Price's for a single asset pair.
+type prices struct {
 	msgs []*messages.Price
 }
 
-// NewPrices creates a new store instance.
-func NewPriceSet(msgs []*messages.Price) *PriceSet {
-	return &PriceSet{
+// newPrices creates a new store instance.
+func newPrices(msgs []*messages.Price) *prices {
+	return &prices{
 		msgs: msgs,
 	}
 }
 
-// Len returns the number of msgs in the list.
-func (p *PriceSet) Len() int {
+// len returns the number of messages in the list.
+func (p *prices) len() int {
 	return len(p.msgs)
 }
 
-// Messages returns raw messages list.
-func (p *PriceSet) Messages() []*messages.Price {
+// messages returns raw messages list.
+func (p *prices) messages() []*messages.Price {
 	return p.msgs
 }
 
-// OraclePrices returns oracle prices.
-func (p *PriceSet) OraclePrices() []*oracle.Price {
+// oraclePrices returns oracle prices.
+func (p *prices) oraclePrices() []*oracle.Price {
 	var prices []*oracle.Price
 	for _, price := range p.msgs {
 		prices = append(prices, price.Price)
@@ -57,12 +57,12 @@ func (p *PriceSet) OraclePrices() []*oracle.Price {
 	return prices
 }
 
-// Truncate removes random msgs until the number of remaining prices is equal
+// truncate removes random msgs until the number of remaining prices is equal
 // to n. If the number of prices is less or equal to n, it does nothing.
 //
 // This method is used to reduce number of arguments in transaction which will
 // reduce transaction costs.
-func (p *PriceSet) Truncate(n int64) {
+func (p *prices) truncate(n int64) {
 	if int64(len(p.msgs)) <= n {
 		return
 	}
@@ -74,8 +74,8 @@ func (p *PriceSet) Truncate(n int64) {
 	p.msgs = p.msgs[0:n]
 }
 
-// Median calculates the Median price for all msgs in the list.
-func (p *PriceSet) Median() *big.Int {
+// median calculates the median price for all messages in the list.
+func (p *prices) median() *big.Int {
 	count := len(p.msgs)
 	if count == 0 {
 		return big.NewInt(0)
@@ -95,15 +95,15 @@ func (p *PriceSet) Median() *big.Int {
 	return p.msgs[(count-1)/2].Price.Val
 }
 
-// Spread calculates the Spread between given price and a Median price.
-// The Spread is returned as percentage points.
-func (p *PriceSet) Spread(price *big.Int) float64 {
+// spread calculates the spread between given price and a median price.
+// The spread is returned as percentage points.
+func (p *prices) spread(price *big.Int) float64 {
 	if len(p.msgs) == 0 || price.Cmp(big.NewInt(0)) == 0 {
 		return math.Inf(1)
 	}
 
 	oldPriceF := new(big.Float).SetInt(price)
-	newPriceF := new(big.Float).SetInt(p.Median())
+	newPriceF := new(big.Float).SetInt(p.median())
 
 	x := new(big.Float).Sub(newPriceF, oldPriceF)
 	x = new(big.Float).Quo(x, oldPriceF)
@@ -113,8 +113,8 @@ func (p *PriceSet) Spread(price *big.Int) float64 {
 	return math.Abs(xf)
 }
 
-// ClearOlderThan deletes msgs which are older than given time.
-func (p *PriceSet) ClearOlderThan(t time.Time) {
+// clearOlderThan deletes messages which are older than given time.
+func (p *prices) clearOlderThan(t time.Time) {
 	var prices []*messages.Price
 	for _, price := range p.msgs {
 		if !price.Price.Age.Before(t) {
@@ -122,9 +122,4 @@ func (p *PriceSet) ClearOlderThan(t time.Time) {
 		}
 	}
 	p.msgs = prices
-}
-
-// Clear deletes all msgs from the list.
-func (p *PriceSet) Clear() {
-	p.msgs = nil
 }

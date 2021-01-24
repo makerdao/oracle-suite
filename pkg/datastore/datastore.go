@@ -52,11 +52,11 @@ type Config struct {
 	// Transport is a implementation of transport used to fetch prices from
 	// feeders.
 	Transport transport.Transport
-	// Pairs is the list supported pairs by Spectre with their configuration.
+	// Pairs is the list supported pairs by the datastore with their
+	// configuration.
 	Pairs map[string]*Pair
-	// Interval describes how often we should try to update Oracles.
-	// Logger is a current logger interface used by the Datastore. The Logger is
-	// required to monitor asynchronous processes.
+	// Logger is a current logger interface used by the Datastore.
+	// The Logger is required to monitor asynchronous processes.
 	Logger log.Logger
 }
 
@@ -156,22 +156,15 @@ func (c *Datastore) collectorLoop() error {
 				// Try to collect received price:
 				err := c.collectPrice(price)
 
-				// Prepare log fields:
-				from, _ := price.Price.From(c.signer)
-				fields := log.Fields{"assetPair": price.Price.Wat}
-				if from != nil {
-					fields["from"] = from.String()
-				}
-
 				// Print logs:
 				if err != nil {
 					c.log.
 						WithError(err).
-						WithFields(fields).
+						WithFields(price.Price.Fields(c.signer)).
 						Warn("Received invalid price")
 				} else {
 					c.log.
-						WithFields(fields).
+						WithFields(price.Price.Fields(c.signer)).
 						Info("Price received")
 				}
 			}

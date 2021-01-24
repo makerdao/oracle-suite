@@ -59,18 +59,26 @@ func TestDatastore_Prices(t *testing.T) {
 	assert.NoError(t, tra.Broadcast(messages.PriceMessageName, testutil.PriceXXXYYY2))
 
 	// Datastore fetches prices asynchronously, so we wait up to 1 second:
-	var aaabbb, xxxyyy []*oracle.Price
+	var aaabbb, xxxyyy []*messages.Price
 	for i := 0; i < 10; i++ {
 		time.Sleep(100 * time.Millisecond)
-		aaabbb = ds.Prices().AssetPair("AAABBB").OraclePrices()
-		xxxyyy = ds.Prices().AssetPair("XXXYYY").OraclePrices()
+		aaabbb = ds.Prices().AssetPair("AAABBB")
+		xxxyyy = ds.Prices().AssetPair("XXXYYY")
 		if len(aaabbb) == 2 && len(xxxyyy) == 2 {
 			break
 		}
 	}
 
-	assert.Contains(t, aaabbb, testutil.PriceAAABBB1.Price)
-	assert.Contains(t, aaabbb, testutil.PriceAAABBB2.Price)
-	assert.Contains(t, xxxyyy, testutil.PriceXXXYYY1.Price)
-	assert.Contains(t, xxxyyy, testutil.PriceXXXYYY2.Price)
+	assert.Contains(t, toOraclePrices(aaabbb), testutil.PriceAAABBB1.Price)
+	assert.Contains(t, toOraclePrices(aaabbb), testutil.PriceAAABBB2.Price)
+	assert.Contains(t, toOraclePrices(xxxyyy), testutil.PriceXXXYYY1.Price)
+	assert.Contains(t, toOraclePrices(xxxyyy), testutil.PriceXXXYYY2.Price)
+}
+
+func toOraclePrices(ps []*messages.Price) []*oracle.Price {
+	var r []*oracle.Price
+	for _, p := range ps {
+		r = append(r, p.Price)
+	}
+	return r
 }

@@ -155,8 +155,8 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 		return nil, errUnknownAsset{AssetPair: assetPair}
 	}
 
-	prices := r.datastore.Prices().AssetPair(assetPair)
-	if prices == nil || prices.Len() == 0 {
+	prices := newPrices(r.datastore.Prices().AssetPair(assetPair))
+	if prices == nil || prices.len() == 0 {
 		return nil, errNoPrices{AssetPair: assetPair}
 	}
 
@@ -174,13 +174,13 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	}
 
 	// Clear expired prices:
-	prices.ClearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
-	prices.ClearOlderThan(oracleTime)
+	prices.clearOlderThan(time.Now().Add(-1 * pair.PriceExpiration))
+	prices.clearOlderThan(oracleTime)
 
 	// Use only a minimum prices required to achieve a quorum:
-	prices.Truncate(oracleQuorum)
+	prices.truncate(oracleQuorum)
 
-	spread := prices.Spread(oraclePrice)
+	spread := prices.spread(oraclePrice)
 	isExpired := oracleTime.Add(pair.OracleExpiration).Before(time.Now())
 	isStale := spread >= pair.OracleSpread
 
@@ -199,7 +199,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 			"currentSpread":    spread,
 		}).
 		Debug("Trying to update Oracle")
-	for _, price := range prices.OraclePrices() {
+	for _, price := range prices.oraclePrices() {
 		r.log.
 			WithFields(price.Fields(r.signer)).
 			Debug("Feed")
@@ -207,12 +207,12 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 
 	if isExpired || isStale {
 		// Check if there are enough prices to achieve a quorum:
-		if int64(prices.Len()) != oracleQuorum {
+		if int64(prices.len()) != oracleQuorum {
 			return nil, errNotEnoughPricesForQuorum{AssetPair: assetPair}
 		}
 
 		// Send *actual* transaction to the Ethereum network:
-		tx, err := pair.Median.Poke(r.ctx, prices.OraclePrices(), true)
+		tx, err := pair.Median.Poke(r.ctx, prices.oraclePrices(), true)
 		return tx, err
 	}
 

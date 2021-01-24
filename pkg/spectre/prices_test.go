@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package datastore
+package spectre
 
 import (
 	"math"
@@ -28,48 +28,48 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
-func TestPriceSet_Len(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_len(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
 		testutil.PriceAAABBB4,
 	})
 
-	assert.Equal(t, 4, ps.Len())
+	assert.Equal(t, 4, ps.len())
 }
 
-func TestPriceSet_Messages(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_messages(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
 		testutil.PriceAAABBB4,
 	})
 
-	assert.Len(t, ps.Messages(), 4)
-	assert.Contains(t, ps.Messages(), testutil.PriceAAABBB1)
-	assert.Contains(t, ps.Messages(), testutil.PriceAAABBB2)
-	assert.Contains(t, ps.Messages(), testutil.PriceAAABBB3)
-	assert.Contains(t, ps.Messages(), testutil.PriceAAABBB4)
+	assert.Len(t, ps.messages(), 4)
+	assert.Contains(t, ps.messages(), testutil.PriceAAABBB1)
+	assert.Contains(t, ps.messages(), testutil.PriceAAABBB2)
+	assert.Contains(t, ps.messages(), testutil.PriceAAABBB3)
+	assert.Contains(t, ps.messages(), testutil.PriceAAABBB4)
 }
 
-func TestPriceSet_OraclePrices(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_oraclePrices(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
 		testutil.PriceAAABBB4,
 	})
 
-	assert.Len(t, ps.OraclePrices(), 4)
-	assert.Contains(t, ps.OraclePrices(), testutil.PriceAAABBB1.Price)
-	assert.Contains(t, ps.OraclePrices(), testutil.PriceAAABBB2.Price)
-	assert.Contains(t, ps.OraclePrices(), testutil.PriceAAABBB3.Price)
-	assert.Contains(t, ps.OraclePrices(), testutil.PriceAAABBB4.Price)
+	assert.Len(t, ps.oraclePrices(), 4)
+	assert.Contains(t, ps.oraclePrices(), testutil.PriceAAABBB1.Price)
+	assert.Contains(t, ps.oraclePrices(), testutil.PriceAAABBB2.Price)
+	assert.Contains(t, ps.oraclePrices(), testutil.PriceAAABBB3.Price)
+	assert.Contains(t, ps.oraclePrices(), testutil.PriceAAABBB4.Price)
 }
 
-func TestPriceSet_Truncate(t *testing.T) {
+func TestPrices_truncate(t *testing.T) {
 	msgs := []*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
@@ -77,48 +77,48 @@ func TestPriceSet_Truncate(t *testing.T) {
 		testutil.PriceAAABBB4,
 	}
 
-	ps1 := NewPriceSet(msgs)
-	ps1.Truncate(5)
-	assert.Len(t, ps1.Messages(), 4)
+	ps1 := newPrices(msgs)
+	ps1.truncate(5)
+	assert.Len(t, ps1.messages(), 4)
 
-	ps2 := NewPriceSet(msgs)
-	ps2.Truncate(4)
-	assert.Len(t, ps2.Messages(), 4)
+	ps2 := newPrices(msgs)
+	ps2.truncate(4)
+	assert.Len(t, ps2.messages(), 4)
 
-	ps3 := NewPriceSet(msgs)
-	ps3.Truncate(3)
-	assert.Len(t, ps3.Messages(), 3)
+	ps3 := newPrices(msgs)
+	ps3.truncate(3)
+	assert.Len(t, ps3.messages(), 3)
 }
 
-func TestPriceSet_Median_Even(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_median_Even(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
 		testutil.PriceAAABBB4,
 	})
 
-	assert.Equal(t, big.NewInt(25), ps.Median())
+	assert.Equal(t, big.NewInt(25), ps.median())
 }
 
-func TestPriceSet_Median_Odd(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_Median_Odd(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
 	})
 
-	assert.Equal(t, big.NewInt(20), ps.Median())
+	assert.Equal(t, big.NewInt(20), ps.median())
 }
 
-func TestPriceSet_Median_Empty(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{})
+func TestPrices_Median_Empty(t *testing.T) {
+	ps := newPrices([]*messages.Price{})
 
-	assert.Equal(t, big.NewInt(0), ps.Median())
+	assert.Equal(t, big.NewInt(0), ps.median())
 }
 
-func TestPriceSet_Spread(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_spread(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
@@ -148,22 +148,22 @@ func TestPriceSet_Spread(t *testing.T) {
 	}
 	for n, tt := range tests {
 		t.Run("Case:"+strconv.Itoa(n+1), func(t *testing.T) {
-			assert.Equal(t, tt.want, ps.Spread(big.NewInt(tt.price)))
+			assert.Equal(t, tt.want, ps.spread(big.NewInt(tt.price)))
 		})
 	}
 }
 
-func TestPriceSet_ClearOlderThan(t *testing.T) {
-	ps := NewPriceSet([]*messages.Price{
+func TestPrices_clearOlderThan(t *testing.T) {
+	ps := newPrices([]*messages.Price{
 		testutil.PriceAAABBB1,
 		testutil.PriceAAABBB2,
 		testutil.PriceAAABBB3,
 		testutil.PriceAAABBB4,
 	})
 
-	ps.ClearOlderThan(time.Unix(300, 0))
+	ps.clearOlderThan(time.Unix(300, 0))
 
-	assert.Len(t, ps.OraclePrices(), 2)
-	assert.Contains(t, ps.OraclePrices(), testutil.PriceAAABBB3.Price)
-	assert.Contains(t, ps.OraclePrices(), testutil.PriceAAABBB4.Price)
+	assert.Len(t, ps.oraclePrices(), 2)
+	assert.Contains(t, ps.oraclePrices(), testutil.PriceAAABBB3.Price)
+	assert.Contains(t, ps.oraclePrices(), testutil.PriceAAABBB4.Price)
 }

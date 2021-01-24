@@ -72,7 +72,7 @@ func (p *PriceStore) All() map[FeederPrice]*messages.Price {
 }
 
 // AssetPair returns all prices for given asset pair.
-func (p *PriceStore) AssetPair(assetPair string) *PriceSet {
+func (p *PriceStore) AssetPair(assetPair string) []*messages.Price {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -84,7 +84,7 @@ func (p *PriceStore) AssetPair(assetPair string) *PriceSet {
 		prices = append(prices, price)
 	}
 
-	return NewPriceSet(prices)
+	return prices
 }
 
 // Feeder returns the latest price for given asset pair sent by given feeder.
