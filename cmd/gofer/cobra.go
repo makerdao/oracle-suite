@@ -22,33 +22,49 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/marshal"
-	"github.com/makerdao/gofer/pkg/cli"
-	"github.com/makerdao/gofer/pkg/config"
+	"github.com/makerdao/gofer/internal/gofer/cli"
+	"github.com/makerdao/gofer/internal/gofer/marshal"
+	"github.com/makerdao/gofer/internal/gofer/web"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/graph"
-	"github.com/makerdao/gofer/pkg/origins"
-	"github.com/makerdao/gofer/pkg/web"
+	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
+	"github.com/makerdao/gofer/pkg/gofer/feeder"
+	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 )
 
-func priceModels(path string) (gofer.PriceModels, error) {
+func newLogger(level string) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(level)
+	if err != nil {
+		return nil, err
+	}
+
+	lr := logrus.New()
+	lr.SetLevel(ll)
+
+	return logLogrus.New(lr), nil
+}
+
+func newGofer(opts *options, path string, log log.Logger) (*gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	j, err := config.ParseJSONFile(absPath)
+	err = configJSON.ParseJSONFile(&opts.Config, absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	g, err := j.BuildGraphs()
+	g, err := opts.Config.BuildGraphs()
 	if err != nil {
 		return nil, err
 	}
-	return g, nil
+
+	return gofer.NewGofer(g, feeder.NewFeeder(origins.DefaultSet(), log)), nil
 }
 
 // asyncCopy asynchronously copies from src to dst using the io.Copy.
@@ -98,7 +114,12 @@ func NewPairsCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			g, err := priceModels(absPath)
+			l, err := newLogger(o.LogVerbosity)
+			if err != nil {
+				return err
+			}
+
+			g, err := newGofer(o, absPath, l)
 			if err != nil {
 				return err
 			}
@@ -137,7 +158,12 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			g, err := priceModels(absPath)
+			l, err := newLogger(o.LogVerbosity)
+			if err != nil {
+				return err
+			}
+
+			g, err := newGofer(o, absPath, l)
 			if err != nil {
 				return err
 			}
@@ -176,14 +202,21 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			gg, err := priceModels(absPath)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
 
-			graph.Feed(graph.NewFeeder(origins.DefaultSet()), gofer.RootNodes(gg))
+			g, err := newGofer(o, absPath, l)
+			if err != nil {
+				return err
+			}
 
-			err = cli.Prices(args, gg, m)
+			if err := g.Feed(g.Pairs()...); err != nil {
+				return err
+			}
+
+			err = cli.Prices(args, g, m)
 			if err != nil {
 				return err
 			}
@@ -205,20 +238,25 @@ func NewServerCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			models, err := priceModels(absPath)
+			l, err := newLogger(o.LogVerbosity)
 			if err != nil {
 				return err
 			}
 
-			http.HandleFunc("/v1/pairs/", web.PairsHandler(models))
-			http.HandleFunc("/v1/origins/", web.OriginsHandler(models))
+			g, err := newGofer(o, absPath, l)
+			if err != nil {
+				return err
+			}
 
-			feeder := graph.NewFeeder(origins.DefaultSet())
-			nodes := gofer.RootNodes(models)
-			graph.Feed(feeder, nodes)
-			done := graph.ScheduleFeeding(feeder, nodes)
-			defer done()
-			http.HandleFunc("/v1/prices/", web.PricesHandler(models))
+			http.HandleFunc("/v1/pairs/", web.PairsHandler(g))
+			http.HandleFunc("/v1/origins/", web.OriginsHandler(g))
+			http.HandleFunc("/v1/prices/", web.PricesHandler(g))
+
+			err = g.StartFeeder(g.Pairs()...)
+			if err != nil {
+				return err
+			}
+			defer g.StopFeeder()
 
 			return web.StartServer(":8080")
 		},
@@ -235,12 +273,29 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: true,
+		SilenceErrors: false,
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&opts.ConfigFilePath, "config", "c", "./gofer.json", "config file")
-	rootCmd.PersistentFlags().VarP(&opts.OutputFormat, "format", "f", "output format")
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity", "v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigFilePath,
+		"config",
+		"c",
+		"./gofer.json",
+		"config file",
+	)
+	rootCmd.PersistentFlags().VarP(
+		&opts.OutputFormat,
+		"format",
+		"f",
+		"output format",
+	)
 
 	return rootCmd
 }

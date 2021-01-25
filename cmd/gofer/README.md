@@ -1,7 +1,9 @@
 # Gofer
-> As in a [tool](https://en.wikipedia.org/wiki/Gofer) that specializes in the delivery of special items. 
 
-A command line interface for the [Gofer Go library](https://github.com/makerdao/gofer) to enable getting reliable crypto-asset prices.
+> As in a [tool](https://en.wikipedia.org/wiki/Gofer) that specializes in the delivery of special items.
+
+A command line interface for the [Gofer Go library](https://github.com/makerdao/gofer) to enable getting reliable
+crypto-asset prices.
 
 ## Usage
 
@@ -39,7 +41,7 @@ Listing all supported exchanges:
 gofer exchanges
 ```
 
-List exchanges that will be queried to get the price a specific pair: 
+List exchanges that will be queried to get the price a specific pair:
 
 ```sh
 gofer exchanges BTC/USD
@@ -52,6 +54,7 @@ Show general help screen with available commands
 ```sh
 gofer -h
 ```
+
 ```text
 Usage:  gofer [OPTION...] COMMAND
 
@@ -92,4 +95,5 @@ make
 ```
 
 ## License
+
 [The GNU Affero General Public License](../../LICENSE)

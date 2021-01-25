@@ -17,7 +17,7 @@ commands:
       - run:
           name: Download vendors
           command: |
-            go mod vendor
+            go mod download
 
       - save_cache:
           key: go-mod-v5-{{ checksum "go.sum" }}

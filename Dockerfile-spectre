@@ -1,0 +1,14 @@
+FROM golang:1-alpine as builder
+RUN apk --no-cache add git gcc libc-dev linux-headers
+WORKDIR /go/src/spectre
+COPY . .
+RUN    export CGO_ENABLED=1 \
+    && mkdir dist \
+    && go mod download \
+    && go build -o dist/spectre ./cmd/spectre
+
+FROM golang:1-alpine
+RUN apk --no-cache add ca-certificates
+WORKDIR /root
+COPY --from=builder /go/src/spectre/dist/ /usr/local/bin/
+ENTRYPOINT ["/usr/local/bin/spectre"]
