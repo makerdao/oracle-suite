@@ -17,6 +17,9 @@ package config
 
 import (
 	"context"
+	"errors"
+	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -32,6 +35,8 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/p2p"
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 )
+
+var ErrFailedToReadPassphraseFile = errors.New("failed to read passphrase file")
 
 type Config struct {
 	Ethereum Ethereum        `json:"ethereum"`
@@ -114,14 +119,20 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 }
 
 func (c *Config) configureAccount() (*ethereumGeth.Account, error) {
+	passphrase, err := c.readAccountPassphrase(c.Ethereum.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	a, err := ethereumGeth.NewAccount(
 		c.Ethereum.Keystore,
-		c.Ethereum.Password,
+		passphrase,
 		ethereum.HexToAddress(c.Ethereum.From),
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	return a, nil
 }
 
@@ -211,4 +222,12 @@ func (c *Config) configureSpectre(
 	}
 
 	return spectre.NewSpectre(cfg)
+}
+
+func (c *Config) readAccountPassphrase(path string) (string, error) {
+	passphraseFile, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", ErrFailedToReadPassphraseFile
+	}
+	return strings.TrimSuffix(string(passphraseFile), "\n"), nil
 }
