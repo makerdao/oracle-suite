@@ -27,7 +27,7 @@ type ErrPairNotFound struct {
 }
 
 func (e ErrPairNotFound) Error() string {
-	return fmt.Sprintf("unable to find %s pair", e.AssetPair)
+	return fmt.Sprintf("unable to find the %s pair", e.AssetPair)
 }
 
 type Gofer struct {
@@ -35,6 +35,7 @@ type Gofer struct {
 	feeder *feeder.Feeder
 }
 
+// NewGofer returns a new Gofer instance.
 func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *feeder.Feeder) *Gofer {
 	return &Gofer{
 		graphs: graphs,
@@ -42,71 +43,79 @@ func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *feeder.Feeder) *Go
 	}
 }
 
+// Graphs returns a node's graph used by this Gofer instance.
 func (g *Gofer) Graphs() map[graph.Pair]graph.Aggregator {
 	return g.graphs
 }
 
+// Feeder returns a feeder used by this Gofer instance.
 func (g *Gofer) Feeder() *feeder.Feeder {
 	return g.feeder
 }
 
+// Pairs returns the list of all supported asset pairs.
 func (g *Gofer) Pairs() []graph.Pair {
-	var pairs []graph.Pair
-	for p := range g.Graphs() {
-		pairs = append(pairs, p)
+	var ps []graph.Pair
+	for p := range g.graphs {
+		ps = append(ps, p)
 	}
-	return pairs
+	return ps
 }
 
-func (g *Gofer) Feed(pairs ...graph.Pair) error {
+// Feed feeds given asset pairs with prices using Feeder.
+func (g *Gofer) Feed(pairs ...graph.Pair) (feeder.Warnings, error) {
 	nodes, err := g.getNodesForPairs(pairs)
 	if err != nil {
-		return err
+		return feeder.Warnings{}, err
 	}
-
-	// TODO: log errors
-	_ = g.feeder.Feed(nodes)
-
-	return nil
+	return g.feeder.Feed(nodes), nil
 }
 
+// StartFeeder starts Feeder process that will automatically be updating prices
+// in the background.
 func (g *Gofer) StartFeeder(pairs ...graph.Pair) error {
 	nodes, err := g.getNodesForPairs(pairs)
 	if err != nil {
 		return err
 	}
-
 	return g.feeder.Start(nodes)
 }
 
+// StopFeeder stops Feeder previously started with the StartFeeder method.
 func (g *Gofer) StopFeeder() {
 	g.feeder.Stop()
 }
 
+// Tick returns a Tick for the given pair.
 func (g *Gofer) Tick(pair graph.Pair) (graph.AggregatorTick, error) {
 	if node, ok := g.graphs[pair]; ok {
 		return node.Tick(), nil
 	}
-
 	return graph.AggregatorTick{}, ErrPairNotFound{AssetPair: pair.String()}
 }
 
+// Ticks returns a list of Ticks for the given pairs.
 func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
 	var ticks []graph.AggregatorTick
 	for _, pair := range pairs {
-		ticks = append(ticks, g.graphs[pair].Tick())
+		if pg, ok := g.graphs[pair]; ok {
+			ticks = append(ticks, pg.Tick())
+		} else {
+			return nil, ErrPairNotFound{AssetPair: pair.String()}
+		}
 	}
-
 	return ticks, nil
 }
 
+// Origins returns all origins names which are involved in the calculation
+// of the price for the given pairs.
 func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 	origins := map[graph.Pair][]string{}
 	for _, pair := range pairs {
-		if pairGraph, ok := g.graphs[pair]; ok {
+		if pg, ok := g.graphs[pair]; ok {
 			graph.Walk(func(node graph.Node) {
-				if originNode, ok := node.(*graph.OriginNode); ok {
-					name := originNode.OriginPair().Origin
+				if on, ok := node.(*graph.OriginNode); ok {
+					name := on.OriginPair().Origin
 					for _, n := range origins[pair] {
 						if name == n {
 							return
@@ -114,20 +123,19 @@ func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
 					}
 					origins[pair] = append(origins[pair], name)
 				}
-			}, pairGraph)
+			}, pg)
 		} else {
 			return nil, ErrPairNotFound{AssetPair: pair.String()}
 		}
 	}
-
 	return origins, nil
 }
 
 func (g *Gofer) getNodesForPairs(pairs []graph.Pair) ([]graph.Node, error) {
 	var graphs []graph.Node
 	for _, pair := range pairs {
-		if pairGraph, ok := g.graphs[pair]; ok {
-			graphs = append(graphs, pairGraph)
+		if pg, ok := g.graphs[pair]; ok {
+			graphs = append(graphs, pg)
 		} else {
 			return nil, ErrPairNotFound{AssetPair: pair.String()}
 		}

@@ -63,21 +63,21 @@ func originsSetMock(ticks map[string][]origins.Tick) *origins.Set {
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil), null.New())
-	err := f.Feed([]graph.Node{})
-
-	assert.NoError(t, err)
 
 	// Feed method shouldn't panic
+	warns := f.Feed([]graph.Node{})
+
+	assert.Len(t, warns.List, 0)
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil), null.New())
 	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
-	err := f.Feed([]graph.Node{g})
-
-	assert.NoError(t, err)
 
 	// Feed method shouldn't panic
+	warns := f.Feed([]graph.Node{g})
+
+	assert.Len(t, warns.List, 0)
 }
 
 func TestFeeder_Feed_OneOriginNode(t *testing.T) {
@@ -103,9 +103,9 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 	}, 0, 0)
 
 	g.AddChild(o)
-	err := f.Feed([]graph.Node{g})
+	warns := f.Feed([]graph.Node{g})
 
-	assert.NoError(t, err)
+	assert.Len(t, warns.List, 0)
 	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 10.0, o.Tick().Price)
 	assert.Equal(t, 9.0, o.Tick().Bid)
@@ -175,9 +175,9 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	g.AddChild(o3)
 	g.AddChild(o3) // intentionally
 	g.AddChild(o4)
-	err := f.Feed([]graph.Node{g})
+	warns := f.Feed([]graph.Node{g})
 
-	assert.NoError(t, err)
+	assert.Len(t, warns.List, 0)
 
 	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o1.Tick().Pair)
 	assert.Equal(t, 10.0, o1.Tick().Price)
@@ -240,9 +240,9 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 
 	g.AddChild(i)
 	i.AddChild(o)
-	err := f.Feed([]graph.Node{g})
+	warns := f.Feed([]graph.Node{g})
 
-	assert.NoError(t, err)
+	assert.Len(t, warns.List, 0)
 	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 10.0, o.Tick().Price)
 	assert.Equal(t, 9.0, o.Tick().Bid)
@@ -287,10 +287,10 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	err := f.Feed([]graph.Node{g})
+	warns := f.Feed([]graph.Node{g})
 
 	// OriginNode shouldn't be updated because time diff is below MinTTL setting:
-	assert.NoError(t, err)
+	assert.Len(t, warns.List, 0)
 	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 10.0, o.Tick().Price)
 	assert.Equal(t, 9.0, o.Tick().Bid)
@@ -334,10 +334,10 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	})
 
 	g.AddChild(o)
-	err := f.Feed([]graph.Node{g})
+	warns := f.Feed([]graph.Node{g})
 
 	// OriginNode should be updated because time diff is above MinTTL setting:
-	assert.NoError(t, err)
+	assert.Len(t, warns.List, 0)
 	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 11.0, o.Tick().Price)
 	assert.Equal(t, 10.0, o.Tick().Bid)

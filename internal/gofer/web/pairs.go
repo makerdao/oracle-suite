@@ -16,21 +16,21 @@
 package web
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/makerdao/gofer/internal/gofer/cli"
 	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/log"
 )
 
-func PairsHandler(g *gofer.Gofer) http.HandlerFunc {
+func PairsHandler(g *gofer.Gofer, l log.Logger) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
 		err := cli.Pairs(g, m)
 		if err != nil {
-			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
+			l.WithError(err).Error("Unable to read pairs")
 		}
 
 		return nil
-	})
+	}, l)
 }

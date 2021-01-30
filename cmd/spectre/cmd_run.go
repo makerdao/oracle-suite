@@ -16,54 +16,13 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	"github.com/makerdao/gofer/pkg/log"
-	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
-	"github.com/makerdao/gofer/pkg/spectre/config"
-	configJSON "github.com/makerdao/gofer/pkg/spectre/config/json"
 )
-
-func newLogger(level string) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(level)
-	if err != nil {
-		return nil, err
-	}
-
-	lr := logrus.New()
-	lr.SetLevel(ll)
-
-	return logLogrus.New(lr), nil
-}
-
-func newSpectre(opts *options, path string, log log.Logger) (*config.Instances, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	err = configJSON.ParseJSONFile(&opts.Config, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	i, err := opts.Config.Configure(config.Dependencies{
-		Context: context.Background(),
-		Logger:  log,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return i, nil
-}
 
 func NewRunCmd(o *options) *cobra.Command {
 	return &cobra.Command{
@@ -94,7 +53,7 @@ func NewRunCmd(o *options) *cobra.Command {
 			defer func() {
 				err := ins.Spectre.Stop()
 				if err != nil {
-					l.Errorf("SPECTRE", "Unable to stop Spectre: %s", err)
+					l.Errorf("Unable to stop Spectre: %s", err)
 				}
 			}()
 
@@ -105,32 +64,4 @@ func NewRunCmd(o *options) *cobra.Command {
 			return nil
 		},
 	}
-}
-
-func NewRootCommand(opts *options) *cobra.Command {
-	rootCmd := &cobra.Command{
-		Use:           "spectre",
-		Version:       "DEV",
-		Short:         "",
-		Long:          ``,
-		SilenceErrors: false,
-		SilenceUsage:  true,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(
-		&opts.LogVerbosity,
-		"log.verbosity",
-		"v",
-		"info",
-		"verbosity level",
-	)
-	rootCmd.PersistentFlags().StringVarP(
-		&opts.ConfigFilePath,
-		"spectre-config",
-		"c",
-		"./spectre.json",
-		"spectre config file",
-	)
-
-	return rootCmd
 }

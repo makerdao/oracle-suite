@@ -20,8 +20,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/spf13/cobra"
-
 	"github.com/makerdao/gofer/pkg/log"
 )
 
@@ -31,62 +29,6 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-type options struct {
-	EthereumKeystore string
-	EthereumPassword string
-	EthereumAddress  string
-	EthereumRPC      string
-}
-
-func NewRootCommand() *cobra.Command {
-	var opts options
-
-	rootCmd := &cobra.Command{
-		Use:           "toolbox",
-		Version:       "DEV",
-		Short:         "",
-		Long:          ``,
-		SilenceErrors: false,
-		SilenceUsage:  true,
-	}
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumKeystore,
-		"eth-keystore",
-		"",
-		"ethereum keystore path",
-	)
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumPassword,
-		"eth-password",
-		"",
-		"ethereum keystore password",
-	)
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumAddress,
-		"eth-address",
-		"",
-		"ethereum account address",
-	)
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumRPC,
-		"eth-rpc",
-		"",
-		"ethereum RPC address",
-	)
-
-	rootCmd.AddCommand(
-		NewMedianCmd(&opts),
-		NewPriceCmd(&opts),
-		NewSignerCmd(&opts),
-	)
-
-	return rootCmd
 }
 
 func readAll(r io.Reader) ([]byte, error) {

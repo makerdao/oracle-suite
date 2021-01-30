@@ -17,88 +17,47 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
-var Valid = Config{
-	Origins: nil,
-	PriceModels: map[string]PriceModel{
-		"B/C": {
-			Method: "median",
-			Sources: [][]Source{
-				{
-					{Origin: "bc1", Pair: "B/C"},
+func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"B/C": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: "bc1", Pair: "B/C"},
+					},
+					{
+						{Origin: "bc2", Pair: "B/C"},
+					},
 				},
-				{
-					{Origin: "bc2", Pair: "B/C"},
-				},
+				Params: []byte(`{"minimumSuccessfulSources": 3}`),
 			},
-			Params: []byte(`{"minimumSuccessfulSources": 3}`),
-		},
-		"A/C": {
-			Method: "median",
-			Sources: [][]Source{
-				{
-					{Origin: "ab1", Pair: "A/B"},
-					{Origin: "bc1", Pair: "B/C"},
+			"A/C": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: "ab1", Pair: "A/B"},
+						{Origin: "bc1", Pair: "B/C"},
+					},
+					{
+						{Origin: "ab2", Pair: "A/B"},
+						{Origin: ".", Pair: "B/C"},
+					},
 				},
-				{
-					{Origin: "ab2", Pair: "A/B"},
-					{Origin: ".", Pair: "B/C"},
-				},
+				Params: []byte(`{"minimumSuccessfulSources": 3}`),
 			},
-			Params: []byte(`{"minimumSuccessfulSources": 3}`),
 		},
-	},
-}
+	}
 
-var Cyclic = Config{
-	Origins: nil,
-	PriceModels: map[string]PriceModel{
-		"A/B": {
-			Method: "median",
-			Sources: [][]Source{
-				{
-					{Origin: "ab1", Pair: "A/B"},
-				},
-				{
-					{Origin: "ab2", Pair: "A/B"},
-				},
-				{
-					{Origin: "ac1", Pair: "A/B"},
-					{Origin: ".", Pair: "B/C"},
-				},
-			},
-			Params: []byte(`{"minimumSuccessfulSources": 3}`),
-		},
-		"A/C": {
-			Method: "median",
-			Sources: [][]Source{
-				{
-					{Origin: "ab1", Pair: "A/B"},
-					{Origin: ".", Pair: "B/C"},
-				},
-			},
-			Params: []byte(`{"minimumSuccessfulSources": 3}`),
-		},
-		"B/C": {
-			Method: "median",
-			Sources: [][]Source{
-				{
-					{Origin: "ab1", Pair: "A/B"},
-					{Origin: ".", Pair: "A/C"},
-				},
-			},
-			Params: []byte(`{"minimumSuccessfulSources": 3}`),
-		},
-	},
-}
-
-func TestBuildGraphs_ValidConfig(t *testing.T) {
-	j, err2 := Valid.BuildGraphs()
+	c, err2 := config.buildGraphs()
 	assert.Nil(t, err2)
 
 	// List of pairs used in config file:
@@ -107,40 +66,218 @@ func TestBuildGraphs_ValidConfig(t *testing.T) {
 	ac := graph.Pair{Base: "A", Quote: "C"}
 
 	// Check if all three pairs was loaded correctly:
-	assert.Contains(t, j, bc)
-	assert.Contains(t, j, ac)
-	assert.IsType(t, &graph.MedianAggregatorNode{}, j[bc])
-	assert.IsType(t, &graph.MedianAggregatorNode{}, j[ac])
+	assert.Contains(t, c, bc)
+	assert.Contains(t, c, ac)
+	assert.IsType(t, &graph.MedianAggregatorNode{}, c[bc])
+	assert.IsType(t, &graph.MedianAggregatorNode{}, c[ac])
 
 	// --- Tests for B/C pair ---
-	assert.Len(t, j[bc].Children(), 2)
+	assert.Len(t, c[bc].Children(), 2)
 	// Sources have only one pair so we expect OriginNodes instead of
 	// the IndirectAggregatorNode:
-	assert.IsType(t, &graph.OriginNode{}, j[bc].Children()[0])
-	assert.IsType(t, &graph.OriginNode{}, j[bc].Children()[1])
+	assert.IsType(t, &graph.OriginNode{}, c[bc].Children()[0])
+	assert.IsType(t, &graph.OriginNode{}, c[bc].Children()[1])
 	// Check if pairs was assigned correctly to nodes:
-	assert.Equal(t, "bc1", j[bc].Children()[0].(*graph.OriginNode).OriginPair().Origin)
-	assert.Equal(t, "bc2", j[bc].Children()[1].(*graph.OriginNode).OriginPair().Origin)
-	assert.Equal(t, bc, j[bc].Children()[0].(*graph.OriginNode).OriginPair().Pair)
-	assert.Equal(t, bc, j[bc].Children()[1].(*graph.OriginNode).OriginPair().Pair)
+	assert.Equal(t, "bc1", c[bc].Children()[0].(*graph.OriginNode).OriginPair().Origin)
+	assert.Equal(t, "bc2", c[bc].Children()[1].(*graph.OriginNode).OriginPair().Origin)
+	assert.Equal(t, bc, c[bc].Children()[0].(*graph.OriginNode).OriginPair().Pair)
+	assert.Equal(t, bc, c[bc].Children()[1].(*graph.OriginNode).OriginPair().Pair)
 
 	// --- Tests for A/C pair ---
-	assert.Len(t, j[ac].Children(), 2)
+	assert.Len(t, c[ac].Children(), 2)
 	// Sources have more than one pair so now we expect the
 	// IndirectAggregatorNode.
-	assert.IsType(t, &graph.IndirectAggregatorNode{}, j[ac].Children()[0])
-	assert.IsType(t, &graph.IndirectAggregatorNode{}, j[ac].Children()[1])
+	assert.IsType(t, &graph.IndirectAggregatorNode{}, c[ac].Children()[0])
+	assert.IsType(t, &graph.IndirectAggregatorNode{}, c[ac].Children()[1])
 	// Check if pairs was assigned correctly to nodes:
-	assert.Equal(t, ac, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Pair())
-	assert.Equal(t, ac, j[ac].Children()[1].(*graph.IndirectAggregatorNode).Pair())
-	assert.Equal(t, ab, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[0].(*graph.OriginNode).OriginPair().Pair)
-	assert.Equal(t, bc, j[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[1].(*graph.OriginNode).OriginPair().Pair)
+	assert.Equal(t, ac, c[ac].Children()[0].(*graph.IndirectAggregatorNode).Pair())
+	assert.Equal(t, ac, c[ac].Children()[1].(*graph.IndirectAggregatorNode).Pair())
+	assert.Equal(t, ab, c[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[0].(*graph.OriginNode).OriginPair().Pair)
+	assert.Equal(t, bc, c[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[1].(*graph.OriginNode).OriginPair().Pair)
 	// In a second source, there is a reference to another root node. We should
 	// use previously created instance instead creating new one:
-	assert.Same(t, j[bc], j[ac].Children()[1].(*graph.IndirectAggregatorNode).Children()[1])
+	assert.Same(t, c[bc], c[ac].Children()[1].(*graph.IndirectAggregatorNode).Children()[1])
 }
 
-func TestBuildGraphs_CyclicConfig(t *testing.T) {
-	_, err2 := Cyclic.BuildGraphs()
+func TestConfig_buildGraphs_CyclicConfig(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: "ab1", Pair: "A/B"},
+					},
+					{
+						{Origin: "ab2", Pair: "A/B"},
+					},
+					{
+						{Origin: "ac1", Pair: "A/B"},
+						{Origin: ".", Pair: "B/C"},
+					},
+				},
+				Params: []byte(`{"minimumSuccessfulSources": 3}`),
+			},
+			"A/C": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: "ab1", Pair: "A/B"},
+						{Origin: ".", Pair: "B/C"},
+					},
+				},
+				Params: []byte(`{"minimumSuccessfulSources": 3}`),
+			},
+			"B/C": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: "ab1", Pair: "A/B"},
+						{Origin: ".", Pair: "A/C"},
+					},
+				},
+				Params: []byte(`{"minimumSuccessfulSources": 3}`),
+			},
+		},
+	}
+
+	_, err2 := config.buildGraphs()
 	assert.Error(t, err2)
+}
+
+func TestConfig_buildGraphs_NoSources(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method:  "median",
+				Sources: [][]Source{},
+			},
+		},
+	}
+
+	_, err2 := config.buildGraphs()
+	assert.Nil(t, err2)
+}
+
+func TestConfig_buildGraphs_InvalidPairName(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A_B": { // the "A_B" name is incorrect
+				Method:  "median",
+				Sources: [][]Source{},
+			},
+		},
+	}
+
+	_, err2 := config.buildGraphs()
+	assert.Error(t, err2)
+}
+
+func TestConfig_buildGraphs_ReferenceToMissingPair(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: ".", Pair: "X/Y"},
+					},
+				},
+			},
+		},
+	}
+
+	_, err2 := config.buildGraphs()
+	assert.Error(t, err2)
+}
+
+func TestConfig_buildGraphs_ReferenceToSelf(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: ".", Pair: "A/B"},
+					},
+				},
+			},
+		},
+	}
+
+	_, err2 := config.buildGraphs()
+	assert.Error(t, err2)
+}
+
+func TestConfig_buildGraphs_DefaultTTL(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method: "median",
+				Sources: [][]Source{
+					{
+						{Origin: "ab", Pair: "A/B"},
+					},
+				},
+			},
+		},
+	}
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := config.buildGraphs()
+
+	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 30*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+}
+
+func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method: "median",
+				TTL:    90, // should be ignored
+				Sources: [][]Source{
+					{
+						{Origin: "ab", Pair: "A/B", TTL: 120},
+					},
+				},
+			},
+		},
+	}
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := config.buildGraphs()
+
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+}
+
+func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
+	config := Config{
+		Origins: nil,
+		PriceModels: map[string]PriceModel{
+			"A/B": {
+				Method: "median",
+				TTL:    120,
+				Sources: [][]Source{
+					{
+						{Origin: "ab", Pair: "A/B"},
+					},
+				},
+			},
+		},
+	}
+
+	p, _ := graph.NewPair("A/B")
+	g, _ := config.buildGraphs()
+
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
 }

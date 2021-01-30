@@ -27,6 +27,20 @@ import (
 
 const LoggerTag = "FEEDER"
 
+// Warnings contains a list of minor errors which are occurred during
+// fetching prices.
+type Warnings struct {
+	List []error
+}
+
+func (w Warnings) ToError() error {
+	var err error
+	for _, e := range w.List {
+		err = multierror.Append(err, e)
+	}
+	return err
+}
+
 type Feedable interface {
 	// OriginPair returns the origin and pair which are acceptable for
 	// this Node.
@@ -67,21 +81,17 @@ func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
 // and sets Ticks to all of their children that implement the Feedable interface.
-//
-// This method may return an error with a list of problems during fetching, but
-// despite this there may be enough data to calculate prices. To check that,
-// invoke the Tick() method on the root node and check if there is an error
-// in AggregatorTick.Error field.
-func (f *Feeder) Feed(nodes []graph.Node) error {
+func (f *Feeder) Feed(nodes []graph.Node) Warnings {
 	return f.fetchTicksAndFeedThemToFeedableNodes(f.findFeedableNodes(nodes))
 }
 
+// Start starts a goroutine which updates prices as often as the lowest TTL is.
 func (f *Feeder) Start(nodes []graph.Node) error {
 	f.log.Infof("Starting")
 
-	err := f.Feed(nodes)
-	if err != nil {
-		f.log.WithError(err).Info("Unable to feed some nodes")
+	warns := f.Feed(nodes)
+	if len(warns.List) > 0 {
+		f.log.WithError(warns.ToError()).Info("Unable to feed some nodes")
 	}
 
 	ticker := time.NewTicker(getMinTTL(nodes))
@@ -92,9 +102,9 @@ func (f *Feeder) Start(nodes []graph.Node) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := f.Feed(nodes)
-				if err != nil {
-					f.log.WithError(err).Info("Unable to feed some nodes")
+				warns := f.Feed(nodes)
+				if len(warns.List) > 0 {
+					f.log.WithError(warns.ToError()).Info("Unable to feed some nodes")
 				}
 			}
 		}
@@ -103,6 +113,7 @@ func (f *Feeder) Start(nodes []graph.Node) error {
 	return nil
 }
 
+// Stop stops a goroutine created by the Start method.
 func (f *Feeder) Stop() {
 	defer f.log.Infof("Stopped")
 
@@ -127,8 +138,8 @@ func (f *Feeder) findFeedableNodes(nodes []graph.Node) []Feedable {
 	return feedables
 }
 
-func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
-	var err error
+func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) Warnings {
+	var warns Warnings
 
 	// originPair is used as a key in a map to easily find
 	// Feedable nodes for given origin and pair
@@ -141,7 +152,7 @@ func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 	pairsMap := map[string][]origins.Pair{}
 
 	for _, node := range nodes {
-		originPair := originPair{
+		op := originPair{
 			origin: node.OriginPair().Origin,
 			pair: origins.Pair{
 				Base:  node.OriginPair().Pair.Base,
@@ -149,39 +160,39 @@ func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) error {
 			},
 		}
 
-		nodesMap[originPair] = appendNodeIfUnique(
-			nodesMap[originPair],
+		nodesMap[op] = appendNodeIfUnique(
+			nodesMap[op],
 			node,
 		)
 
-		pairsMap[originPair.origin] = appendPairIfUnique(
-			pairsMap[originPair.origin],
-			originPair.pair,
+		pairsMap[op.origin] = appendPairIfUnique(
+			pairsMap[op.origin],
+			op.pair,
 		)
 	}
 
 	for origin, frs := range f.set.Fetch(pairsMap) {
 		for _, fr := range frs {
-			originPair := originPair{
+			op := originPair{
 				origin: origin,
 				pair:   fr.Tick.Pair,
 			}
 
-			for _, feedable := range nodesMap[originPair] {
+			for _, feedable := range nodesMap[op] {
 				tick := mapOriginResult(origin, fr)
 
 				// If there was an error during fetching a Tick but previous Tick is still
 				// not expired, do not try to override it:
 				if tick.Error != nil && !feedable.Expired() {
-					err = multierror.Append(err, tick.Error)
+					warns.List = append(warns.List, tick.Error)
 				} else if iErr := feedable.Ingest(tick); iErr != nil {
-					err = multierror.Append(iErr, feedable.Ingest(tick))
+					warns.List = append(warns.List, iErr)
 				}
 			}
 		}
 	}
 
-	return err
+	return warns
 }
 
 func appendPairIfUnique(pairs []origins.Pair, pair origins.Pair) []origins.Pair {
