@@ -17,10 +17,13 @@ package config
 
 import (
 	"context"
+	"errors"
+	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/makerdao/gofer/pkg/ethereum"
-	ethereumGeth "github.com/makerdao/gofer/pkg/ethereum/geth"
+	"github.com/makerdao/gofer/pkg/ethereum/geth"
 	"github.com/makerdao/gofer/pkg/ghost"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/log"
@@ -29,6 +32,8 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/p2p"
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 )
+
+var ErrFailedToReadPassphraseFile = errors.New("failed to read passphrase file")
 
 type Config struct {
 	Ethereum Ethereum        `json:"ethereum"`
@@ -99,10 +104,15 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	}, nil
 }
 
-func (c *Config) configureAccount() (*ethereumGeth.Account, error) {
-	a, err := ethereumGeth.NewAccount(
+func (c *Config) configureAccount() (*geth.Account, error) {
+	passphrase, err := c.readAccountPassphrase(c.Ethereum.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	a, err := geth.NewAccount(
 		c.Ethereum.Keystore,
-		c.Ethereum.Password,
+		passphrase,
 		ethereum.HexToAddress(c.Ethereum.From),
 	)
 	if err != nil {
@@ -112,8 +122,8 @@ func (c *Config) configureAccount() (*ethereumGeth.Account, error) {
 	return a, nil
 }
 
-func (c *Config) configureSigner(a *ethereumGeth.Account) ethereum.Signer {
-	return ethereumGeth.NewSigner(a)
+func (c *Config) configureSigner(a *geth.Account) ethereum.Signer {
+	return geth.NewSigner(a)
 }
 
 func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
@@ -168,4 +178,12 @@ func (c *Config) configureGhost(
 	}
 
 	return ghost.NewGhost(cfg)
+}
+
+func (c *Config) readAccountPassphrase(path string) (string, error) {
+	passphraseFile, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", ErrFailedToReadPassphraseFile
+	}
+	return strings.TrimSuffix(string(passphraseFile), "\n"), nil
 }
