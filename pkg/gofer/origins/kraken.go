@@ -64,7 +64,7 @@ func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchRes
 		if t, is := resp.Result[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{

@@ -106,7 +106,7 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "USDT", Quote: "USD"}
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(ErrEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")

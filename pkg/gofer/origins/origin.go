@@ -153,7 +153,7 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 				mu.Lock()
 				frs[origin] = fetchResultListWithErrors(
 					pairs,
-					fmt.Errorf("%w (%s)", errUnknownOrigin, origin),
+					fmt.Errorf("%w (%s)", ErrUnknownOrigin, origin),
 				)
 				mu.Unlock()
 			} else {
@@ -197,7 +197,7 @@ func callSinglePairOrigin(e singlePairOrigin, pairs []Pair) []FetchResult {
 
 func validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	if res == nil {
-		return fetchResultListWithErrors(pairs, errInvalidResponseStatus)
+		return fetchResultListWithErrors(pairs, ErrInvalidResponseStatus)
 	}
 	if res.Error != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("bad response: %w", res.Error))

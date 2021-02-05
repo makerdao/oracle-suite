@@ -58,7 +58,7 @@ func (o *Bitfinex) mapResults(pairs []Pair, tickers map[string]bitfinexTicker) [
 		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else if t.Error != nil {
 			results = append(results, FetchResult{

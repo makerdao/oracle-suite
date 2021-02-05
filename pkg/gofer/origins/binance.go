@@ -51,7 +51,7 @@ func (b *Binance) Fetch(pairs []Pair) []FetchResult {
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
+		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
 	if res.Error != nil {
 		return fetchResultListWithErrors(pairs, res.Error)
@@ -76,7 +76,7 @@ func (b *Binance) Fetch(pairs []Pair) []FetchResult {
 		if r, ok := respMap[b.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{

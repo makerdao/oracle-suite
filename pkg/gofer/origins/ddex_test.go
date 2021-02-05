@@ -58,7 +58,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
 	cr := suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errInvalidResponseStatus, cr[0].Error)
+	suite.Equal(ErrInvalidResponseStatus, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")

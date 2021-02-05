@@ -20,8 +20,8 @@ import (
 	"fmt"
 )
 
-var errEmptyOriginResponse = fmt.Errorf("empty origin response received")
-var errMissingResponseForPair = fmt.Errorf("no response for pair from origin")
-var errInvalidResponseStatus = fmt.Errorf("invalid response status from origin")
-var errInvalidTick = fmt.Errorf("invalid tick from origin")
-var errUnknownOrigin = errors.New("unknown origin")
+var ErrEmptyOriginResponse = fmt.Errorf("empty origin response received")
+var ErrMissingResponseForPair = fmt.Errorf("no response for pair from origin")
+var ErrInvalidResponseStatus = fmt.Errorf("invalid response status from origin")
+var ErrInvalidTick = fmt.Errorf("invalid tick from origin")
+var ErrUnknownOrigin = errors.New("unknown origin")

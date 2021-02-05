@@ -46,7 +46,7 @@ func (suite *UniswapSuite) TestFailOnWrongInput() {
 
 	// Nil as a response
 	fr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, fr[0].Error)
+	suite.Equal(ErrEmptyOriginResponse, fr[0].Error)
 
 	// Error in a response
 	ourErr := fmt.Errorf("error")

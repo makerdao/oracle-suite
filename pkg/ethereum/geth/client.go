@@ -57,17 +57,17 @@ var multiCallContracts = map[uint64]common.Address{
 var ErrMulticallNotSupported = errors.New("multicall is not supported on current chain")
 var ErrInvalidSignedTxType = errors.New("unable to send transaction, SignedTx field have invalid type")
 
-// RevertErr may be returned by Client.Call method in case of EVM revert.
-type RevertErr struct {
+// ErrRevert may be returned by Client.Call method in case of EVM revert.
+type ErrRevert struct {
 	Message string
 	Err     error
 }
 
-func (e RevertErr) Error() string {
+func (e ErrRevert) Error() string {
 	return fmt.Sprintf("reverted: %s", e.Message)
 }
 
-func (e RevertErr) Unwrap() error {
+func (e ErrRevert) Unwrap() error {
 	return e.Err
 }
 
@@ -220,7 +220,7 @@ func isRevertResp(resp []byte) error {
 		return nil
 	}
 
-	return RevertErr{Message: revert, Err: nil}
+	return ErrRevert{Message: revert, Err: nil}
 }
 
 func isRevertErr(vmErr error) error {
@@ -242,7 +242,7 @@ func isRevertErr(vmErr error) error {
 					return nil
 				}
 
-				return RevertErr{Message: revert, Err: vmErr}
+				return ErrRevert{Message: revert, Err: vmErr}
 			}
 		}
 	}

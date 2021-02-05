@@ -76,7 +76,7 @@ func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 	if !resp.Success {
-		return fetchResultListWithErrors(pairs, errInvalidResponseStatus)
+		return fetchResultListWithErrors(pairs, ErrInvalidResponseStatus)
 	}
 
 	tickers := make(map[string]ftxTicker)
@@ -88,7 +88,7 @@ func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult
 		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{

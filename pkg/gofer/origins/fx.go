@@ -79,7 +79,7 @@ func (f *Fx) callByBase(base string, pairs []Pair) ([]FetchResult, error) {
 	// Make query.
 	res := f.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return nil, ErrEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

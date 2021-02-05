@@ -64,7 +64,7 @@ func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
 	// make query
 	res := p.Pool.Query(req)
 	if res == nil {
-		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
+		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
 	if res.Error != nil {
 		return fetchResultListWithErrors(pairs, res.Error)
@@ -83,7 +83,7 @@ func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
 		if r, ok := resp[p.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			if r.IsFrozen == "0" {

@@ -63,7 +63,7 @@ func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
 	// make query
 	res := l.Pool.Query(req)
 	if res == nil {
-		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
+		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
 	if res.Error != nil {
 		return fetchResultListWithErrors(pairs, res.Error)
