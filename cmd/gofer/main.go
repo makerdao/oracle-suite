@@ -16,7 +16,18 @@
 package main
 
 import (
+	"io"
 	"os"
+	"path/filepath"
+	"sync"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/config"
+	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
+	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 )
 
 func main() {
@@ -32,5 +43,59 @@ func main() {
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
+	}
+}
+
+func newLogger(level string) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(level)
+	if err != nil {
+		return nil, err
+	}
+
+	lr := logrus.New()
+	lr.SetLevel(ll)
+
+	return logLogrus.New(lr), nil
+}
+
+func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = configJSON.ParseJSONFile(&opts.Config, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	i, err := opts.Config.Configure(config.Dependencies{Logger: l})
+	if err != nil {
+		return nil, err
+	}
+
+	return i.Gofer, nil
+}
+
+// asyncCopy asynchronously copies from src to dst using the io.Copy.
+// The returned function will block the current goroutine until
+// the io.Copy finished.
+func asyncCopy(dst io.Writer, src io.Reader) func() {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		_, err := io.Copy(dst, src)
+		wg.Done()
+
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
+
+	return func() {
+		wg.Wait()
 	}
 }

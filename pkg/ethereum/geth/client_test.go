@@ -95,7 +95,7 @@ func TestClient_Call_Reverted(t *testing.T) {
 
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	assert.IsType(t, RevertErr{}, err)
+	assert.IsType(t, ErrRevert{}, err)
 	assert.Equal(t, "reverted: Not owner", err.Error())
 }
 
@@ -118,7 +118,7 @@ func TestClient_Call_RevertedDataError(t *testing.T) {
 
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	assert.IsType(t, RevertErr{}, err)
+	assert.IsType(t, ErrRevert{}, err)
 	assert.Equal(t, "reverted: Not owner", err.Error())
 }
 

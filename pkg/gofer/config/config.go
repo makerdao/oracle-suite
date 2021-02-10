@@ -17,18 +17,44 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/feeder"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/log"
 )
 
 const defaultMaxTTL = 60 * time.Second
 const minTTLDifference = 30 * time.Second
+
+type ErrCyclicReference struct {
+	Pair graph.Pair
+	Path []graph.Node
+}
+
+func (e ErrCyclicReference) Error() string {
+	s := strings.Builder{}
+	s.WriteString(fmt.Sprintf("a cyclic reference was detected for the %s pair: ", e.Path))
+	for i, n := range e.Path {
+		t := reflect.TypeOf(n).String()
+		switch typedNode := n.(type) {
+		case graph.Aggregator:
+			s.WriteString(fmt.Sprintf("%s(%s)", t, typedNode.Pair()))
+		default:
+			s.WriteString(t)
+		}
+		if i != len(e.Path)-1 {
+			s.WriteString(" -> ")
+		}
+	}
+	return s.String()
+}
 
 type Config struct {
 	Origins     map[string]Origin     `json:"origins"`
@@ -58,24 +84,52 @@ type Source struct {
 	TTL    int    `json:"ttl"`
 }
 
-func (j *Config) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
+type Dependencies struct {
+	Logger log.Logger
+}
+
+type Instances struct {
+	Feeder *feeder.Feeder
+	Gofer  *gofer.Gofer
+}
+
+func (c *Config) Configure(deps Dependencies) (*Instances, error) {
+	// Graphs:
+	gra, err := c.buildGraphs()
+	if err != nil {
+		return nil, err
+	}
+
+	// Feeder:
+	fed := feeder.NewFeeder(origins.DefaultSet(), deps.Logger)
+
+	// Gofer:
+	gof := gofer.NewGofer(gra, fed)
+
+	return &Instances{
+		Feeder: fed,
+		Gofer:  gof,
+	}, nil
+}
+
+func (c *Config) buildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	var err error
 
 	graphs := map[graph.Pair]graph.Aggregator{}
 
 	// It's important to create root nodes before branches, because branches
 	// may refer to another root nodes instances.
-	err = j.buildRoots(graphs)
+	err = c.buildRoots(graphs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = j.buildBranches(graphs)
+	err = c.buildBranches(graphs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = j.detectCycle(graphs)
+	err = c.detectCycle(graphs)
 	if err != nil {
 		return nil, err
 	}
@@ -83,8 +137,8 @@ func (j *Config) BuildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	return graphs, nil
 }
 
-func (j *Config) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
-	for name, model := range j.PriceModels {
+func (c *Config) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
+	for name, model := range c.PriceModels {
 		modelPair, err := graph.NewPair(name)
 		if err != nil {
 			return err
@@ -108,8 +162,8 @@ func (j *Config) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (j *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
-	for name, model := range j.PriceModels {
+func (c *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
+	for name, model := range c.PriceModels {
 		// We can ignore error here, because it was checked already
 		// in buildRoots method.
 		modelPair, _ := graph.NewPair(name)
@@ -131,12 +185,12 @@ func (j *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 				var node graph.Node
 
 				if source.Origin == "." {
-					node, err = j.reference(graphs, source)
+					node, err = c.reference(graphs, source)
 					if err != nil {
 						return err
 					}
 				} else {
-					node, err = j.originNode(model, source)
+					node, err = c.originNode(model, source)
 					if err != nil {
 						return err
 					}
@@ -145,7 +199,7 @@ func (j *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 				children = append(children, node)
 			}
 
-			// If there are provided multiple sources it means, that price
+			// If there are provided multiple sources it means, that the price
 			// have to be calculated by using the graph.IndirectAggregatorNode.
 			// Otherwise we can pass that graph.OriginNode directly to
 			// the parent node.
@@ -167,7 +221,7 @@ func (j *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (j *Config) reference(graphs map[graph.Pair]graph.Aggregator, source Source) (graph.Node, error) {
+func (c *Config) reference(graphs map[graph.Pair]graph.Aggregator, source Source) (graph.Node, error) {
 	sourcePair, err := graph.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
@@ -183,7 +237,7 @@ func (j *Config) reference(graphs map[graph.Pair]graph.Aggregator, source Source
 	return graphs[sourcePair].(graph.Node), nil
 }
 
-func (j *Config) originNode(model PriceModel, source Source) (graph.Node, error) {
+func (c *Config) originNode(model PriceModel, source Source) (graph.Node, error) {
 	sourcePair, err := graph.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
@@ -205,25 +259,10 @@ func (j *Config) originNode(model PriceModel, source Source) (graph.Node, error)
 	return graph.NewOriginNode(originPair, ttl-minTTLDifference, ttl), nil
 }
 
-func (j *Config) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
-	for _, p := range sortGraphs(graphs) {
-		if c := graph.DetectCycle(graphs[p]); len(c) > 0 {
-			errMsg := strings.Builder{}
-			errMsg.WriteString(fmt.Sprintf("cyclic reference was detected for the %s pair: ", p))
-			for i, n := range c {
-				switch typedNode := n.(type) {
-				case *graph.MedianAggregatorNode:
-					errMsg.WriteString("median:" + typedNode.Pair().String())
-				case *graph.IndirectAggregatorNode:
-					errMsg.WriteString("indirect:" + typedNode.Pair().String())
-				default:
-					errMsg.WriteString(reflect.TypeOf(typedNode).String())
-				}
-				if i != len(c)-1 {
-					errMsg.WriteString(" -> ")
-				}
-			}
-			return errors.New(errMsg.String())
+func (c *Config) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
+	for _, pair := range sortGraphs(graphs) {
+		if path := graph.DetectCycle(graphs[pair]); len(path) > 0 {
+			return ErrCyclicReference{Pair: pair, Path: path}
 		}
 	}
 

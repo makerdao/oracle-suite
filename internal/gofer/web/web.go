@@ -18,20 +18,20 @@ package web
 import (
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 
 	"github.com/makerdao/gofer/internal/gofer/marshal"
+	"github.com/makerdao/gofer/pkg/log"
 )
 
-func StartServer(addr string) error {
-	log.Printf("[WEB] starting server at %s", addr)
+func StartServer(addr string, l log.Logger) error {
+	l.WithField("addr", addr).Infof("Starting server")
 	return http.ListenAndServe(addr, nil)
 }
 
-func internalServerError(w http.ResponseWriter, srvErr error) {
-	log.Printf("[WEB] 500: %s", srvErr.Error())
+func internalServerError(w http.ResponseWriter, l log.Logger, err error) {
+	l.WithError(err).Error("Internal server error")
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
@@ -39,7 +39,7 @@ func asJSON(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func asyncCopy(dst io.Writer, src io.Reader) func() {
+func asyncCopy(dst io.Writer, src io.Reader, l log.Logger) func() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -49,7 +49,7 @@ func asyncCopy(dst io.Writer, src io.Reader) func() {
 			return
 		}
 		if err != nil {
-			log.Printf("[WEB] %s", err.Error())
+			l.WithError(err).Error("Error during serving data")
 		}
 	}()
 	return func() {
@@ -57,7 +57,7 @@ func asyncCopy(dst io.Writer, src io.Reader) func() {
 	}
 }
 
-func recoverHandler() func() {
+func recoverHandler(l log.Logger) func() {
 	return func() {
 		if r := recover(); r != nil {
 			var err error
@@ -71,7 +71,7 @@ func recoverHandler() func() {
 			}
 
 			if err != nil {
-				log.Printf("[WEB] recovered panic: %s", err.Error())
+				l.WithError(err).Error("Recovered panic error")
 			}
 		}
 	}
@@ -79,23 +79,24 @@ func recoverHandler() func() {
 
 func marshallerHandler(
 	handler func(m marshal.Marshaller, r *http.Request) error,
+	l log.Logger,
 ) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer recoverHandler()
+		defer recoverHandler(l)
 
 		m, err := marshal.NewMarshal(marshal.JSON)
 		if err != nil {
-			internalServerError(w, err)
+			internalServerError(w, l, err)
 			return
 		}
 
 		asJSON(w)
 
-		wait := asyncCopy(w, m)
+		wait := asyncCopy(w, m, l)
 		defer func() {
 			if err := m.Close(); err != nil {
-				internalServerError(w, err)
+				internalServerError(w, l, err)
 				return
 			}
 
@@ -103,7 +104,7 @@ func marshallerHandler(
 		}()
 
 		if err := handler(m, r); err != nil {
-			internalServerError(w, err)
+			internalServerError(w, l, err)
 			return
 		}
 	}

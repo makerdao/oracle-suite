@@ -15,7 +15,18 @@
 
 package main
 
-import "os"
+import (
+	"context"
+	"os"
+	"path/filepath"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
+	"github.com/makerdao/gofer/pkg/spectre/config"
+	configJSON "github.com/makerdao/gofer/pkg/spectre/config/json"
+)
 
 func main() {
 	var opts options
@@ -28,4 +39,38 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func newLogger(level string) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(level)
+	if err != nil {
+		return nil, err
+	}
+
+	lr := logrus.New()
+	lr.SetLevel(ll)
+
+	return logLogrus.New(lr), nil
+}
+
+func newSpectre(opts *options, path string, log log.Logger) (*config.Instances, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = configJSON.ParseJSONFile(&opts.Config, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	i, err := opts.Config.Configure(config.Dependencies{
+		Context: context.Background(),
+		Logger:  log,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return i, nil
 }

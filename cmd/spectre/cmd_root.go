@@ -15,11 +15,42 @@
 
 package main
 
-import "github.com/makerdao/gofer/pkg/spectre/config"
+import (
+	"github.com/spf13/cobra"
 
-// These are the command options that can be set by CLI flags.
+	"github.com/makerdao/gofer/pkg/spectre/config"
+)
+
 type options struct {
 	LogVerbosity   string
 	ConfigFilePath string
 	Config         config.Config
+}
+
+func NewRootCommand(opts *options) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:           "spectre",
+		Version:       "DEV",
+		Short:         "",
+		Long:          ``,
+		SilenceErrors: false,
+		SilenceUsage:  true,
+	}
+
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity",
+		"v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigFilePath,
+		"spectre-config",
+		"c",
+		"./spectre.json",
+		"spectre config file",
+	)
+
+	return rootCmd
 }

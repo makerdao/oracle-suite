@@ -15,10 +15,6 @@
 
 package graph
 
-import (
-	"sync"
-)
-
 // Node represents generics node in a graph.
 type Node interface {
 	Children() []Node
@@ -65,20 +61,6 @@ func Walk(fn func(Node), nodes ...Node) {
 	for n := range r {
 		fn(n)
 	}
-}
-
-func AsyncWalk(fn func(Node), node ...Node) {
-	wg := sync.WaitGroup{}
-
-	Walk(func(node Node) {
-		wg.Add(1)
-		go func() {
-			fn(node)
-			wg.Done()
-		}()
-	}, node...)
-
-	wg.Wait()
 }
 
 // DetectCycle detects cycle in given graph. If cycle is

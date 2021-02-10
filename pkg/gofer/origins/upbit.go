@@ -92,7 +92,7 @@ func (o *Upbit) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResu
 		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{

@@ -58,7 +58,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	// nil as response
 	cr := suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(ErrEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")

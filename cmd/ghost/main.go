@@ -15,7 +15,21 @@
 
 package main
 
-import "os"
+import (
+	"context"
+	"os"
+	"path/filepath"
+
+	"github.com/sirupsen/logrus"
+
+	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
+	ghostJSON "github.com/makerdao/gofer/pkg/ghost/config/json"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/config"
+	goferJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
+	"github.com/makerdao/gofer/pkg/log"
+	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
+)
 
 func main() {
 	var opts options
@@ -28,4 +42,58 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func newLogger(level string) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(level)
+	if err != nil {
+		return nil, err
+	}
+
+	lr := logrus.New()
+	lr.SetLevel(ll)
+
+	return logLogrus.New(lr), nil
+}
+
+func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = goferJSON.ParseJSONFile(&opts.GoferConfig, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := opts.GoferConfig.Configure(config.Dependencies{Logger: l})
+	if err != nil {
+		return nil, err
+	}
+
+	return g.Gofer, nil
+}
+
+func newGhost(opts *options, path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ghostJSON.ParseJSONFile(&opts.GhostConfig, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	i, err := opts.GhostConfig.Configure(ghostConfig.Dependencies{
+		Context: context.Background(),
+		Gofer:   gof,
+		Logger:  log,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return i, nil
 }

@@ -16,14 +16,14 @@
 package cli
 
 import (
-	"errors"
 	"sort"
 
+	"github.com/makerdao/gofer/pkg/gofer/feeder"
 	"github.com/makerdao/gofer/pkg/gofer/graph"
 )
 
 type pricer interface {
-	Feed(pairs ...graph.Pair) error
+	Feed(pairs ...graph.Pair) (feeder.Warnings, error)
 	Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error)
 	Pairs() []graph.Pair
 }
@@ -43,7 +43,8 @@ func Prices(args []string, l pricer, m itemWriter) error {
 		pairs = l.Pairs()
 	}
 
-	if err := l.Feed(pairs...); err != nil {
+	_, err := l.Feed(pairs...)
+	if err != nil {
 		return err
 	}
 
@@ -63,11 +64,5 @@ func Prices(args []string, l pricer, m itemWriter) error {
 		}
 	}
 
-	for _, t := range ticks {
-		if t.Error != nil {
-			return errors.New("some prices were returned with an error")
-		}
-	}
-
-	return nil
+	return err
 }

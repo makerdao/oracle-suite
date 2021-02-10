@@ -22,13 +22,11 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 
 	"github.com/makerdao/gofer/pkg/log"
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 	"github.com/makerdao/gofer/pkg/spire"
 	"github.com/makerdao/gofer/pkg/spire/config"
-	configCobra "github.com/makerdao/gofer/pkg/spire/config/cobra"
 	configJSON "github.com/makerdao/gofer/pkg/spire/config/json"
 )
 
@@ -44,49 +42,6 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-type options struct {
-	Verbosity  string
-	ConfigPath string
-	Config     config.Config
-}
-
-func NewRootCommand(opts *options) *cobra.Command {
-	rootCmd := &cobra.Command{
-		Use:           "spire",
-		Version:       "DEV",
-		Short:         "",
-		Long:          ``,
-		SilenceErrors: false,
-		SilenceUsage:  true,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(
-		&opts.Verbosity,
-		"verbosity",
-		"v",
-		"error",
-		"log verbosity level",
-	)
-
-	rootCmd.PersistentFlags().StringVarP(
-		&opts.ConfigPath,
-		"config",
-		"c",
-		"./spire.json",
-		"spire config file",
-	)
-
-	configCobra.RegisterFlags(&opts.Config, rootCmd.PersistentFlags())
-
-	rootCmd.AddCommand(
-		NewAgentCmd(opts),
-		NewPullCmd(opts),
-		NewPushCmd(opts),
-	)
-
-	return rootCmd
 }
 
 func newLogger(level string) (log.Logger, error) {

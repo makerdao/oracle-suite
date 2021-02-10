@@ -66,7 +66,7 @@ func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return nil, ErrEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error

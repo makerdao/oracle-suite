@@ -93,7 +93,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "LRC", Quote: "USDT"}
 	// nil as response
 	cr = suite.origin.Fetch([]Pair{pair})
-	suite.Equal(errEmptyOriginResponse, cr[0].Error)
+	suite.Equal(ErrEmptyOriginResponse, cr[0].Error)
 
 	// error in response
 	ourErr := fmt.Errorf("error")

@@ -80,11 +80,11 @@ type Config struct {
 	Datastore Datastore
 	// Interval describes how often we should try to update Oracles.
 	Interval time.Duration
+	// Pairs is the list supported pairs by Spectre with their configuration.
+	Pairs []*Pair
 	// Logger is a current logger interface used by the Spectre. The Logger is
 	// required to monitor asynchronous processes.
 	Logger log.Logger
-	// Pairs is the list supported pairs by Spectre with their configuration.
-	Pairs []*Pair
 }
 
 type Pair struct {

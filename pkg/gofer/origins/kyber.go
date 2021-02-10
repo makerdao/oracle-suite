@@ -64,12 +64,12 @@ func (o *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResu
 		if t, is := tickers[pair.Quote+"_"+pair.Base]; !is {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		} else if t.TokenSymbol != pair.Base {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errInvalidTick,
+				Error: ErrInvalidTick,
 			})
 		} else {
 			results = append(results, FetchResult{

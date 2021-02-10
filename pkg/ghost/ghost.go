@@ -191,11 +191,16 @@ func (g *Ghost) broadcasterLoop() error {
 				return
 			case <-ticker.C:
 				// Fetch prices from exchanges:
-				err := g.gofer.Feed(g.gofer.Pairs()...)
+				warns, err := g.gofer.Feed(g.gofer.Pairs()...)
+				if len(warns.List) != 0 {
+					g.log.
+						WithError(warns.ToError()).
+						Warn("Unable to fetch prices for some pairs")
+				}
 				if err != nil {
 					g.log.
 						WithError(err).
-						Warn("Unable to fetch prices for some pairs")
+						Error("Unable to fetch prices")
 				}
 
 				// Send prices to the network:

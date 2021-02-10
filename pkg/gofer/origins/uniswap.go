@@ -136,7 +136,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 	// make query
 	res := u.Pool.Query(req)
 	if res == nil {
-		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
+		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
 	if res.Error != nil {
 		return fetchResultListWithErrors(pairs, res.Error)
@@ -189,7 +189,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 		} else {
 			results = append(results, FetchResult{
 				Tick:  Tick{Pair: pair},
-				Error: errMissingResponseForPair,
+				Error: ErrMissingResponseForPair,
 			})
 		}
 	}

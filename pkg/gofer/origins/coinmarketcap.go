@@ -86,7 +86,7 @@ func (c *CoinMarketCap) Fetch(pairs []Pair) []FetchResult {
 	// make query
 	res := c.Pool.Query(req)
 	if res == nil {
-		return fetchResultListWithErrors(pairs, errEmptyOriginResponse)
+		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
 	if res.Error != nil {
 		return fetchResultListWithErrors(pairs, res.Error)

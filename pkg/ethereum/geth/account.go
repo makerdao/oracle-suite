@@ -37,7 +37,7 @@ type Account struct {
 }
 
 // NewAccount returns a new Account instance.
-func NewAccount(keyStorePath, passphrase string, address ethereum.Address) (*Account, error) {
+func NewAccount(keyStorePath, passphrasePath string, address ethereum.Address) (*Account, error) {
 	var err error
 
 	if keyStorePath == "" {
@@ -47,7 +47,7 @@ func NewAccount(keyStorePath, passphrase string, address ethereum.Address) (*Acc
 	ks := keystore.NewKeyStore(keyStorePath, keystore.LightScryptN, keystore.LightScryptP)
 	w := &Account{
 		accountManager: accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: false}, ks),
-		passphrase:     passphrase,
+		passphrase:     passphrasePath,
 		address:        address,
 	}
 

@@ -16,16 +16,16 @@
 package web
 
 import (
-	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/makerdao/gofer/internal/gofer/cli"
 	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/log"
 )
 
-func OriginsHandler(g *gofer.Gofer) http.HandlerFunc {
+func OriginsHandler(g *gofer.Gofer, l log.Logger) http.HandlerFunc {
 	return marshallerHandler(func(m marshal.Marshaller, r *http.Request) error {
 		values, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
@@ -34,9 +34,9 @@ func OriginsHandler(g *gofer.Gofer) http.HandlerFunc {
 
 		err = cli.Origins(values["pair"], g, m)
 		if err != nil {
-			log.Printf("[WEB] %s: %s", r.URL.String(), err.Error())
+			l.WithError(err).Error("Unable to read origins")
 		}
 
 		return nil
-	})
+	}, l)
 }

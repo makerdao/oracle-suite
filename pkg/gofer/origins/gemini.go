@@ -63,7 +63,7 @@ func (g *Gemini) callOne(pair Pair) (*Tick, error) {
 	// make query
 	res := g.Pool.Query(req)
 	if res == nil {
-		return nil, errEmptyOriginResponse
+		return nil, ErrEmptyOriginResponse
 	}
 	if res.Error != nil {
 		return nil, res.Error
