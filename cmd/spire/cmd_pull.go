@@ -87,21 +87,22 @@ func NewPullPriceCmd() *cobra.Command {
 	}
 }
 
-type pullPricesOptions struct {
-	FilterPair string
-	FilterFrom string
-}
-
 func NewPullPricesCmd() *cobra.Command {
-	var pullPricesOpts pullPricesOptions
-
 	cmd := &cobra.Command{
-		Use:   "prices",
-		Args:  cobra.ExactArgs(0),
+		Use:   "prices [PAIR,...] [ADDR,...]",
+		Args:  cobra.MaximumNArgs(2),
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			p, err := client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
+			var filterPair, filterFrom string
+			if len(args) > 0 {
+				filterPair = args[0]
+			}
+			if len(args) > 1 {
+				filterFrom = args[1]
+			}
+
+			p, err := client.PullPrices(filterPair, filterFrom)
 			if err != nil {
 				return err
 			}
@@ -116,20 +117,6 @@ func NewPullPricesCmd() *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.PersistentFlags().StringVar(
-		&pullPricesOpts.FilterFrom,
-		"filter.from",
-		"",
-		"",
-	)
-
-	cmd.PersistentFlags().StringVar(
-		&pullPricesOpts.FilterPair,
-		"filter.pair",
-		"",
-		"",
-	)
 
 	return cmd
 }

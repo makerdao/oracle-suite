@@ -27,7 +27,6 @@ import (
 	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/spire"
 	"github.com/makerdao/gofer/pkg/transport"
-	"github.com/makerdao/gofer/pkg/transport/messages"
 	"github.com/makerdao/gofer/pkg/transport/p2p"
 	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
 )
@@ -153,12 +152,6 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 
 	p, err := p2p.New(cfg)
 	if err != nil {
-		return nil, err
-	}
-
-	err = p.Subscribe(messages.PriceMessageName)
-	if err != nil {
-		_ = p.Close()
 		return nil, err
 	}
 
