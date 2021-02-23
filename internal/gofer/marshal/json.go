@@ -16,7 +16,8 @@
 package marshal
 
 import (
-	encodingJson "encoding/json"
+	"bytes"
+	encodingJSON "encoding/json"
 	"fmt"
 	"time"
 
@@ -24,86 +25,71 @@ import (
 )
 
 type json struct {
-	bufferedMarshaller *bufferedMarshaller
+	ndjson bool
+	items  []interface{}
 }
 
 func newJSON(ndjson bool) *json {
-	return &json{newBufferedMarshaller(ndjson, func(item interface{}) ([]marshalledItem, error) {
-		if i, ok := item.([]marshalledItem); ok {
-			b, err := encodingJson.Marshal(i)
-			b = append(b, '\n')
-			return []marshalledItem{b}, err
-		}
-
-		var err error
-		var ret []marshalledItem
-
-		switch i := item.(type) {
-		case graph.AggregatorTick:
-			err = jsonHandleTick(&ret, i)
-		case graph.Aggregator:
-			err = jsonHandleGraph(&ret, i)
-		case map[graph.Pair][]string:
-			err = jsonHandleOrigins(&ret, i)
-		default:
-			return nil, fmt.Errorf("unsupported data type")
-		}
-
-		return ret, err
-	})}
+	return &json{
+		ndjson: ndjson,
+	}
 }
 
-// Read implements the Marshaller interface.
-func (j *json) Read(p []byte) (int, error) {
-	return j.bufferedMarshaller.Read(p)
+// Bytes implements the Marshaller interface.
+func (j *json) Bytes() ([]byte, error) {
+	buf := bytes.Buffer{}
+	if j.ndjson {
+		for _, item := range j.items {
+			bts, err := encodingJSON.Marshal(item)
+			if err != nil {
+				return nil, err
+			}
+			buf.Write(bts)
+			buf.WriteByte('\n')
+		}
+	} else {
+		bts, err := encodingJSON.Marshal(j.items)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(bts)
+		buf.WriteByte('\n')
+	}
+	return buf.Bytes(), nil
 }
 
 // Write implements the Marshaller interface.
 func (j *json) Write(item interface{}) error {
-	return j.bufferedMarshaller.Write(item)
-}
-
-// Close implements the Marshaller interface.
-func (j *json) Close() error {
-	return j.bufferedMarshaller.Close()
-}
-
-func jsonHandleTick(ret *[]marshalledItem, tick graph.AggregatorTick) error {
-	b, err := encodingJson.Marshal(jsonTickFromAggregatorTick(tick))
-	if err != nil {
-		return err
+	var i interface{}
+	switch typedItem := item.(type) {
+	case graph.AggregatorTick:
+		i = j.handleTick(typedItem)
+	case graph.Aggregator:
+		i = j.handleGraph(typedItem)
+	case map[graph.Pair][]string:
+		i = j.handleOrigins(typedItem)
+	default:
+		return fmt.Errorf("unsupported data type")
 	}
 
-	b = append(b, '\n')
-	*ret = append(*ret, b)
+	j.items = append(j.items, i)
 	return nil
 }
 
-func jsonHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) error {
-	b, err := encodingJson.Marshal(graph.Pair().String())
-	if err != nil {
-		return err
-	}
-
-	b = append(b, '\n')
-	*ret = append(*ret, b)
-	return nil
+func (*json) handleTick(tick graph.AggregatorTick) interface{} {
+	return jsonTickFromAggregatorTick(tick)
 }
 
-func jsonHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) error {
+func (*json) handleGraph(graph graph.Aggregator) interface{} {
+	return graph.Pair().String()
+}
+
+func (*json) handleOrigins(origins map[graph.Pair][]string) interface{} {
 	r := make(map[string][]string)
 	for p, o := range origins {
 		r[p.String()] = o
 	}
-
-	b, err := encodingJson.Marshal(r)
-	if err != nil {
-		return err
-	}
-
-	b = append(b, '\n')
-	*ret = append(*ret, b)
-	return nil
+	return r
 }
 
 type jsonTick struct {

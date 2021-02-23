@@ -16,7 +16,6 @@
 package marshal
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,10 +34,7 @@ func TestTrace_Graph(t *testing.T) {
 	err := j.Write(g)
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
@@ -50,9 +46,9 @@ Graph for A/B:
    └──graph.MedianAggregatorNode(pair:A/B)
       ├──graph.OriginNode(pair:A/B, origin:a)
       └──graph.OriginNode(pair:A/B, origin:b)
-`
+`[1:]
 
-	assert.Equal(t, expected[1:], string(b))
+	assert.Equal(t, expected, string(b))
 }
 
 func TestTrace_Ticks(t *testing.T) {
@@ -64,10 +60,7 @@ func TestTrace_Ticks(t *testing.T) {
 	err := j.Write(g.Tick())
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
@@ -80,9 +73,9 @@ Price for A/B:
       ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
       └──[ERROR] OriginTick(pair:A/B, origin:b, price:20, timestamp:1970-01-01T00:00:20Z)
             Error: something
-`
+`[1:]
 
-	assert.Equal(t, expected[1:], string(b))
+	assert.Equal(t, expected, string(b))
 }
 
 func TestTrace_Origins(t *testing.T) {
@@ -97,10 +90,7 @@ func TestTrace_Origins(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
@@ -108,7 +98,7 @@ func TestTrace_Origins(t *testing.T) {
    ├──a
    ├──b
    └──c
-`
+`[1:]
 
-	assert.Equal(t, expected[1:], string(b))
+	assert.Equal(t, expected, string(b))
 }

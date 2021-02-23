@@ -16,13 +16,12 @@
 package main
 
 import (
-	"io"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
 	"github.com/makerdao/gofer/pkg/gofer/config"
 	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
@@ -31,14 +30,15 @@ import (
 )
 
 func main() {
-	var opts options
-	rootCmd := NewRootCommand(&opts)
+	opts := options{
+		OutputFormat: formatTypeValue{format: marshal.NDJSON},
+	}
 
+	rootCmd := NewRootCommand(&opts)
 	rootCmd.AddCommand(
 		NewOriginsCmd(&opts),
 		NewPairsCmd(&opts),
 		NewPricesCmd(&opts),
-		NewServerCmd(&opts),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -75,27 +75,4 @@ func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
 	}
 
 	return i.Gofer, nil
-}
-
-// asyncCopy asynchronously copies from src to dst using the io.Copy.
-// The returned function will block the current goroutine until
-// the io.Copy finished.
-func asyncCopy(dst io.Writer, src io.Reader) func() {
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		_, err := io.Copy(dst, src)
-		wg.Done()
-
-		if err == io.EOF {
-			return
-		}
-		if err != nil {
-			panic(err.Error())
-		}
-	}()
-
-	return func() {
-		wg.Wait()
-	}
 }
