@@ -28,14 +28,14 @@ type pricer interface {
 	Pairs() []graph.Pair
 }
 
-func Prices(args []string, l pricer, m itemWriter) error {
+func Prices(args []string, l pricer, m itemWriter) (bool, error) {
 	var pairs []graph.Pair
 
 	if len(args) > 0 {
 		for _, pair := range args {
 			p, err := graph.NewPair(pair)
 			if err != nil {
-				return err
+				return false, err
 			}
 			pairs = append(pairs, p)
 		}
@@ -45,12 +45,20 @@ func Prices(args []string, l pricer, m itemWriter) error {
 
 	_, err := l.Feed(pairs...)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	ticks, err := l.Ticks(pairs...)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	success := true
+	for _, tick := range ticks {
+		if tick.Error != nil {
+			success = false
+			break
+		}
 	}
 
 	sort.SliceStable(ticks, func(i, j int) bool {
@@ -60,9 +68,9 @@ func Prices(args []string, l pricer, m itemWriter) error {
 	for _, t := range ticks {
 		err = m.Write(t)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return success, nil
 }
