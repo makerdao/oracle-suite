@@ -16,9 +16,6 @@
 package marshal
 
 import (
-	"io/ioutil"
-	"strconv"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,81 +42,6 @@ func TestNewMarshaller(t *testing.T) {
 			assert.Implements(t, (*Marshaller)(nil), m)
 			assert.IsType(t, m, &Marshal{})
 			assert.IsType(t, m.marshaller, expectedMap[ct])
-		})
-	}
-}
-
-func TestBufferedMarshaller_RW(t *testing.T) {
-	for _, live := range []bool{false, true} {
-		t.Run("live:"+strconv.FormatBool(live), func(t *testing.T) {
-			bm := newBufferedMarshaller(live, func(i interface{}) ([]marshalledItem, error) {
-				if s, ok := i.([]marshalledItem); ok {
-					// this code should be called only when the live var is set to false
-					s = append(s, []byte("notlive"))
-					return s, nil
-				}
-
-				return []marshalledItem{marshalledItem(i.(string))}, nil
-			})
-
-			assert.Nil(t, bm.Write("foo"))
-			assert.Nil(t, bm.Write("bar"))
-			assert.Nil(t, bm.Close())
-
-			r, err := ioutil.ReadAll(bm)
-
-			if live {
-				assert.Equal(t, "foobar", string(r))
-			} else {
-				assert.Equal(t, "foobarnotlive", string(r))
-			}
-
-			assert.NoError(t, err)
-		})
-	}
-}
-
-func TestBufferedMarshaller_RW_Async(t *testing.T) {
-	for _, live := range []bool{false, true} {
-		t.Run("live:"+strconv.FormatBool(live), func(t *testing.T) {
-			bm := newBufferedMarshaller(live, func(i interface{}) ([]marshalledItem, error) {
-				if s, ok := i.([]marshalledItem); ok {
-					// this code should be called only when the live var is set to false
-					s = append(s, []byte("notlive"))
-					return s, nil
-				}
-
-				return []marshalledItem{marshalledItem(i.(string))}, nil
-			})
-
-			var r []byte
-			var err error
-
-			wg := sync.WaitGroup{}
-
-			wg.Add(1)
-			go func() {
-				r, err = ioutil.ReadAll(bm)
-				wg.Done()
-			}()
-
-			wg.Add(1)
-			go func() {
-				assert.Nil(t, bm.Write("foo"))
-				assert.Nil(t, bm.Write("bar"))
-				assert.Nil(t, bm.Close())
-				wg.Done()
-			}()
-
-			wg.Wait()
-
-			if live {
-				assert.Equal(t, "foobar", string(r))
-			} else {
-				assert.Equal(t, "foobarnotlive", string(r))
-			}
-
-			assert.NoError(t, err)
 		})
 	}
 }

@@ -64,5 +64,5 @@ func Prices(args []string, l pricer, m itemWriter) error {
 		}
 	}
 
-	return err
+	return nil
 }

@@ -27,7 +27,7 @@ Gofer is a CLI interface for the Gofer Go Library.
 
 It is a tool that allows for easy data retrieval from various sources
 with aggregates that increase reliability in the DeFi environment.`,
-		SilenceErrors: false,
+		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
 

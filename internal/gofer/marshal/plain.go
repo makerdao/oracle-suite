@@ -16,6 +16,7 @@
 package marshal
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -23,67 +24,51 @@ import (
 )
 
 type plain struct {
-	bufferedMarshaller *bufferedMarshaller
+	items [][]byte
 }
 
 func newPlain() *plain {
-	return &plain{newBufferedMarshaller(false, func(item interface{}) ([]marshalledItem, error) {
-		if i, ok := item.([]marshalledItem); ok {
-			strs := make([]string, len(i))
-			for n, s := range i {
-				strs[n] = string(s)
-			}
-
-			return []marshalledItem{[]byte(strings.Join(strs, "\n") + "\n")}, nil
-		}
-
-		var err error
-		var ret []marshalledItem
-
-		switch i := item.(type) {
-		case graph.AggregatorTick:
-			plainHandleTick(&ret, i)
-		case graph.Aggregator:
-			plainHandleGraph(&ret, i)
-		case map[graph.Pair][]string:
-			plainHandleOrigins(&ret, i)
-		default:
-			return nil, fmt.Errorf("unsupported data type")
-		}
-
-		return ret, err
-	})}
+	return &plain{}
 }
 
 // Read implements the Marshaller interface.
-func (j *plain) Read(p []byte) (int, error) {
-	return j.bufferedMarshaller.Read(p)
+func (p *plain) Bytes() ([]byte, error) {
+	return append(bytes.Join(p.items, []byte("\n")), '\n'), nil
 }
 
 // Write implements the Marshaller interface.
-func (j *plain) Write(item interface{}) error {
-	return j.bufferedMarshaller.Write(item)
+func (p *plain) Write(item interface{}) error {
+	var i []byte
+	switch typedItem := item.(type) {
+	case graph.AggregatorTick:
+		i = p.handleTick(typedItem)
+	case graph.Aggregator:
+		i = p.handleGraph(typedItem)
+	case map[graph.Pair][]string:
+		i = p.handleOrigins(typedItem)
+	default:
+		return fmt.Errorf("unsupported data type")
+	}
+
+	p.items = append(p.items, i)
+	return nil
 }
 
-// Close implements the Marshaller interface.
-func (j *plain) Close() error {
-	return j.bufferedMarshaller.Close()
-}
-
-func plainHandleTick(ret *[]marshalledItem, tick graph.AggregatorTick) {
+func (*plain) handleTick(tick graph.AggregatorTick) []byte {
 	if tick.Error != nil {
-		*ret = append(*ret, []byte(fmt.Sprintf("%s - %s", tick.Pair.String(), strings.TrimSpace(tick.Error.Error()))))
-	} else {
-		*ret = append(*ret, []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price)))
+		return []byte(fmt.Sprintf("%s - %s", tick.Pair.String(), strings.TrimSpace(tick.Error.Error())))
 	}
+	return []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price))
 }
 
-func plainHandleGraph(ret *[]marshalledItem, graph graph.Aggregator) {
-	*ret = append(*ret, []byte(graph.Pair().String()))
+func (*plain) handleGraph(graph graph.Aggregator) []byte {
+	return []byte(graph.Pair().String())
 }
 
-func plainHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
+func (*plain) handleOrigins(origins map[graph.Pair][]string) []byte {
+	buf := bytes.Buffer{}
 	for p, os := range origins {
-		*ret = append(*ret, []byte(p.String()+":\n"+strings.Join(os, "\n")))
+		buf.Write([]byte(p.String() + ":\n" + strings.Join(os, "\n")))
 	}
+	return buf.Bytes()
 }

@@ -16,7 +16,7 @@
 package main
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -32,17 +32,11 @@ func NewPricesCmd(o *options) *cobra.Command {
 		Args:    cobra.MinimumNArgs(0),
 		Short:   "Return price for given PAIRs",
 		Long:    `Print the price of given PAIRs`,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(c *cobra.Command, args []string) error {
 			m, err := marshal.NewMarshal(o.OutputFormat.format)
 			if err != nil {
 				return err
 			}
-
-			wait := asyncCopy(os.Stdout, m)
-			defer func() {
-				_ = m.Close()
-				wait()
-			}()
 
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
@@ -63,6 +57,12 @@ func NewPricesCmd(o *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			bts, err := m.Bytes()
+			if err != nil {
+				return err
+			}
+			fmt.Print(string(bts))
 
 			return nil
 		},

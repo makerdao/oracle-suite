@@ -27,55 +27,38 @@ import (
 )
 
 type trace struct {
-	bufferedMarshaller *bufferedMarshaller
+	items [][]byte
 }
 
 func newTrace() *trace {
-	return &trace{newBufferedMarshaller(false, func(item interface{}) ([]marshalledItem, error) {
-		if i, ok := item.([]marshalledItem); ok {
-			strs := make([]string, len(i))
-			for n, s := range i {
-				strs[n] = string(s)
-			}
-
-			return []marshalledItem{[]byte(strings.Join(strs, "\n"))}, nil
-		}
-
-		var err error
-		var ret []marshalledItem
-
-		switch i := item.(type) {
-		case graph.AggregatorTick:
-			traceHandleTick(&ret, i)
-		case graph.Aggregator:
-			traceHandleGraph(&ret, i)
-		case map[graph.Pair][]string:
-			traceHandleOrigins(&ret, i)
-		default:
-			return nil, fmt.Errorf("unsupported data type")
-		}
-
-		return ret, err
-	})}
+	return &trace{}
 }
 
 // Read implements the Marshaller interface.
-func (j *trace) Read(p []byte) (int, error) {
-	return j.bufferedMarshaller.Read(p)
+func (t *trace) Bytes() ([]byte, error) {
+	return bytes.Join(t.items, []byte("\n")), nil
 }
 
 // Write implements the Marshaller interface.
-func (j *trace) Write(item interface{}) error {
-	return j.bufferedMarshaller.Write(item)
+func (t *trace) Write(item interface{}) error {
+	var i []byte
+	switch typedItem := item.(type) {
+	case graph.AggregatorTick:
+		i = t.handleTick(typedItem)
+	case graph.Aggregator:
+		i = t.handleGraph(typedItem)
+	case map[graph.Pair][]string:
+		i = t.handleOrigins(typedItem)
+	default:
+		return fmt.Errorf("unsupported data type")
+	}
+
+	t.items = append(t.items, i)
+	return nil
 }
 
-// Close implements the Marshaller interface.
-func (j *trace) Close() error {
-	return j.bufferedMarshaller.Close()
-}
-
-func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
-	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+func (*trace) handleTick(t graph.AggregatorTick) []byte {
+	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
 		var s []byte
 
@@ -116,12 +99,14 @@ func traceHandleTick(ret *[]marshalledItem, t graph.AggregatorTick) {
 		return s, c
 	}, []interface{}{t}, 0)
 
-	*ret = append(*ret, []byte(fmt.Sprintf("Price for %s:", t.Pair)))
-	*ret = append(*ret, str)
+	buf := bytes.Buffer{}
+	buf.Write([]byte(fmt.Sprintf("Price for %s:\n", t.Pair)))
+	buf.Write(tree)
+	return buf.Bytes()
 }
 
-func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
-	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+func (t *trace) handleGraph(g graph.Aggregator) []byte {
+	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
 		var s []byte
 
@@ -152,11 +137,13 @@ func traceHandleGraph(ret *[]marshalledItem, g graph.Aggregator) {
 		return s, c
 	}, []interface{}{g}, 0)
 
-	*ret = append(*ret, []byte(fmt.Sprintf("Graph for %s:", g.Pair())))
-	*ret = append(*ret, str)
+	buf := bytes.Buffer{}
+	buf.Write([]byte(fmt.Sprintf("Graph for %s:\n", g.Pair())))
+	buf.Write(tree)
+	return buf.Bytes()
 }
 
-func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) {
+func (t *trace) handleOrigins(origins map[graph.Pair][]string) []byte {
 	type originPair struct {
 		pair    graph.Pair
 		origins []string
@@ -171,7 +158,7 @@ func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) 
 		return s[i].(originPair).pair.String() > s[j].(originPair).pair.String()
 	})
 
-	str := renderTree(func(node interface{}) ([]byte, []interface{}) {
+	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		var c []interface{}
 		var s string
 
@@ -188,7 +175,7 @@ func traceHandleOrigins(ret *[]marshalledItem, origins map[graph.Pair][]string) 
 		return []byte(s), c
 	}, s, 0)
 
-	*ret = append(*ret, str)
+	return tree
 }
 
 // param is used to work with lists of sorted key/value pairs.

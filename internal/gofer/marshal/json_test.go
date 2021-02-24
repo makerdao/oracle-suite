@@ -17,7 +17,6 @@ package marshal
 
 import (
 	"bytes"
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,10 +36,7 @@ func TestJSON_Graph(t *testing.T) {
 	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `["A/B", "C/D"]`
@@ -58,10 +54,7 @@ func TestNDJSON_Graph(t *testing.T) {
 	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	result := bytes.Split(b, []byte("\n"))
@@ -77,10 +70,7 @@ func TestJSON_Ticks(t *testing.T) {
 	err := j.Write(g.Tick())
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
@@ -195,10 +185,7 @@ func TestJSON_Origins(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `[{"A/B":["a","b","c"], "C/D":["x","y","z"]}]`
@@ -223,10 +210,7 @@ func TestNDJSON_Origins(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	result := bytes.Split(b, []byte("\n"))

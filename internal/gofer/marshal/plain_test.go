@@ -17,7 +17,6 @@ package marshal
 
 import (
 	"errors"
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,18 +36,15 @@ func TestPlain_Graph(t *testing.T) {
 	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
 A/B
 C/D
-`
+`[1:]
 
-	assert.Equal(t, expected[1:], string(b))
+	assert.Equal(t, expected, string(b))
 }
 
 func TestPlain_Ticks(t *testing.T) {
@@ -66,18 +62,15 @@ func TestPlain_Ticks(t *testing.T) {
 	err = j.Write(cdt)
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, err := ioutil.ReadAll(j)
+	b, err := j.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
 A/B 10.000000
 C/D - something
-`
+`[1:]
 
-	assert.Equal(t, expected[1:], string(b))
+	assert.Equal(t, expected, string(b))
 }
 
 func TestPlain_Origins(t *testing.T) {
@@ -90,17 +83,14 @@ func TestPlain_Origins(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	err = j.Close()
-	assert.NoError(t, err)
-
-	b, _ := ioutil.ReadAll(j)
+	b, _ := j.Bytes()
 
 	expected := `
 A/B:
 a
 b
 c
-`
+`[1:]
 
-	assert.Equal(t, expected[1:], string(b))
+	assert.Equal(t, expected, string(b))
 }

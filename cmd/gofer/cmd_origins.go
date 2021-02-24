@@ -16,7 +16,7 @@
 package main
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -38,12 +38,6 @@ or a subset of those, if at least one PAIR is provided.`,
 				return err
 			}
 
-			wait := asyncCopy(os.Stdout, m)
-			defer func() {
-				_ = m.Close()
-				wait()
-			}()
-
 			absPath, err := filepath.Abs(o.ConfigFilePath)
 			if err != nil {
 				return err
@@ -63,6 +57,12 @@ or a subset of those, if at least one PAIR is provided.`,
 			if err != nil {
 				return err
 			}
+
+			bts, err := m.Bytes()
+			if err != nil {
+				return err
+			}
+			fmt.Print(string(bts))
 
 			return nil
 		},
