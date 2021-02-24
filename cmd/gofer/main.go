@@ -16,6 +16,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -28,6 +29,10 @@ import (
 	"github.com/makerdao/gofer/pkg/log"
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 )
+
+type SilentErr struct{}
+
+func (e SilentErr) Error() string { return "" }
 
 func main() {
 	opts := options{
@@ -42,6 +47,9 @@ func main() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
+		if _, ok := err.(SilentErr); !ok {
+			fmt.Printf("Error: %s\n", err)
+		}
 		os.Exit(1)
 	}
 }

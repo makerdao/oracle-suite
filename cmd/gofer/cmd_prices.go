@@ -53,7 +53,7 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 
-			err = cli.Prices(args, g, m)
+			success, err := cli.Prices(args, g, m)
 			if err != nil {
 				return err
 			}
@@ -63,6 +63,10 @@ func NewPricesCmd(o *options) *cobra.Command {
 				return err
 			}
 			fmt.Print(string(bts))
+
+			if !success {
+				return SilentErr{}
+			}
 
 			return nil
 		},
