@@ -15,6 +15,8 @@
 
 package graph
 
+import "github.com/makerdao/gofer/pkg/gofer"
+
 // Node represents generics node in a graph.
 type Node interface {
 	Children() []Node
@@ -29,7 +31,7 @@ type Parent interface {
 // Aggregator represents a node which can aggregate ticks from its children.
 type Aggregator interface {
 	Node
-	Pair() Pair
+	Pair() gofer.Pair
 	Tick() AggregatorTick
 }
 

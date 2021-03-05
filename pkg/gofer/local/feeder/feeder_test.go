@@ -21,8 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/local/graph"
+	"github.com/makerdao/gofer/pkg/gofer/local/origins"
 	"github.com/makerdao/gofer/pkg/log/null"
 )
 
@@ -65,17 +66,17 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil), null.New())
 
 	// Feed method shouldn't panic
-	warns := f.Feed([]graph.Node{})
+	warns := f.Feed()
 
 	assert.Len(t, warns.List, 0)
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
 	f := NewFeeder(originsSetMock(nil), null.New())
-	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
+	g := graph.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 
 	// Feed method shouldn't panic
-	warns := f.Feed([]graph.Node{g})
+	warns := f.Feed(graph.Node(g))
 
 	assert.Len(t, warns.List, 0)
 }
@@ -96,22 +97,22 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 
 	f := NewFeeder(s, null.New())
 
-	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
+	g := graph.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test",
-		Pair:   graph.Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}, 0, 0)
 
 	g.AddChild(o)
-	warns := f.Feed([]graph.Node{g})
+	warns := f.Feed(graph.Node(g))
 
 	assert.Len(t, warns.List, 0)
-	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 10.0, o.Tick().Price)
 	assert.Equal(t, 9.0, o.Tick().Bid)
 	assert.Equal(t, 11.0, o.Tick().Ask)
 	assert.Equal(t, 10.0, o.Tick().Volume24h)
-	assert.Equal(t, time.Unix(10000, 0), o.Tick().Timestamp)
+	assert.Equal(t, time.Unix(10000, 0), o.Tick().Time)
 }
 
 func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
@@ -148,22 +149,22 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 
 	f := NewFeeder(s, null.New())
 
-	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
+	g := graph.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o1 := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test",
-		Pair:   graph.Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}, 0, 0)
 	o2 := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test",
-		Pair:   graph.Pair{Base: "C", Quote: "D"},
+		Pair:   gofer.Pair{Base: "C", Quote: "D"},
 	}, 0, 0)
 	o3 := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test2",
-		Pair:   graph.Pair{Base: "E", Quote: "F"},
+		Pair:   gofer.Pair{Base: "E", Quote: "F"},
 	}, 0, 0)
 	o4 := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test2",
-		Pair:   graph.Pair{Base: "E", Quote: "F"},
+		Pair:   gofer.Pair{Base: "E", Quote: "F"},
 	}, 0, 0)
 
 	// The last o4 origin is intentionally same as an o3 origin. Also an o3
@@ -175,37 +176,37 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	g.AddChild(o3)
 	g.AddChild(o3) // intentionally
 	g.AddChild(o4)
-	warns := f.Feed([]graph.Node{g})
+	warns := f.Feed(graph.Node(g))
 
 	assert.Len(t, warns.List, 0)
 
-	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o1.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "A", Quote: "B"}, o1.Tick().Pair)
 	assert.Equal(t, 10.0, o1.Tick().Price)
 	assert.Equal(t, 9.0, o1.Tick().Bid)
 	assert.Equal(t, 11.0, o1.Tick().Ask)
 	assert.Equal(t, 10.0, o1.Tick().Volume24h)
-	assert.Equal(t, time.Unix(10000, 0), o1.Tick().Timestamp)
+	assert.Equal(t, time.Unix(10000, 0), o1.Tick().Time)
 
-	assert.Equal(t, graph.Pair{Base: "C", Quote: "D"}, o2.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "C", Quote: "D"}, o2.Tick().Pair)
 	assert.Equal(t, 20.0, o2.Tick().Price)
 	assert.Equal(t, 19.0, o2.Tick().Bid)
 	assert.Equal(t, 21.0, o2.Tick().Ask)
 	assert.Equal(t, 20.0, o2.Tick().Volume24h)
-	assert.Equal(t, time.Unix(20000, 0), o2.Tick().Timestamp)
+	assert.Equal(t, time.Unix(20000, 0), o2.Tick().Time)
 
-	assert.Equal(t, graph.Pair{Base: "E", Quote: "F"}, o3.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "E", Quote: "F"}, o3.Tick().Pair)
 	assert.Equal(t, 30.0, o3.Tick().Price)
 	assert.Equal(t, 39.0, o3.Tick().Bid)
 	assert.Equal(t, 31.0, o3.Tick().Ask)
 	assert.Equal(t, 30.0, o3.Tick().Volume24h)
-	assert.Equal(t, time.Unix(30000, 0), o3.Tick().Timestamp)
+	assert.Equal(t, time.Unix(30000, 0), o3.Tick().Time)
 
-	assert.Equal(t, graph.Pair{Base: "E", Quote: "F"}, o4.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "E", Quote: "F"}, o4.Tick().Pair)
 	assert.Equal(t, 30.0, o4.Tick().Price)
 	assert.Equal(t, 39.0, o4.Tick().Bid)
 	assert.Equal(t, 31.0, o4.Tick().Ask)
 	assert.Equal(t, 30.0, o4.Tick().Volume24h)
-	assert.Equal(t, time.Unix(30000, 0), o4.Tick().Timestamp)
+	assert.Equal(t, time.Unix(30000, 0), o4.Tick().Time)
 
 	// Check if pairs was properly grouped per origins and check if the E/F pair
 	// appeared only once:
@@ -231,24 +232,24 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 
 	f := NewFeeder(s, null.New())
 
-	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
-	i := graph.NewIndirectAggregatorNode(graph.Pair{Base: "A", Quote: "B"})
+	g := graph.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
+	i := graph.NewIndirectAggregatorNode(gofer.Pair{Base: "A", Quote: "B"})
 	o := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test",
-		Pair:   graph.Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}, 0, 0)
 
 	g.AddChild(i)
 	i.AddChild(o)
-	warns := f.Feed([]graph.Node{g})
+	warns := f.Feed(graph.Node(g))
 
 	assert.Len(t, warns.List, 0)
-	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 10.0, o.Tick().Price)
 	assert.Equal(t, 9.0, o.Tick().Bid)
 	assert.Equal(t, 11.0, o.Tick().Ask)
 	assert.Equal(t, 10.0, o.Tick().Volume24h)
-	assert.Equal(t, time.Unix(10000, 0), o.Tick().Timestamp)
+	assert.Equal(t, time.Unix(10000, 0), o.Tick().Time)
 }
 
 func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
@@ -267,31 +268,31 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 
 	f := NewFeeder(s, null.New())
 
-	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
+	g := graph.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test",
-		Pair:   graph.Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}, 10*time.Second, 10*time.Second)
 
 	_ = o.Ingest(graph.OriginTick{
 		Tick: graph.Tick{
-			Pair:      graph.Pair{Base: "A", Quote: "B"},
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       9,
 			Ask:       11,
 			Volume24h: 10,
-			Timestamp: time.Now().Add(-5 * time.Second),
+			Time:      time.Now().Add(-5 * time.Second),
 		},
 		Origin: "test",
 		Error:  nil,
 	})
 
 	g.AddChild(o)
-	warns := f.Feed([]graph.Node{g})
+	warns := f.Feed(graph.Node(g))
 
 	// OriginNode shouldn't be updated because time diff is below MinTTL setting:
 	assert.Len(t, warns.List, 0)
-	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 10.0, o.Tick().Price)
 	assert.Equal(t, 9.0, o.Tick().Bid)
 	assert.Equal(t, 11.0, o.Tick().Ask)
@@ -314,31 +315,31 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 
 	f := NewFeeder(s, null.New())
 
-	g := graph.NewMedianAggregatorNode(graph.Pair{Base: "A", Quote: "B"}, 1)
+	g := graph.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := graph.NewOriginNode(graph.OriginPair{
 		Origin: "test",
-		Pair:   graph.Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}, 10*time.Second, 60*time.Second)
 
 	_ = o.Ingest(graph.OriginTick{
 		Tick: graph.Tick{
-			Pair:      graph.Pair{Base: "A", Quote: "B"},
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       9,
 			Ask:       11,
 			Volume24h: 10,
-			Timestamp: time.Now().Add(-30 * time.Second),
+			Time:      time.Now().Add(-30 * time.Second),
 		},
 		Origin: "test",
 		Error:  nil,
 	})
 
 	g.AddChild(o)
-	warns := f.Feed([]graph.Node{g})
+	warns := f.Feed(graph.Node(g))
 
 	// OriginNode should be updated because time diff is above MinTTL setting:
 	assert.Len(t, warns.List, 0)
-	assert.Equal(t, graph.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
+	assert.Equal(t, gofer.Pair{Base: "A", Quote: "B"}, o.Tick().Pair)
 	assert.Equal(t, 11.0, o.Tick().Price)
 	assert.Equal(t, 10.0, o.Tick().Bid)
 	assert.Equal(t, 12.0, o.Tick().Ask)
@@ -346,7 +347,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 }
 
 func Test_getMinTTL(t *testing.T) {
-	p := graph.Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	root := graph.NewMedianAggregatorNode(p, 1)
 	ttl := time.Second * time.Duration(time.Now().Unix()+10)
 	on1 := graph.NewOriginNode(graph.OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
@@ -361,7 +362,7 @@ func Test_getMinTTL(t *testing.T) {
 }
 
 func Test_getMinTTL_SorterThanOneSecond(t *testing.T) {
-	p := graph.Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	root := graph.NewMedianAggregatorNode(p, 1)
 	ttl := time.Second * time.Duration(time.Now().Unix()+10)
 	on1 := graph.NewOriginNode(graph.OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)

@@ -65,7 +65,7 @@ type Pair struct {
 
 type Dependencies struct {
 	Context context.Context
-	Gofer   *gofer.Gofer
+	Gofer   gofer.Gofer
 	Logger  log.Logger
 }
 
@@ -155,7 +155,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 }
 
 func (c *Config) configureGhost(
-	g *gofer.Gofer,
+	g gofer.Gofer,
 	s ethereum.Signer,
 	t transport.Transport,
 	l log.Logger,

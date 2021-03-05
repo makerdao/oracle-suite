@@ -21,22 +21,25 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-
 	"github.com/makerdao/gofer/internal/gofer/marshal/testutil"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func TestJSON_Graph(t *testing.T) {
+func TestJSON_Nodes(t *testing.T) {
 	var err error
-	j := newJSON(false)
+	m := newJSON(false)
 
-	err = j.Write(testutil.Graph(graph.Pair{Base: "A", Quote: "B"}))
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	cd := gofer.Pair{Base: "C", Quote: "D"}
+	ns := testutil.Nodes(ab, cd)
+
+	err = m.Write(ns[ab])
 	assert.NoError(t, err)
 
-	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
+	err = m.Write(ns[cd])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	expected := `["A/B", "C/D"]`
@@ -44,17 +47,21 @@ func TestJSON_Graph(t *testing.T) {
 	assert.JSONEq(t, expected, string(b))
 }
 
-func TestNDJSON_Graph(t *testing.T) {
+func TestNDJSON_Nodes(t *testing.T) {
 	var err error
-	j := newJSON(true)
+	m := newJSON(true)
 
-	err = j.Write(testutil.Graph(graph.Pair{Base: "A", Quote: "B"}))
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	cd := gofer.Pair{Base: "C", Quote: "D"}
+	ns := testutil.Nodes(ab, cd)
+
+	err = m.Write(ns[ab])
 	assert.NoError(t, err)
 
-	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
+	err = m.Write(ns[cd])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	result := bytes.Split(b, []byte("\n"))
@@ -64,46 +71,36 @@ func TestNDJSON_Graph(t *testing.T) {
 }
 
 func TestJSON_Ticks(t *testing.T) {
-	g := testutil.Graph(graph.Pair{Base: "A", Quote: "B"})
-	j := newJSON(false)
+	var err error
+	m := newJSON(false)
 
-	err := j.Write(g.Tick())
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	ts := testutil.Ticks(ab)
+
+	err = m.Write(ts[ab])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
 		[
 		   {
-			  "type":"aggregate",
-			  "params":{
-				 "method":"median",
-				 "min":"1"
-			  },
+			  "type":"aggregator",
 			  "base":"A",
 			  "quote":"B",
 			  "price":10,
 			  "bid":10,
 			  "ask":10,
+			  "vol24h":0,
 			  "ts":"1970-01-01T00:00:10Z",
+			  "params":{
+				 "method":"median",
+				 "min":"1"
+			  },
 			  "ticks":[
 				 {
 					"type":"origin",
-					"origin":"a",
-					"base":"A",
-					"quote":"B",
-					"price":10,
-					"bid":10,
-					"ask":10,
-					"vol24h":10,
-					"ts":"1970-01-01T00:00:10Z"
-				 },
-				 {
-					"type":"aggregate",
-					"params":{
-					   "method":"indirect"
-					},
 					"base":"A",
 					"quote":"B",
 					"price":10,
@@ -111,47 +108,67 @@ func TestJSON_Ticks(t *testing.T) {
 					"ask":10,
 					"vol24h":10,
 					"ts":"1970-01-01T00:00:10Z",
+					"params":{
+					   "origin":"a"
+					}
+				 },
+				 {
+					"type":"aggregator",
+					"base":"A",
+					"quote":"B",
+					"price":10,
+					"bid":10,
+					"ask":10,
+					"vol24h":10,
+					"ts":"1970-01-01T00:00:10Z",
+					"params":{
+					   "method":"indirect"
+					},
 					"ticks":[
 					   {
 						  "type":"origin",
-						  "origin":"a",
 						  "base":"A",
 						  "quote":"B",
 						  "price":10,
 						  "bid":10,
 						  "ask":10,
 						  "vol24h":10,
-						  "ts":"1970-01-01T00:00:10Z"
+						  "ts":"1970-01-01T00:00:10Z",
+						  "params":{
+							 "origin":"a"
+						  }
 					   }
 					]
 				 },
 				 {
-					"type":"aggregate",
-					"params":{
-					   "method":"median",
-					   "min":"1"
-					},
+					"type":"aggregator",
 					"base":"A",
 					"quote":"B",
 					"price":10,
 					"bid":10,
 					"ask":10,
+					"vol24h":0,
 					"ts":"1970-01-01T00:00:10Z",
+					"params":{
+					   "method":"median",
+					   "min":"1"
+					},
 					"ticks":[
 					   {
 						  "type":"origin",
-						  "origin":"a",
 						  "base":"A",
 						  "quote":"B",
 						  "price":10,
 						  "bid":10,
 						  "ask":10,
 						  "vol24h":10,
-						  "ts":"1970-01-01T00:00:10Z"
+						  "ts":"1970-01-01T00:00:10Z",
+						  "params":{
+							 "origin":"a"
+						  }
 					   },
 					   {
 						  "type":"origin",
-						  "origin":"b",
 						  "base":"A",
 						  "quote":"B",
 						  "price":20,
@@ -159,7 +176,10 @@ func TestJSON_Ticks(t *testing.T) {
 						  "ask":20,
 						  "vol24h":20,
 						  "ts":"1970-01-01T00:00:20Z",
-						  "error": "something"
+						  "params":{
+							 "origin":"b"
+						  },
+						  "error":"something"
 					   }
 					]
 				 }
@@ -169,52 +189,4 @@ func TestJSON_Ticks(t *testing.T) {
 	`
 
 	assert.JSONEq(t, expected, string(b))
-}
-
-func TestJSON_Origins(t *testing.T) {
-	var err error
-	j := newJSON(false)
-
-	ab := graph.Pair{Base: "A", Quote: "B"}
-	cd := graph.Pair{Base: "C", Quote: "D"}
-
-	err = j.Write(map[graph.Pair][]string{
-		ab: {"a", "b", "c"},
-		cd: {"x", "y", "z"},
-	})
-
-	assert.NoError(t, err)
-
-	b, err := j.Bytes()
-	assert.NoError(t, err)
-
-	expected := `[{"A/B":["a","b","c"], "C/D":["x","y","z"]}]`
-
-	assert.JSONEq(t, expected, string(b))
-}
-
-func TestNDJSON_Origins(t *testing.T) {
-	var err error
-	j := newJSON(true)
-
-	ab := graph.Pair{Base: "A", Quote: "B"}
-	cd := graph.Pair{Base: "C", Quote: "D"}
-
-	err = j.Write(map[graph.Pair][]string{
-		ab: {"a", "b", "c"},
-	})
-	assert.NoError(t, err)
-
-	err = j.Write(map[graph.Pair][]string{
-		cd: {"x", "y", "z"},
-	})
-	assert.NoError(t, err)
-
-	b, err := j.Bytes()
-	assert.NoError(t, err)
-
-	result := bytes.Split(b, []byte("\n"))
-
-	assert.JSONEq(t, `{"A/B":["a","b","c"]}`, string(result[0]))
-	assert.JSONEq(t, `{"C/D":["x","y","z"]}`, string(result[1]))
 }

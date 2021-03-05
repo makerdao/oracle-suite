@@ -21,16 +21,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 const medianTestTTL = 10 * time.Second
 
 func TestMedianAggregatorNode_Children(t *testing.T) {
-	m := NewMedianAggregatorNode(Pair{Base: "A", Quote: "B"}, 3)
+	m := NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 3)
 
-	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"}, medianTestTTL, medianTestTTL)
-	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"}, medianTestTTL, medianTestTTL)
-	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"}, medianTestTTL, medianTestTTL)
+	c1 := NewOriginNode(OriginPair{Pair: gofer.Pair{Base: "A", Quote: "B"}, Origin: "a"}, medianTestTTL, medianTestTTL)
+	c2 := NewOriginNode(OriginPair{Pair: gofer.Pair{Base: "A", Quote: "B"}, Origin: "b"}, medianTestTTL, medianTestTTL)
+	c3 := NewOriginNode(OriginPair{Pair: gofer.Pair{Base: "A", Quote: "B"}, Origin: "c"}, medianTestTTL, medianTestTTL)
 
 	m.AddChild(c1)
 	m.AddChild(c2)
@@ -43,14 +45,14 @@ func TestMedianAggregatorNode_Children(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Pair(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	m := NewMedianAggregatorNode(p, 3)
 
 	assert.Equal(t, m.Pair(), p)
 }
 
 func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 3)
 
@@ -65,7 +67,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
@@ -78,7 +80,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -91,7 +93,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 			Bid:       30,
 			Ask:       30,
 			Volume24h: 30,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "c",
 		Error:  nil,
@@ -108,7 +110,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
 		OriginTicks:     []OriginTick{c1.Tick(), c2.Tick(), c3.Tick()},
 		AggregatorTicks: nil,
@@ -120,7 +122,7 @@ func TestMedianAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 3)
 
@@ -144,7 +146,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
@@ -157,7 +159,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -170,7 +172,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 			Bid:       30,
 			Ask:       30,
 			Volume24h: 30,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "c",
 		Error:  nil,
@@ -187,7 +189,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
 		OriginTicks: nil,
 		AggregatorTicks: []AggregatorTick{
@@ -198,7 +200,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 					Bid:       10,
 					Ask:       10,
 					Volume24h: 0,
-					Timestamp: n,
+					Time:      n,
 				},
 				OriginTicks:     []OriginTick{c1.Tick()},
 				AggregatorTicks: nil,
@@ -212,7 +214,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 					Bid:       20,
 					Ask:       20,
 					Volume24h: 0,
-					Timestamp: n,
+					Time:      n,
 				},
 				OriginTicks:     []OriginTick{c2.Tick()},
 				AggregatorTicks: nil,
@@ -226,7 +228,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 					Bid:       30,
 					Ask:       30,
 					Volume24h: 0,
-					Timestamp: n,
+					Time:      n,
 				},
 				OriginTicks:     []OriginTick{c3.Tick()},
 				AggregatorTicks: nil,
@@ -242,7 +244,7 @@ func TestMedianAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Tick_NotEnoughSources(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 3)
 
@@ -255,7 +257,7 @@ func TestMedianAggregatorNode_Tick_NotEnoughSources(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
@@ -274,7 +276,7 @@ func TestMedianAggregatorNode_Tick_NotEnoughSources(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 2)
 
@@ -288,7 +290,7 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
@@ -301,7 +303,7 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  errors.New("something"),
@@ -321,8 +323,8 @@ func TestMedianAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "C", Quote: "D"}
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "C", Quote: "D"}
 	n := time.Now()
 	m := NewMedianAggregatorNode(p1, 2)
 
@@ -336,7 +338,7 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
@@ -349,7 +351,7 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -369,7 +371,7 @@ func TestMedianAggregatorNode_Tick_IncompatiblePairs(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Tick_NoChildrenNodes(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	m := NewMedianAggregatorNode(p, 2)
 
 	tick := m.Tick()
@@ -378,7 +380,7 @@ func TestMedianAggregatorNode_Tick_NoChildrenNodes(t *testing.T) {
 }
 
 func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	n := time.Now()
 	m := NewMedianAggregatorNode(p, 1)
 
@@ -393,7 +395,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 			Bid:       0,
 			Ask:       0,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
@@ -406,7 +408,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 			Bid:       10,
 			Ask:       0,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -419,7 +421,7 @@ func TestMedianAggregatorNode_Tick_FilterOutPricesLteZero(t *testing.T) {
 			Bid:       0,
 			Ask:       10,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "c",
 		Error:  nil,

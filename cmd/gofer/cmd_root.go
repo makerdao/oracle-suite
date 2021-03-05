@@ -15,7 +15,9 @@
 
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -49,6 +51,12 @@ with aggregates that increase reliability in the DeFi environment.`,
 		"format",
 		"f",
 		"output format",
+	)
+	rootCmd.PersistentFlags().BoolVar(
+		&opts.NoRPC,
+		"norpc",
+		false,
+		"todo",
 	)
 
 	return rootCmd

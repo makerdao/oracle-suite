@@ -20,32 +20,34 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-
 	"github.com/makerdao/gofer/internal/gofer/marshal/testutil"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 func TestTrace_Graph(t *testing.T) {
 	disableColors()
 
-	g := testutil.Graph(graph.Pair{Base: "A", Quote: "B"})
-	j := newTrace()
+	var err error
+	m := newTrace()
 
-	err := j.Write(g)
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	ns := testutil.Nodes(ab)
+
+	err = m.Write(ns[ab])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
 Graph for A/B:
-───graph.MedianAggregatorNode(pair:A/B)
-   ├──graph.OriginNode(pair:A/B, origin:a)
-   ├──graph.IndirectAggregatorNode(pair:A/B)
-   │  └──graph.OriginNode(pair:A/B, origin:a)
-   └──graph.MedianAggregatorNode(pair:A/B)
-      ├──graph.OriginNode(pair:A/B, origin:a)
-      └──graph.OriginNode(pair:A/B, origin:b)
+───median(pair:A/B)
+   ├──origin(origin:a, pair:A/B)
+   ├──indirect(pair:A/B)
+   │  └──origin(origin:a, pair:A/B)
+   └──median(pair:A/B)
+      ├──origin(origin:a, pair:A/B)
+      └──origin(origin:b, pair:A/B)
 `[1:]
 
 	assert.Equal(t, expected, string(b))
@@ -54,50 +56,28 @@ Graph for A/B:
 func TestTrace_Ticks(t *testing.T) {
 	disableColors()
 
-	g := testutil.Graph(graph.Pair{Base: "A", Quote: "B"})
-	j := newTrace()
+	var err error
+	m := newTrace()
 
-	err := j.Write(g.Tick())
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	ts := testutil.Ticks(ab)
+
+	err = m.Write(ts[ab])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
 Price for A/B:
-───AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z, method:median, min:1)
-   ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
-   ├──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z, method:indirect)
-   │  └──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
-   └──AggregatorTick(pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z, method:median, min:1)
-      ├──OriginTick(pair:A/B, origin:a, price:10, timestamp:1970-01-01T00:00:10Z)
-      └──[ERROR] OriginTick(pair:A/B, origin:b, price:20, timestamp:1970-01-01T00:00:20Z)
+───aggregator(method:median, min:1, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+   ├──origin(origin:a, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+   ├──aggregator(method:indirect, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+   │  └──origin(origin:a, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+   └──aggregator(method:median, min:1, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+      ├──origin(origin:a, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+      └──origin(origin:b, pair:A/B, price:20, timestamp:1970-01-01T00:00:20Z)
             Error: something
-`[1:]
-
-	assert.Equal(t, expected, string(b))
-}
-
-func TestTrace_Origins(t *testing.T) {
-	disableColors()
-
-	p := graph.Pair{Base: "A", Quote: "B"}
-	j := newTrace()
-
-	err := j.Write(map[graph.Pair][]string{
-		p: {"a", "b", "c"},
-	})
-
-	assert.NoError(t, err)
-
-	b, err := j.Bytes()
-	assert.NoError(t, err)
-
-	expected := `
-───A/B
-   ├──a
-   ├──b
-   └──c
 `[1:]
 
 	assert.Equal(t, expected, string(b))

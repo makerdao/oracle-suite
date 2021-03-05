@@ -21,11 +21,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type ErrIncompatiblePair struct {
-	Given    Pair
-	Expected Pair
+	Given    gofer.Pair
+	Expected gofer.Pair
 }
 
 func (e ErrIncompatiblePair) Error() string {
@@ -125,7 +127,7 @@ func (n *OriginNode) MaxTTL() time.Duration {
 
 // Expired implements the Feedable interface.
 func (n *OriginNode) Expired() bool {
-	return n.tick.Timestamp.Before(time.Now().Add(-1 * n.MaxTTL()))
+	return n.tick.Time.Before(time.Now().Add(-1 * n.MaxTTL()))
 }
 
 // Tick implements the Feedable interface.

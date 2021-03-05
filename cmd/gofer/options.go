@@ -29,6 +29,7 @@ type options struct {
 	ConfigFilePath string
 	OutputFormat   formatTypeValue
 	Config         config.Config
+	NoRPC          bool
 }
 
 var formatMap = map[marshal.FormatType]string{

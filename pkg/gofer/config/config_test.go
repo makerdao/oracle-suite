@@ -21,7 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/local/graph"
 )
 
 func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
@@ -61,9 +62,9 @@ func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
 	assert.Nil(t, err2)
 
 	// List of pairs used in config file:
-	ab := graph.Pair{Base: "A", Quote: "B"}
-	bc := graph.Pair{Base: "B", Quote: "C"}
-	ac := graph.Pair{Base: "A", Quote: "C"}
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	bc := gofer.Pair{Base: "B", Quote: "C"}
+	ac := gofer.Pair{Base: "A", Quote: "C"}
 
 	// Check if all three pairs was loaded correctly:
 	assert.Contains(t, c, bc)
@@ -229,7 +230,7 @@ func TestConfig_buildGraphs_DefaultTTL(t *testing.T) {
 		},
 	}
 
-	p, _ := graph.NewPair("A/B")
+	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
 	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
@@ -252,7 +253,7 @@ func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
 		},
 	}
 
-	p, _ := graph.NewPair("A/B")
+	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
 	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
@@ -275,7 +276,7 @@ func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
 		},
 	}
 
-	p, _ := graph.NewPair("A/B")
+	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
 	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())

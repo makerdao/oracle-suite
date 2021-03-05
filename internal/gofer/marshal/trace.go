@@ -17,13 +17,13 @@ package marshal
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type trace struct {
@@ -43,12 +43,10 @@ func (t *trace) Bytes() ([]byte, error) {
 func (t *trace) Write(item interface{}) error {
 	var i []byte
 	switch typedItem := item.(type) {
-	case graph.AggregatorTick:
+	case *gofer.Tick:
 		i = t.handleTick(typedItem)
-	case graph.Aggregator:
-		i = t.handleGraph(typedItem)
-	case map[graph.Pair][]string:
-		i = t.handleOrigins(typedItem)
+	case *gofer.Node:
+		i = t.handleNode(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
 	}
@@ -57,125 +55,67 @@ func (t *trace) Write(item interface{}) error {
 	return nil
 }
 
-func (*trace) handleTick(t graph.AggregatorTick) []byte {
+func (*trace) handleTick(tick *gofer.Tick) []byte {
 	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
-		var c []interface{}
-		var s []byte
+		t := node.(*gofer.Tick)
+		var tErr error
+		if t.Error != "" {
+			tErr = errors.New(t.Error)
+		}
 
-		switch typedTick := node.(type) {
-		case graph.AggregatorTick:
-			s = renderNode(
-				"AggregatorTick",
-				mergeKVMap(
-					[]param{
-						{key: "pair", value: typedTick.Pair.String()},
-						{key: "price", value: typedTick.Price},
-						{key: "timestamp", value: typedTick.Timestamp.In(time.UTC).Format(time.RFC3339Nano)},
-					},
-					typedTick.Parameters,
-				),
-				typedTick.Error,
-			)
-
-			for _, t := range typedTick.OriginTicks {
-				c = append(c, t)
-			}
-			for _, t := range typedTick.AggregatorTicks {
-				c = append(c, t)
-			}
-		case graph.OriginTick:
-			s = renderNode(
-				"OriginTick",
+		s := renderNode(
+			t.Type,
+			mergeKVMap(
 				[]param{
-					{key: "pair", value: typedTick.Pair.String()},
-					{key: "origin", value: typedTick.Origin},
-					{key: "price", value: typedTick.Price},
-					{key: "timestamp", value: typedTick.Timestamp.In(time.UTC).Format(time.RFC3339Nano)},
+					{key: "pair", value: t.Pair.String()},
+					{key: "price", value: t.Price},
+					{key: "timestamp", value: t.Time.In(time.UTC).Format(time.RFC3339Nano)},
 				},
-				typedTick.Error,
-			)
+				t.Parameters,
+			),
+			tErr,
+		)
+
+		var c []interface{}
+		for _, tc := range t.Ticks {
+			c = append(c, tc)
 		}
 
 		return s, c
-	}, []interface{}{t}, 0)
+	}, []interface{}{tick}, 0)
 
 	buf := bytes.Buffer{}
-	buf.Write([]byte(fmt.Sprintf("Price for %s:\n", t.Pair)))
+	buf.Write([]byte(fmt.Sprintf("Price for %s:\n", tick.Pair)))
 	buf.Write(tree)
 	return buf.Bytes()
 }
 
-func (t *trace) handleGraph(g graph.Aggregator) []byte {
+func (t *trace) handleNode(node *gofer.Node) []byte {
 	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
+		n := node.(*gofer.Node)
+		s := renderNode(
+			n.Type,
+			mergeKVMap(
+				[]param{
+					{key: "pair", value: n.Pair.String()},
+				},
+				n.Parameters,
+			),
+			nil,
+		)
+
 		var c []interface{}
-		var s []byte
-
-		switch typedNode := node.(type) {
-		case graph.Aggregator:
-			s = renderNode(
-				reflect.TypeOf(node).Elem().String(),
-				[]param{
-					{key: "pair", value: typedNode.Pair().String()},
-				},
-				nil,
-			)
-
-			for _, n := range typedNode.Children() {
-				c = append(c, n)
-			}
-		case graph.Origin:
-			s = renderNode(
-				reflect.TypeOf(node).Elem().String(),
-				[]param{
-					{key: "pair", value: typedNode.OriginPair().Pair},
-					{key: "origin", value: typedNode.OriginPair().Origin},
-				},
-				nil,
-			)
+		for _, nc := range n.Children {
+			c = append(c, nc)
 		}
 
 		return s, c
-	}, []interface{}{g}, 0)
+	}, []interface{}{node}, 0)
 
 	buf := bytes.Buffer{}
-	buf.Write([]byte(fmt.Sprintf("Graph for %s:\n", g.Pair())))
+	buf.Write([]byte(fmt.Sprintf("Graph for %s:\n", node.Pair)))
 	buf.Write(tree)
 	return buf.Bytes()
-}
-
-func (t *trace) handleOrigins(origins map[graph.Pair][]string) []byte {
-	type originPair struct {
-		pair    graph.Pair
-		origins []string
-	}
-
-	var s []interface{}
-	for p, o := range origins {
-		s = append(s, originPair{pair: p, origins: o})
-	}
-
-	sort.Slice(s, func(i, j int) bool {
-		return s[i].(originPair).pair.String() > s[j].(originPair).pair.String()
-	})
-
-	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
-		var c []interface{}
-		var s string
-
-		switch typedNode := node.(type) {
-		case originPair:
-			s = typedNode.pair.String()
-			for _, o := range typedNode.origins {
-				c = append(c, o)
-			}
-		case string:
-			s = typedNode
-		}
-
-		return []byte(s), c
-	}, s, 0)
-
-	return tree
 }
 
 // param is used to work with lists of sorted key/value pairs.
@@ -186,9 +126,12 @@ type param struct {
 
 // mergeKVMap merges map[string]string into []param.
 func mergeKVMap(target []param, kv map[string]string) []param {
-	for _, k := range sortKeys(kv) {
-		target = append(target, param{key: k, value: kv[k]})
+	for k, v := range kv {
+		target = append(target, param{key: k, value: v})
 	}
+	sort.Slice(target, func(i, j int) bool {
+		return target[i].key < target[j].key
+	})
 	return target
 }
 
@@ -198,11 +141,13 @@ func mergeKVMap(target []param, kv map[string]string) []param {
 // label and a message will be printed in a new line.
 func renderNode(typ string, params []param, err error) []byte {
 	str := bytes.Buffer{}
+
 	if err != nil {
-		str.WriteString(color("[ERROR] ", red))
+		str.WriteString(color(typ, red))
+	} else {
+		str.WriteString(typ)
 	}
 
-	str.WriteString(typ)
 	str.WriteString("(")
 	for i, p := range params {
 		str.WriteString(color(p.key, green))
@@ -296,16 +241,4 @@ func prependLines(s []byte, first, rest string) []byte {
 	bts.WriteString(first)
 	bts.Write(bytes.ReplaceAll(bytes.TrimRight(s, "\n"), []byte{'\n'}, append([]byte{'\n'}, rest...)))
 	return bts.Bytes()
-}
-
-// sortKeys returns keys from given map sorted alphabetically.
-func sortKeys(kv map[string]string) []string {
-	var ks []string
-	for k := range kv {
-		ks = append(ks, k)
-	}
-
-	sort.Strings(ks)
-
-	return ks
 }

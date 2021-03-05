@@ -25,7 +25,6 @@ import (
 	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
 	ghostJSON "github.com/makerdao/gofer/pkg/ghost/config/json"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/config"
 	goferJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
 	"github.com/makerdao/gofer/pkg/log"
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
@@ -56,7 +55,7 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
+func newGofer(opts *options, path string, log log.Logger) (gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -67,15 +66,15 @@ func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	g, err := opts.GoferConfig.Configure(config.Dependencies{Logger: l})
+	gof, err := opts.GoferConfig.ConfigureGofer(log)
 	if err != nil {
 		return nil, err
 	}
 
-	return g.Gofer, nil
+	return gof, nil
 }
 
-func newGhost(opts *options, path string, gof *gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
+func newGhost(opts *options, path string, gof gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err

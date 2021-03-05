@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 const originTestTTL = 10 * time.Second
@@ -28,7 +30,7 @@ const originTestTTL = 10 * time.Second
 func TestOriginNode_OriginPair(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	o := NewOriginNode(op, originTestTTL, originTestTTL)
@@ -38,17 +40,17 @@ func TestOriginNode_OriginPair(t *testing.T) {
 func TestOriginNode_Ingest_Valid(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	ot := OriginTick{
 		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "foo",
 		Error:  nil,
@@ -66,17 +68,17 @@ func TestOriginNode_Ingest_Valid(t *testing.T) {
 func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	ot := OriginTick{
 		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "C"},
+			Pair:      gofer.Pair{Base: "A", Quote: "C"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "foo",
 		Error:  nil,
@@ -92,17 +94,17 @@ func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	ot := OriginTick{
 		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "bar",
 		Error:  nil,
@@ -118,17 +120,17 @@ func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	ot := OriginTick{
 		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "C"},
+			Pair:      gofer.Pair{Base: "A", Quote: "C"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "bar",
 		Error:  nil,
@@ -147,17 +149,17 @@ func TestOriginNode_Ingest_TickWithError(t *testing.T) {
 
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	ot := OriginTick{
 		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "foo",
 		Error:  err,
@@ -173,17 +175,17 @@ func TestOriginNode_Ingest_TickWithError(t *testing.T) {
 func TestOriginNode_Tick_Expired(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	ot := OriginTick{
 		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now().Add(-20 * time.Second),
+			Time:      time.Now().Add(-20 * time.Second),
 		},
 		Origin: "foo",
 		Error:  nil,

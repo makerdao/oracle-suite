@@ -24,9 +24,11 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/feeder"
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/gofer/local"
+	"github.com/makerdao/gofer/pkg/gofer/local/feeder"
+	"github.com/makerdao/gofer/pkg/gofer/local/graph"
+	"github.com/makerdao/gofer/pkg/gofer/local/origins"
+	"github.com/makerdao/gofer/pkg/gofer/rpc"
 	"github.com/makerdao/gofer/pkg/log"
 )
 
@@ -34,7 +36,7 @@ const defaultMaxTTL = 60 * time.Second
 const minTTLDifference = 30 * time.Second
 
 type ErrCyclicReference struct {
-	Pair graph.Pair
+	Pair gofer.Pair
 	Path []graph.Node
 }
 
@@ -57,8 +59,13 @@ func (e ErrCyclicReference) Error() string {
 }
 
 type Config struct {
+	RPC         RPC                   `json:"rpc"`
 	Origins     map[string]Origin     `json:"origins"`
 	PriceModels map[string]PriceModel `json:"priceModels"`
+}
+
+type RPC struct {
+	Address string `json:"address"`
 }
 
 type Origin struct {
@@ -84,16 +91,12 @@ type Source struct {
 	TTL    int    `json:"ttl"`
 }
 
-type Dependencies struct {
-	Logger log.Logger
-}
-
 type Instances struct {
+	Gofer  gofer.Gofer
 	Feeder *feeder.Feeder
-	Gofer  *gofer.Gofer
 }
 
-func (c *Config) Configure(deps Dependencies) (*Instances, error) {
+func (c *Config) ConfigureGofer(l log.Logger) (gofer.Gofer, error) {
 	// Graphs:
 	gra, err := c.buildGraphs()
 	if err != nil {
@@ -101,21 +104,47 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	}
 
 	// Feeder:
-	fed := feeder.NewFeeder(origins.DefaultSet(), deps.Logger)
+	fed := feeder.NewFeeder(origins.DefaultSet(), l)
 
 	// Gofer:
-	gof := gofer.NewGofer(gra, fed)
+	gof := local.NewGofer(gra, fed)
 
-	return &Instances{
-		Feeder: fed,
-		Gofer:  gof,
-	}, nil
+	return gof, nil
 }
 
-func (c *Config) buildGraphs() (map[graph.Pair]graph.Aggregator, error) {
+func (c *Config) ConfigureRPCServer(l log.Logger) (*rpc.Server, error) {
+	// Graphs:
+	gra, err := c.buildGraphs()
+	if err != nil {
+		return nil, err
+	}
+
+	// Feeder:
+	fed := feeder.NewFeeder(origins.DefaultSet(), l)
+
+	// RPC server:
+	srv, err := rpc.NewServer(rpc.ServerConfig{
+		Graphs:  gra,
+		Feeder:  fed,
+		Network: "tcp",
+		Address: c.RPC.Address,
+		Logger:  l,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return srv, nil
+}
+
+func (c *Config) ConfigureRPCClient(l log.Logger) (*rpc.Client, error) {
+	return rpc.NewClient("tcp", c.RPC.Address), nil
+}
+
+func (c *Config) buildGraphs() (map[gofer.Pair]graph.Aggregator, error) {
 	var err error
 
-	graphs := map[graph.Pair]graph.Aggregator{}
+	graphs := map[gofer.Pair]graph.Aggregator{}
 
 	// It's important to create root nodes before branches, because branches
 	// may refer to another root nodes instances.
@@ -137,9 +166,9 @@ func (c *Config) buildGraphs() (map[graph.Pair]graph.Aggregator, error) {
 	return graphs, nil
 }
 
-func (c *Config) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
+func (c *Config) buildRoots(graphs map[gofer.Pair]graph.Aggregator) error {
 	for name, model := range c.PriceModels {
-		modelPair, err := graph.NewPair(name)
+		modelPair, err := gofer.NewPair(name)
 		if err != nil {
 			return err
 		}
@@ -162,11 +191,11 @@ func (c *Config) buildRoots(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (c *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
+func (c *Config) buildBranches(graphs map[gofer.Pair]graph.Aggregator) error {
 	for name, model := range c.PriceModels {
 		// We can ignore error here, because it was checked already
 		// in buildRoots method.
-		modelPair, _ := graph.NewPair(name)
+		modelPair, _ := gofer.NewPair(name)
 
 		var parent graph.Parent
 		if typedNode, ok := graphs[modelPair].(graph.Parent); ok {
@@ -221,8 +250,8 @@ func (c *Config) buildBranches(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func (c *Config) reference(graphs map[graph.Pair]graph.Aggregator, source Source) (graph.Node, error) {
-	sourcePair, err := graph.NewPair(source.Pair)
+func (c *Config) reference(graphs map[gofer.Pair]graph.Aggregator, source Source) (graph.Node, error) {
+	sourcePair, err := gofer.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +267,7 @@ func (c *Config) reference(graphs map[graph.Pair]graph.Aggregator, source Source
 }
 
 func (c *Config) originNode(model PriceModel, source Source) (graph.Node, error) {
-	sourcePair, err := graph.NewPair(source.Pair)
+	sourcePair, err := gofer.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +288,7 @@ func (c *Config) originNode(model PriceModel, source Source) (graph.Node, error)
 	return graph.NewOriginNode(originPair, ttl-minTTLDifference, ttl), nil
 }
 
-func (c *Config) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
+func (c *Config) detectCycle(graphs map[gofer.Pair]graph.Aggregator) error {
 	for _, pair := range sortGraphs(graphs) {
 		if path := graph.DetectCycle(graphs[pair]); len(path) > 0 {
 			return ErrCyclicReference{Pair: pair, Path: path}
@@ -269,8 +298,8 @@ func (c *Config) detectCycle(graphs map[graph.Pair]graph.Aggregator) error {
 	return nil
 }
 
-func sortGraphs(graphs map[graph.Pair]graph.Aggregator) []graph.Pair {
-	var pairs []graph.Pair
+func sortGraphs(graphs map[gofer.Pair]graph.Aggregator) []gofer.Pair {
+	var pairs []gofer.Pair
 	for p := range graphs {
 		pairs = append(pairs, p)
 	}

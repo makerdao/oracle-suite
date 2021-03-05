@@ -17,39 +17,14 @@ package graph
 
 import (
 	"fmt"
-	"strings"
 	"time"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
-
-type Pair struct {
-	Base  string
-	Quote string
-}
-
-func NewPair(s string) (Pair, error) {
-	ss := strings.Split(s, "/")
-	if len(ss) != 2 {
-		return Pair{}, fmt.Errorf("couldn't parse pair \"%s\"", s)
-	}
-
-	return Pair{Base: strings.ToUpper(ss[0]), Quote: strings.ToUpper(ss[1])}, nil
-}
-
-func (p Pair) Empty() bool {
-	return p.Base == "" && p.Quote == ""
-}
-
-func (p Pair) Equal(c Pair) bool {
-	return p.Base == c.Base && p.Quote == c.Quote
-}
-
-func (p Pair) String() string {
-	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
-}
 
 type OriginPair struct {
 	Origin string
-	Pair   Pair
+	Pair   gofer.Pair
 }
 
 func (o OriginPair) String() string {
@@ -57,26 +32,36 @@ func (o OriginPair) String() string {
 }
 
 type Tick struct {
-	Pair      Pair
+	Pair      gofer.Pair
 	Price     float64
 	Bid       float64
 	Ask       float64
 	Volume24h float64
-	Timestamp time.Time
+	Time      time.Time
 }
 
 // OriginTick represent Tick which was sourced directly from an origin.
 type OriginTick struct {
 	Tick
-	Origin string // Origin is a name of Tick source.
-	Error  error  // Error is optional error which may occur during fetching Tick.
+	// Origin is a name of Tick source.
+	Origin string
+	// Errors is a list of optional error messages which may occur during
+	// calculating Tick. If this list is not empty, then the tick value
+	// is not reliable.
+	Error error
 }
 
 // AggregatorTick represent Tick which was calculated using other ticks.
 type AggregatorTick struct {
 	Tick
-	OriginTicks     []OriginTick      // OriginTicks is a list of all OriginTicks used to calculate Tick.
-	AggregatorTicks []AggregatorTick  // AggregatorTicks is a list of all OriginTicks used to calculate Tick.
-	Parameters      map[string]string // Parameters is a custom list of optional parameters returned by an aggregator.
-	Error           error             // Error is optional error which may occur during calculating Tick.
+	// OriginTicks is a list of all OriginTicks used to calculate Tick.
+	OriginTicks []OriginTick
+	// AggregatorTicks is a list of all OriginTicks used to calculate Tick.
+	AggregatorTicks []AggregatorTick
+	// Parameters is a custom list of optional parameters returned by an aggregator.
+	Parameters map[string]string
+	// Errors is a list of optional error messages which may occur during
+	// fetching Tick. If this list is not empty, then the tick value
+	// is not reliable.
+	Error error
 }

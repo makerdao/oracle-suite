@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type json struct {
@@ -62,12 +62,10 @@ func (j *json) Bytes() ([]byte, error) {
 func (j *json) Write(item interface{}) error {
 	var i interface{}
 	switch typedItem := item.(type) {
-	case graph.AggregatorTick:
+	case *gofer.Tick:
 		i = j.handleTick(typedItem)
-	case graph.Aggregator:
-		i = j.handleGraph(typedItem)
-	case map[graph.Pair][]string:
-		i = j.handleOrigins(typedItem)
+	case *gofer.Node:
+		i = j.handleNode(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
 	}
@@ -76,83 +74,44 @@ func (j *json) Write(item interface{}) error {
 	return nil
 }
 
-func (*json) handleTick(tick graph.AggregatorTick) interface{} {
-	return jsonTickFromAggregatorTick(tick)
+func (*json) handleTick(tick *gofer.Tick) interface{} {
+	return jsonTickFromGoferTick(tick)
 }
 
-func (*json) handleGraph(graph graph.Aggregator) interface{} {
-	return graph.Pair().String()
-}
-
-func (*json) handleOrigins(origins map[graph.Pair][]string) interface{} {
-	r := make(map[string][]string)
-	for p, o := range origins {
-		r[p.String()] = o
-	}
-	return r
+func (*json) handleNode(node *gofer.Node) interface{} {
+	return node.Pair.String()
 }
 
 type jsonTick struct {
-	Type       string            `json:"type,omitempty"`
+	Type       string            `json:"type"`
+	Base       string            `json:"base"`
+	Quote      string            `json:"quote"`
+	Price      float64           `json:"price"`
+	Bid        float64           `json:"bid"`
+	Ask        float64           `json:"ask"`
+	Volume24h  float64           `json:"vol24h"`
+	Timestamp  time.Time         `json:"ts"`
 	Parameters map[string]string `json:"params,omitempty"`
-	Origin     string            `json:"origin,omitempty"`
-	Base       string            `json:"base,omitempty"`
-	Quote      string            `json:"quote,omitempty"`
-	Price      float64           `json:"price,omitempty"`
-	Bid        float64           `json:"bid,omitempty"`
-	Ask        float64           `json:"ask,omitempty"`
-	Volume24h  float64           `json:"vol24h,omitempty"`
-	Timestamp  time.Time         `json:"ts,omitempty"`
 	Ticks      []jsonTick        `json:"ticks,omitempty"`
 	Error      string            `json:"error,omitempty"`
 }
 
-func jsonTickFromOriginTick(t graph.OriginTick) jsonTick {
-	var errStr string
-	if t.Error != nil {
-		errStr = t.Error.Error()
-	}
-
-	return jsonTick{
-		Type:       "origin",
-		Parameters: nil,
-		Origin:     t.Origin,
-		Base:       t.Pair.Base,
-		Quote:      t.Pair.Quote,
-		Price:      t.Price,
-		Bid:        t.Bid,
-		Ask:        t.Ask,
-		Volume24h:  t.Volume24h,
-		Timestamp:  t.Timestamp.In(time.UTC),
-		Error:      errStr,
-	}
-}
-
-func jsonTickFromAggregatorTick(t graph.AggregatorTick) jsonTick {
-	var errStr string
-	if t.Error != nil {
-		errStr = t.Error.Error()
-	}
-
+func jsonTickFromGoferTick(t *gofer.Tick) jsonTick {
 	var ticks []jsonTick
-	for _, v := range t.OriginTicks {
-		ticks = append(ticks, jsonTickFromOriginTick(v))
+	for _, c := range t.Ticks {
+		ticks = append(ticks, jsonTickFromGoferTick(c))
 	}
-	for _, v := range t.AggregatorTicks {
-		ticks = append(ticks, jsonTickFromAggregatorTick(v))
-	}
-
 	return jsonTick{
-		Type:       "aggregate",
-		Parameters: t.Parameters,
+		Type:       t.Type,
 		Base:       t.Pair.Base,
 		Quote:      t.Pair.Quote,
 		Price:      t.Price,
 		Bid:        t.Bid,
 		Ask:        t.Ask,
 		Volume24h:  t.Volume24h,
-		Timestamp:  t.Timestamp.In(time.UTC),
+		Timestamp:  t.Time.In(time.UTC),
+		Parameters: t.Parameters,
 		Ticks:      ticks,
-		Error:      errStr,
+		Error:      t.Error,
 	}
 }

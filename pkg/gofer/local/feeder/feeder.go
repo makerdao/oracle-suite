@@ -20,15 +20,16 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-	"github.com/makerdao/gofer/pkg/gofer/origins"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/local/graph"
+	"github.com/makerdao/gofer/pkg/gofer/local/origins"
 	"github.com/makerdao/gofer/pkg/log"
 )
 
 const LoggerTag = "FEEDER"
 
-// Warnings contains a list of minor errors which are occurred during
-// fetching prices.
+// Warnings contains a list of minor errors which occurred during fetching
+// prices.
 type Warnings struct {
 	List []error
 }
@@ -81,17 +82,17 @@ func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
 
 // Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
 // and sets Ticks to all of their children that implement the Feedable interface.
-func (f *Feeder) Feed(nodes []graph.Node) Warnings {
+func (f *Feeder) Feed(nodes ...graph.Node) Warnings {
 	return f.fetchTicksAndFeedThemToFeedableNodes(f.findFeedableNodes(nodes))
 }
 
 // Start starts a goroutine which updates prices as often as the lowest TTL is.
-func (f *Feeder) Start(nodes []graph.Node) error {
+func (f *Feeder) Start(nodes ...graph.Node) error {
 	f.log.Infof("Starting")
 
-	warns := f.Feed(nodes)
+	warns := f.Feed(nodes...)
 	if len(warns.List) > 0 {
-		f.log.WithError(warns.ToError()).Info("Unable to feed some nodes")
+		f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
 	}
 
 	ticker := time.NewTicker(getMinTTL(nodes))
@@ -102,9 +103,9 @@ func (f *Feeder) Start(nodes []graph.Node) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				warns := f.Feed(nodes)
+				warns := f.Feed(nodes...)
 				if len(warns.List) > 0 {
-					f.log.WithError(warns.ToError()).Info("Unable to feed some nodes")
+					f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
 				}
 			}
 		}
@@ -128,8 +129,7 @@ func (f *Feeder) findFeedableNodes(nodes []graph.Node) []Feedable {
 	var feedables []Feedable
 	graph.Walk(func(node graph.Node) {
 		if feedable, ok := node.(Feedable); ok {
-			tr := tn.Add(-1 * feedable.MinTTL())
-			if feedable.Tick().Timestamp.Before(tr) {
+			if tn.Sub(feedable.Tick().Time) > feedable.MinTTL() {
 				feedables = append(feedables, feedable)
 			}
 		}
@@ -228,7 +228,7 @@ func appendNodeIfUnique(nodes []Feedable, node Feedable) []Feedable {
 func mapOriginResult(origin string, fr origins.FetchResult) graph.OriginTick {
 	return graph.OriginTick{
 		Tick: graph.Tick{
-			Pair: graph.Pair{
+			Pair: gofer.Pair{
 				Base:  fr.Tick.Pair.Base,
 				Quote: fr.Tick.Pair.Quote,
 			},
@@ -236,7 +236,7 @@ func mapOriginResult(origin string, fr origins.FetchResult) graph.OriginTick {
 			Bid:       fr.Tick.Bid,
 			Ask:       fr.Tick.Ask,
 			Volume24h: fr.Tick.Volume24h,
-			Timestamp: fr.Tick.Timestamp,
+			Time:      fr.Tick.Timestamp,
 		},
 		Origin: origin,
 		Error:  fr.Error,

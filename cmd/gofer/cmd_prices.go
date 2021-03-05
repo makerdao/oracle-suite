@@ -17,58 +17,80 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/gofer/cli"
 	"github.com/makerdao/gofer/internal/gofer/marshal"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func NewPricesCmd(o *options) *cobra.Command {
+func NewPricesCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:     "prices [PAIR...]",
 		Aliases: []string{"price"},
 		Args:    cobra.MinimumNArgs(0),
-		Short:   "Return price for given PAIRs",
-		Long:    `Print the price of given PAIRs`,
-		RunE: func(c *cobra.Command, args []string) error {
-			m, err := marshal.NewMarshal(o.OutputFormat.format)
+		Short:   "Return prices for given PAIRs",
+		Long:    `Return prices for given PAIRs.`,
+		RunE: func(c *cobra.Command, args []string) (err error) {
+			log, err := newLogger(opts.LogVerbosity)
+			if err != nil {
+				return
+			}
+
+			mar, err := marshal.NewMarshal(opts.OutputFormat.format)
+			if err != nil {
+				return
+			}
+
+			gof, err := newGofer(opts, opts.ConfigFilePath, log)
+			if err != nil {
+				return
+			}
+
+			if sg, ok := gof.(gofer.StartableGofer); ok {
+				err = sg.Start()
+				if err != nil {
+					return
+				}
+				defer func() {
+					gerr := sg.Stop()
+					if err == nil {
+						err = gerr
+					}
+				}()
+			}
+
+			pairs, err := gofer.NewPairs(args...)
 			if err != nil {
 				return err
 			}
 
-			absPath, err := filepath.Abs(o.ConfigFilePath)
+			prices, err := gof.Ticks(pairs...)
 			if err != nil {
-				return err
+				return
 			}
 
-			l, err := newLogger(o.LogVerbosity)
-			if err != nil {
-				return err
+			for _, p := range prices {
+				err = mar.Write(p)
+				if err != nil {
+					return
+				}
 			}
 
-			g, err := newGofer(o, absPath, l)
+			bts, err := mar.Bytes()
 			if err != nil {
-				return err
+				return
 			}
 
-			success, err := cli.Prices(args, g, m)
-			if err != nil {
-				return err
-			}
-
-			bts, err := m.Bytes()
-			if err != nil {
-				return err
-			}
 			fmt.Print(string(bts))
 
-			if !success {
-				return SilentErr{}
+			for _, p := range prices {
+				if p.Error != "" {
+					return errSilent{}
+				}
 			}
 
-			return nil
+			return
 		},
 	}
 }

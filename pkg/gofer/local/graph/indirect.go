@@ -19,10 +19,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type ErrTick struct {
-	Pair Pair
+	Pair gofer.Pair
 	Err  error
 }
 
@@ -35,8 +37,8 @@ func (e ErrTick) Error() string {
 }
 
 type ErrResolve struct {
-	ExpectedPair Pair
-	ResolvedPair Pair
+	ExpectedPair gofer.Pair
+	ResolvedPair gofer.Pair
 }
 
 func (e ErrResolve) Error() string {
@@ -48,7 +50,7 @@ func (e ErrResolve) Error() string {
 }
 
 type ErrInvalidPrice struct {
-	Pair Pair
+	Pair gofer.Pair
 }
 
 func (e ErrInvalidPrice) Error() string {
@@ -59,8 +61,8 @@ func (e ErrInvalidPrice) Error() string {
 }
 
 type ErrNoCommonPart struct {
-	PairA Pair
-	PairB Pair
+	PairA gofer.Pair
+	PairB gofer.Pair
 }
 
 func (e ErrNoCommonPart) Error() string {
@@ -72,8 +74,8 @@ func (e ErrNoCommonPart) Error() string {
 }
 
 type ErrDivByZero struct {
-	PairA Pair
-	PairB Pair
+	PairA gofer.Pair
+	PairB gofer.Pair
 }
 
 func (e ErrDivByZero) Error() string {
@@ -99,11 +101,11 @@ func (e ErrDivByZero) Error() string {
 // to add child nodes in the correct order, because ticks will be calculated from
 // first to last.
 type IndirectAggregatorNode struct {
-	pair     Pair
+	pair     gofer.Pair
 	children []Node
 }
 
-func NewIndirectAggregatorNode(pair Pair) *IndirectAggregatorNode {
+func NewIndirectAggregatorNode(pair gofer.Pair) *IndirectAggregatorNode {
 	return &IndirectAggregatorNode{
 		pair: pair,
 	}
@@ -119,7 +121,7 @@ func (n *IndirectAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }
 
-func (n *IndirectAggregatorNode) Pair() Pair {
+func (n *IndirectAggregatorNode) Pair() gofer.Pair {
 	return n.pair
 }
 
@@ -214,7 +216,7 @@ func crossRate(t []Tick) (Tick, error) {
 		a := t[i]
 		b := t[i+1]
 
-		var pair Pair
+		var pair gofer.Pair
 		var price, bid, ask float64
 		switch {
 		case a.Pair.Quote == b.Pair.Quote: // A/C, B/C
@@ -300,8 +302,8 @@ func crossRate(t []Tick) (Tick, error) {
 		b.Bid = bid
 		b.Ask = ask
 		b.Volume24h = 0
-		if a.Timestamp.Before(b.Timestamp) {
-			b.Timestamp = a.Timestamp
+		if a.Time.Before(b.Time) {
+			b.Time = a.Time
 		}
 
 		t[i+1] = b

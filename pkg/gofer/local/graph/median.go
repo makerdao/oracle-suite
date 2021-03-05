@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type ErrNotEnoughSources struct {
@@ -38,8 +40,8 @@ func (e ErrNotEnoughSources) Error() string {
 }
 
 type ErrIncompatiblePairs struct {
-	Given    Pair
-	Expected Pair
+	Given    gofer.Pair
+	Expected gofer.Pair
 }
 
 func (e ErrIncompatiblePairs) Error() string {
@@ -57,18 +59,18 @@ func (e ErrIncompatiblePairs) Error() string {
 //                          /
 //  [MedianAggregatorNode] ---- [Origin A/B]       -- ...
 //                          \                     /
-//                           -- [Aggregator A/B] ---- ...
+//                           -- [AggregatorNode A/B] ---- ...
 //                                                \
 //                                                 -- ...
 //
 // All children of this node must return a Tick for the same pair.
 type MedianAggregatorNode struct {
-	pair       Pair
+	pair       gofer.Pair
 	minSources int
 	children   []Node
 }
 
-func NewMedianAggregatorNode(pair Pair, minSources int) *MedianAggregatorNode {
+func NewMedianAggregatorNode(pair gofer.Pair, minSources int) *MedianAggregatorNode {
 	return &MedianAggregatorNode{
 		pair:       pair,
 		minSources: minSources,
@@ -85,7 +87,7 @@ func (n *MedianAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }
 
-func (n *MedianAggregatorNode) Pair() Pair {
+func (n *MedianAggregatorNode) Pair() gofer.Pair {
 	return n.pair
 }
 
@@ -135,8 +137,8 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 		if tick.Ask > 0 {
 			asks = append(asks, tick.Ask)
 		}
-		if i == 0 || tick.Timestamp.Before(ts) {
-			ts = tick.Timestamp
+		if i == 0 || tick.Time.Before(ts) {
+			ts = tick.Time
 		}
 	}
 
@@ -154,7 +156,7 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 			Bid:       median(bids),
 			Ask:       median(asks),
 			Volume24h: 0,
-			Timestamp: ts,
+			Time:      ts,
 		},
 		OriginTicks:     originTicks,
 		AggregatorTicks: aggregatorTicks,

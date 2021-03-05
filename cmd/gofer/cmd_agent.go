@@ -16,73 +16,46 @@
 package main
 
 import (
-	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
-
-	"github.com/makerdao/gofer/internal/gofer/marshal"
-	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func NewPairsCmd(opts *options) *cobra.Command {
+func NewAgentCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
-		Use:     "pairs [PAIR...]",
-		Aliases: []string{"pair"},
-		Args:    cobra.MinimumNArgs(0),
-		Short:   "List all supported asset pairs",
-		Long:    `List all supported asset pairs.`,
+		Use:   "agent",
+		Args:  cobra.NoArgs,
+		Short: "Start an RPC server",
+		Long:  `Start an RPC server.`,
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			log, err := newLogger(opts.LogVerbosity)
 			if err != nil {
 				return
 			}
 
-			mar, err := marshal.NewMarshal(opts.OutputFormat.format)
+			srv, err := newServer(opts, opts.ConfigFilePath, log)
 			if err != nil {
 				return
 			}
 
-			gof, err := newGofer(opts, opts.ConfigFilePath, log)
+			// Start RPC server:
+			err = srv.Start()
 			if err != nil {
 				return
 			}
-
-			if sg, ok := gof.(gofer.StartableGofer); ok {
-				err = sg.Start()
-				if err != nil {
-					return
+			defer func() {
+				serr := srv.Stop()
+				if err == nil {
+					err = serr
 				}
-				defer func() {
-					gerr := sg.Stop()
-					if err == nil {
-						err = gerr
-					}
-				}()
-			}
+			}()
 
-			pairs, err := gofer.NewPairs(args...)
-			if err != nil {
-				return err
-			}
-
-			nodes, err := gof.Nodes(pairs...)
-			if err != nil {
-				return
-			}
-
-			for _, p := range nodes {
-				err = mar.Write(p)
-				if err != nil {
-					return
-				}
-			}
-
-			bts, err := mar.Bytes()
-			if err != nil {
-				return
-			}
-
-			fmt.Print(string(bts))
+			// Wait for interrupt signal
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+			<-c
 
 			return
 		},

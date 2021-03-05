@@ -16,27 +16,29 @@
 package marshal
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-
 	"github.com/makerdao/gofer/internal/gofer/marshal/testutil"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func TestPlain_Graph(t *testing.T) {
+func TestPlain_Nodes(t *testing.T) {
 	var err error
-	j := newPlain()
+	m := newPlain()
 
-	err = j.Write(testutil.Graph(graph.Pair{Base: "A", Quote: "B"}))
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	cd := gofer.Pair{Base: "C", Quote: "D"}
+	ns := testutil.Nodes(ab, cd)
+
+	err = m.Write(ns[ab])
 	assert.NoError(t, err)
 
-	err = j.Write(testutil.Graph(graph.Pair{Base: "C", Quote: "D"}))
+	err = m.Write(ns[cd])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
@@ -49,47 +51,26 @@ C/D
 
 func TestPlain_Ticks(t *testing.T) {
 	var err error
+	m := newPlain()
 
-	ab := testutil.Graph(graph.Pair{Base: "A", Quote: "B"})
-	cd := testutil.Graph(graph.Pair{Base: "C", Quote: "D"})
-	j := newPlain()
+	ab := gofer.Pair{Base: "A", Quote: "B"}
+	cd := gofer.Pair{Base: "C", Quote: "D"}
+	ns := testutil.Ticks(ab, cd)
 
-	err = j.Write(ab.Tick())
+	err = m.Write(ns[ab])
 	assert.NoError(t, err)
 
-	cdt := cd.Tick()
-	cdt.Error = errors.New("something")
-	err = j.Write(cdt)
+	cdt := ns[cd]
+	cdt.Error = "something"
+	err = m.Write(ns[cd])
 	assert.NoError(t, err)
 
-	b, err := j.Bytes()
+	b, err := m.Bytes()
 	assert.NoError(t, err)
 
 	expected := `
 A/B 10.000000
 C/D - something
-`[1:]
-
-	assert.Equal(t, expected, string(b))
-}
-
-func TestPlain_Origins(t *testing.T) {
-	p := graph.Pair{Base: "A", Quote: "B"}
-	j := newPlain()
-
-	err := j.Write(map[graph.Pair][]string{
-		p: {"a", "b", "c"},
-	})
-
-	assert.NoError(t, err)
-
-	b, _ := j.Bytes()
-
-	expected := `
-A/B:
-a
-b
-c
 `[1:]
 
 	assert.Equal(t, expected, string(b))
