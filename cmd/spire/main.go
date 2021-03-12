@@ -56,7 +56,7 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newServer(opts *options, log log.Logger) (*spire.Server, error) {
+func newServer(opts *options, log log.Logger) (*spire.Agent, error) {
 	if opts.ConfigPath != "" {
 		absPath, err := filepath.Abs(opts.ConfigPath)
 		if err != nil {

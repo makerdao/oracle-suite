@@ -62,9 +62,9 @@ func (j *json) Bytes() ([]byte, error) {
 func (j *json) Write(item interface{}) error {
 	var i interface{}
 	switch typedItem := item.(type) {
-	case *gofer.Tick:
-		i = j.handleTick(typedItem)
-	case *gofer.Node:
+	case *gofer.Price:
+		i = j.handlePrice(typedItem)
+	case *gofer.Model:
 		i = j.handleNode(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
@@ -74,15 +74,15 @@ func (j *json) Write(item interface{}) error {
 	return nil
 }
 
-func (*json) handleTick(tick *gofer.Tick) interface{} {
-	return jsonTickFromGoferTick(tick)
+func (*json) handlePrice(price *gofer.Price) interface{} {
+	return jsonPriceFromGoferPrice(price)
 }
 
-func (*json) handleNode(node *gofer.Node) interface{} {
+func (*json) handleNode(node *gofer.Model) interface{} {
 	return node.Pair.String()
 }
 
-type jsonTick struct {
+type jsonPrice struct {
 	Type       string            `json:"type"`
 	Base       string            `json:"base"`
 	Quote      string            `json:"quote"`
@@ -92,16 +92,16 @@ type jsonTick struct {
 	Volume24h  float64           `json:"vol24h"`
 	Timestamp  time.Time         `json:"ts"`
 	Parameters map[string]string `json:"params,omitempty"`
-	Ticks      []jsonTick        `json:"ticks,omitempty"`
+	Prices     []jsonPrice       `json:"prices,omitempty"`
 	Error      string            `json:"error,omitempty"`
 }
 
-func jsonTickFromGoferTick(t *gofer.Tick) jsonTick {
-	var ticks []jsonTick
-	for _, c := range t.Ticks {
-		ticks = append(ticks, jsonTickFromGoferTick(c))
+func jsonPriceFromGoferPrice(t *gofer.Price) jsonPrice {
+	var prices []jsonPrice
+	for _, c := range t.Prices {
+		prices = append(prices, jsonPriceFromGoferPrice(c))
 	}
-	return jsonTick{
+	return jsonPrice{
 		Type:       t.Type,
 		Base:       t.Pair.Base,
 		Quote:      t.Pair.Quote,
@@ -111,7 +111,7 @@ func jsonTickFromGoferTick(t *gofer.Tick) jsonTick {
 		Volume24h:  t.Volume24h,
 		Timestamp:  t.Time.In(time.UTC),
 		Parameters: t.Parameters,
-		Ticks:      ticks,
+		Prices:     prices,
 		Error:      t.Error,
 	}
 }

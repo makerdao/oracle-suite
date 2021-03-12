@@ -31,7 +31,7 @@ func TestTrace_Graph(t *testing.T) {
 	m := newTrace()
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
-	ns := testutil.Nodes(ab)
+	ns := testutil.Models(ab)
 
 	err = m.Write(ns[ab])
 	assert.NoError(t, err)
@@ -53,14 +53,14 @@ Graph for A/B:
 	assert.Equal(t, expected, string(b))
 }
 
-func TestTrace_Ticks(t *testing.T) {
+func TestTrace_Prices(t *testing.T) {
 	disableColors()
 
 	var err error
 	m := newTrace()
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
-	ts := testutil.Ticks(ab)
+	ts := testutil.Prices(ab)
 
 	err = m.Write(ts[ab])
 	assert.NoError(t, err)

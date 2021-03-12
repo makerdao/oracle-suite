@@ -31,7 +31,7 @@ func TestJSON_Nodes(t *testing.T) {
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	cd := gofer.Pair{Base: "C", Quote: "D"}
-	ns := testutil.Nodes(ab, cd)
+	ns := testutil.Models(ab, cd)
 
 	err = m.Write(ns[ab])
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestNDJSON_Nodes(t *testing.T) {
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	cd := gofer.Pair{Base: "C", Quote: "D"}
-	ns := testutil.Nodes(ab, cd)
+	ns := testutil.Models(ab, cd)
 
 	err = m.Write(ns[ab])
 	assert.NoError(t, err)
@@ -70,12 +70,12 @@ func TestNDJSON_Nodes(t *testing.T) {
 	assert.JSONEq(t, `"C/D"`, string(result[1]))
 }
 
-func TestJSON_Ticks(t *testing.T) {
+func TestJSON_Prices(t *testing.T) {
 	var err error
 	m := newJSON(false)
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
-	ts := testutil.Ticks(ab)
+	ts := testutil.Prices(ab)
 
 	err = m.Write(ts[ab])
 	assert.NoError(t, err)
@@ -98,7 +98,7 @@ func TestJSON_Ticks(t *testing.T) {
 				 "method":"median",
 				 "min":"1"
 			  },
-			  "ticks":[
+			  "prices":[
 				 {
 					"type":"origin",
 					"base":"A",
@@ -124,7 +124,7 @@ func TestJSON_Ticks(t *testing.T) {
 					"params":{
 					   "method":"indirect"
 					},
-					"ticks":[
+					"prices":[
 					   {
 						  "type":"origin",
 						  "base":"A",
@@ -153,7 +153,7 @@ func TestJSON_Ticks(t *testing.T) {
 					   "method":"median",
 					   "min":"1"
 					},
-					"ticks":[
+					"prices":[
 					   {
 						  "type":"origin",
 						  "base":"A",

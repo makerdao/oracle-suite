@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/local/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
 )
 
 func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
@@ -69,35 +69,35 @@ func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
 	// Check if all three pairs was loaded correctly:
 	assert.Contains(t, c, bc)
 	assert.Contains(t, c, ac)
-	assert.IsType(t, &graph.MedianAggregatorNode{}, c[bc])
-	assert.IsType(t, &graph.MedianAggregatorNode{}, c[ac])
+	assert.IsType(t, &nodes.MedianAggregatorNode{}, c[bc])
+	assert.IsType(t, &nodes.MedianAggregatorNode{}, c[ac])
 
 	// --- Tests for B/C pair ---
 	assert.Len(t, c[bc].Children(), 2)
 	// Sources have only one pair so we expect OriginNodes instead of
 	// the IndirectAggregatorNode:
-	assert.IsType(t, &graph.OriginNode{}, c[bc].Children()[0])
-	assert.IsType(t, &graph.OriginNode{}, c[bc].Children()[1])
+	assert.IsType(t, &nodes.OriginNode{}, c[bc].Children()[0])
+	assert.IsType(t, &nodes.OriginNode{}, c[bc].Children()[1])
 	// Check if pairs was assigned correctly to nodes:
-	assert.Equal(t, "bc1", c[bc].Children()[0].(*graph.OriginNode).OriginPair().Origin)
-	assert.Equal(t, "bc2", c[bc].Children()[1].(*graph.OriginNode).OriginPair().Origin)
-	assert.Equal(t, bc, c[bc].Children()[0].(*graph.OriginNode).OriginPair().Pair)
-	assert.Equal(t, bc, c[bc].Children()[1].(*graph.OriginNode).OriginPair().Pair)
+	assert.Equal(t, "bc1", c[bc].Children()[0].(*nodes.OriginNode).OriginPair().Origin)
+	assert.Equal(t, "bc2", c[bc].Children()[1].(*nodes.OriginNode).OriginPair().Origin)
+	assert.Equal(t, bc, c[bc].Children()[0].(*nodes.OriginNode).OriginPair().Pair)
+	assert.Equal(t, bc, c[bc].Children()[1].(*nodes.OriginNode).OriginPair().Pair)
 
 	// --- Tests for A/C pair ---
 	assert.Len(t, c[ac].Children(), 2)
 	// Sources have more than one pair so now we expect the
 	// IndirectAggregatorNode.
-	assert.IsType(t, &graph.IndirectAggregatorNode{}, c[ac].Children()[0])
-	assert.IsType(t, &graph.IndirectAggregatorNode{}, c[ac].Children()[1])
+	assert.IsType(t, &nodes.IndirectAggregatorNode{}, c[ac].Children()[0])
+	assert.IsType(t, &nodes.IndirectAggregatorNode{}, c[ac].Children()[1])
 	// Check if pairs was assigned correctly to nodes:
-	assert.Equal(t, ac, c[ac].Children()[0].(*graph.IndirectAggregatorNode).Pair())
-	assert.Equal(t, ac, c[ac].Children()[1].(*graph.IndirectAggregatorNode).Pair())
-	assert.Equal(t, ab, c[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[0].(*graph.OriginNode).OriginPair().Pair)
-	assert.Equal(t, bc, c[ac].Children()[0].(*graph.IndirectAggregatorNode).Children()[1].(*graph.OriginNode).OriginPair().Pair)
+	assert.Equal(t, ac, c[ac].Children()[0].(*nodes.IndirectAggregatorNode).Pair())
+	assert.Equal(t, ac, c[ac].Children()[1].(*nodes.IndirectAggregatorNode).Pair())
+	assert.Equal(t, ab, c[ac].Children()[0].(*nodes.IndirectAggregatorNode).Children()[0].(*nodes.OriginNode).OriginPair().Pair)
+	assert.Equal(t, bc, c[ac].Children()[0].(*nodes.IndirectAggregatorNode).Children()[1].(*nodes.OriginNode).OriginPair().Pair)
 	// In a second source, there is a reference to another root node. We should
 	// use previously created instance instead creating new one:
-	assert.Same(t, c[bc], c[ac].Children()[1].(*graph.IndirectAggregatorNode).Children()[1])
+	assert.Same(t, c[bc], c[ac].Children()[1].(*nodes.IndirectAggregatorNode).Children()[1])
 }
 
 func TestConfig_buildGraphs_CyclicConfig(t *testing.T) {
@@ -233,8 +233,8 @@ func TestConfig_buildGraphs_DefaultTTL(t *testing.T) {
 	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
-	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, 30*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
+	assert.Equal(t, 30*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
 }
 
 func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
@@ -256,8 +256,8 @@ func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
 	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
-	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
 }
 
 func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
@@ -279,6 +279,6 @@ func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
 	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
-	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*graph.OriginNode).MaxTTL())
-	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*graph.OriginNode).MinTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
+	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
 }

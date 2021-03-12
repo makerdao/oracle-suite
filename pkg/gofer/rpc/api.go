@@ -18,13 +18,13 @@ package rpc
 import (
 	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/local/feeder"
+	"github.com/makerdao/gofer/pkg/gofer/graph/feeder"
 	"github.com/makerdao/gofer/pkg/log"
 )
 
 type Nothing = struct{}
 
-type API struct {
+type api struct {
 	gofer gofer.Gofer
 	log   log.Logger
 }
@@ -43,7 +43,7 @@ type NodesArg struct {
 }
 
 type NodesResp struct {
-	Pairs map[gofer.Pair]*gofer.Node
+	Pairs map[gofer.Pair]*gofer.Model
 }
 
 type PricesArg struct {
@@ -51,50 +51,39 @@ type PricesArg struct {
 }
 
 type PricesResp struct {
-	Prices map[gofer.Pair]*gofer.Tick
+	Prices map[gofer.Pair]*gofer.Price
 }
 
 type PairsResp struct {
 	Pairs []gofer.Pair
 }
 
-func (n *API) Nodes(arg *NodesArg, resp *NodesResp) error {
-	n.log.
-		WithField("pairs", arg.Pairs).
-		Info("Nodes")
-
-	pairs, err := n.gofer.Nodes(arg.Pairs...)
+func (n *api) Models(arg *NodesArg, resp *NodesResp) error {
+	n.log.WithField("pairs", arg.Pairs).Info("Models")
+	pairs, err := n.gofer.Models(arg.Pairs...)
 	if err != nil {
 		return err
 	}
-
 	resp.Pairs = pairs
 	return nil
 }
 
-func (n *API) Prices(arg *PricesArg, resp *PricesResp) error {
-	n.log.
-		WithField("pairs", arg.Pairs).
-		Info("Prices")
-
-	prices, err := n.gofer.Ticks(arg.Pairs...)
+func (n *api) Prices(arg *PricesArg, resp *PricesResp) error {
+	n.log.WithField("pairs", arg.Pairs).Info("Prices")
+	prices, err := n.gofer.Prices(arg.Pairs...)
 	if err != nil {
 		return err
 	}
-
 	resp.Prices = prices
 	return nil
 }
 
-func (n *API) Pairs(_ *Nothing, resp *PairsResp) error {
-	n.log.
-		Info("Prices")
-
+func (n *api) Pairs(_ *Nothing, resp *PairsResp) error {
+	n.log.Info("Prices")
 	pairs, err := n.gofer.Pairs()
 	if err != nil {
 		return err
 	}
-
 	resp.Pairs = pairs
 	return nil
 }

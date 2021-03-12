@@ -20,20 +20,20 @@ import (
 	"time"
 
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/local"
-	"github.com/makerdao/gofer/pkg/gofer/local/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
 )
 
 func Gofer(ps ...gofer.Pair) gofer.Gofer {
-	graphs := map[gofer.Pair]graph.Aggregator{}
+	graphs := map[gofer.Pair]nodes.Aggregator{}
 	for _, p := range ps {
-		root := graph.NewMedianAggregatorNode(p, 1)
+		root := nodes.NewMedianAggregatorNode(p, 1)
 
 		ttl := time.Second * time.Duration(time.Now().Unix()+10)
-		on1 := graph.NewOriginNode(graph.OriginPair{Origin: "a", Pair: p}, 0, ttl)
-		on2 := graph.NewOriginNode(graph.OriginPair{Origin: "b", Pair: p}, 0, ttl)
-		in := graph.NewIndirectAggregatorNode(p)
-		mn := graph.NewMedianAggregatorNode(p, 1)
+		on1 := nodes.NewOriginNode(nodes.OriginPair{Origin: "a", Pair: p}, 0, ttl)
+		on2 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 0, ttl)
+		in := nodes.NewIndirectAggregatorNode(p)
+		mn := nodes.NewMedianAggregatorNode(p, 1)
 
 		root.AddChild(on1)
 		root.AddChild(in)
@@ -43,8 +43,8 @@ func Gofer(ps ...gofer.Pair) gofer.Gofer {
 		mn.AddChild(on1)
 		mn.AddChild(on2)
 
-		_ = on1.Ingest(graph.OriginTick{
-			Tick: graph.Tick{
+		_ = on1.Ingest(nodes.OriginPrice{
+			PairPrice: nodes.PairPrice{
 				Pair:      p,
 				Price:     10,
 				Bid:       10,
@@ -56,8 +56,8 @@ func Gofer(ps ...gofer.Pair) gofer.Gofer {
 			Error:  nil,
 		})
 
-		_ = on2.Ingest(graph.OriginTick{
-			Tick: graph.Tick{
+		_ = on2.Ingest(nodes.OriginPrice{
+			PairPrice: nodes.PairPrice{
 				Pair:      p,
 				Price:     20,
 				Bid:       20,
@@ -72,21 +72,21 @@ func Gofer(ps ...gofer.Pair) gofer.Gofer {
 		graphs[p] = root
 	}
 
-	return local.NewGofer(graphs, nil)
+	return graph.NewGraph(graphs, nil)
 }
 
-func Nodes(ps ...gofer.Pair) map[gofer.Pair]*gofer.Node {
+func Models(ps ...gofer.Pair) map[gofer.Pair]*gofer.Model {
 	g := Gofer(ps...)
-	ns, err := g.Nodes()
+	ns, err := g.Models()
 	if err != nil {
 		panic(err)
 	}
 	return ns
 }
 
-func Ticks(ps ...gofer.Pair) map[gofer.Pair]*gofer.Tick {
+func Prices(ps ...gofer.Pair) map[gofer.Pair]*gofer.Price {
 	g := Gofer(ps...)
-	ts, err := g.Ticks()
+	ts, err := g.Prices()
 	if err != nil {
 		panic(err)
 	}

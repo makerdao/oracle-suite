@@ -65,12 +65,12 @@ func NewPairsCmd(opts *options) *cobra.Command {
 				return err
 			}
 
-			nodes, err := gof.Nodes(pairs...)
+			models, err := gof.Models(pairs...)
 			if err != nil {
 				return
 			}
 
-			for _, p := range nodes {
+			for _, p := range models {
 				err = mar.Write(p)
 				if err != nil {
 					return

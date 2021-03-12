@@ -65,7 +65,7 @@ func NewPricesCmd(opts *options) *cobra.Command {
 				return err
 			}
 
-			prices, err := gof.Ticks(pairs...)
+			prices, err := gof.Prices(pairs...)
 			if err != nil {
 				return
 			}

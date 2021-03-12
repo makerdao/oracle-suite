@@ -29,35 +29,29 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "Start an RPC server",
 		Long:  `Start an RPC server.`,
-		RunE: func(_ *cobra.Command, args []string) (err error) {
+		RunE: func(_ *cobra.Command, args []string) error {
 			log, err := newLogger(opts.LogVerbosity)
 			if err != nil {
-				return
+				return err
 			}
-
 			srv, err := newServer(opts, opts.ConfigFilePath, log)
 			if err != nil {
-				return
+				return err
 			}
 
-			// Start RPC server:
+			// Start the RPC server:
 			err = srv.Start()
 			if err != nil {
-				return
+				return err
 			}
-			defer func() {
-				serr := srv.Stop()
-				if err == nil {
-					err = serr
-				}
-			}()
+			defer srv.Stop()
 
-			// Wait for interrupt signal
+			// Wait for the interrupt signal:
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
 
-			return
+			return nil
 		},
 	}
 }

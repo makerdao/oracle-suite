@@ -43,9 +43,9 @@ func (t *trace) Bytes() ([]byte, error) {
 func (t *trace) Write(item interface{}) error {
 	var i []byte
 	switch typedItem := item.(type) {
-	case *gofer.Tick:
-		i = t.handleTick(typedItem)
-	case *gofer.Node:
+	case *gofer.Price:
+		i = t.handlePrice(typedItem)
+	case *gofer.Model:
 		i = t.handleNode(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
@@ -55,9 +55,9 @@ func (t *trace) Write(item interface{}) error {
 	return nil
 }
 
-func (*trace) handleTick(tick *gofer.Tick) []byte {
+func (*trace) handlePrice(price *gofer.Price) []byte {
 	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
-		t := node.(*gofer.Tick)
+		t := node.(*gofer.Price)
 		var tErr error
 		if t.Error != "" {
 			tErr = errors.New(t.Error)
@@ -77,22 +77,22 @@ func (*trace) handleTick(tick *gofer.Tick) []byte {
 		)
 
 		var c []interface{}
-		for _, tc := range t.Ticks {
+		for _, tc := range t.Prices {
 			c = append(c, tc)
 		}
 
 		return s, c
-	}, []interface{}{tick}, 0)
+	}, []interface{}{price}, 0)
 
 	buf := bytes.Buffer{}
-	buf.Write([]byte(fmt.Sprintf("Price for %s:\n", tick.Pair)))
+	buf.Write([]byte(fmt.Sprintf("Price for %s:\n", price.Pair)))
 	buf.Write(tree)
 	return buf.Bytes()
 }
 
-func (t *trace) handleNode(node *gofer.Node) []byte {
+func (t *trace) handleNode(node *gofer.Model) []byte {
 	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
-		n := node.(*gofer.Node)
+		n := node.(*gofer.Model)
 		s := renderNode(
 			n.Type,
 			mergeKVMap(
@@ -105,7 +105,7 @@ func (t *trace) handleNode(node *gofer.Node) []byte {
 		)
 
 		var c []interface{}
-		for _, nc := range n.Children {
+		for _, nc := range n.Models {
 			c = append(c, nc)
 		}
 

@@ -1,0 +1,85 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package origins
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/makerdao/gofer/internal/query"
+)
+
+type Kyber struct {
+	Pool query.WorkerPool
+}
+
+func (o *Kyber) Fetch(pairs []Pair) []FetchResult {
+	req := &query.HTTPRequest{
+		URL: kyberURL,
+	}
+	res := o.Pool.Query(req)
+	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
+		return errorResponses
+	}
+	return o.parseResponse(pairs, res)
+}
+
+const kyberURL = "https://api.kyber.network/change24h"
+
+type kyberPriceer struct {
+	Timestamp    intAsUnixTimestampMs `json:"timestamp"`
+	TokenName    string               `json:"token_name"`
+	TokenSymbol  string               `json:"token_symbol"`
+	TokenDecimal int                  `json:"token_decimal"`
+	TokenAddress string               `json:"token_address"`
+	RateEthNow   float64              `json:"rate_eth_now"`
+	ChangeEth24H float64              `json:"change_eth_24h"`
+	ChangeUsd24H float64              `json:"change_usd_24h"`
+	RateUsdNow   float64              `json:"rate_usd_now"`
+}
+
+func (o *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+	results := make([]FetchResult, 0)
+	var priceers map[string]kyberPriceer
+	err := json.Unmarshal(res.Body, &priceers)
+	if err != nil {
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
+	}
+
+	for _, pair := range pairs {
+		//nolint:gocritic
+		if t, is := priceers[pair.Quote+"_"+pair.Base]; !is {
+			results = append(results, FetchResult{
+				Price: Price{Pair: pair},
+				Error: ErrMissingResponseForPair,
+			})
+		} else if t.TokenSymbol != pair.Base {
+			results = append(results, FetchResult{
+				Price: Price{Pair: pair},
+				Error: ErrInvalidPrice,
+			})
+		} else {
+			results = append(results, FetchResult{
+				Price: Price{
+					Pair:      pair,
+					Price:     t.RateEthNow,
+					Timestamp: t.Timestamp.val(),
+				},
+			})
+		}
+	}
+	return results
+}

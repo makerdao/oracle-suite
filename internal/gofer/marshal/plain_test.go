@@ -30,7 +30,7 @@ func TestPlain_Nodes(t *testing.T) {
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	cd := gofer.Pair{Base: "C", Quote: "D"}
-	ns := testutil.Nodes(ab, cd)
+	ns := testutil.Models(ab, cd)
 
 	err = m.Write(ns[ab])
 	assert.NoError(t, err)
@@ -49,13 +49,13 @@ C/D
 	assert.Equal(t, expected, string(b))
 }
 
-func TestPlain_Ticks(t *testing.T) {
+func TestPlain_Prices(t *testing.T) {
 	var err error
 	m := newPlain()
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	cd := gofer.Pair{Base: "C", Quote: "D"}
-	ns := testutil.Ticks(ab, cd)
+	ns := testutil.Prices(ab, cd)
 
 	err = m.Write(ns[ab])
 	assert.NoError(t, err)

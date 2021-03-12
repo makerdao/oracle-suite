@@ -143,7 +143,7 @@ func (g *Ghost) broadcast(goferPair gofer.Pair) error {
 	var err error
 
 	pair := g.pairs[goferPair]
-	tick, err := g.gofer.Tick(goferPair)
+	tick, err := g.gofer.Price(goferPair)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (g *Ghost) broadcasterLoop() error {
 	return nil
 }
 
-func createPriceMessage(price *oracle.Price, tick *gofer.Tick) (*messages.Price, error) {
+func createPriceMessage(price *oracle.Price, tick *gofer.Price) (*messages.Price, error) {
 	trace, err := marshal.Marshall(marshal.JSON, tick)
 	if err != nil {
 		return nil, err

@@ -27,6 +27,8 @@ type Pair struct {
 	Quote string
 }
 
+// NewPair returns a new Pair for given string. The string must be formatted
+// as "BASE/QUOTE".
 func NewPair(s string) (Pair, error) {
 	ss := strings.Split(s, "/")
 	if len(ss) != 2 {
@@ -35,6 +37,8 @@ func NewPair(s string) (Pair, error) {
 	return Pair{Base: strings.ToUpper(ss[0]), Quote: strings.ToUpper(ss[1])}, nil
 }
 
+// NewPairs returns a Pair slice for given strings. Given strings must be
+// formatted as "BASE/QUOTE".
 func NewPairs(s ...string) ([]Pair, error) {
 	var r []Pair
 	for _, p := range s {
@@ -59,27 +63,26 @@ func (p Pair) String() string {
 	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
 }
 
-// Node is a simplified representation of a graph structure which is used to
-// calculate asset pair prices. The main purpose of this structure is to help
-// the end user understand how prices are derived.
+// Model is a simplified representation of a model which is used to calculate
+// asset pair prices. The main purpose of this structure is to help the end
+// user to understand how prices are derived and calculated.
 //
-// This structure may look different depending on the gofer.Gofer
-// implementation.
-type Node struct {
-	// Type is used to differentiate between node types.
+// This structure is purely informational. The way it is used depends on
+// the specific implementation.
+type Model struct {
+	// Type is used to differentiate between model types.
 	Type string
-	// Parameters is a optional list of node's parameters.
+	// Parameters is a optional list of model's parameters.
 	Parameters map[string]string
-	// Pair is a asset pair for which this node returns a tick price.
+	// Pair is a asset pair for which this model returns a price.
 	Pair Pair
-	// Children is a list of children nodes used to calculate price. It is
-	// empty if the node provides the asset pair price directly.
-	Children []*Node
+	// Models is a list of sub models used to calculate price.
+	Models []*Model
 }
 
-// Tick represents tick price for single pair. If the tick price was calculated
-// indirectly it will also contain all ticks used to calculate prices.
-type Tick struct {
+// Price represents Price price for single pair. If the Price price was calculated
+// indirectly it will also contain all Prices used to calculate the price.
+type Price struct {
 	Type       string
 	Parameters map[string]string
 	Pair       Pair
@@ -88,25 +91,26 @@ type Tick struct {
 	Ask        float64
 	Volume24h  float64
 	Time       time.Time
-	Ticks      []*Tick
+	Prices     []*Price
 	Error      string
 }
 
+// Gofer provides prices for asset pairs.
 type Gofer interface {
-	// Nodes returns nodes for given pairs. If no pairs are specified, nodes
-	// for all known pairs will be returned.
-	Nodes(pairs ...Pair) (map[Pair]*Node, error)
-	// Tick returns fresh tick price for the given pair.
-	Tick(pair Pair) (*Tick, error)
-	// Ticks returns fresh tick prices for the given pairs. If no pairs are
-	// specified, ticks for all known pairs will be returned.
-	Ticks(pairs ...Pair) (map[Pair]*Tick, error)
-	// Pairs returns all known pairs.
+	// Models describes price models which are used to calculate prices.
+	// If no pairs are specified, models for all pairs are returned.
+	Models(pairs ...Pair) (map[Pair]*Model, error)
+	// Price returns a Price for the given pair.
+	Price(pair Pair) (*Price, error)
+	// Prices returns prices for the given pairs. If no pairs are specified,
+	// prices for all pairs are returned.
+	Prices(pairs ...Pair) (map[Pair]*Price, error)
+	// Pairs returns all pairs.
 	Pairs() ([]Pair, error)
 }
 
-// StartableGofer interface represents Gofer instances that have to be started
-// first to work properly.
+// StartableGofer interface represents a Gofer instances that have to be
+// started first to work properly.
 type StartableGofer interface {
 	Gofer
 	Start() error

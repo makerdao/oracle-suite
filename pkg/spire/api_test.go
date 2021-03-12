@@ -45,11 +45,11 @@ var (
 		},
 		Trace: nil,
 	}
-	server *Server
+	server *Agent
 	client *Client
 )
 
-func newClientServer() (*Server, *Client) {
+func newClientServer() (*Agent, *Client) {
 	log := null.New()
 	sig := &mocks.Signer{}
 	tra := local.New(0)
@@ -65,7 +65,7 @@ func newClientServer() (*Server, *Client) {
 
 	sig.On("Recover", mock.Anything, mock.Anything).Return(&testAddress, nil)
 
-	srv, err := NewServer(ServerConfig{
+	srv, err := NewAgent(AgentConfig{
 		Datastore: dat,
 		Transport: tra,
 		Signer:    sig,
@@ -85,7 +85,6 @@ func newClientServer() (*Server, *Client) {
 		Signer:  sig,
 		Network: "tcp",
 		Address: srv.listener.Addr().String(),
-		Logger:  log,
 	})
 	err = cli.Start()
 	if err != nil {
@@ -101,10 +100,7 @@ func TestMain(m *testing.M) {
 	server, client = newClientServer()
 	retCode := m.Run()
 
-	err = server.Stop()
-	if err != nil {
-		panic(err)
-	}
+	server.Stop()
 	err = client.Stop()
 	if err != nil {
 		panic(err)

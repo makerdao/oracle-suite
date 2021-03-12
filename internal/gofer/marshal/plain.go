@@ -39,9 +39,9 @@ func (p *plain) Bytes() ([]byte, error) {
 func (p *plain) Write(item interface{}) error {
 	var i []byte
 	switch typedItem := item.(type) {
-	case *gofer.Tick:
-		i = p.handleTick(typedItem)
-	case *gofer.Node:
+	case *gofer.Price:
+		i = p.handlePrice(typedItem)
+	case *gofer.Model:
 		i = p.handleNode(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
@@ -51,13 +51,13 @@ func (p *plain) Write(item interface{}) error {
 	return nil
 }
 
-func (*plain) handleTick(tick *gofer.Tick) []byte {
-	if tick.Error != "" {
-		return []byte(fmt.Sprintf("%s - %s", tick.Pair, tick.Error))
+func (*plain) handlePrice(price *gofer.Price) []byte {
+	if price.Error != "" {
+		return []byte(fmt.Sprintf("%s - %s", price.Pair, price.Error))
 	}
-	return []byte(fmt.Sprintf("%s %f", tick.Pair, tick.Price))
+	return []byte(fmt.Sprintf("%s %f", price.Pair, price.Price))
 }
 
-func (*plain) handleNode(node *gofer.Node) []byte {
+func (*plain) handleNode(node *gofer.Model) []byte {
 	return []byte(node.Pair.String())
 }
