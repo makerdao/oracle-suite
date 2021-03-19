@@ -18,6 +18,7 @@ package marshal
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/makerdao/gofer/pkg/gofer"
 )
@@ -53,7 +54,7 @@ func (p *plain) Write(item interface{}) error {
 
 func (*plain) handlePrice(price *gofer.Price) []byte {
 	if price.Error != "" {
-		return []byte(fmt.Sprintf("%s - %s", price.Pair, price.Error))
+		return []byte(fmt.Sprintf("%s - %s", price.Pair, strings.TrimSpace(price.Error)))
 	}
 	return []byte(fmt.Sprintf("%s %f", price.Pair, price.Price))
 }
