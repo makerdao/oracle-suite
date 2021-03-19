@@ -68,7 +68,7 @@ func (p Pair) String() string {
 // user to understand how prices are derived and calculated.
 //
 // This structure is purely informational. The way it is used depends on
-// the specific implementation.
+// a specific implementation.
 type Model struct {
 	// Type is used to differentiate between model types.
 	Type string
@@ -80,8 +80,8 @@ type Model struct {
 	Models []*Model
 }
 
-// Price represents Price price for single pair. If the Price price was calculated
-// indirectly it will also contain all Prices used to calculate the price.
+// Price represents price for a single pair. If the Price price was calculated
+// indirectly it will also contain all prices used to calculate the price.
 type Price struct {
 	Type       string
 	Parameters map[string]string

@@ -72,7 +72,7 @@ func Gofer(ps ...gofer.Pair) gofer.Gofer {
 		graphs[p] = root
 	}
 
-	return graph.NewGraph(graphs, nil)
+	return graph.NewGofer(graphs, nil)
 }
 
 func Models(ps ...gofer.Pair) map[gofer.Pair]*gofer.Model {

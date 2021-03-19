@@ -33,22 +33,22 @@ func (e ErrPairNotFound) Error() string {
 	return fmt.Sprintf("unable to find the %s pair", e.Pair)
 }
 
-// Graph implements the gofer.Gofer interface. It uses a graph structure to
-// calculate pairs prices.
-type Graph struct {
+// Gofer implements the gofer.Gofer interface. It uses a graph structure
+// to calculate pairs prices.
+type Gofer struct {
 	graphs map[gofer.Pair]nodes.Aggregator
 	feeder *feeder.Feeder
 }
 
-// NewGraph returns a new Graph instance. If the Feeder is not nil, then prices
-// are automatically updated when the Price or Prices methods are called.
-// Otherwise prices have to be updated externally.
-func NewGraph(g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) *Graph {
-	return &Graph{graphs: g, feeder: f}
+// NewGofer returns a new Gofer instance. If the Feeder is not nil,
+// then prices are automatically updated when the Price or Prices methods are
+// called. Otherwise prices have to be updated externally.
+func NewGofer(g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) *Gofer {
+	return &Gofer{graphs: g, feeder: f}
 }
 
 // Models implements the gofer.Gofer interface.
-func (g *Graph) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error) {
+func (g *Gofer) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error) {
 	ns, err := g.findNodes(pairs...)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (g *Graph) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error)
 }
 
 // Price implements the gofer.Gofer interface.
-func (g *Graph) Price(pair gofer.Pair) (*gofer.Price, error) {
+func (g *Gofer) Price(pair gofer.Pair) (*gofer.Price, error) {
 	n, ok := g.graphs[pair]
 	if !ok {
 		return nil, ErrPairNotFound{Pair: pair}
@@ -75,7 +75,7 @@ func (g *Graph) Price(pair gofer.Pair) (*gofer.Price, error) {
 }
 
 // Prices implements the gofer.Gofer interface.
-func (g *Graph) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error) {
+func (g *Gofer) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error) {
 	ns, err := g.findNodes(pairs...)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (g *Graph) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error)
 }
 
 // Pairs implements the gofer.Gofer interface.
-func (g *Graph) Pairs() ([]gofer.Pair, error) {
+func (g *Gofer) Pairs() ([]gofer.Pair, error) {
 	var ps []gofer.Pair
 	for p := range g.graphs {
 		ps = append(ps, p)
@@ -103,7 +103,7 @@ func (g *Graph) Pairs() ([]gofer.Pair, error) {
 
 // findNodes return root nodes for given pairs. If no nodes are specified,
 // then all root nodes are returned.
-func (g *Graph) findNodes(pairs ...gofer.Pair) ([]nodes.Node, error) {
+func (g *Gofer) findNodes(pairs ...gofer.Pair) ([]nodes.Node, error) {
 	var ns []nodes.Node
 	if len(pairs) == 0 { // Return all:
 		for _, n := range g.graphs {

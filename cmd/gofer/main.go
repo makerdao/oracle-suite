@@ -95,7 +95,7 @@ func newGofer(opts *options, path string, logger log.Logger) (gofer.Gofer, error
 	return gof, nil
 }
 
-func newServer(opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
+func newAgent(opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -106,5 +106,5 @@ func newServer(opts *options, path string, logger log.Logger) (*rpc.Agent, error
 		return nil, err
 	}
 
-	return opts.Config.ConfigureRPCServer(logger)
+	return opts.Config.ConfigureRPCAgent(logger)
 }

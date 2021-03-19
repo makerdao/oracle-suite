@@ -21,29 +21,29 @@ import (
 	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
 )
 
-// AsyncGraph implements the gofer.Gofer interface. It works just like Graph
+// AsyncGofer implements the gofer.Gofer interface. It works just like Graph
 // but allows to update prices asynchronously.
-type AsyncGraph struct {
-	*Graph
+type AsyncGofer struct {
+	*Gofer
 	feeder *feeder.Feeder
 }
 
-// NewGraph returns a new AsyncGraph instance.
-func NewAsyncGraph(g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) *AsyncGraph {
-	return &AsyncGraph{
-		Graph:  NewGraph(g, nil),
+// NewAsyncGofer returns a new AsyncGofer instance.
+func NewAsyncGofer(g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) *AsyncGofer {
+	return &AsyncGofer{
+		Gofer:  NewGofer(g, nil),
 		feeder: f,
 	}
 }
 
 // Start starts asynchronous price updater.
-func (a *AsyncGraph) Start() error {
+func (a *AsyncGofer) Start() error {
 	ns, _ := a.findNodes()
 	return a.feeder.Start(ns...)
 }
 
 // Start stops asynchronous price updater.
-func (a *AsyncGraph) Stop() error {
+func (a *AsyncGofer) Stop() error {
 	a.feeder.Stop()
 	return nil
 }

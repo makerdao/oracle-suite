@@ -32,7 +32,7 @@ import (
 
 var (
 	logger log.Logger
-	client *spire.Client
+	client *spire.Spire
 )
 
 func main() {
@@ -80,7 +80,7 @@ func newServer(opts *options, log log.Logger) (*spire.Agent, error) {
 	return s, nil
 }
 
-func newClient(opts *options, log log.Logger) (*spire.Client, error) {
+func newSpire(opts *options, log log.Logger) (*spire.Spire, error) {
 	if opts.ConfigPath != "" {
 		absPath, err := filepath.Abs(opts.ConfigPath)
 		if err != nil {
@@ -93,7 +93,7 @@ func newClient(opts *options, log log.Logger) (*spire.Client, error) {
 		}
 	}
 
-	c, err := opts.Config.ConfigureClient(config.Dependencies{
+	c, err := opts.Config.ConfigureSpire(config.Dependencies{
 		Context: context.Background(),
 		Logger:  log,
 	})

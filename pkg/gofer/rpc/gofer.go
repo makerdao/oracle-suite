@@ -21,24 +21,24 @@ import (
 	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-// RPC implements the gofer.Gofer interface. It uses a remote RPC server to
-// fetch prices and models.
-type RPC struct {
+// Gofer implements the gofer.Gofer interface. It uses a remote RPC server
+// to fetch prices and models.
+type Gofer struct {
 	rpc     *rpc.Client
 	network string
 	address string
 }
 
-// NewRPC returns a new RPC instance.
-func NewRPC(network, address string) *RPC {
-	return &RPC{
+// Agent returns a new Gofer instance.
+func NewGofer(network, address string) *Gofer {
+	return &Gofer{
 		network: network,
 		address: address,
 	}
 }
 
 // Start implements the gofer.StartableGofer interface.
-func (c *RPC) Start() error {
+func (c *Gofer) Start() error {
 	client, err := rpc.DialHTTP(c.network, c.address)
 	if err != nil {
 		return err
@@ -48,12 +48,12 @@ func (c *RPC) Start() error {
 }
 
 // Stop implements the gofer.StartableGofer interface.
-func (c *RPC) Stop() error {
+func (c *Gofer) Stop() error {
 	return c.rpc.Close()
 }
 
 // Models implements the gofer.Gofer interface.
-func (c *RPC) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error) {
+func (c *Gofer) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error) {
 	resp := &NodesResp{}
 	err := c.rpc.Call("API.Models", NodesArg{Pairs: pairs}, resp)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *RPC) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error) {
 }
 
 // Price implements the gofer.Gofer interface.
-func (c *RPC) Price(pair gofer.Pair) (*gofer.Price, error) {
+func (c *Gofer) Price(pair gofer.Pair) (*gofer.Price, error) {
 	resp, err := c.Prices(pair)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (c *RPC) Price(pair gofer.Pair) (*gofer.Price, error) {
 }
 
 // Prices implements the gofer.Gofer interface.
-func (c *RPC) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error) {
+func (c *Gofer) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error) {
 	resp := &PricesResp{}
 	err := c.rpc.Call("API.Prices", PricesArg{Pairs: pairs}, resp)
 	if err != nil {
@@ -82,7 +82,7 @@ func (c *RPC) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error) {
 }
 
 // Pairs implements the gofer.Gofer interface.
-func (c *RPC) Pairs() ([]gofer.Pair, error) {
+func (c *Gofer) Pairs() ([]gofer.Pair, error) {
 	resp := &PairsResp{}
 	err := c.rpc.Call("API.Pairs", &Nothing{}, resp)
 	if err != nil {

@@ -34,7 +34,7 @@ func NewAgentCmd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			srv, err := newServer(opts, opts.ConfigFilePath, log)
+			srv, err := newAgent(opts, opts.ConfigFilePath, log)
 			if err != nil {
 				return err
 			}

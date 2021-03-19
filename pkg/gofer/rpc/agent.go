@@ -30,7 +30,7 @@ const AgentLoggerTag = "GOFER_AGENT"
 type AgentConfig struct {
 	// Gofer instance which will be used by the agent. If this instance
 	// implements the gofer.StartableGofer interface, the Start and Stop
-	// methods will be called whenever corresponding Agent's Start and
+	// methods are called whenever corresponding Agent's Start and
 	// Stop are called.
 	Gofer gofer.Gofer
 	// Network is used for the rpc.Listener function.
@@ -42,7 +42,7 @@ type AgentConfig struct {
 
 // Agent creates and manages an RPC server for remote Gofer calls.
 type Agent struct {
-	api      *api
+	api      *API
 	rpc      *rpc.Server
 	listener net.Listener
 	gofer    gofer.Gofer
@@ -54,7 +54,7 @@ type Agent struct {
 // NewAgent returns a new Agent instance.
 func NewAgent(cfg AgentConfig) (*Agent, error) {
 	server := &Agent{
-		api: &api{
+		api: &API{
 			gofer: cfg.Gofer,
 			log:   cfg.Logger.WithField("tag", AgentLoggerTag),
 		},

@@ -63,7 +63,7 @@ type PullPriceResp struct {
 func (n *API) PublishPrice(arg *PublishPriceArg, _ *Nothing) error {
 	n.log.
 		WithFields(arg.Price.Price.Fields(n.signer)).
-		Info("Publishing arg")
+		Info("Publish price")
 
 	return n.transport.Broadcast(messages.PriceMessageName, arg.Price)
 }
@@ -72,7 +72,7 @@ func (n *API) PullPrices(arg *PullPricesArg, resp *PullPricesResp) error {
 	n.log.
 		WithField("assetPair", arg.FilterAssetPair).
 		WithField("feeder", arg.FilterFeeder).
-		Info("Pulling prices")
+		Info("Pull prices")
 
 	var prices []*messages.Price
 	for fp, p := range n.datastore.Prices().All() {
@@ -94,7 +94,7 @@ func (n *API) PullPrice(arg *PullPriceArg, resp *PullPriceResp) error {
 	n.log.
 		WithField("assetPair", arg.AssetPair).
 		WithField("feeder", arg.Feeder).
-		Info("Pulling resp")
+		Info("Pull price")
 
 	*resp = PullPriceResp{
 		Price: n.datastore.Prices().Feeder(arg.AssetPair, ethereum.HexToAddress(arg.Feeder)),

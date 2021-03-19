@@ -24,7 +24,7 @@ import (
 
 type Nothing = struct{}
 
-type api struct {
+type API struct {
 	gofer gofer.Gofer
 	log   log.Logger
 }
@@ -58,7 +58,7 @@ type PairsResp struct {
 	Pairs []gofer.Pair
 }
 
-func (n *api) Models(arg *NodesArg, resp *NodesResp) error {
+func (n *API) Models(arg *NodesArg, resp *NodesResp) error {
 	n.log.WithField("pairs", arg.Pairs).Info("Models")
 	pairs, err := n.gofer.Models(arg.Pairs...)
 	if err != nil {
@@ -68,7 +68,7 @@ func (n *api) Models(arg *NodesArg, resp *NodesResp) error {
 	return nil
 }
 
-func (n *api) Prices(arg *PricesArg, resp *PricesResp) error {
+func (n *API) Prices(arg *PricesArg, resp *PricesResp) error {
 	n.log.WithField("pairs", arg.Pairs).Info("Prices")
 	prices, err := n.gofer.Prices(arg.Pairs...)
 	if err != nil {
@@ -78,7 +78,7 @@ func (n *api) Prices(arg *PricesArg, resp *PricesResp) error {
 	return nil
 }
 
-func (n *api) Pairs(_ *Nothing, resp *PairsResp) error {
+func (n *API) Pairs(_ *Nothing, resp *PairsResp) error {
 	n.log.Info("Prices")
 	pairs, err := n.gofer.Pairs()
 	if err != nil {

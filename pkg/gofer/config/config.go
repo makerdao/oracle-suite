@@ -103,18 +103,18 @@ func (c *Config) ConfigureGofer(logger log.Logger) (gofer.Gofer, error) {
 		return nil, err
 	}
 	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
-	gof := graph.NewGraph(gra, fed)
+	gof := graph.NewGofer(gra, fed)
 	return gof, nil
 }
 
-// ConfigureRPCServer returns a new rpc.Agent instance.
-func (c *Config) ConfigureRPCServer(logger log.Logger) (*rpc.Agent, error) {
+// ConfigureRPCAgent returns a new rpc.Agent instance.
+func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
 		return nil, err
 	}
 	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
-	gof := graph.NewAsyncGraph(gra, fed)
+	gof := graph.NewAsyncGofer(gra, fed)
 	srv, err := rpc.NewAgent(rpc.AgentConfig{
 		Gofer:   gof,
 		Network: "tcp",
@@ -128,8 +128,8 @@ func (c *Config) ConfigureRPCServer(logger log.Logger) (*rpc.Agent, error) {
 }
 
 // ConfigureRPCClient returns a new rpc.RPC instance.
-func (c *Config) ConfigureRPCClient(l log.Logger) (*rpc.RPC, error) {
-	return rpc.NewRPC("tcp", c.RPC.Address), nil
+func (c *Config) ConfigureRPCClient(l log.Logger) (*rpc.Gofer, error) {
+	return rpc.NewGofer("tcp", c.RPC.Address), nil
 }
 
 func (c *Config) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {

@@ -97,7 +97,7 @@ func (c *Config) ConfigureServer(deps Dependencies) (*spire.Agent, error) {
 	return srv, nil
 }
 
-func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
+func (c *Config) ConfigureSpire(deps Dependencies) (*spire.Spire, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
 	if err != nil {
@@ -107,7 +107,7 @@ func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
 	// Signer:
 	sig := c.configureSigner(acc)
 
-	return spire.NewClient(spire.ClientConfig{
+	return spire.NewSpire(spire.Config{
 		Signer:  sig,
 		Network: "tcp",
 		Address: c.RPC.Address,

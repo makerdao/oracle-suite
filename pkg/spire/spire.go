@@ -22,28 +22,28 @@ import (
 	"github.com/makerdao/gofer/pkg/transport/messages"
 )
 
-type Client struct {
+type Spire struct {
 	rpc     *rpc.Client
 	network string
 	address string
 	signer  ethereum.Signer
 }
 
-type ClientConfig struct {
+type Config struct {
 	Signer  ethereum.Signer
 	Network string
 	Address string
 }
 
-func NewClient(cfg ClientConfig) *Client {
-	return &Client{
+func NewSpire(cfg Config) *Spire {
+	return &Spire{
 		network: cfg.Network,
 		address: cfg.Address,
 		signer:  cfg.Signer,
 	}
 }
 
-func (s *Client) Start() error {
+func (s *Spire) Start() error {
 	client, err := rpc.DialHTTP(s.network, s.address)
 	if err != nil {
 		return err
@@ -52,11 +52,11 @@ func (s *Client) Start() error {
 	return nil
 }
 
-func (s *Client) Stop() error {
+func (s *Spire) Stop() error {
 	return s.rpc.Close()
 }
 
-func (s *Client) PublishPrice(price *messages.Price) error {
+func (s *Spire) PublishPrice(price *messages.Price) error {
 	err := s.rpc.Call("API.PublishPrice", PublishPriceArg{Price: price}, &Nothing{})
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (s *Client) PublishPrice(price *messages.Price) error {
 	return nil
 }
 
-func (s *Client) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
+func (s *Spire) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
 	resp := &PullPricesResp{}
 	err := s.rpc.Call("API.PullPrices", PullPricesArg{FilterAssetPair: assetPair, FilterFeeder: feeder}, resp)
 	if err != nil {
@@ -73,7 +73,7 @@ func (s *Client) PullPrices(assetPair string, feeder string) ([]*messages.Price,
 	return resp.Prices, nil
 }
 
-func (s *Client) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
+func (s *Spire) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
 	resp := &PullPriceResp{}
 	err := s.rpc.Call("API.PullPrice", PullPriceArg{AssetPair: assetPair, Feeder: feeder}, resp)
 	if err != nil {
