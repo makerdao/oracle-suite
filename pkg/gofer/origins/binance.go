@@ -22,7 +22,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-const binanceURL = "https://www.binance.com/api/v3/ticker/24hr"
+const binanceURL = "https://www.binance.com/api/v3/priceer/24hr"
 
 type binanceResponse struct {
 	Symbol    string               `json:"symbol"`
@@ -75,12 +75,12 @@ func (b *Binance) Fetch(pairs []Pair) []FetchResult {
 	for _, pair := range pairs {
 		if r, ok := respMap[b.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     r.LastPrice.val(),
 					Bid:       r.BidPrice.val(),

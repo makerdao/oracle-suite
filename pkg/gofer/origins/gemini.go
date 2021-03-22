@@ -26,7 +26,7 @@ import (
 )
 
 // Gemini URL
-const geminiURL = "https://api.gemini.com/v1/pubticker/%s"
+const geminiURL = "https://api.gemini.com/v1/pubpriceer/%s"
 
 type geminiResponse struct {
 	Price  string `json:"last"`
@@ -54,7 +54,7 @@ func (g *Gemini) Fetch(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(g, pairs)
 }
 
-func (g *Gemini) callOne(pair Pair) (*Tick, error) {
+func (g *Gemini) callOne(pair Pair) (*Price, error) {
 	var err error
 	req := &query.HTTPRequest{
 		URL: g.getURL(pair),
@@ -89,8 +89,8 @@ func (g *Gemini) callOne(pair Pair) (*Tick, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from gemini origin %s", res.Body)
 	}
-	// building Tick
-	return &Tick{
+	// building Price
+	return &Price{
 		Pair:      pair,
 		Price:     price,
 		Ask:       ask,

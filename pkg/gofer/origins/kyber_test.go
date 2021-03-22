@@ -173,8 +173,8 @@ func (suite *KyberSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(30.11825982131223, cr[0].Tick.Price)
-	suite.Equal(time.Unix(1600331875, 0).Unix(), cr[0].Tick.Timestamp.Unix())
+	suite.Equal(30.11825982131223, cr[0].Price.Price)
+	suite.Equal(time.Unix(1600331875, 0).Unix(), cr[0].Price.Timestamp.Unix())
 }
 
 func (suite *KyberSuite) TestRealAPICall() {

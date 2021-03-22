@@ -13,16 +13,18 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 func TestDetectCycles(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 
 	// Non cyclic graph:
 	nonCyclic := NewMedianAggregatorNode(p, 0)

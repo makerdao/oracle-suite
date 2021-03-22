@@ -17,149 +17,100 @@ package gofer
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/makerdao/gofer/pkg/gofer/feeder"
-	"github.com/makerdao/gofer/pkg/gofer/graph"
-	"github.com/makerdao/gofer/pkg/gofer/origins"
-	"github.com/makerdao/gofer/pkg/log/null"
 )
 
-var testGraph map[graph.Pair]graph.Aggregator
-var testFeeder *feeder.Feeder
-var testPairs = map[string]graph.Pair{
-	"A/B": {Base: "A", Quote: "B"},
-	"X/Y": {Base: "X", Quote: "Y"},
-}
-
-type testExchange struct{}
-
-func (f *testExchange) Fetch(pairs []origins.Pair) []origins.FetchResult {
-	var r []origins.FetchResult
-	for _, p := range pairs {
-		r = append(r, origins.FetchResult{
-			Tick: origins.Tick{
-				Pair:      p,
-				Price:     10,
-				Bid:       10,
-				Ask:       10,
-				Volume24h: 10,
-				Timestamp: time.Unix(0, 0),
-			},
-			Error: nil,
+func TestNewPair(t *testing.T) {
+	tests := []struct {
+		name    string
+		pair    string
+		want    Pair
+		wantErr bool
+	}{
+		{
+			name:    "valid-pair",
+			pair:    "A/B",
+			want:    Pair{Base: "A", Quote: "B"},
+			wantErr: false,
+		},
+		{
+			name:    "valid-lowercase-pair",
+			pair:    "a/b",
+			want:    Pair{Base: "A", Quote: "B"},
+			wantErr: false,
+		},
+		{
+			name:    "missing-slash",
+			pair:    "AB",
+			want:    Pair{},
+			wantErr: false,
+		},
+		{
+			name:    "multiple-slashes",
+			pair:    "A/B/",
+			want:    Pair{},
+			wantErr: false,
+		},
+		{
+			name:    "empty",
+			pair:    "",
+			want:    Pair{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewPair(tt.pair)
+			if (err != nil) != tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.Equal(t, got, tt.want)
 		})
 	}
-	return r
 }
 
-func init() {
-	ab := testPairs["A/B"]
-	xy := testPairs["X/Y"]
-
-	abGraph := graph.NewMedianAggregatorNode(ab, 0)
-	abc1 := graph.NewOriginNode(graph.OriginPair{Origin: "a", Pair: ab}, 0, 0)
-	abc2 := graph.NewOriginNode(graph.OriginPair{Origin: "b", Pair: ab}, 0, 0)
-	abc3 := graph.NewMedianAggregatorNode(ab, 0)
-	abGraph.AddChild(abc1)
-	abGraph.AddChild(abc3)
-	abc3.AddChild(abc1)
-	abc3.AddChild(abc2)
-
-	xyGraph := graph.NewMedianAggregatorNode(xy, 0)
-	xyc1 := graph.NewOriginNode(graph.OriginPair{Origin: "x", Pair: xy}, 0, 0)
-	xyc2 := graph.NewOriginNode(graph.OriginPair{Origin: "y", Pair: xy}, 0, 0)
-	xyGraph.AddChild(xyc1)
-	xyGraph.AddChild(xyc2)
-
-	testGraph = map[graph.Pair]graph.Aggregator{
-		ab: abGraph,
-		xy: xyGraph,
+func TestNewPairs(t *testing.T) {
+	tests := []struct {
+		name    string
+		pairs   []string
+		want    []Pair
+		wantErr bool
+	}{
+		{
+			name:    "single-valid-pair",
+			pairs:   []string{"A/B"},
+			want:    []Pair{{Base: "A", Quote: "B"}},
+			wantErr: false,
+		},
+		{
+			name:    "multiple-valid-pair",
+			pairs:   []string{"A/B", "X/Y"},
+			want:    []Pair{{Base: "A", Quote: "B"}, {Base: "X", Quote: "Y"}},
+			wantErr: false,
+		},
+		{
+			name:    "contains-invalid-pair",
+			pairs:   []string{"A/B", "XY"},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "empty",
+			pairs:   []string{},
+			want:    []Pair(nil),
+			wantErr: false,
+		},
 	}
-
-	testFeeder = feeder.NewFeeder(origins.NewSet(map[string]origins.Handler{
-		"a": &testExchange{},
-		"b": &testExchange{},
-		"x": &testExchange{},
-		"y": &testExchange{},
-	}), null.New())
-}
-
-func TestGofer_Graphs(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-	assert.Equal(t, testGraph, g.Graphs())
-}
-
-func TestGofer_Feeder(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-	assert.Equal(t, testFeeder, g.Feeder())
-}
-
-func TestGofer_Pairs(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-	assert.ElementsMatch(t, []graph.Pair{
-		testPairs["A/B"],
-		testPairs["X/Y"],
-	}, g.Pairs())
-}
-
-func TestGofer_Feed(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-
-	_, err := g.Feed(testPairs["A/B"])
-	assert.NoError(t, err)
-}
-
-func TestGofer_Feed_MissingPair(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-
-	_, err := g.Feed(graph.Pair{Base: "C", Quote: "D"})
-	assert.Error(t, err)
-}
-
-func TestGofer_Tick(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-	ab := testPairs["A/B"]
-
-	tick, err := g.Tick(ab)
-	assert.NoError(t, err)
-	assert.Equal(t, ab, tick.Pair)
-}
-
-func TestGofer_Ticks(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-	ab := testPairs["A/B"]
-	xy := testPairs["X/Y"]
-
-	_, _ = g.Feed(ab, xy)
-	ticks, err := g.Ticks(ab, xy)
-	assert.NoError(t, err)
-	assert.Equal(t, ab, ticks[0].Pair)
-	assert.Equal(t, xy, ticks[1].Pair)
-}
-
-func TestGofer_Ticks_MissingPair(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-
-	_, err := g.Ticks(graph.Pair{Base: "C", Quote: "D"})
-	assert.Error(t, err)
-}
-
-func TestGofer_Origins(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-	ab := testPairs["A/B"]
-	xy := testPairs["X/Y"]
-
-	list, err := g.Origins(ab, xy)
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, []string{"a", "b"}, list[ab])
-	assert.ElementsMatch(t, []string{"x", "y"}, list[xy])
-}
-
-func TestGofer_Origins_MissingPair(t *testing.T) {
-	g := NewGofer(testGraph, testFeeder)
-
-	_, err := g.Origins(graph.Pair{Base: "C", Quote: "D"})
-	assert.Error(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewPairs(tt.pairs...)
+			if (err != nil) != tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.Equal(t, got, tt.want)
+		})
+	}
 }

@@ -169,7 +169,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 		   }
 		}`),
 		[]byte(`{"status":1,"desc":"failure","template":"","params":null,"data":
-		{"tickers":[
+		{"priceers":[
 		{"marketId":"ETH-USDT","price":"362.64","volume":"6.75",
 		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":1600239124811},
 		{"marketId":"ETH-USDC","price":"364.96","volume":"11.9853",
@@ -194,7 +194,7 @@ func (suite *DdexSuite) TestSuccessResponse() {
 	pair := Pair{Base: "ETH", Quote: "USDT"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":0,"desc":"success","template":"","params":null,"data":
-		{"tickers":[
+		{"priceers":[
 		{"marketId":"ETH-USDT","price":"362.64","volume":"6.75",
 		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":2000},
 		{"marketId":"USDT-ETH","price":"1","volume":"2",
@@ -211,11 +211,11 @@ func (suite *DdexSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(362.64, cr[0].Tick.Ask)
-	suite.Equal(362.57, cr[0].Tick.Bid)
-	suite.Equal(362.64, cr[0].Tick.Price)
-	suite.Equal(6.75, cr[0].Tick.Volume24h)
-	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Equal(362.64, cr[0].Price.Ask)
+	suite.Equal(362.57, cr[0].Price.Bid)
+	suite.Equal(362.64, cr[0].Price.Price)
+	suite.Equal(6.75, cr[0].Price.Volume24h)
+	suite.Equal(cr[0].Price.Timestamp.Unix(), int64(2))
 }
 
 func (suite *DdexSuite) TestRealAPICall() {

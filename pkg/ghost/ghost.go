@@ -16,6 +16,7 @@
 package ghost
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/ethereum"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/graph"
 	"github.com/makerdao/gofer/pkg/log"
 	"github.com/makerdao/gofer/pkg/oracle"
 	"github.com/makerdao/gofer/pkg/transport"
@@ -41,11 +41,11 @@ func (e ErrUnableToFindAsset) Error() string {
 }
 
 type Ghost struct {
-	gofer     *gofer.Gofer
+	gofer     gofer.Gofer
 	signer    ethereum.Signer
 	transport transport.Transport
 	interval  time.Duration
-	pairs     map[graph.Pair]*Pair
+	pairs     map[gofer.Pair]*Pair
 	log       log.Logger
 	doneCh    chan struct{}
 }
@@ -53,7 +53,7 @@ type Ghost struct {
 type Config struct {
 	// Gofer is an instance of the gofer.Gofer which will be used to fetch
 	// prices.
-	Gofer *gofer.Gofer
+	Gofer gofer.Gofer
 	// Signer is an instance of the ethereum.Signer which will be used to
 	// sign prices.
 	Signer ethereum.Signer
@@ -83,17 +83,22 @@ func NewGhost(config Config) (*Ghost, error) {
 		signer:    config.Signer,
 		transport: config.Transport,
 		interval:  config.Interval,
-		pairs:     make(map[graph.Pair]*Pair),
+		pairs:     make(map[gofer.Pair]*Pair),
 		log:       config.Logger.WithField("tag", LoggerTag),
 		doneCh:    make(chan struct{}),
 	}
 
-	// Unfortunately, the Gofer stores pairs in AAA/BBB format but Ghost (and
-	// oracle contract) stores them in AAABBB format. Because of this we need
-	// to make this wired mapping:
+	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
+	// (and oracle contract) stores them in AAABBB format. Because of this we
+	// need to make this wired mapping:
 	for _, pair := range config.Pairs {
+		goferPairs, err := g.gofer.Pairs()
+		if err != nil {
+			return nil, err
+		}
+
 		found := false
-		for _, goferPair := range g.gofer.Pairs() {
+		for _, goferPair := range goferPairs {
 			if goferPair.Base+goferPair.Quote == pair.AssetPair {
 				g.pairs[goferPair] = pair
 				found = true
@@ -134,20 +139,20 @@ func (g *Ghost) Stop() error {
 
 // broadcast sends price for single pair to the network. This method uses
 // current price from the Gofer so it must be updated beforehand.
-func (g *Ghost) broadcast(goferPair graph.Pair) error {
+func (g *Ghost) broadcast(goferPair gofer.Pair) error {
 	var err error
 
 	pair := g.pairs[goferPair]
-	tick, err := g.gofer.Tick(goferPair)
+	tick, err := g.gofer.Price(goferPair)
 	if err != nil {
 		return err
 	}
-	if tick.Error != nil {
-		return tick.Error
+	if tick.Error != "" {
+		return errors.New(tick.Error)
 	}
 
 	// Create price:
-	price := &oracle.Price{Wat: pair.AssetPair, Age: tick.Timestamp}
+	price := &oracle.Price{Wat: pair.AssetPair, Age: tick.Time}
 	price.SetFloat64Price(tick.Price)
 
 	// Sign price:
@@ -190,18 +195,7 @@ func (g *Ghost) broadcasterLoop() error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				// Fetch prices from exchanges:
-				warns, err := g.gofer.Feed(g.gofer.Pairs()...)
-				if len(warns.List) != 0 {
-					g.log.
-						WithError(warns.ToError()).
-						Warn("Unable to fetch prices for some pairs")
-				}
-				if err != nil {
-					g.log.
-						WithError(err).
-						Error("Unable to fetch prices")
-				}
+				// TODO: fetch all prices before broadcast is called
 
 				// Send prices to the network:
 				//
@@ -232,7 +226,7 @@ func (g *Ghost) broadcasterLoop() error {
 	return nil
 }
 
-func createPriceMessage(price *oracle.Price, tick graph.AggregatorTick) (*messages.Price, error) {
+func createPriceMessage(price *oracle.Price, tick *gofer.Price) (*messages.Price, error) {
 	trace, err := marshal.Marshall(marshal.JSON, tick)
 	if err != nil {
 		return nil, err

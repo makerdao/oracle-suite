@@ -152,9 +152,9 @@ func (suite *UpbitSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(0.03527794, cr[0].Tick.Price)
-	suite.Equal(45.24091194, cr[0].Tick.Volume24h)
-	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Equal(0.03527794, cr[0].Price.Price)
+	suite.Equal(45.24091194, cr[0].Price.Volume24h)
+	suite.Equal(cr[0].Price.Timestamp.Unix(), int64(2))
 }
 
 func (suite *UpbitSuite) TestRealAPICall() {

@@ -26,7 +26,7 @@ import (
 )
 
 // Hitbtc URL
-const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker?symbols=%s"
+const hitbtcURL = "https://api.hitbtc.com/api/2/public/priceer?symbols=%s"
 
 type hitbtcResponse struct {
 	Symbol    string    `json:"symbol"`
@@ -91,7 +91,7 @@ func (h *Hitbtc) fetch(pairs []Pair) ([]FetchResult, error) {
 	for i, pair := range pairs {
 		symbol := h.localPairName(pair)
 		if resp, has := respMap[symbol]; has {
-			p, err := h.newTick(pair, resp)
+			p, err := h.newPrice(pair, resp)
 			if err != nil {
 				crs[i] = fetchResultWithError(
 					pair,
@@ -110,29 +110,29 @@ func (h *Hitbtc) fetch(pairs []Pair) ([]FetchResult, error) {
 	return crs, nil
 }
 
-func (h *Hitbtc) newTick(pair Pair, resp hitbtcResponse) (Tick, error) {
+func (h *Hitbtc) newPrice(pair Pair, resp hitbtcResponse) (Price, error) {
 	// Parsing price from string.
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse price from hitbtc exchange")
+		return Price{}, fmt.Errorf("failed to parse price from hitbtc exchange")
 	}
 	// Parsing ask from string.
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse ask from hitbtc exchange")
+		return Price{}, fmt.Errorf("failed to parse ask from hitbtc exchange")
 	}
 	// Parsing volume from string.
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse volume from hitbtc exchange")
+		return Price{}, fmt.Errorf("failed to parse volume from hitbtc exchange")
 	}
 	// Parsing bid from string.
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse bid from hitbtc exchange")
+		return Price{}, fmt.Errorf("failed to parse bid from hitbtc exchange")
 	}
-	// Building Tick.
-	return Tick{
+	// Building Price.
+	return Price{
 		Pair:      pair,
 		Price:     price,
 		Ask:       ask,

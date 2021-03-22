@@ -43,7 +43,7 @@ func (p Pair) Equal(c Pair) bool {
 	return p.Base == c.Base && p.Quote == c.Quote
 }
 
-type Tick struct {
+type Price struct {
 	Pair      Pair
 	Price     float64
 	Bid       float64
@@ -53,20 +53,20 @@ type Tick struct {
 }
 
 type FetchResult struct {
-	Tick  Tick
+	Price Price
 	Error error
 }
 
-func fetchResult(tick Tick) FetchResult {
+func fetchResult(price Price) FetchResult {
 	return FetchResult{
-		Tick:  tick,
+		Price: price,
 		Error: nil,
 	}
 }
 
 func fetchResultWithError(pair Pair, err error) FetchResult {
 	return FetchResult{
-		Tick: Tick{
+		Price: Price{
 			Pair:      pair,
 			Timestamp: time.Now(),
 		},
@@ -78,7 +78,7 @@ func fetchResultListWithErrors(pairs []Pair, err error) []FetchResult {
 	r := make([]FetchResult, len(pairs))
 	for i, pair := range pairs {
 		r[i] = FetchResult{
-			Tick: Tick{
+			Price: Price{
 				Pair:      pair,
 				Timestamp: time.Now(),
 			},
@@ -172,21 +172,21 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 }
 
 type singlePairOrigin interface {
-	callOne(pair Pair) (*Tick, error)
+	callOne(pair Pair) (*Price, error)
 }
 
 func callSinglePairOrigin(e singlePairOrigin, pairs []Pair) []FetchResult {
 	crs := make([]FetchResult, 0)
 	for _, pair := range pairs {
-		tick, err := e.callOne(pair)
+		price, err := e.callOne(pair)
 		if err != nil {
 			crs = append(crs, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: err,
 			})
 		} else {
 			crs = append(crs, FetchResult{
-				Tick:  *tick,
+				Price: *price,
 				Error: err,
 			})
 		}

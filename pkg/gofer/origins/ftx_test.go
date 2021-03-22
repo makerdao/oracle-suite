@@ -133,11 +133,11 @@ func (suite *FtxSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(380.23, cr[0].Tick.Price)
-	suite.Equal(380.38, cr[0].Tick.Ask)
-	suite.Equal(380.25, cr[0].Tick.Bid)
-	suite.Equal(12467473.8244, cr[0].Tick.Volume24h)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(380.23, cr[0].Price.Price)
+	suite.Equal(380.38, cr[0].Price.Ask)
+	suite.Equal(380.25, cr[0].Price.Bid)
+	suite.Equal(12467473.8244, cr[0].Price.Volume24h)
+	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *FtxSuite) TestRealAPICall() {

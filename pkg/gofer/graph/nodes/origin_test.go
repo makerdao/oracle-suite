@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
 
 import (
 	"errors"
@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 const originTestTTL = 10 * time.Second
@@ -28,7 +30,7 @@ const originTestTTL = 10 * time.Second
 func TestOriginNode_OriginPair(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
 	o := NewOriginNode(op, originTestTTL, originTestTTL)
@@ -38,17 +40,17 @@ func TestOriginNode_OriginPair(t *testing.T) {
 func TestOriginNode_Ingest_Valid(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
-	ot := OriginTick{
-		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+	ot := OriginPrice{
+		PairPrice: PairPrice{
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "foo",
 		Error:  nil,
@@ -58,25 +60,25 @@ func TestOriginNode_Ingest_Valid(t *testing.T) {
 	err := o.Ingest(ot)
 
 	assert.Equal(t, op, o.OriginPair())
-	assert.Equal(t, ot, o.Tick())
+	assert.Equal(t, ot, o.Price())
 	assert.NoError(t, err)
-	assert.NoError(t, o.tick.Error)
+	assert.NoError(t, o.price.Error)
 }
 
 func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
-	ot := OriginTick{
-		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "C"},
+	ot := OriginPrice{
+		PairPrice: PairPrice{
+			Pair:      gofer.Pair{Base: "A", Quote: "C"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "foo",
 		Error:  nil,
@@ -86,23 +88,23 @@ func TestOriginNode_Ingest_IncompatiblePair(t *testing.T) {
 	err := o.Ingest(ot)
 
 	assert.True(t, errors.As(err, &ErrIncompatiblePair{}))
-	assert.NoError(t, o.tick.Error)
+	assert.NoError(t, o.price.Error)
 }
 
 func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
-	ot := OriginTick{
-		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+	ot := OriginPrice{
+		PairPrice: PairPrice{
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "bar",
 		Error:  nil,
@@ -112,23 +114,23 @@ func TestOriginNode_Ingest_IncompatibleOrigin(t *testing.T) {
 	err := o.Ingest(ot)
 
 	assert.True(t, errors.As(err, &IncompatibleOriginErr{}))
-	assert.NoError(t, o.tick.Error)
+	assert.NoError(t, o.price.Error)
 }
 
 func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
-	ot := OriginTick{
-		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "C"},
+	ot := OriginPrice{
+		PairPrice: PairPrice{
+			Pair:      gofer.Pair{Base: "A", Quote: "C"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "bar",
 		Error:  nil,
@@ -139,25 +141,25 @@ func TestOriginNode_Ingest_IncompatibleEverything(t *testing.T) {
 
 	assert.True(t, errors.As(err, &IncompatibleOriginErr{}))
 	assert.True(t, errors.As(err, &ErrIncompatiblePair{}))
-	assert.NoError(t, o.tick.Error)
+	assert.NoError(t, o.price.Error)
 }
 
-func TestOriginNode_Ingest_TickWithError(t *testing.T) {
+func TestOriginNode_Ingest_PriceWithError(t *testing.T) {
 	err := errors.New("something")
 
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
-	ot := OriginTick{
-		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+	ot := OriginPrice{
+		PairPrice: PairPrice{
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now(),
+			Time:      time.Now(),
 		},
 		Origin: "foo",
 		Error:  err,
@@ -167,23 +169,23 @@ func TestOriginNode_Ingest_TickWithError(t *testing.T) {
 	err2 := o.Ingest(ot)
 
 	assert.NoError(t, err2)
-	assert.Equal(t, err, o.tick.Error)
+	assert.Equal(t, err, o.price.Error)
 }
 
-func TestOriginNode_Tick_Expired(t *testing.T) {
+func TestOriginNode_Price_Expired(t *testing.T) {
 	op := OriginPair{
 		Origin: "foo",
-		Pair:   Pair{Base: "A", Quote: "B"},
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
 	}
 
-	ot := OriginTick{
-		Tick: Tick{
-			Pair:      Pair{Base: "A", Quote: "B"},
+	ot := OriginPrice{
+		PairPrice: PairPrice{
+			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: time.Now().Add(-20 * time.Second),
+			Time:      time.Now().Add(-20 * time.Second),
 		},
 		Origin: "foo",
 		Error:  nil,
@@ -191,7 +193,7 @@ func TestOriginNode_Tick_Expired(t *testing.T) {
 
 	o := NewOriginNode(op, originTestTTL, originTestTTL)
 	_ = o.Ingest(ot)
-	tick := o.Tick()
+	price := o.Price()
 
-	assert.True(t, errors.As(tick.Error, &ErrTickTTLExpired{}))
+	assert.True(t, errors.As(price.Error, &ErrPriceTTLExpired{}))
 }

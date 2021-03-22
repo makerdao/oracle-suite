@@ -23,7 +23,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-const poloniexURL = "https://poloniex.com/public?command=returnTicker"
+const poloniexURL = "https://poloniex.com/public?command=returnPriceer"
 
 type poloniexResponse struct {
 	Last       stringAsFloat64 `json:"Last"`
@@ -82,13 +82,13 @@ func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
 	for _, pair := range pairs {
 		if r, ok := resp[p.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			if r.IsFrozen == "0" {
 				results = append(results, FetchResult{
-					Tick: Tick{
+					Price: Price{
 						Pair:      pair,
 						Price:     r.Last.val(),
 						Bid:       r.HidPrice.val(),
@@ -99,7 +99,7 @@ func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
 				})
 			} else {
 				results = append(results, FetchResult{
-					Tick:  Tick{Pair: pair},
+					Price: Price{Pair: pair},
 					Error: fmt.Errorf("pair is indicated as a frozen"),
 				})
 			}

@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
 
 import (
 	"fmt"
@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type ErrNotEnoughSources struct {
@@ -38,8 +40,8 @@ func (e ErrNotEnoughSources) Error() string {
 }
 
 type ErrIncompatiblePairs struct {
-	Given    Pair
-	Expected Pair
+	Given    gofer.Pair
+	Expected gofer.Pair
 }
 
 func (e ErrIncompatiblePairs) Error() string {
@@ -50,25 +52,25 @@ func (e ErrIncompatiblePairs) Error() string {
 	)
 }
 
-// MedianAggregatorNode gets Ticks from all of its children and calculates
+// MedianAggregatorNode gets Prices from all of its children and calculates
 // median price.
 //
 //                           -- [Origin A/B]
 //                          /
 //  [MedianAggregatorNode] ---- [Origin A/B]       -- ...
 //                          \                     /
-//                           -- [Aggregator A/B] ---- ...
+//                           -- [AggregatorNode A/B] ---- ...
 //                                                \
 //                                                 -- ...
 //
-// All children of this node must return a Tick for the same pair.
+// All children of this node must return a Price for the same pair.
 type MedianAggregatorNode struct {
-	pair       Pair
+	pair       gofer.Pair
 	minSources int
 	children   []Node
 }
 
-func NewMedianAggregatorNode(pair Pair, minSources int) *MedianAggregatorNode {
+func NewMedianAggregatorNode(pair gofer.Pair, minSources int) *MedianAggregatorNode {
 	return &MedianAggregatorNode{
 		pair:       pair,
 		minSources: minSources,
@@ -85,58 +87,58 @@ func (n *MedianAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }
 
-func (n *MedianAggregatorNode) Pair() Pair {
+func (n *MedianAggregatorNode) Pair() gofer.Pair {
 	return n.pair
 }
 
-func (n *MedianAggregatorNode) Tick() AggregatorTick {
+func (n *MedianAggregatorNode) Price() AggregatorPrice {
 	var ts time.Time
 	var prices, bids, asks []float64
-	var originTicks []OriginTick
-	var aggregatorTicks []AggregatorTick
+	var originPrices []OriginPrice
+	var aggregatorPrices []AggregatorPrice
 	var err error
 
 	for i, c := range n.children {
-		// There is no need to copy errors from ticks to the MedianAggregatorNode
-		// because there may be enough remaining ticks to calculate median tick.
+		// There is no need to copy errors from prices to the MedianAggregatorNode
+		// because there may be enough remaining prices to calculate median price.
 
-		var tick Tick
+		var price PairPrice
 		switch typedNode := c.(type) {
 		case Origin:
-			originTick := typedNode.Tick()
-			originTicks = append(originTicks, originTick)
-			tick = originTick.Tick
-			if originTick.Error != nil {
+			originPrice := typedNode.Price()
+			originPrices = append(originPrices, originPrice)
+			price = originPrice.PairPrice
+			if originPrice.Error != nil {
 				continue
 			}
 		case Aggregator:
-			aggregatorTick := typedNode.Tick()
-			aggregatorTicks = append(aggregatorTicks, aggregatorTick)
-			tick = aggregatorTick.Tick
-			if aggregatorTick.Error != nil {
+			aggregatorPrice := typedNode.Price()
+			aggregatorPrices = append(aggregatorPrices, aggregatorPrice)
+			price = aggregatorPrice.PairPrice
+			if aggregatorPrice.Error != nil {
 				continue
 			}
 		}
 
-		if !n.pair.Equal(tick.Pair) {
+		if !n.pair.Equal(price.Pair) {
 			err = multierror.Append(
 				err,
-				ErrIncompatiblePairs{Given: tick.Pair, Expected: n.pair},
+				ErrIncompatiblePairs{Given: price.Pair, Expected: n.pair},
 			)
 			continue
 		}
 
-		if tick.Price > 0 {
-			prices = append(prices, tick.Price)
+		if price.Price > 0 {
+			prices = append(prices, price.Price)
 		}
-		if tick.Bid > 0 {
-			bids = append(bids, tick.Bid)
+		if price.Bid > 0 {
+			bids = append(bids, price.Bid)
 		}
-		if tick.Ask > 0 {
-			asks = append(asks, tick.Ask)
+		if price.Ask > 0 {
+			asks = append(asks, price.Ask)
 		}
-		if i == 0 || tick.Timestamp.Before(ts) {
-			ts = tick.Timestamp
+		if i == 0 || price.Time.Before(ts) {
+			ts = price.Time
 		}
 	}
 
@@ -147,19 +149,19 @@ func (n *MedianAggregatorNode) Tick() AggregatorTick {
 		)
 	}
 
-	return AggregatorTick{
-		Tick: Tick{
+	return AggregatorPrice{
+		PairPrice: PairPrice{
 			Pair:      n.pair,
 			Price:     median(prices),
 			Bid:       median(bids),
 			Ask:       median(asks),
 			Volume24h: 0,
-			Timestamp: ts,
+			Time:      ts,
 		},
-		OriginTicks:     originTicks,
-		AggregatorTicks: aggregatorTicks,
-		Parameters:      map[string]string{"method": "median", "min": strconv.Itoa(n.minSources)},
-		Error:           err,
+		OriginPrices:     originPrices,
+		AggregatorPrices: aggregatorPrices,
+		Parameters:       map[string]string{"method": "median", "min": strconv.Itoa(n.minSources)},
+		Error:            err,
 	}
 }
 

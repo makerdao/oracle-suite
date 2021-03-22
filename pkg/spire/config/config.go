@@ -62,7 +62,7 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (c *Config) ConfigureServer(deps Dependencies) (*spire.Server, error) {
+func (c *Config) ConfigureServer(deps Dependencies) (*spire.Agent, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
 	if err != nil {
@@ -81,8 +81,8 @@ func (c *Config) ConfigureServer(deps Dependencies) (*spire.Server, error) {
 	// Datastore:
 	dat := c.configureDatastore(sig, tra, deps.Logger)
 
-	// RPC Server:
-	srv, err := spire.NewServer(spire.ServerConfig{
+	// RPC Agent:
+	srv, err := spire.NewAgent(spire.AgentConfig{
 		Datastore: dat,
 		Transport: tra,
 		Signer:    sig,
@@ -97,7 +97,7 @@ func (c *Config) ConfigureServer(deps Dependencies) (*spire.Server, error) {
 	return srv, nil
 }
 
-func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
+func (c *Config) ConfigureSpire(deps Dependencies) (*spire.Spire, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
 	if err != nil {
@@ -107,11 +107,10 @@ func (c *Config) ConfigureClient(deps Dependencies) (*spire.Client, error) {
 	// Signer:
 	sig := c.configureSigner(acc)
 
-	return spire.NewClient(spire.ClientConfig{
+	return spire.NewSpire(spire.Config{
 		Signer:  sig,
 		Network: "tcp",
 		Address: c.RPC.Address,
-		Logger:  deps.Logger,
 	}), nil
 }
 

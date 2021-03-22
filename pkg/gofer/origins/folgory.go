@@ -40,7 +40,7 @@ func (o *Folgory) Fetch(pairs []Pair) []FetchResult {
 
 const folgoryURL = "https://folgory.com/api/v1"
 
-type folgoryTicker struct {
+type folgoryPriceer struct {
 	Symbol string          `json:"symbol"`
 	Price  stringAsFloat64 `json:"last"`
 	Volume stringAsFloat64 `json:"volume"`
@@ -52,26 +52,26 @@ func (o *Folgory) localPairName(pair Pair) string {
 
 func (o *Folgory) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	results := make([]FetchResult, 0)
-	var resp []folgoryTicker
+	var resp []folgoryPriceer
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 
-	tickers := make(map[string]folgoryTicker)
+	priceers := make(map[string]folgoryPriceer)
 	for _, t := range resp {
-		tickers[t.Symbol] = t
+		priceers[t.Symbol] = t
 	}
 
 	for _, pair := range pairs {
-		if t, is := tickers[o.localPairName(pair)]; !is {
+		if t, is := priceers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: fmt.Errorf("no response for %s", pair.String()),
 			})
 		} else {
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     t.Price.val(),
 					Volume24h: t.Volume.val(),

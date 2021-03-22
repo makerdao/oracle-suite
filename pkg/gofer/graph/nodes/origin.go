@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
 
 import (
 	"fmt"
@@ -21,16 +21,18 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type ErrIncompatiblePair struct {
-	Given    Pair
-	Expected Pair
+	Given    gofer.Pair
+	Expected gofer.Pair
 }
 
 func (e ErrIncompatiblePair) Error() string {
 	return fmt.Sprintf(
-		"a tick with different pair ignested to the OriginNode, %s given but %s was expected",
+		"a price with different pair ignested to the OriginNode, %s given but %s was expected",
 		e.Given,
 		e.Expected,
 	)
@@ -43,30 +45,30 @@ type IncompatibleOriginErr struct {
 
 func (e IncompatibleOriginErr) Error() string {
 	return fmt.Sprintf(
-		"a tick from different origin ignested to the OriginNode, %s given but %s was expected",
+		"a price from different origin ignested to the OriginNode, %s given but %s was expected",
 		e.Given,
 		e.Expected,
 	)
 }
 
-type ErrTickTTLExpired struct {
-	Tick OriginTick
-	TTL  time.Duration
+type ErrPriceTTLExpired struct {
+	Price OriginPrice
+	TTL   time.Duration
 }
 
-func (e ErrTickTTLExpired) Error() string {
+func (e ErrPriceTTLExpired) Error() string {
 	return fmt.Sprintf(
-		"the tick TTL for the pair %s expired",
-		e.Tick.Pair,
+		"the price TTL for the pair %s expired",
+		e.Price.Pair,
 	)
 }
 
-// OriginNode contains a Tick fetched directly from an origin.
+// OriginNode contains a Price fetched directly from an origin.
 type OriginNode struct {
 	mu sync.Mutex
 
 	originPair OriginPair
-	tick       OriginTick
+	price      OriginPrice
 	minTTL     time.Duration
 	maxTTL     time.Duration
 }
@@ -87,27 +89,27 @@ func (n *OriginNode) OriginPair() OriginPair {
 }
 
 // Ingest implements Feedable interface.
-func (n *OriginNode) Ingest(tick OriginTick) error {
+func (n *OriginNode) Ingest(price OriginPrice) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
 	var err error
-	if !tick.Pair.Equal(n.originPair.Pair) {
+	if !price.Pair.Equal(n.originPair.Pair) {
 		err = multierror.Append(err, ErrIncompatiblePair{
-			Given:    tick.Pair,
+			Given:    price.Pair,
 			Expected: n.originPair.Pair,
 		})
 	}
 
-	if tick.Origin != n.originPair.Origin {
+	if price.Origin != n.originPair.Origin {
 		err = multierror.Append(err, IncompatibleOriginErr{
-			Given:    tick.Origin,
+			Given:    price.Origin,
 			Expected: n.originPair.Origin,
 		})
 	}
 
 	if err == nil {
-		n.tick = tick
+		n.price = price
 	}
 
 	return err
@@ -125,24 +127,24 @@ func (n *OriginNode) MaxTTL() time.Duration {
 
 // Expired implements the Feedable interface.
 func (n *OriginNode) Expired() bool {
-	return n.tick.Timestamp.Before(time.Now().Add(-1 * n.MaxTTL()))
+	return n.price.Time.Before(time.Now().Add(-1 * n.MaxTTL()))
 }
 
-// Tick implements the Feedable interface.
-func (n *OriginNode) Tick() OriginTick {
+// Price implements the Feedable interface.
+func (n *OriginNode) Price() OriginPrice {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	if n.tick.Error == nil {
+	if n.price.Error == nil {
 		if n.Expired() {
-			n.tick.Error = ErrTickTTLExpired{
-				Tick: n.tick,
-				TTL:  n.maxTTL,
+			n.price.Error = ErrPriceTTLExpired{
+				Price: n.price,
+				TTL:   n.maxTTL,
 			}
 		}
 	}
 
-	return n.tick
+	return n.price
 }
 
 // Children implements the Node interface.

@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
 
 import (
 	"errors"
@@ -21,16 +21,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 const testTTL = 10 * time.Second
 
 func TestIndirectAggregatorNode_Children(t *testing.T) {
-	m := NewIndirectAggregatorNode(Pair{Base: "A", Quote: "B"})
+	m := NewIndirectAggregatorNode(gofer.Pair{Base: "A", Quote: "B"})
 
-	c1 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "a"}, testTTL, testTTL)
-	c2 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "b"}, testTTL, testTTL)
-	c3 := NewOriginNode(OriginPair{Pair: Pair{Base: "A", Quote: "B"}, Origin: "c"}, testTTL, testTTL)
+	c1 := NewOriginNode(OriginPair{Pair: gofer.Pair{Base: "A", Quote: "B"}, Origin: "a"}, testTTL, testTTL)
+	c2 := NewOriginNode(OriginPair{Pair: gofer.Pair{Base: "A", Quote: "B"}, Origin: "b"}, testTTL, testTTL)
+	c3 := NewOriginNode(OriginPair{Pair: gofer.Pair{Base: "A", Quote: "B"}, Origin: "c"}, testTTL, testTTL)
 
 	m.AddChild(c1)
 	m.AddChild(c2)
@@ -43,17 +45,17 @@ func TestIndirectAggregatorNode_Children(t *testing.T) {
 }
 
 func TestIndirectAggregatorNode_Pair(t *testing.T) {
-	p := Pair{Base: "A", Quote: "B"}
+	p := gofer.Pair{Base: "A", Quote: "B"}
 	m := NewIndirectAggregatorNode(p)
 
 	assert.Equal(t, m.Pair(), p)
 }
 
-func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "B", Quote: "C"}
-	p3 := Pair{Base: "C", Quote: "D"}
-	pf := Pair{Base: "A", Quote: "D"}
+func TestIndirectAggregatorNode_Price_ThreeOriginPrices(t *testing.T) {
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "B", Quote: "C"}
+	p3 := gofer.Pair{Base: "C", Quote: "D"}
+	pf := gofer.Pair{Base: "A", Quote: "D"}
 
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
@@ -62,40 +64,40 @@ func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 	c3 := NewOriginNode(OriginPair{Pair: p3, Origin: "c"}, testTTL, testTTL)
 
-	_ = c1.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c1.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p1,
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
 	})
 
-	_ = c2.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c2.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p2,
 			Price:     20,
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
 	})
 
-	_ = c3.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c3.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p3,
 			Price:     30,
 			Bid:       30,
 			Ask:       30,
 			Volume24h: 30,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "c",
 		Error:  nil,
@@ -105,29 +107,29 @@ func TestIndirectAggregatorNode_Tick_ThreeOriginTicks(t *testing.T) {
 	m.AddChild(c2)
 	m.AddChild(c3)
 
-	expected := AggregatorTick{
-		Tick: Tick{
+	expected := AggregatorPrice{
+		PairPrice: PairPrice{
 			Pair:      pf,
 			Price:     6000,
 			Bid:       6000,
 			Ask:       6000,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
-		OriginTicks:     []OriginTick{c1.Tick(), c2.Tick(), c3.Tick()},
-		AggregatorTicks: nil,
-		Parameters:      map[string]string{"method": "indirect"},
-		Error:           nil,
+		OriginPrices:     []OriginPrice{c1.Price(), c2.Price(), c3.Price()},
+		AggregatorPrices: nil,
+		Parameters:       map[string]string{"method": "indirect"},
+		Error:            nil,
 	}
 
-	assert.Equal(t, expected, m.Tick())
+	assert.Equal(t, expected, m.Price())
 }
 
-func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "B", Quote: "C"}
-	p3 := Pair{Base: "C", Quote: "D"}
-	pf := Pair{Base: "A", Quote: "D"}
+func TestIndirectAggregatorNode_Price_ThreeAggregatorPrices(t *testing.T) {
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "B", Quote: "C"}
+	p3 := gofer.Pair{Base: "C", Quote: "D"}
+	pf := gofer.Pair{Base: "A", Quote: "D"}
 
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
@@ -145,40 +147,40 @@ func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 	i3 := NewIndirectAggregatorNode(p3)
 	i3.AddChild(c3)
 
-	_ = c1.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c1.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p1,
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
 	})
 
-	_ = c2.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c2.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p2,
 			Price:     20,
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
 	})
 
-	_ = c3.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c3.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p3,
 			Price:     30,
 			Bid:       30,
 			Ask:       30,
 			Volume24h: 30,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "c",
 		Error:  nil,
@@ -188,71 +190,71 @@ func TestIndirectAggregatorNode_Tick_ThreeAggregatorTicks(t *testing.T) {
 	m.AddChild(i2)
 	m.AddChild(i3)
 
-	expected := AggregatorTick{
-		Tick: Tick{
+	expected := AggregatorPrice{
+		PairPrice: PairPrice{
 			Pair:      pf,
 			Price:     6000,
 			Bid:       6000,
 			Ask:       6000,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
-		OriginTicks: nil,
-		AggregatorTicks: []AggregatorTick{
+		OriginPrices: nil,
+		AggregatorPrices: []AggregatorPrice{
 			{
-				Tick: Tick{
+				PairPrice: PairPrice{
 					Pair:      p1,
 					Price:     10,
 					Bid:       10,
 					Ask:       10,
 					Volume24h: 10,
-					Timestamp: n,
+					Time:      n,
 				},
-				OriginTicks:     []OriginTick{c1.Tick()},
-				AggregatorTicks: nil,
-				Parameters:      map[string]string{"method": "indirect"},
-				Error:           nil,
+				OriginPrices:     []OriginPrice{c1.Price()},
+				AggregatorPrices: nil,
+				Parameters:       map[string]string{"method": "indirect"},
+				Error:            nil,
 			},
 			{
-				Tick: Tick{
+				PairPrice: PairPrice{
 					Pair:      p2,
 					Price:     20,
 					Bid:       20,
 					Ask:       20,
 					Volume24h: 20,
-					Timestamp: n,
+					Time:      n,
 				},
-				OriginTicks:     []OriginTick{c2.Tick()},
-				AggregatorTicks: nil,
-				Parameters:      map[string]string{"method": "indirect"},
-				Error:           nil,
+				OriginPrices:     []OriginPrice{c2.Price()},
+				AggregatorPrices: nil,
+				Parameters:       map[string]string{"method": "indirect"},
+				Error:            nil,
 			},
 			{
-				Tick: Tick{
+				PairPrice: PairPrice{
 					Pair:      p3,
 					Price:     30,
 					Bid:       30,
 					Ask:       30,
 					Volume24h: 30,
-					Timestamp: n,
+					Time:      n,
 				},
-				OriginTicks:     []OriginTick{c3.Tick()},
-				AggregatorTicks: nil,
-				Parameters:      map[string]string{"method": "indirect"},
-				Error:           nil,
+				OriginPrices:     []OriginPrice{c3.Price()},
+				AggregatorPrices: nil,
+				Parameters:       map[string]string{"method": "indirect"},
+				Error:            nil,
 			},
 		},
 		Parameters: map[string]string{"method": "indirect"},
 		Error:      nil,
 	}
 
-	assert.Equal(t, expected, m.Tick())
+	assert.Equal(t, expected, m.Price())
 }
 
-func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "B", Quote: "C"}
-	pf := Pair{Base: "A", Quote: "C"}
+func TestIndirectAggregatorNode_Price_ChildPriceWithError(t *testing.T) {
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "B", Quote: "C"}
+	pf := gofer.Pair{Base: "A", Quote: "C"}
 
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
@@ -260,27 +262,27 @@ func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
-	_ = c1.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c1.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p1,
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
 	})
 
-	_ = c2.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c2.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p2,
 			Price:     20,
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  errors.New("something"),
@@ -289,14 +291,14 @@ func TestIndirectAggregatorNode_Tick_ChildTickWithError(t *testing.T) {
 	m.AddChild(c1)
 	m.AddChild(c2)
 
-	assert.True(t, errors.As(m.Tick().Error, &ErrTick{}))
+	assert.True(t, errors.As(m.Price().Error, &ErrPrice{}))
 }
 
-func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
+func TestIndirectAggregatorNode_Price_ResolveToWrongPair(t *testing.T) {
 	// Below pairs will be resolved resolve to the A/D but the A/C is expected:
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "B", Quote: "D"}
-	pf := Pair{Base: "A", Quote: "C"}
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "B", Quote: "D"}
+	pf := gofer.Pair{Base: "A", Quote: "C"}
 
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
@@ -304,27 +306,27 @@ func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
-	_ = c1.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c1.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p1,
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
 	})
 
-	_ = c2.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c2.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p2,
 			Price:     20,
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -333,14 +335,14 @@ func TestIndirectAggregatorNode_Tick_ResolveToWrongPair(t *testing.T) {
 	m.AddChild(c1)
 	m.AddChild(c2)
 
-	assert.True(t, errors.As(m.Tick().Error, &ErrResolve{}))
+	assert.True(t, errors.As(m.Price().Error, &ErrResolve{}))
 }
 
-func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
+func TestIndirectAggregatorNode_Price_UnableToResolve(t *testing.T) {
 	// It's impossible to resolve below pairs, because the A/B and C/D have no common part:
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "C", Quote: "D"}
-	pf := Pair{Base: "A", Quote: "C"}
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "C", Quote: "D"}
+	pf := gofer.Pair{Base: "A", Quote: "C"}
 
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
@@ -348,27 +350,27 @@ func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
-	_ = c1.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c1.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p1,
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
 	})
 
-	_ = c2.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c2.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p2,
 			Price:     20,
 			Bid:       20,
 			Ask:       20,
 			Volume24h: 20,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -378,13 +380,13 @@ func TestIndirectAggregatorNode_Tick_UnableToResolve(t *testing.T) {
 	m.AddChild(c2)
 
 	// Resolved to the A/D pair but the A/C pair was expected:
-	assert.True(t, errors.As(m.Tick().Error, &ErrNoCommonPart{}))
+	assert.True(t, errors.As(m.Price().Error, &ErrNoCommonPart{}))
 }
 
-func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
-	p1 := Pair{Base: "A", Quote: "B"}
-	p2 := Pair{Base: "C", Quote: "B"}
-	pf := Pair{Base: "A", Quote: "C"}
+func TestIndirectAggregatorNode_Price_DivByZero(t *testing.T) {
+	p1 := gofer.Pair{Base: "A", Quote: "B"}
+	p2 := gofer.Pair{Base: "C", Quote: "B"}
+	pf := gofer.Pair{Base: "A", Quote: "C"}
 
 	n := time.Now()
 	m := NewIndirectAggregatorNode(pf)
@@ -392,27 +394,27 @@ func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
 	c1 := NewOriginNode(OriginPair{Pair: p1, Origin: "a"}, testTTL, testTTL)
 	c2 := NewOriginNode(OriginPair{Pair: p2, Origin: "b"}, testTTL, testTTL)
 
-	_ = c1.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c1.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p1,
 			Price:     10,
 			Bid:       10,
 			Ask:       10,
 			Volume24h: 10,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "a",
 		Error:  nil,
 	})
 
-	_ = c2.Ingest(OriginTick{
-		Tick: Tick{
+	_ = c2.Ingest(OriginPrice{
+		PairPrice: PairPrice{
 			Pair:      p2,
 			Price:     0,
 			Bid:       0,
 			Ask:       0,
 			Volume24h: 0,
-			Timestamp: n,
+			Time:      n,
 		},
 		Origin: "b",
 		Error:  nil,
@@ -423,354 +425,354 @@ func TestIndirectAggregatorNode_Tick_DivByZero(t *testing.T) {
 
 	// Conversion between the A/B and the C/B requires division. The C/B pair
 	// reports 0 as its price so the ErrDivByZero error should be returned:
-	assert.True(t, errors.As(m.Tick().Error, &ErrDivByZero{}))
+	assert.True(t, errors.As(m.Price().Error, &ErrDivByZero{}))
 }
 
 func Test_crossRate(t *testing.T) {
 	tests := []struct {
 		name    string
-		ticks   []Tick
-		want    Tick
+		prices  []PairPrice
+		want    PairPrice
 		wantErr bool
 	}{
 		{
 			name:    "no-pair",
-			ticks:   []Tick{},
-			want:    Tick{},
+			prices:  []PairPrice{},
+			want:    PairPrice{},
 			wantErr: false,
 		},
 		{
 			name: "one-pair",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "A", Quote: "B"},
+					Pair:      gofer.Pair{Base: "A", Quote: "B"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "A", Quote: "B"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "A", Quote: "B"},
 				Price:     10,
 				Bid:       5,
 				Ask:       15,
 				Volume24h: 10,
-				Timestamp: time.Unix(10, 0),
+				Time:      time.Unix(10, 0),
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid-conversion",
-			ticks: []Tick{
-				{Pair: Pair{Base: "A", Quote: "B"}},
-				{Pair: Pair{Base: "X", Quote: "Y"}},
+			prices: []PairPrice{
+				{Pair: gofer.Pair{Base: "A", Quote: "B"}},
+				{Pair: gofer.Pair{Base: "X", Quote: "Y"}},
 			},
-			want:    Tick{},
+			want:    PairPrice{},
 			wantErr: true,
 		},
 		{
 			name: "ac/bc",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "A", Quote: "C"},
+					Pair:      gofer.Pair{Base: "A", Quote: "C"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "B", Quote: "C"},
+					Pair:      gofer.Pair{Base: "B", Quote: "C"},
 					Price:     20,
 					Bid:       10,
 					Ask:       30,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "A", Quote: "C"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "A", Quote: "C"},
 				Price:     float64(10) / 20,
 				Bid:       float64(5) / 10,
 				Ask:       float64(15) / 30,
 				Volume24h: 10,
-				Timestamp: time.Unix(10, 0),
+				Time:      time.Unix(10, 0),
 			},
 			wantErr: false,
 		},
 		{
 			name: "ac/bc-divByZero",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "A", Quote: "C"},
+					Pair:      gofer.Pair{Base: "A", Quote: "C"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "B", Quote: "C"},
+					Pair:      gofer.Pair{Base: "B", Quote: "C"},
 					Price:     0,
 					Bid:       0,
 					Ask:       0,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want:    Tick{},
+			want:    PairPrice{},
 			wantErr: true,
 		},
 		{
 			name: "ca/cb",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "C", Quote: "A"},
+					Pair:      gofer.Pair{Base: "C", Quote: "A"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "C", Quote: "B"},
+					Pair:      gofer.Pair{Base: "C", Quote: "B"},
 					Price:     20,
 					Bid:       10,
 					Ask:       30,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "A", Quote: "C"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "A", Quote: "C"},
 				Price:     float64(20) / 10,
 				Bid:       float64(10) / 5,
 				Ask:       float64(30) / 15,
 				Volume24h: 10,
-				Timestamp: time.Unix(10, 0),
+				Time:      time.Unix(10, 0),
 			},
 			wantErr: false,
 		},
 		{
 			name: "ca/cb-divByZero",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "C", Quote: "A"},
+					Pair:      gofer.Pair{Base: "C", Quote: "A"},
 					Price:     0,
 					Bid:       0,
 					Ask:       0,
 					Volume24h: 0,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "C", Quote: "B"},
+					Pair:      gofer.Pair{Base: "C", Quote: "B"},
 					Price:     20,
 					Bid:       10,
 					Ask:       30,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want:    Tick{},
+			want:    PairPrice{},
 			wantErr: true,
 		},
 		{
 			name: "ac/cb",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "A", Quote: "C"},
+					Pair:      gofer.Pair{Base: "A", Quote: "C"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "C", Quote: "B"},
+					Pair:      gofer.Pair{Base: "C", Quote: "B"},
 					Price:     20,
 					Bid:       10,
 					Ask:       30,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "A", Quote: "C"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "A", Quote: "C"},
 				Price:     float64(20) * 10,
 				Bid:       float64(10) * 5,
 				Ask:       float64(30) * 15,
 				Volume24h: 10,
-				Timestamp: time.Unix(10, 0),
+				Time:      time.Unix(10, 0),
 			},
 			wantErr: false,
 		},
 		{
 			name: "ca/bc",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "C", Quote: "A"},
+					Pair:      gofer.Pair{Base: "C", Quote: "A"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "B", Quote: "C"},
+					Pair:      gofer.Pair{Base: "B", Quote: "C"},
 					Price:     20,
 					Bid:       10,
 					Ask:       30,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "A", Quote: "C"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "A", Quote: "C"},
 				Price:     float64(1) / 20 / 10,
 				Bid:       float64(1) / 10 / 5,
 				Ask:       float64(1) / 30 / 15,
 				Volume24h: 10,
-				Timestamp: time.Unix(10, 0),
+				Time:      time.Unix(10, 0),
 			},
 			wantErr: false,
 		},
 		{
 			name: "ca/bc-divByZero1",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "C", Quote: "A"},
+					Pair:      gofer.Pair{Base: "C", Quote: "A"},
 					Price:     10,
 					Bid:       5,
 					Ask:       15,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "B", Quote: "C"},
+					Pair:      gofer.Pair{Base: "B", Quote: "C"},
 					Price:     0,
 					Bid:       0,
 					Ask:       0,
 					Volume24h: 0,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want:    Tick{},
+			want:    PairPrice{},
 			wantErr: true,
 		},
 		{
 			name: "ca/bc-divByZero2",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "C", Quote: "A"},
+					Pair:      gofer.Pair{Base: "C", Quote: "A"},
 					Price:     0,
 					Bid:       0,
 					Ask:       0,
 					Volume24h: 0,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "B", Quote: "C"},
+					Pair:      gofer.Pair{Base: "B", Quote: "C"},
 					Price:     20,
 					Bid:       10,
 					Ask:       30,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 			},
-			want:    Tick{},
+			want:    PairPrice{},
 			wantErr: true,
 		},
 		{
 			name: "lowest-timestamp",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "A", Quote: "B"},
+					Pair:      gofer.Pair{Base: "A", Quote: "B"},
 					Price:     1,
 					Bid:       1,
 					Ask:       1,
 					Volume24h: 0,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "B", Quote: "C"},
+					Pair:      gofer.Pair{Base: "B", Quote: "C"},
 					Price:     1,
 					Bid:       1,
 					Ask:       1,
 					Volume24h: 0,
-					Timestamp: time.Unix(5, 0),
+					Time:      time.Unix(5, 0),
 				},
 				{
-					Pair:      Pair{Base: "C", Quote: "D"},
+					Pair:      gofer.Pair{Base: "C", Quote: "D"},
 					Price:     1,
 					Bid:       1,
 					Ask:       1,
 					Volume24h: 0,
-					Timestamp: time.Unix(15, 0),
+					Time:      time.Unix(15, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "A", Quote: "D"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "A", Quote: "D"},
 				Price:     1,
 				Bid:       1,
 				Ask:       1,
 				Volume24h: 0,
-				Timestamp: time.Unix(5, 0),
+				Time:      time.Unix(5, 0),
 			},
 			wantErr: false,
 		},
 		{
 			name: "five-pairs",
-			ticks: []Tick{
+			prices: []PairPrice{
 				{
-					Pair:      Pair{Base: "ETH", Quote: "BTC"}, // -> ETH/BTC
+					Pair:      gofer.Pair{Base: "ETH", Quote: "BTC"}, // -> ETH/BTC
 					Price:     0.050,
 					Bid:       0.040,
 					Ask:       0.060,
 					Volume24h: 10,
-					Timestamp: time.Unix(10, 0),
+					Time:      time.Unix(10, 0),
 				},
 				{
-					Pair:      Pair{Base: "BTC", Quote: "USD"}, // -> ETH/USD
+					Pair:      gofer.Pair{Base: "BTC", Quote: "USD"}, // -> ETH/USD
 					Price:     10000.000,
 					Bid:       9000.000,
 					Ask:       11000.000,
 					Volume24h: 15,
-					Timestamp: time.Unix(9, 0),
+					Time:      time.Unix(9, 0),
 				},
 				{
-					Pair:      Pair{Base: "EUR", Quote: "USD"}, // -> ETH/EUR
+					Pair:      gofer.Pair{Base: "EUR", Quote: "USD"}, // -> ETH/EUR
 					Price:     1.250,
 					Bid:       1.200,
 					Ask:       1.300,
 					Volume24h: 20,
-					Timestamp: time.Unix(11, 0),
+					Time:      time.Unix(11, 0),
 				},
 				{
-					Pair:      Pair{Base: "EUR", Quote: "CAD"}, // -> ETH/CAD
+					Pair:      gofer.Pair{Base: "EUR", Quote: "CAD"}, // -> ETH/CAD
 					Price:     1.250,
 					Bid:       1.200,
 					Ask:       1.300,
 					Volume24h: 25,
-					Timestamp: time.Unix(8, 0),
+					Time:      time.Unix(8, 0),
 				},
 				{
-					Pair:      Pair{Base: "GPB", Quote: "ETH"}, // -> GPB/CAD
+					Pair:      gofer.Pair{Base: "GPB", Quote: "ETH"}, // -> GPB/CAD
 					Price:     0.005,
 					Bid:       0.004,
 					Ask:       0.006,
 					Volume24h: 30,
-					Timestamp: time.Unix(13, 0),
+					Time:      time.Unix(13, 0),
 				},
 			},
-			want: Tick{
-				Pair:      Pair{Base: "GPB", Quote: "CAD"},
+			want: PairPrice{
+				Pair:      gofer.Pair{Base: "GPB", Quote: "CAD"},
 				Price:     float64(1) / (((float64(0.050) * 10000.000) / 1.250) * 1.250) / 0.005,
 				Bid:       float64(1) / (((float64(0.040) * 9000.000) / 1.200) * 1.200) / 0.004,
 				Ask:       float64(1) / (((float64(0.060) * 11000.000) / 1.300) * 1.300) / 0.006,
 				Volume24h: 0,
-				Timestamp: time.Unix(8, 0),
+				Time:      time.Unix(8, 0),
 			},
 			wantErr: false,
 		},
@@ -778,7 +780,7 @@ func Test_crossRate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := crossRate(tt.ticks)
+			got, err := crossRate(tt.prices)
 
 			if err != nil {
 				if tt.wantErr {
@@ -791,7 +793,7 @@ func Test_crossRate(t *testing.T) {
 			assert.InDelta(t, tt.want.Price, got.Price, 0.000000001)
 			assert.InDelta(t, tt.want.Bid, got.Bid, 0.000000001)
 			assert.InDelta(t, tt.want.Ask, got.Ask, 0.000000001)
-			assert.Equal(t, tt.want.Timestamp.Unix(), got.Timestamp.Unix())
+			assert.Equal(t, tt.want.Time.Unix(), got.Time.Unix())
 			assert.Nil(t, err)
 		})
 	}

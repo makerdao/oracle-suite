@@ -31,7 +31,6 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Long:  ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			var err error
-
 			logger, err = newLogger(opts.Verbosity)
 			if err != nil {
 				return err
@@ -41,17 +40,14 @@ func NewAgentCmd(opts *options) *cobra.Command {
 				return err
 			}
 
+			// Start the RPC server:
 			err = srv.Start()
 			if err != nil {
 				return err
 			}
-			defer func() {
-				err := srv.Stop()
-				if err != nil {
-					logger.WithError(err).Error("Unable to stop RPC Server")
-				}
-			}()
+			defer srv.Stop()
 
+			// Wait for the interrupt signal:
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c

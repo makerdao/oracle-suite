@@ -19,6 +19,16 @@ import (
 	"fmt"
 )
 
+// FormatType describes output format type.
+type FormatType int
+
+const (
+	Plain FormatType = iota
+	JSON
+	NDJSON
+	Trace
+)
+
 // Marshaller is the interface which must be implemented by different
 // marshallers used to format output for the CLI.
 type Marshaller interface {
@@ -31,16 +41,6 @@ type Marshaller interface {
 type Marshal struct {
 	marshaller Marshaller
 }
-
-const (
-	Plain FormatType = iota
-	JSON
-	NDJSON
-	Trace
-)
-
-// FormatType describes format used by Marshal.
-type FormatType int
 
 // NewMarshal returns new Marshal instance.
 func NewMarshal(format FormatType) (*Marshal, error) {
@@ -68,8 +68,7 @@ func (m *Marshal) Write(w interface{}) error {
 	return m.marshaller.Write(w)
 }
 
-// Marshall simplifies marshalling items. It allows to marshall items in one
-// line.
+// Marshall marshals list of items.
 func Marshall(format FormatType, items ...interface{}) ([]byte, error) {
 	m, err := NewMarshal(format)
 	if err != nil {

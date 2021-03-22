@@ -166,7 +166,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 
 		if r, ok := respMap[pair0]; ok {
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     r.Price1.val(),
 					Bid:       r.Price1.val(),
@@ -177,7 +177,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 			})
 		} else if r, ok := respMap[pair1]; ok {
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     r.Price0.val(),
 					Bid:       r.Price0.val(),
@@ -188,7 +188,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 			})
 		} else {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
 			})
 		}

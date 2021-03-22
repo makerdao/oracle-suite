@@ -114,11 +114,11 @@ func (suite *GateioSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(5.0, cr[0].Tick.Price)
-	suite.Equal(6.0, cr[0].Tick.Ask)
-	suite.Equal(7.0, cr[0].Tick.Bid)
-	suite.Equal(8.0, cr[0].Tick.Volume24h)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(5.0, cr[0].Price.Price)
+	suite.Equal(6.0, cr[0].Price.Ask)
+	suite.Equal(7.0, cr[0].Price.Bid)
+	suite.Equal(8.0, cr[0].Price.Volume24h)
+	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *GateioSuite) TestRealAPICall() {

@@ -24,15 +24,17 @@ import (
 
 	"github.com/makerdao/gofer/internal/gofer/marshal"
 	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/config"
 	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
+	"github.com/makerdao/gofer/pkg/gofer/rpc"
 	"github.com/makerdao/gofer/pkg/log"
 	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
 )
 
-type SilentErr struct{}
+// errSilent is used to return an non-zero status code without an error
+// message.
+type errSilent struct{}
 
-func (e SilentErr) Error() string { return "" }
+func (e errSilent) Error() string { return "" }
 
 func main() {
 	opts := options{
@@ -41,13 +43,13 @@ func main() {
 
 	rootCmd := NewRootCommand(&opts)
 	rootCmd.AddCommand(
-		NewOriginsCmd(&opts),
 		NewPairsCmd(&opts),
 		NewPricesCmd(&opts),
+		NewAgentCmd(&opts),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		if _, ok := err.(SilentErr); !ok {
+		if _, ok := err.(errSilent); !ok {
 			fmt.Printf("Error: %s\n", err)
 		}
 		os.Exit(1)
@@ -66,7 +68,7 @@ func newLogger(level string) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
+func newGofer(opts *options, path string, logger log.Logger) (gofer.Gofer, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -77,10 +79,32 @@ func newGofer(opts *options, path string, l log.Logger) (*gofer.Gofer, error) {
 		return nil, err
 	}
 
-	i, err := opts.Config.Configure(config.Dependencies{Logger: l})
+	var gof gofer.Gofer
+	if opts.Config.RPC.Address == "" || opts.NoRPC {
+		gof, err = opts.Config.ConfigureGofer(logger)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		gof, err = opts.Config.ConfigureRPCClient(logger)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return gof, nil
+}
+
+func newAgent(opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return i.Gofer, nil
+	err = configJSON.ParseJSONFile(&opts.Config, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return opts.Config.ConfigureRPCAgent(logger)
 }

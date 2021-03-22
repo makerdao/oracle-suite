@@ -97,9 +97,9 @@ func (f *Fx) callByBase(base string, pairs []Pair) ([]FetchResult, error) {
 	results := make([]FetchResult, len(pairs))
 	for i, pair := range pairs {
 		if price, ok := resp.Rates[f.renameSymbol(pair.Quote)]; ok {
-			// Build Tick from exchange response.
+			// Build Price from exchange response.
 			results[i] = FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     price,
 					Timestamp: time.Now(),

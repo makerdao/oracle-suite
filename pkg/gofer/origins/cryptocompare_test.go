@@ -94,8 +94,8 @@ func (suite *CryptoCompareSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(0.04687, cr[0].Tick.Price)
-	suite.Equal(cr[0].Tick.Timestamp.Unix(), int64(1599982420))
+	suite.Equal(0.04687, cr[0].Price.Price)
+	suite.Equal(cr[0].Price.Timestamp.Unix(), int64(1599982420))
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {

@@ -25,7 +25,7 @@ import (
 )
 
 // Huobi URL
-const huobiURL = "https://api.huobi.pro/market/tickers"
+const huobiURL = "https://api.huobi.pro/market/priceers"
 
 type huobiResponse struct {
 	Symbol string  `json:"symbol"`
@@ -88,7 +88,7 @@ func (h *Huobi) fetch(pairs []Pair) ([]FetchResult, error) {
 	frs := make([]FetchResult, len(pairs))
 	for i, p := range pairs {
 		if t, has := respMap[h.localPairName(p)]; has {
-			frs[i] = fetchResult(Tick{
+			frs[i] = fetchResult(Price{
 				Pair:      p,
 				Price:     (t.Ask + t.Bid) / 2,
 				Ask:       t.Ask,

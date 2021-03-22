@@ -45,11 +45,11 @@ var (
 		},
 		Trace: nil,
 	}
-	server *Server
-	client *Client
+	agent *Agent
+	spire *Spire
 )
 
-func newClientServer() (*Server, *Client) {
+func newTestInstances() (*Agent, *Spire) {
 	log := null.New()
 	sig := &mocks.Signer{}
 	tra := local.New(0)
@@ -65,7 +65,7 @@ func newClientServer() (*Server, *Client) {
 
 	sig.On("Recover", mock.Anything, mock.Anything).Return(&testAddress, nil)
 
-	srv, err := NewServer(ServerConfig{
+	agt, err := NewAgent(AgentConfig{
 		Datastore: dat,
 		Transport: tra,
 		Signer:    sig,
@@ -76,36 +76,32 @@ func newClientServer() (*Server, *Client) {
 	if err != nil {
 		panic(err)
 	}
-	err = srv.Start()
+	err = agt.Start()
 	if err != nil {
 		panic(err)
 	}
 
-	cli := NewClient(ClientConfig{
+	cli := NewSpire(Config{
 		Signer:  sig,
 		Network: "tcp",
-		Address: srv.listener.Addr().String(),
-		Logger:  log,
+		Address: agt.listener.Addr().String(),
 	})
 	err = cli.Start()
 	if err != nil {
 		panic(err)
 	}
 
-	return srv, cli
+	return agt, cli
 }
 
 func TestMain(m *testing.M) {
 	var err error
 
-	server, client = newClientServer()
+	agent, spire = newTestInstances()
 	retCode := m.Run()
 
-	err = server.Stop()
-	if err != nil {
-		panic(err)
-	}
-	err = client.Stop()
+	agent.Stop()
+	err = spire.Stop()
 	if err != nil {
 		panic(err)
 	}
@@ -114,7 +110,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestClient_PublishPrice(t *testing.T) {
-	err := client.PublishPrice(testPriceAAABBB)
+	err := spire.PublishPrice(testPriceAAABBB)
 	assert.NoError(t, err)
 }
 
@@ -122,11 +118,11 @@ func TestClient_PullPrice(t *testing.T) {
 	var err error
 	var price *messages.Price
 
-	err = client.PublishPrice(testPriceAAABBB)
+	err = spire.PublishPrice(testPriceAAABBB)
 	assert.NoError(t, err)
 
 	wait(func() bool {
-		price, err = client.PullPrice("AAABBB", testAddress.String())
+		price, err = spire.PullPrice("AAABBB", testAddress.String())
 		return price != nil
 	}, time.Second)
 
@@ -138,11 +134,11 @@ func TestClient_PullPrices_ByAssetPrice(t *testing.T) {
 	var err error
 	var prices []*messages.Price
 
-	err = client.PublishPrice(testPriceAAABBB)
+	err = spire.PublishPrice(testPriceAAABBB)
 	assert.NoError(t, err)
 
 	wait(func() bool {
-		prices, err = client.PullPrices("AAABBB", "")
+		prices, err = spire.PullPrices("AAABBB", "")
 		return len(prices) == 0
 	}, time.Second)
 
@@ -155,11 +151,11 @@ func TestClient_PullPrices_ByFeeder(t *testing.T) {
 	var err error
 	var prices []*messages.Price
 
-	err = client.PublishPrice(testPriceAAABBB)
+	err = spire.PublishPrice(testPriceAAABBB)
 	assert.NoError(t, err)
 
 	wait(func() bool {
-		prices, err = client.PullPrices("", testAddress.String())
+		prices, err = spire.PullPrices("", testAddress.String())
 		return len(prices) == 0
 	}, time.Second)
 

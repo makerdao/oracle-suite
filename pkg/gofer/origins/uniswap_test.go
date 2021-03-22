@@ -183,21 +183,21 @@ func (suite *UniswapSuite) TestSuccessResponse() {
 
 	// LRC/WETH
 	suite.NoError(fr[0].Error)
-	suite.Equal(pairLRCWETH, fr[0].Tick.Pair)
-	suite.Equal(0.0006, fr[0].Tick.Price)
-	suite.Equal(0.0006, fr[0].Tick.Bid)
-	suite.Equal(0.0006, fr[0].Tick.Ask)
-	suite.Equal(274940368.6801, fr[0].Tick.Volume24h)
-	suite.Greater(fr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(pairLRCWETH, fr[0].Price.Pair)
+	suite.Equal(0.0006, fr[0].Price.Price)
+	suite.Equal(0.0006, fr[0].Price.Bid)
+	suite.Equal(0.0006, fr[0].Price.Ask)
+	suite.Equal(274940368.6801, fr[0].Price.Volume24h)
+	suite.Greater(fr[0].Price.Timestamp.Unix(), int64(0))
 
 	// WETH/COMP
 	suite.NoError(fr[1].Error)
-	suite.Equal(pairWETHCOMP, fr[1].Tick.Pair)
-	suite.Equal(2.4889, fr[1].Tick.Price)
-	suite.Equal(2.4889, fr[1].Tick.Bid)
-	suite.Equal(2.4889, fr[1].Tick.Ask)
-	suite.Equal(714460.7483, fr[1].Tick.Volume24h)
-	suite.Greater(fr[1].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(pairWETHCOMP, fr[1].Price.Pair)
+	suite.Equal(2.4889, fr[1].Price.Price)
+	suite.Equal(2.4889, fr[1].Price.Bid)
+	suite.Equal(2.4889, fr[1].Price.Ask)
+	suite.Equal(714460.7483, fr[1].Price.Volume24h)
+	suite.Greater(fr[1].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *UniswapSuite) TestRealAPICall() {

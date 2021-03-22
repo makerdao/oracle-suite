@@ -97,7 +97,7 @@ func (b *Bittrex) Fetch(pairs []Pair) []FetchResult {
 	for _, pair := range pairs {
 		if r, ok := respMap[b.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
 			})
 		} else {
@@ -108,7 +108,7 @@ func (b *Bittrex) Fetch(pairs []Pair) []FetchResult {
 			}
 
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     r.Last,
 					Bid:       r.Bid,

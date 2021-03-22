@@ -28,7 +28,7 @@ import (
 )
 
 // Coinbase URL
-const coinbaseProURL = "https://api.pro.coinbase.com/products/%s/ticker"
+const coinbaseProURL = "https://api.pro.coinbase.com/products/%s/priceer"
 
 type coinbaseProResponse struct {
 	Price  string `json:"price"`
@@ -54,7 +54,7 @@ func (c *CoinbasePro) Fetch(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(c, pairs)
 }
 
-func (c *CoinbasePro) callOne(pair Pair) (*Tick, error) {
+func (c *CoinbasePro) callOne(pair Pair) (*Price, error) {
 	var err error
 	req := &query.HTTPRequest{
 		URL: c.getURL(pair),
@@ -94,8 +94,8 @@ func (c *CoinbasePro) callOne(pair Pair) (*Tick, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bid from coinbasepro origin %s", res.Body)
 	}
-	// building Tick
-	return &Tick{
+	// building Price
+	return &Price{
 		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,

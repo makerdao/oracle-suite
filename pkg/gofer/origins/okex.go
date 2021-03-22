@@ -23,7 +23,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-const okexURL = "https://www.okex.com/api/spot/v3/instruments/ticker"
+const okexURL = "https://www.okex.com/api/spot/v3/instruments/priceer"
 
 type okexResponse struct {
 	InstrumentID  string          `json:"instrument_id"`
@@ -76,12 +76,12 @@ func (o *Okex) Fetch(pairs []Pair) []FetchResult {
 	for _, pair := range pairs {
 		if r, ok := respMap[o.localPairName(pair)]; !ok {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     r.Last.val(),
 					Bid:       r.BestBid.val(),

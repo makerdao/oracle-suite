@@ -94,8 +94,8 @@ func (l *Loopring) pickPairDetails(response loopringResponse, pair Pair) FetchRe
 	if !ok {
 		return fetchResultWithError(pair, fmt.Errorf("no %s pair exist in loopring response", pair))
 	}
-	// building Tick
-	return fetchResult(Tick{
+	// building Price
+	return fetchResult(Price{
 		Pair:      pair,
 		Price:     pairRes.Price.val(),
 		Volume24h: pairRes.Volume.val(),

@@ -13,36 +13,37 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cli
+package graph
 
 import (
-	"sort"
-
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/graph/feeder"
+	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
 )
 
-type pairsLister interface {
-	Graphs() map[graph.Pair]graph.Aggregator
+// AsyncGofer implements the gofer.Gofer interface. It works just like Graph
+// but allows to update prices asynchronously.
+type AsyncGofer struct {
+	*Gofer
+	feeder *feeder.Feeder
 }
 
-func Pairs(l pairsLister, m itemWriter) error {
-	var err error
-
-	var graphs []graph.Aggregator
-	for _, g := range l.Graphs() {
-		graphs = append(graphs, g)
+// NewAsyncGofer returns a new AsyncGofer instance.
+func NewAsyncGofer(g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) *AsyncGofer {
+	return &AsyncGofer{
+		Gofer:  NewGofer(g, nil),
+		feeder: f,
 	}
+}
 
-	sort.SliceStable(graphs, func(i, j int) bool {
-		return graphs[i].Pair().String() < graphs[j].Pair().String()
-	})
+// Start starts asynchronous price updater.
+func (a *AsyncGofer) Start() error {
+	ns, _ := a.findNodes()
+	return a.feeder.Start(ns...)
+}
 
-	for _, g := range graphs {
-		err = m.Write(g)
-		if err != nil {
-			return err
-		}
-	}
-
+// Start stops asynchronous price updater.
+func (a *AsyncGofer) Stop() error {
+	a.feeder.Stop()
 	return nil
 }

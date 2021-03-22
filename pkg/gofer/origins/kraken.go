@@ -28,7 +28,7 @@ type Kraken struct {
 	Pool query.WorkerPool
 }
 
-const krakenURL = "https://api.kraken.com/0/public/Ticker?pair=%s"
+const krakenURL = "https://api.kraken.com/0/public/Priceer?pair=%s"
 
 func (o *Kraken) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
@@ -63,12 +63,12 @@ func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchRes
 	for _, pair := range pairs {
 		if t, is := resp.Result[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
-				Tick:  Tick{Pair: pair},
+				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
 			})
 		} else {
 			results = append(results, FetchResult{
-				Tick: Tick{
+				Price: Price{
 					Pair:      pair,
 					Price:     t.Price.val(),
 					Ask:       t.Ask.val(),

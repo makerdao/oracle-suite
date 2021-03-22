@@ -151,21 +151,21 @@ func (suite *OkexSuite) TestSuccessResponse() {
 
 	// BTC/ETH
 	suite.NoError(fr[0].Error)
-	suite.Equal(pairBTCETH, fr[0].Tick.Pair)
-	suite.Equal(1.1, fr[0].Tick.Price)
-	suite.Equal(1.0, fr[0].Tick.Bid)
-	suite.Equal(1.3, fr[0].Tick.Ask)
-	suite.Equal(10.1, fr[0].Tick.Volume24h)
-	suite.Greater(fr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(pairBTCETH, fr[0].Price.Pair)
+	suite.Equal(1.1, fr[0].Price.Price)
+	suite.Equal(1.0, fr[0].Price.Bid)
+	suite.Equal(1.3, fr[0].Price.Ask)
+	suite.Equal(10.1, fr[0].Price.Volume24h)
+	suite.Greater(fr[0].Price.Timestamp.Unix(), int64(0))
 
 	// BTC/USD
 	suite.NoError(fr[1].Error)
-	suite.Equal(pairBTCUSD, fr[1].Tick.Pair)
-	suite.Equal(2.1, fr[1].Tick.Price)
-	suite.Equal(2.0, fr[1].Tick.Bid)
-	suite.Equal(2.3, fr[1].Tick.Ask)
-	suite.Equal(20.1, fr[1].Tick.Volume24h)
-	suite.Greater(fr[1].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(pairBTCUSD, fr[1].Price.Pair)
+	suite.Equal(2.1, fr[1].Price.Price)
+	suite.Equal(2.0, fr[1].Price.Bid)
+	suite.Equal(2.3, fr[1].Price.Ask)
+	suite.Equal(20.1, fr[1].Price.Volume24h)
+	suite.Greater(fr[1].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *OkexSuite) TestRealAPICall() {

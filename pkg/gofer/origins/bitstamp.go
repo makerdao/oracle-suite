@@ -26,7 +26,7 @@ import (
 )
 
 // Bitstamp URL
-const bitstampURL = "https://www.bitstamp.net/api/v2/ticker/%s"
+const bitstampURL = "https://www.bitstamp.net/api/v2/priceer/%s"
 
 type bitstampResponse struct {
 	Ask       string `json:"ask"`
@@ -57,7 +57,7 @@ func (b *Bitstamp) Fetch(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(b, pairs)
 }
 
-func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
+func (b *Bitstamp) callOne(pair Pair) (*Price, error) {
 	var err error
 	req := &query.HTTPRequest{
 		URL: b.getURL(pair),
@@ -103,8 +103,8 @@ func (b *Bitstamp) callOne(pair Pair) (*Tick, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse timestamp from bitstamp origin %s", res.Body)
 	}
-	// building Tick
-	return &Tick{
+	// building Price
+	return &Price{
 		Pair:      pair,
 		Price:     price,
 		Volume24h: volume,

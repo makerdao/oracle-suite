@@ -17,54 +17,74 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/gofer/cli"
 	"github.com/makerdao/gofer/internal/gofer/marshal"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-func NewPairsCmd(o *options) *cobra.Command {
+func NewPairsCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
-		Use:     "pairs",
+		Use:     "pairs [PAIR...]",
 		Aliases: []string{"pair"},
-		Args:    cobra.NoArgs,
-		Short:   "List all supported pairs",
+		Args:    cobra.MinimumNArgs(0),
+		Short:   "List all supported asset pairs",
 		Long:    `List all supported asset pairs.`,
-		RunE: func(_ *cobra.Command, args []string) error {
-			m, err := marshal.NewMarshal(o.OutputFormat.format)
+		RunE: func(_ *cobra.Command, args []string) (err error) {
+			log, err := newLogger(opts.LogVerbosity)
+			if err != nil {
+				return
+			}
+
+			mar, err := marshal.NewMarshal(opts.OutputFormat.format)
+			if err != nil {
+				return
+			}
+
+			gof, err := newGofer(opts, opts.ConfigFilePath, log)
+			if err != nil {
+				return
+			}
+
+			if sg, ok := gof.(gofer.StartableGofer); ok {
+				err = sg.Start()
+				if err != nil {
+					return
+				}
+				defer func() {
+					gerr := sg.Stop()
+					if err == nil {
+						err = gerr
+					}
+				}()
+			}
+
+			pairs, err := gofer.NewPairs(args...)
 			if err != nil {
 				return err
 			}
 
-			absPath, err := filepath.Abs(o.ConfigFilePath)
+			models, err := gof.Models(pairs...)
 			if err != nil {
-				return err
+				return
 			}
 
-			l, err := newLogger(o.LogVerbosity)
-			if err != nil {
-				return err
+			for _, p := range models {
+				err = mar.Write(p)
+				if err != nil {
+					return
+				}
 			}
 
-			g, err := newGofer(o, absPath, l)
+			bts, err := mar.Bytes()
 			if err != nil {
-				return err
+				return
 			}
 
-			err = cli.Pairs(g, m)
-			if err != nil {
-				return err
-			}
-
-			bts, err := m.Bytes()
-			if err != nil {
-				return err
-			}
 			fmt.Print(string(bts))
 
-			return nil
+			return
 		},
 	}
 }

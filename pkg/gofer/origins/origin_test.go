@@ -51,7 +51,7 @@ func (suite *OriginsSuite) TestCallWithMissingOrigin() {
 	pair := Pair{Quote: "A", Base: "B"}
 	cr = suite.set.Fetch(map[string][]Pair{"x": {pair}})
 
-	assert.Equal(suite.T(), pair, cr["x"][0].Tick.Pair)
+	assert.Equal(suite.T(), pair, cr["x"][0].Price.Pair)
 	assert.Error(suite.T(), cr["x"][0].Error)
 }
 
@@ -83,8 +83,8 @@ func (suite *OriginsSuite) TestSuccessBinance() {
 	cr := suite.set.Fetch(map[string][]Pair{"binance": {pair}})
 
 	assert.NoError(suite.T(), cr["binance"][0].Error)
-	assert.EqualValues(suite.T(), pair, cr["binance"][0].Tick.Pair)
-	assert.EqualValues(suite.T(), price, cr["binance"][0].Tick.Price)
+	assert.EqualValues(suite.T(), pair, cr["binance"][0].Price.Pair)
+	assert.EqualValues(suite.T(), price, cr["binance"][0].Price.Price)
 }
 
 // In order for 'go test' to run this suite, we need to create

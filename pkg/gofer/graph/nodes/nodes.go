@@ -13,7 +13,9 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
+
+import "github.com/makerdao/gofer/pkg/gofer"
 
 // Node represents generics node in a graph.
 type Node interface {
@@ -26,18 +28,18 @@ type Parent interface {
 	AddChild(node Node)
 }
 
-// Aggregator represents a node which can aggregate ticks from its children.
+// Aggregator represents a node which can aggregate prices from its children.
 type Aggregator interface {
 	Node
-	Pair() Pair
-	Tick() AggregatorTick
+	Pair() gofer.Pair
+	Price() AggregatorPrice
 }
 
-// Origin represents a node which provides tick directly from an origin.
+// Origin represents a node which provides price directly from an origin.
 type Origin interface {
 	Node
 	OriginPair() OriginPair
-	Tick() OriginTick
+	Price() OriginPrice
 }
 
 func Walk(fn func(Node), nodes ...Node) {
@@ -72,8 +74,8 @@ func DetectCycle(node Node) []Node {
 	recur = func(node Node, parents []Node) []Node {
 		// If node already appeared in the parents list, it means that given
 		// graph is cyclic.
-		for _, n := range parents {
-			if n == node {
+		for _, p := range parents {
+			if p == node {
 				return parents
 			}
 		}

@@ -54,7 +54,7 @@ func (k *Kucoin) Fetch(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(k, pairs)
 }
 
-func (k *Kucoin) callOne(pair Pair) (*Tick, error) {
+func (k *Kucoin) callOne(pair Pair) (*Price, error) {
 	var err error
 	req := &query.HTTPRequest{
 		URL: k.getURL(pair),
@@ -90,8 +90,8 @@ func (k *Kucoin) callOne(pair Pair) (*Tick, error) {
 		return nil, fmt.Errorf("failed to parse bid from kucoin origin %s", res.Body)
 	}
 	// Parsing volume from string
-	// building Tick
-	return &Tick{
+	// building Price
+	return &Price{
 		Pair:      pair,
 		Timestamp: time.Unix(resp.Data.Time/1000, 0),
 		Price:     price,

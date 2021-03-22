@@ -26,8 +26,8 @@ import (
 )
 
 // Gateio URL
-const gateioSinglePairURL = "https://fx-api.gateio.ws/api/v4/spot/tickers?currency_pair=%s"
-const gateioURL = "https://fx-api.gateio.ws/api/v4/spot/tickers"
+const gateioSinglePairURL = "https://fx-api.gateio.ws/api/v4/spot/priceers?currency_pair=%s"
+const gateioURL = "https://fx-api.gateio.ws/api/v4/spot/priceers"
 
 type gateioResponse struct {
 	Pair   string `json:"currency_pair"`
@@ -95,14 +95,14 @@ func (g *Gateio) fetch(pairs []Pair) ([]FetchResult, error) {
 	for i, pair := range pairs {
 		symbol := g.localPairName(pair)
 		if resp, has := respMap[symbol]; has {
-			tick, err := g.newTick(pair, resp)
+			price, err := g.newPrice(pair, resp)
 			if err != nil {
 				frs[i] = fetchResultWithError(
 					pair,
 					fmt.Errorf("failed to create price point from gateio response: %w: %s", err, res.Body),
 				)
 			} else {
-				frs[i] = fetchResult(tick)
+				frs[i] = fetchResult(price)
 			}
 		} else {
 			frs[i] = fetchResultWithError(
@@ -114,33 +114,33 @@ func (g *Gateio) fetch(pairs []Pair) ([]FetchResult, error) {
 	return frs, nil
 }
 
-func (g *Gateio) newTick(pair Pair, resp gateioResponse) (Tick, error) {
+func (g *Gateio) newPrice(pair Pair, resp gateioResponse) (Price, error) {
 	// Check pair name
 	if resp.Pair != g.localPairName(pair) {
-		return Tick{}, fmt.Errorf("wrong gateio pair returned: %s", resp.Pair)
+		return Price{}, fmt.Errorf("wrong gateio pair returned: %s", resp.Pair)
 	}
 
 	// Parsing price from string
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse price from gateio exchange")
+		return Price{}, fmt.Errorf("failed to parse price from gateio exchange")
 	}
 	// Parsing volume from string
 	volume, err := strconv.ParseFloat(resp.Volume, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse volume from gateio exchange")
+		return Price{}, fmt.Errorf("failed to parse volume from gateio exchange")
 	}
 	ask, err := strconv.ParseFloat(resp.Ask, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse ask from gateio exchange")
+		return Price{}, fmt.Errorf("failed to parse ask from gateio exchange")
 	}
 	bid, err := strconv.ParseFloat(resp.Bid, 64)
 	if err != nil {
-		return Tick{}, fmt.Errorf("failed to parse bid from gateio exchange")
+		return Price{}, fmt.Errorf("failed to parse bid from gateio exchange")
 	}
 
-	// building Tick
-	return Tick{
+	// building Price
+	return Price{
 		Pair:      pair,
 		Price:     price,
 		Ask:       ask,

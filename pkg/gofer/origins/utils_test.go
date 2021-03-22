@@ -43,7 +43,7 @@ func testRealBatchAPICall(suite Suite, origin Handler, pairs []Pair) {
 	crs := origin.Fetch(pairs)
 
 	for _, cr := range crs {
-		suite.Assert().NoErrorf(cr.Error, "%q", cr.Tick.Pair)
-		suite.Assert().Greater(cr.Tick.Price, float64(0))
+		suite.Assert().NoErrorf(cr.Error, "%q", cr.Price.Pair)
+		suite.Assert().Greater(cr.Price.Price, float64(0))
 	}
 }

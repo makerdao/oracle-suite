@@ -122,11 +122,11 @@ func (suite *CoinbaseProSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Equal(2.0, cr[0].Tick.Ask)
-	suite.Equal(3.0, cr[0].Tick.Volume24h)
-	suite.Equal(4.0, cr[0].Tick.Bid)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Equal(1.0, cr[0].Price.Price)
+	suite.Equal(2.0, cr[0].Price.Ask)
+	suite.Equal(3.0, cr[0].Price.Volume24h)
+	suite.Equal(4.0, cr[0].Price.Bid)
+	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(2))
 }
 
 func (suite *CoinbaseProSuite) TestRealAPICall() {

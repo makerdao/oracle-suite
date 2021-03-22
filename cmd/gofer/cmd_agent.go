@@ -16,53 +16,40 @@
 package main
 
 import (
-	"fmt"
-	"path/filepath"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
-
-	"github.com/makerdao/gofer/internal/gofer/cli"
-	"github.com/makerdao/gofer/internal/gofer/marshal"
 )
 
-func NewOriginsCmd(o *options) *cobra.Command {
+func NewAgentCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
-		Use:     "origins [PAIR...]",
-		Aliases: []string{"origin", "exchanges", "exchange", "sources", "source"},
-		Short:   "List supported origins",
-		Long: `Lists origins that will be queried for all of the supported pairs
-or a subset of those, if at least one PAIR is provided.`,
+		Use:   "agent",
+		Args:  cobra.NoArgs,
+		Short: "Start an RPC server",
+		Long:  `Start an RPC server.`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			m, err := marshal.NewMarshal(o.OutputFormat.format)
+			log, err := newLogger(opts.LogVerbosity)
+			if err != nil {
+				return err
+			}
+			srv, err := newAgent(opts, opts.ConfigFilePath, log)
 			if err != nil {
 				return err
 			}
 
-			absPath, err := filepath.Abs(o.ConfigFilePath)
+			// Start the RPC server:
+			err = srv.Start()
 			if err != nil {
 				return err
 			}
+			defer srv.Stop()
 
-			l, err := newLogger(o.LogVerbosity)
-			if err != nil {
-				return err
-			}
-
-			g, err := newGofer(o, absPath, l)
-			if err != nil {
-				return err
-			}
-
-			err = cli.Origins(args, g, m)
-			if err != nil {
-				return err
-			}
-
-			bts, err := m.Bytes()
-			if err != nil {
-				return err
-			}
-			fmt.Print(string(bts))
+			// Wait for the interrupt signal:
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+			<-c
 
 			return nil
 		},

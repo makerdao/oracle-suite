@@ -17,128 +17,102 @@ package gofer
 
 import (
 	"fmt"
-
-	"github.com/makerdao/gofer/pkg/gofer/feeder"
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"strings"
+	"time"
 )
 
-type ErrPairNotFound struct {
-	AssetPair string
+// Pair represents an asset pair.
+type Pair struct {
+	Base  string
+	Quote string
 }
 
-func (e ErrPairNotFound) Error() string {
-	return fmt.Sprintf("unable to find the %s pair", e.AssetPair)
-}
-
-type Gofer struct {
-	graphs map[graph.Pair]graph.Aggregator
-	feeder *feeder.Feeder
-}
-
-// NewGofer returns a new Gofer instance.
-func NewGofer(graphs map[graph.Pair]graph.Aggregator, feeder *feeder.Feeder) *Gofer {
-	return &Gofer{
-		graphs: graphs,
-		feeder: feeder,
+// NewPair returns a new Pair for given string. The string must be formatted
+// as "BASE/QUOTE".
+func NewPair(s string) (Pair, error) {
+	ss := strings.Split(s, "/")
+	if len(ss) != 2 {
+		return Pair{}, fmt.Errorf("couldn't parse pair \"%s\"", s)
 	}
+	return Pair{Base: strings.ToUpper(ss[0]), Quote: strings.ToUpper(ss[1])}, nil
 }
 
-// Graphs returns a node's graph used by this Gofer instance.
-func (g *Gofer) Graphs() map[graph.Pair]graph.Aggregator {
-	return g.graphs
-}
-
-// Feeder returns a feeder used by this Gofer instance.
-func (g *Gofer) Feeder() *feeder.Feeder {
-	return g.feeder
-}
-
-// Pairs returns the list of all supported asset pairs.
-func (g *Gofer) Pairs() []graph.Pair {
-	var ps []graph.Pair
-	for p := range g.graphs {
-		ps = append(ps, p)
-	}
-	return ps
-}
-
-// Feed feeds given asset pairs with prices using Feeder.
-func (g *Gofer) Feed(pairs ...graph.Pair) (feeder.Warnings, error) {
-	nodes, err := g.getNodesForPairs(pairs)
-	if err != nil {
-		return feeder.Warnings{}, err
-	}
-	return g.feeder.Feed(nodes), nil
-}
-
-// StartFeeder starts Feeder process that will automatically be updating prices
-// in the background.
-func (g *Gofer) StartFeeder(pairs ...graph.Pair) error {
-	nodes, err := g.getNodesForPairs(pairs)
-	if err != nil {
-		return err
-	}
-	return g.feeder.Start(nodes)
-}
-
-// StopFeeder stops Feeder previously started with the StartFeeder method.
-func (g *Gofer) StopFeeder() {
-	g.feeder.Stop()
-}
-
-// Tick returns a Tick for the given pair.
-func (g *Gofer) Tick(pair graph.Pair) (graph.AggregatorTick, error) {
-	if node, ok := g.graphs[pair]; ok {
-		return node.Tick(), nil
-	}
-	return graph.AggregatorTick{}, ErrPairNotFound{AssetPair: pair.String()}
-}
-
-// Ticks returns a list of Ticks for the given pairs.
-func (g *Gofer) Ticks(pairs ...graph.Pair) ([]graph.AggregatorTick, error) {
-	var ticks []graph.AggregatorTick
-	for _, pair := range pairs {
-		if pg, ok := g.graphs[pair]; ok {
-			ticks = append(ticks, pg.Tick())
-		} else {
-			return nil, ErrPairNotFound{AssetPair: pair.String()}
+// NewPairs returns a Pair slice for given strings. Given strings must be
+// formatted as "BASE/QUOTE".
+func NewPairs(s ...string) ([]Pair, error) {
+	var r []Pair
+	for _, p := range s {
+		pr, err := NewPair(p)
+		if err != nil {
+			return nil, err
 		}
+		r = append(r, pr)
 	}
-	return ticks, nil
+	return r, nil
 }
 
-// Origins returns all origins names which are involved in the calculation
-// of the price for the given pairs.
-func (g *Gofer) Origins(pairs ...graph.Pair) (map[graph.Pair][]string, error) {
-	origins := map[graph.Pair][]string{}
-	for _, pair := range pairs {
-		if pg, ok := g.graphs[pair]; ok {
-			graph.Walk(func(node graph.Node) {
-				if on, ok := node.(*graph.OriginNode); ok {
-					name := on.OriginPair().Origin
-					for _, n := range origins[pair] {
-						if name == n {
-							return
-						}
-					}
-					origins[pair] = append(origins[pair], name)
-				}
-			}, pg)
-		} else {
-			return nil, ErrPairNotFound{AssetPair: pair.String()}
-		}
-	}
-	return origins, nil
+func (p Pair) Empty() bool {
+	return p.Base == "" && p.Quote == ""
 }
 
-func (g *Gofer) getNodesForPairs(pairs []graph.Pair) ([]graph.Node, error) {
-	var graphs []graph.Node
-	for _, pair := range pairs {
-		if pg, ok := g.graphs[pair]; ok {
-			graphs = append(graphs, pg)
-		} else {
-			return nil, ErrPairNotFound{AssetPair: pair.String()}
-		}
-	}
-	return graphs, nil
+func (p Pair) Equal(c Pair) bool {
+	return p.Base == c.Base && p.Quote == c.Quote
+}
+
+func (p Pair) String() string {
+	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
+}
+
+// Model is a simplified representation of a model which is used to calculate
+// asset pair prices. The main purpose of this structure is to help the end
+// user to understand how prices are derived and calculated.
+//
+// This structure is purely informational. The way it is used depends on
+// a specific implementation.
+type Model struct {
+	// Type is used to differentiate between model types.
+	Type string
+	// Parameters is a optional list of model's parameters.
+	Parameters map[string]string
+	// Pair is a asset pair for which this model returns a price.
+	Pair Pair
+	// Models is a list of sub models used to calculate price.
+	Models []*Model
+}
+
+// Price represents price for a single pair. If the Price price was calculated
+// indirectly it will also contain all prices used to calculate the price.
+type Price struct {
+	Type       string
+	Parameters map[string]string
+	Pair       Pair
+	Price      float64
+	Bid        float64
+	Ask        float64
+	Volume24h  float64
+	Time       time.Time
+	Prices     []*Price
+	Error      string
+}
+
+// Gofer provides prices for asset pairs.
+type Gofer interface {
+	// Models describes price models which are used to calculate prices.
+	// If no pairs are specified, models for all pairs are returned.
+	Models(pairs ...Pair) (map[Pair]*Model, error)
+	// Price returns a Price for the given pair.
+	Price(pair Pair) (*Price, error)
+	// Prices returns prices for the given pairs. If no pairs are specified,
+	// prices for all pairs are returned.
+	Prices(pairs ...Pair) (map[Pair]*Price, error)
+	// Pairs returns all pairs.
+	Pairs() ([]Pair, error)
+}
+
+// StartableGofer interface represents a Gofer instances that have to be
+// started first to work properly.
+type StartableGofer interface {
+	Gofer
+	Start() error
+	Stop() error
 }

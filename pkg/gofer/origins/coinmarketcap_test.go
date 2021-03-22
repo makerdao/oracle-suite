@@ -175,9 +175,9 @@ func (suite *CoinmarketcapSuite) TestSuccessResponse() {
 	cr := suite.origin.Fetch([]Pair{pair})
 
 	suite.NoError(cr[0].Error)
-	suite.Equal(6602.60701122, cr[0].Tick.Price)
-	suite.Equal(4314444687.5194, cr[0].Tick.Volume24h)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(2))
+	suite.Equal(6602.60701122, cr[0].Price.Price)
+	suite.Equal(4314444687.5194, cr[0].Price.Volume24h)
+	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(2))
 }
 
 func (suite *CoinmarketcapSuite) TestRealAPICall() {

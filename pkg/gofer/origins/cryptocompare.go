@@ -95,7 +95,7 @@ func (c *CryptoCompare) parseResponse(pairs []Pair, res *query.HTTPResponse) []F
 				)
 			} else {
 				results = append(results, FetchResult{
-					Tick: Tick{
+					Price: Price{
 						Timestamp: time.Unix(qObj.TS, 0),
 						Pair:      pair,
 						Price:     qObj.Price,

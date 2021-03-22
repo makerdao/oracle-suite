@@ -123,8 +123,8 @@ func (c *CoinMarketCap) pickPairDetails(response coinMarketCapResponse, pair Pai
 	if !ok {
 		return fetchResultWithError(pair, fmt.Errorf("failed to get quote response for %s", pairName))
 	}
-	// building Tick
-	return fetchResult(Tick{
+	// building Price
+	return fetchResult(Price{
 		Pair:      pair,
 		Price:     quoteRes.Price,
 		Volume24h: quoteRes.Volume,

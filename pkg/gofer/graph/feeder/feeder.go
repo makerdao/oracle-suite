@@ -20,15 +20,16 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
 	"github.com/makerdao/gofer/pkg/gofer/origins"
 	"github.com/makerdao/gofer/pkg/log"
 )
 
 const LoggerTag = "FEEDER"
 
-// Warnings contains a list of minor errors which are occurred during
-// fetching prices.
+// Warnings contains a list of minor errors which occurred during fetching
+// prices.
 type Warnings struct {
 	List []error
 }
@@ -44,26 +45,26 @@ func (w Warnings) ToError() error {
 type Feedable interface {
 	// OriginPair returns the origin and pair which are acceptable for
 	// this Node.
-	OriginPair() graph.OriginPair
-	// Ingest sets the Tick for this Node. It may return error if
-	// the OriginTick contains incompatible origin or pair.
-	Ingest(tick graph.OriginTick) error
-	// MinTTL is the amount of time during which the Tick shouldn't be updated.
+	OriginPair() nodes.OriginPair
+	// Ingest sets the Price for this Node. It may return error if
+	// the OriginPrice contains incompatible origin or pair.
+	Ingest(price nodes.OriginPrice) error
+	// MinTTL is the amount of time during which the Price shouldn't be updated.
 	MinTTL() time.Duration
-	// MaxTTL is the maximum amount of time during which the Tick can be used.
-	// After that time, the Tick method will return a OriginTick with
-	// a ErrTickTTLExpired error.
+	// MaxTTL is the maximum amount of time during which the Price can be used.
+	// After that time, the Price method will return a OriginPrice with
+	// a ErrPriceTTLExpired error.
 	MaxTTL() time.Duration
-	// Expired returns true if the Tick is expired. This is based on the MaxTTL
+	// Expired returns true if the Price is expired. This is based on the MaxTTL
 	// value.
 	Expired() bool
-	// Tick returns the Tick assigned in the Ingest method. If the Tick is
-	// expired then a ErrTickTTLExpired error will be set in
-	// the OriginTick.Error field.
-	Tick() graph.OriginTick
+	// Price returns the Price assigned in the Ingest method. If the Price is
+	// expired then a ErrPriceTTLExpired error will be set in
+	// the OriginPrice.Error field.
+	Price() nodes.OriginPrice
 }
 
-// Feeder sets ticks from origins to the Feedable nodes.
+// Feeder sets prices from origins to the Feedable nodes.
 type Feeder struct {
 	set    *origins.Set
 	log    log.Logger
@@ -79,22 +80,22 @@ func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
 	}
 }
 
-// Feed sets Ticks to Feedable nodes. This method takes list of root Nodes
-// and sets Ticks to all of their children that implement the Feedable interface.
-func (f *Feeder) Feed(nodes []graph.Node) Warnings {
-	return f.fetchTicksAndFeedThemToFeedableNodes(f.findFeedableNodes(nodes))
+// Feed sets Prices to Feedable nodes. This method takes list of root Models
+// and sets Prices to all of their children that implement the Feedable interface.
+func (f *Feeder) Feed(ns ...nodes.Node) Warnings {
+	return f.fetchPricesAndFeedThemToFeedableNodes(f.findFeedableNodes(ns))
 }
 
 // Start starts a goroutine which updates prices as often as the lowest TTL is.
-func (f *Feeder) Start(nodes []graph.Node) error {
+func (f *Feeder) Start(ns ...nodes.Node) error {
 	f.log.Infof("Starting")
 
-	warns := f.Feed(nodes)
+	warns := f.Feed(ns...)
 	if len(warns.List) > 0 {
-		f.log.WithError(warns.ToError()).Info("Unable to feed some nodes")
+		f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
 	}
 
-	ticker := time.NewTicker(getMinTTL(nodes))
+	ticker := time.NewTicker(getMinTTL(ns))
 	go func() {
 		for {
 			select {
@@ -102,9 +103,9 @@ func (f *Feeder) Start(nodes []graph.Node) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				warns := f.Feed(nodes)
+				warns := f.Feed(ns...)
 				if len(warns.List) > 0 {
-					f.log.WithError(warns.ToError()).Info("Unable to feed some nodes")
+					f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
 				}
 			}
 		}
@@ -122,23 +123,22 @@ func (f *Feeder) Stop() {
 
 // findFeedableNodes returns a list of children nodes from given root nodes
 // which implement Feedable interface.
-func (f *Feeder) findFeedableNodes(nodes []graph.Node) []Feedable {
+func (f *Feeder) findFeedableNodes(ns []nodes.Node) []Feedable {
 	tn := time.Now()
 
 	var feedables []Feedable
-	graph.Walk(func(node graph.Node) {
-		if feedable, ok := node.(Feedable); ok {
-			tr := tn.Add(-1 * feedable.MinTTL())
-			if feedable.Tick().Timestamp.Before(tr) {
+	nodes.Walk(func(n nodes.Node) {
+		if feedable, ok := n.(Feedable); ok {
+			if tn.Sub(feedable.Price().Time) > feedable.MinTTL() {
 				feedables = append(feedables, feedable)
 			}
 		}
-	}, nodes...)
+	}, ns...)
 
 	return feedables
 }
 
-func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) Warnings {
+func (f *Feeder) fetchPricesAndFeedThemToFeedableNodes(ns []Feedable) Warnings {
 	var warns Warnings
 
 	// originPair is used as a key in a map to easily find
@@ -151,18 +151,18 @@ func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) Warnings
 	nodesMap := map[originPair][]Feedable{}
 	pairsMap := map[string][]origins.Pair{}
 
-	for _, node := range nodes {
+	for _, n := range ns {
 		op := originPair{
-			origin: node.OriginPair().Origin,
+			origin: n.OriginPair().Origin,
 			pair: origins.Pair{
-				Base:  node.OriginPair().Pair.Base,
-				Quote: node.OriginPair().Pair.Quote,
+				Base:  n.OriginPair().Pair.Base,
+				Quote: n.OriginPair().Pair.Quote,
 			},
 		}
 
 		nodesMap[op] = appendNodeIfUnique(
 			nodesMap[op],
-			node,
+			n,
 		)
 
 		pairsMap[op.origin] = appendPairIfUnique(
@@ -175,17 +175,17 @@ func (f *Feeder) fetchTicksAndFeedThemToFeedableNodes(nodes []Feedable) Warnings
 		for _, fr := range frs {
 			op := originPair{
 				origin: origin,
-				pair:   fr.Tick.Pair,
+				pair:   fr.Price.Pair,
 			}
 
 			for _, feedable := range nodesMap[op] {
-				tick := mapOriginResult(origin, fr)
+				price := mapOriginResult(origin, fr)
 
-				// If there was an error during fetching a Tick but previous Tick is still
+				// If there was an error during fetching a Price but previous Price is still
 				// not expired, do not try to override it:
-				if tick.Error != nil && !feedable.Expired() {
-					warns.List = append(warns.List, tick.Error)
-				} else if iErr := feedable.Ingest(tick); iErr != nil {
+				if price.Error != nil && !feedable.Expired() {
+					warns.List = append(warns.List, price.Error)
+				} else if iErr := feedable.Ingest(price); iErr != nil {
 					warns.List = append(warns.List, iErr)
 				}
 			}
@@ -210,48 +210,48 @@ func appendPairIfUnique(pairs []origins.Pair, pair origins.Pair) []origins.Pair 
 	return pairs
 }
 
-func appendNodeIfUnique(nodes []Feedable, node Feedable) []Feedable {
+func appendNodeIfUnique(ns []Feedable, f Feedable) []Feedable {
 	exists := false
-	for _, n := range nodes {
-		if n == node {
+	for _, n := range ns {
+		if n == f {
 			exists = true
 			break
 		}
 	}
 	if !exists {
-		nodes = append(nodes, node)
+		ns = append(ns, f)
 	}
 
-	return nodes
+	return ns
 }
 
-func mapOriginResult(origin string, fr origins.FetchResult) graph.OriginTick {
-	return graph.OriginTick{
-		Tick: graph.Tick{
-			Pair: graph.Pair{
-				Base:  fr.Tick.Pair.Base,
-				Quote: fr.Tick.Pair.Quote,
+func mapOriginResult(origin string, fr origins.FetchResult) nodes.OriginPrice {
+	return nodes.OriginPrice{
+		PairPrice: nodes.PairPrice{
+			Pair: gofer.Pair{
+				Base:  fr.Price.Pair.Base,
+				Quote: fr.Price.Pair.Quote,
 			},
-			Price:     fr.Tick.Price,
-			Bid:       fr.Tick.Bid,
-			Ask:       fr.Tick.Ask,
-			Volume24h: fr.Tick.Volume24h,
-			Timestamp: fr.Tick.Timestamp,
+			Price:     fr.Price.Price,
+			Bid:       fr.Price.Bid,
+			Ask:       fr.Price.Ask,
+			Volume24h: fr.Price.Volume24h,
+			Time:      fr.Price.Timestamp,
 		},
 		Origin: origin,
 		Error:  fr.Error,
 	}
 }
 
-func getMinTTL(nodes []graph.Node) time.Duration {
+func getMinTTL(ns []nodes.Node) time.Duration {
 	minTTL := time.Duration(0)
-	graph.Walk(func(node graph.Node) {
-		if feedable, ok := node.(Feedable); ok {
-			if minTTL == 0 || feedable.MinTTL() < minTTL {
-				minTTL = feedable.MinTTL()
+	nodes.Walk(func(n nodes.Node) {
+		if f, ok := n.(Feedable); ok {
+			if minTTL == 0 || f.MinTTL() < minTTL {
+				minTTL = f.MinTTL()
 			}
 		}
-	}, nodes...)
+	}, ns...)
 
 	if minTTL < time.Second {
 		return time.Second

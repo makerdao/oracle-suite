@@ -13,42 +13,44 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package graph
+package nodes
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
-type ErrTick struct {
-	Pair Pair
+type ErrPrice struct {
+	Pair gofer.Pair
 	Err  error
 }
 
-func (e ErrTick) Error() string {
+func (e ErrPrice) Error() string {
 	return fmt.Sprintf(
-		"the tick for the %s pair was returned with the following error: %s",
+		"the price for the %s pair was returned with the following error: %s",
 		e.Pair,
 		e.Err.Error(),
 	)
 }
 
 type ErrResolve struct {
-	ExpectedPair Pair
-	ResolvedPair Pair
+	ExpectedPair gofer.Pair
+	ResolvedPair gofer.Pair
 }
 
 func (e ErrResolve) Error() string {
 	return fmt.Sprintf(
-		"the tick was resolved to the %s pair but the %s pair was expected",
+		"the price was resolved to the %s pair but the %s pair was expected",
 		e.ResolvedPair,
 		e.ExpectedPair,
 	)
 }
 
 type ErrInvalidPrice struct {
-	Pair Pair
+	Pair gofer.Pair
 }
 
 func (e ErrInvalidPrice) Error() string {
@@ -59,8 +61,8 @@ func (e ErrInvalidPrice) Error() string {
 }
 
 type ErrNoCommonPart struct {
-	PairA Pair
-	PairB Pair
+	PairA gofer.Pair
+	PairB gofer.Pair
 }
 
 func (e ErrNoCommonPart) Error() string {
@@ -72,8 +74,8 @@ func (e ErrNoCommonPart) Error() string {
 }
 
 type ErrDivByZero struct {
-	PairA Pair
-	PairB Pair
+	PairA gofer.Pair
+	PairB gofer.Pair
 }
 
 func (e ErrDivByZero) Error() string {
@@ -84,8 +86,8 @@ func (e ErrDivByZero) Error() string {
 	)
 }
 
-// IndirectAggregatorNode calculates a tick which is a cross rate between all
-// child ticks.
+// IndirectAggregatorNode calculates a price which is a cross rate between all
+// child prices.
 //
 //                             -- [Origin A/B]
 //                            /
@@ -96,14 +98,14 @@ func (e ErrDivByZero) Error() string {
 //                                                   -- ...
 //
 // For above node, cross rate for the A/D pair will be calculated. It is important
-// to add child nodes in the correct order, because ticks will be calculated from
+// to add child nodes in the correct order, because prices will be calculated from
 // first to last.
 type IndirectAggregatorNode struct {
-	pair     Pair
+	pair     gofer.Pair
 	children []Node
 }
 
-func NewIndirectAggregatorNode(pair Pair) *IndirectAggregatorNode {
+func NewIndirectAggregatorNode(pair gofer.Pair) *IndirectAggregatorNode {
 	return &IndirectAggregatorNode{
 		pair: pair,
 	}
@@ -119,102 +121,102 @@ func (n *IndirectAggregatorNode) AddChild(node Node) {
 	n.children = append(n.children, node)
 }
 
-func (n *IndirectAggregatorNode) Pair() Pair {
+func (n *IndirectAggregatorNode) Pair() gofer.Pair {
 	return n.pair
 }
 
-func (n *IndirectAggregatorNode) Tick() AggregatorTick {
-	var ticks []Tick
-	var originTicks []OriginTick
-	var aggregatorTicks []AggregatorTick
+func (n *IndirectAggregatorNode) Price() AggregatorPrice {
+	var prices []PairPrice
+	var originPrices []OriginPrice
+	var aggregatorPrices []AggregatorPrice
 	var err error
 
 	for _, c := range n.children {
-		// It's important to copy errors from ticks to the IndirectAggregatorNode,
-		// because all of these ticks are required to calculate indirect tick.
-		// If there is a problem with any of them, calculated tick won't be
+		// It's important to copy errors from prices to the IndirectAggregatorNode,
+		// because all of these prices are required to calculate indirect price.
+		// If there is a problem with any of them, calculated price won't be
 		// reliable.
 
 		switch typedNode := c.(type) {
 		case Origin:
-			tick := typedNode.Tick()
-			originTicks = append(originTicks, tick)
-			ticks = append(ticks, tick.Tick)
-			if tick.Error != nil {
+			price := typedNode.Price()
+			originPrices = append(originPrices, price)
+			prices = append(prices, price.PairPrice)
+			if price.Error != nil {
 				err = multierror.Append(
 					err,
-					ErrTick{
-						Pair: tick.Pair,
-						Err:  tick.Error,
+					ErrPrice{
+						Pair: price.Pair,
+						Err:  price.Error,
 					},
 				)
 			}
 		case Aggregator:
-			tick := typedNode.Tick()
-			aggregatorTicks = append(aggregatorTicks, tick)
-			ticks = append(ticks, tick.Tick)
-			if tick.Error != nil {
+			price := typedNode.Price()
+			aggregatorPrices = append(aggregatorPrices, price)
+			prices = append(prices, price.PairPrice)
+			if price.Error != nil {
 				err = multierror.Append(
 					err,
-					ErrTick{
-						Pair: tick.Pair,
-						Err:  tick.Error,
+					ErrPrice{
+						Pair: price.Pair,
+						Err:  price.Error,
 					},
 				)
 			}
 		}
 	}
 
-	indirectTick, e := crossRate(ticks)
+	indirectPrice, e := crossRate(prices)
 	if e != nil {
 		err = multierror.Append(err, e)
 	}
 
-	if !indirectTick.Pair.Equal(n.pair) {
+	if !indirectPrice.Pair.Equal(n.pair) {
 		err = multierror.Append(
 			err,
 			ErrResolve{
 				ExpectedPair: n.pair,
-				ResolvedPair: indirectTick.Pair,
+				ResolvedPair: indirectPrice.Pair,
 			},
 		)
 	}
 
-	if indirectTick.Price <= 0 {
+	if indirectPrice.Price <= 0 {
 		err = multierror.Append(
 			err,
 			ErrInvalidPrice{
-				Pair: indirectTick.Pair,
+				Pair: indirectPrice.Pair,
 			},
 		)
 	}
 
-	return AggregatorTick{
-		Tick:            indirectTick,
-		OriginTicks:     originTicks,
-		AggregatorTicks: aggregatorTicks,
-		Parameters:      map[string]string{"method": "indirect"},
-		Error:           err,
+	return AggregatorPrice{
+		PairPrice:        indirectPrice,
+		OriginPrices:     originPrices,
+		AggregatorPrices: aggregatorPrices,
+		Parameters:       map[string]string{"method": "indirect"},
+		Error:            err,
 	}
 }
 
-// crossRate returns calculated tick from the list of ticks. Ticks order is
-// important because ticks are calculated from first to last.
+// crossRate returns a calculated price from the list of prices. Prices order
+// is important because prices are calculated from first to last.
 //
 // TODO: Decide what to do with division by zero during calculating Bid/Ask prices.
 //nolint:gocyclo,funlen
-func crossRate(t []Tick) (Tick, error) {
+func crossRate(t []PairPrice) (PairPrice, error) {
 	var err error
 
 	if len(t) == 0 {
-		return Tick{}, nil
+		return PairPrice{}, nil
 	}
 
 	for i := 0; i < len(t)-1; i++ {
 		a := t[i]
 		b := t[i+1]
 
-		var pair Pair
+		var pair gofer.Pair
 		var price, bid, ask float64
 		switch {
 		case a.Pair.Quote == b.Pair.Quote: // A/C, B/C
@@ -300,8 +302,8 @@ func crossRate(t []Tick) (Tick, error) {
 		b.Bid = bid
 		b.Ask = ask
 		b.Volume24h = 0
-		if a.Timestamp.Before(b.Timestamp) {
-			b.Timestamp = a.Timestamp
+		if a.Time.Before(b.Time) {
+			b.Time = a.Time
 		}
 
 		t[i+1] = b

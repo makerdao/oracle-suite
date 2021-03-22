@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/pkg/gofer/graph"
+	"github.com/makerdao/gofer/pkg/gofer"
 )
 
 type plain struct {
@@ -40,12 +40,10 @@ func (p *plain) Bytes() ([]byte, error) {
 func (p *plain) Write(item interface{}) error {
 	var i []byte
 	switch typedItem := item.(type) {
-	case graph.AggregatorTick:
-		i = p.handleTick(typedItem)
-	case graph.Aggregator:
-		i = p.handleGraph(typedItem)
-	case map[graph.Pair][]string:
-		i = p.handleOrigins(typedItem)
+	case *gofer.Price:
+		i = p.handlePrice(typedItem)
+	case *gofer.Model:
+		i = p.handleNode(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
 	}
@@ -54,21 +52,13 @@ func (p *plain) Write(item interface{}) error {
 	return nil
 }
 
-func (*plain) handleTick(tick graph.AggregatorTick) []byte {
-	if tick.Error != nil {
-		return []byte(fmt.Sprintf("%s - %s", tick.Pair.String(), strings.TrimSpace(tick.Error.Error())))
+func (*plain) handlePrice(price *gofer.Price) []byte {
+	if price.Error != "" {
+		return []byte(fmt.Sprintf("%s - %s", price.Pair, strings.TrimSpace(price.Error)))
 	}
-	return []byte(fmt.Sprintf("%s %f", tick.Pair.String(), tick.Price))
+	return []byte(fmt.Sprintf("%s %f", price.Pair, price.Price))
 }
 
-func (*plain) handleGraph(graph graph.Aggregator) []byte {
-	return []byte(graph.Pair().String())
-}
-
-func (*plain) handleOrigins(origins map[graph.Pair][]string) []byte {
-	buf := bytes.Buffer{}
-	for p, os := range origins {
-		buf.Write([]byte(p.String() + ":\n" + strings.Join(os, "\n")))
-	}
-	return buf.Bytes()
+func (*plain) handleNode(node *gofer.Model) []byte {
+	return []byte(node.Pair.String())
 }

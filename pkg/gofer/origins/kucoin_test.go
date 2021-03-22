@@ -154,10 +154,10 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(int64(1596632420), cr[0].Tick.Timestamp.Unix())
-	suite.Equal(1.23, cr[0].Tick.Price)
-	suite.Equal(1.3, cr[0].Tick.Bid)
-	suite.Equal(1.2, cr[0].Tick.Ask)
+	suite.Equal(int64(1596632420), cr[0].Price.Timestamp.Unix())
+	suite.Equal(1.23, cr[0].Price.Price)
+	suite.Equal(1.3, cr[0].Price.Bid)
+	suite.Equal(1.2, cr[0].Price.Ask)
 }
 
 func (suite *KucoinSuite) TestRealAPICall() {

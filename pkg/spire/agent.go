@@ -26,9 +26,9 @@ import (
 	"github.com/makerdao/gofer/pkg/transport"
 )
 
-const ServerLoggerTag = "SPIRE_SERVER"
+const AgentLoggerTag = "SPIRE_AGENT"
 
-type Server struct {
+type Agent struct {
 	api      *API
 	rpc      *rpc.Server
 	listener net.Listener
@@ -37,7 +37,7 @@ type Server struct {
 	log      log.Logger
 }
 
-type ServerConfig struct {
+type AgentConfig struct {
 	Datastore Datastore
 	Transport transport.Transport
 	Signer    ethereum.Signer
@@ -46,18 +46,18 @@ type ServerConfig struct {
 	Logger    log.Logger
 }
 
-func NewServer(cfg ServerConfig) (*Server, error) {
-	server := &Server{
+func NewAgent(cfg AgentConfig) (*Agent, error) {
+	server := &Agent{
 		api: &API{
 			datastore: cfg.Datastore,
 			transport: cfg.Transport,
 			signer:    cfg.Signer,
-			log:       cfg.Logger.WithField("tag", ServerLoggerTag),
+			log:       cfg.Logger.WithField("tag", AgentLoggerTag),
 		},
 		rpc:     rpc.NewServer(),
 		network: cfg.Network,
 		address: cfg.Address,
-		log:     cfg.Logger.WithField("tag", ServerLoggerTag),
+		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
 	err := server.rpc.Register(server.api)
 	if err != nil {
@@ -67,14 +67,15 @@ func NewServer(cfg ServerConfig) (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) Start() error {
+func (s *Agent) Start() error {
 	s.log.Infof("Starting")
-
 	var err error
+
 	s.listener, err = net.Listen(s.network, s.address)
 	if err != nil {
 		return err
 	}
+
 	err = s.api.datastore.Start()
 	if err != nil {
 		return err
@@ -83,19 +84,24 @@ func (s *Server) Start() error {
 	go func() {
 		err := http.Serve(s.listener, nil)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.log.Error(err.Error())
+			s.log.WithError(err).Error("RPC server crashed")
 		}
 	}()
 
 	return nil
 }
 
-func (s *Server) Stop() error {
+func (s *Agent) Stop() {
 	defer s.log.Infof("Stopped")
+	var err error
 
-	err := s.api.datastore.Stop()
+	err = s.api.datastore.Stop()
 	if err != nil {
-		return err
+		s.log.WithError(err).Error("Unable to stop Gofer")
 	}
-	return s.listener.Close()
+
+	err = s.listener.Close()
+	if err != nil {
+		s.log.WithError(err).Error("Unable to close RPC listener")
+	}
 }

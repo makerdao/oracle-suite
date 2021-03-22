@@ -97,8 +97,8 @@ func (suite *FxSuite) TestSuccessResponse() {
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
-	suite.Equal(1.0, cr[0].Tick.Price)
-	suite.Greater(cr[0].Tick.Timestamp.Unix(), int64(0))
+	suite.Equal(1.0, cr[0].Price.Price)
+	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *FxSuite) TestRealAPICall() {
