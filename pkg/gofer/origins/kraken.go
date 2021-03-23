@@ -28,7 +28,7 @@ type Kraken struct {
 	Pool query.WorkerPool
 }
 
-const krakenURL = "https://api.kraken.com/0/public/Priceer?pair=%s"
+const krakenURL = "https://api.kraken.com/0/public/Ticker?pair=%s"
 
 func (o *Kraken) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{

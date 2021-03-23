@@ -23,7 +23,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-const okexURL = "https://www.okex.com/api/spot/v3/instruments/priceer"
+const okexURL = "https://www.okex.com/api/spot/v3/instruments/ticker"
 
 type okexResponse struct {
 	InstrumentID  string          `json:"instrument_id"`

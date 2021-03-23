@@ -25,7 +25,7 @@ import (
 )
 
 // Huobi URL
-const huobiURL = "https://api.huobi.pro/market/priceers"
+const huobiURL = "https://api.huobi.pro/market/tickers"
 
 type huobiResponse struct {
 	Symbol string  `json:"symbol"`

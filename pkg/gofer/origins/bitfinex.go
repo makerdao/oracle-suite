@@ -29,7 +29,7 @@ type Bitfinex struct {
 	Pool query.WorkerPool
 }
 
-const bitfinexURL = "https://api-pub.bitfinex.com/v2/priceers?symbols=%s"
+const bitfinexURL = "https://api-pub.bitfinex.com/v2/tickers?symbols=%s"
 
 func (o *Bitfinex) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
@@ -48,14 +48,14 @@ func (o *Bitfinex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchR
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
-	return o.mapResults(pairs, o.mapPriceers(resp))
+	return o.mapResults(pairs, o.mapTickers(resp))
 }
 
-func (o *Bitfinex) mapResults(pairs []Pair, priceers map[string]bitfinexPriceer) []FetchResult {
+func (o *Bitfinex) mapResults(pairs []Pair, tickers map[string]bitfinexTicker) []FetchResult {
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
 		//nolint:gocritic
-		if t, is := priceers[o.localPairName(pair)]; !is {
+		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
@@ -81,16 +81,16 @@ func (o *Bitfinex) mapResults(pairs []Pair, priceers map[string]bitfinexPriceer)
 	return results
 }
 
-func (o *Bitfinex) mapPriceers(resp [][]interface{}) map[string]bitfinexPriceer {
-	priceers := make(map[string]bitfinexPriceer)
+func (o *Bitfinex) mapTickers(resp [][]interface{}) map[string]bitfinexTicker {
+	tickers := make(map[string]bitfinexTicker)
 	for _, tt := range resp {
-		t := o.parsePriceer(tt)
-		priceers[t.Symbol] = t
+		t := o.parseTicker(tt)
+		tickers[t.Symbol] = t
 	}
-	return priceers
+	return tickers
 }
 
-type bitfinexPriceer struct {
+type bitfinexTicker struct {
 	Symbol              string  //  [0]: SYMBOL
 	Bid                 float64 //  [1]: BID
 	BidSize             float64 //  [2]: BID_SIZE
@@ -106,8 +106,8 @@ type bitfinexPriceer struct {
 }
 
 //nolint:funlen,gocyclo
-func (*Bitfinex) parsePriceer(tt []interface{}) bitfinexPriceer {
-	var t bitfinexPriceer
+func (*Bitfinex) parseTicker(tt []interface{}) bitfinexTicker {
+	var t bitfinexTicker
 	crc := make(map[int]bool)
 	for i, a := range tt {
 		switch x := a.(type) {

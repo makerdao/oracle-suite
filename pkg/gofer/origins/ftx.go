@@ -41,11 +41,11 @@ func (o *Ftx) Fetch(pairs []Pair) []FetchResult {
 const ftxURL = "https://ftx.com/api/markets"
 
 type ftxResponse struct {
-	Results []ftxPriceer `json:"result"`
-	Success bool         `json:"success"`
+	Results []ftxTicker `json:"result"`
+	Success bool        `json:"success"`
 }
 
-type ftxPriceer struct {
+type ftxTicker struct {
 	Ask            float64 `json:"ask"`
 	BaseCurrency   string  `json:"baseCurrency"`
 	Bid            float64 `json:"bid"`
@@ -79,13 +79,13 @@ func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult
 		return fetchResultListWithErrors(pairs, ErrInvalidResponseStatus)
 	}
 
-	priceers := make(map[string]ftxPriceer)
+	tickers := make(map[string]ftxTicker)
 	for _, t := range resp.Results {
-		priceers[t.Name] = t
+		tickers[t.Name] = t
 	}
 
 	for _, pair := range pairs {
-		if t, is := priceers[o.localPairName(pair)]; !is {
+		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,

@@ -26,7 +26,7 @@ import (
 )
 
 // Bitstamp URL
-const bitstampURL = "https://www.bitstamp.net/api/v2/priceer/%s"
+const bitstampURL = "https://www.bitstamp.net/api/v2/ticker/%s"
 
 type bitstampResponse struct {
 	Ask       string `json:"ask"`

@@ -38,9 +38,9 @@ func (o *Upbit) Fetch(pairs []Pair) []FetchResult {
 	return o.parseResponse(pairs, res)
 }
 
-const upbitURL = "https://api.upbit.com/v1/priceer?markets=%s"
+const upbitURL = "https://api.upbit.com/v1/ticker?markets=%s"
 
-type upbitPriceer struct {
+type upbitTicker struct {
 	Market             string               `json:"market"`
 	TradeDate          string               `json:"trade_date"`
 	TradeTime          string               `json:"trade_time"`
@@ -76,20 +76,20 @@ func (o *Upbit) localPairName(pairs ...Pair) string {
 }
 
 func (o *Upbit) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
-	var resp []upbitPriceer
+	var resp []upbitTicker
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 
-	priceers := make(map[string]upbitPriceer)
+	tickers := make(map[string]upbitTicker)
 	for _, t := range resp {
-		priceers[t.Market] = t
+		tickers[t.Market] = t
 	}
 
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
-		if t, is := priceers[o.localPairName(pair)]; !is {
+		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,

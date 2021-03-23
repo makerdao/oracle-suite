@@ -22,7 +22,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-const binanceURL = "https://www.binance.com/api/v3/priceer/24hr"
+const binanceURL = "https://www.binance.com/api/v3/ticker/24hr"
 
 type binanceResponse struct {
 	Symbol    string               `json:"symbol"`

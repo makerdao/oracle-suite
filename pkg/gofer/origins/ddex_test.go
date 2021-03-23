@@ -169,7 +169,7 @@ func (suite *DdexSuite) TestFailOnWrongInput() {
 		   }
 		}`),
 		[]byte(`{"status":1,"desc":"failure","template":"","params":null,"data":
-		{"priceers":[
+		{"tickers":[
 		{"marketId":"ETH-USDT","price":"362.64","volume":"6.75",
 		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":1600239124811},
 		{"marketId":"ETH-USDC","price":"364.96","volume":"11.9853",
@@ -194,7 +194,7 @@ func (suite *DdexSuite) TestSuccessResponse() {
 	pair := Pair{Base: "ETH", Quote: "USDT"}
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":0,"desc":"success","template":"","params":null,"data":
-		{"priceers":[
+		{"tickers":[
 		{"marketId":"ETH-USDT","price":"362.64","volume":"6.75",
 		"bid":"362.57","ask":"362.64","low":"362.64","high":"374.8","updateAt":2000},
 		{"marketId":"USDT-ETH","price":"1","volume":"2",

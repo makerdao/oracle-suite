@@ -26,7 +26,7 @@ import (
 )
 
 // Gemini URL
-const geminiURL = "https://api.gemini.com/v1/pubpriceer/%s"
+const geminiURL = "https://api.gemini.com/v1/pubticker/%s"
 
 type geminiResponse struct {
 	Price  string `json:"last"`

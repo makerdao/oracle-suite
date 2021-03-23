@@ -23,7 +23,7 @@ import (
 	"github.com/makerdao/gofer/internal/query"
 )
 
-const poloniexURL = "https://poloniex.com/public?command=returnPriceer"
+const poloniexURL = "https://poloniex.com/public?command=returnTicker"
 
 type poloniexResponse struct {
 	Last       stringAsFloat64 `json:"Last"`

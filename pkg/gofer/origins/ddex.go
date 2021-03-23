@@ -26,11 +26,11 @@ type Ddex struct {
 	Pool query.WorkerPool
 }
 
-const ddexPriceersURL = "https://api.ddex.io/v4/markets/priceers"
+const ddexTickersURL = "https://api.ddex.io/v4/markets/tickers"
 
 func (o *Ddex) Fetch(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: ddexPriceersURL,
+		URL: ddexTickersURL,
 	}
 	res := o.Pool.Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
@@ -43,7 +43,7 @@ func (o *Ddex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-type ddexPriceer struct {
+type ddexTicker struct {
 	Ask      stringAsFloat64      `json:"ask"`
 	Bid      stringAsFloat64      `json:"bid"`
 	High     stringAsFloat64      `json:"high"`
@@ -53,17 +53,17 @@ type ddexPriceer struct {
 	UpdateAt intAsUnixTimestampMs `json:"updateAt"`
 	Volume   stringAsFloat64      `json:"volume"`
 }
-type ddexPriceersResponse struct {
+type ddexTickersResponse struct {
 	Desc   string `json:"desc"`
 	Status int    `json:"status"`
 	Data   struct {
-		Priceers []ddexPriceer `json:"priceers"`
+		Tickers []ddexTicker `json:"tickers"`
 	} `json:"data"`
 }
 
 func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	results := make([]FetchResult, 0)
-	var resp ddexPriceersResponse
+	var resp ddexTickersResponse
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
@@ -72,13 +72,13 @@ func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResul
 		return fetchResultListWithErrors(pairs, ErrInvalidResponseStatus)
 	}
 
-	priceers := make(map[string]ddexPriceer)
-	for _, t := range resp.Data.Priceers {
-		priceers[t.MarketID] = t
+	tickers := make(map[string]ddexTicker)
+	for _, t := range resp.Data.Tickers {
+		tickers[t.MarketID] = t
 	}
 
 	for _, pair := range pairs {
-		if t, is := priceers[o.localPairName(pair)]; !is {
+		if t, is := tickers[o.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,

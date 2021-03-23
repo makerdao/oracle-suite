@@ -26,7 +26,7 @@ import (
 )
 
 // Hitbtc URL
-const hitbtcURL = "https://api.hitbtc.com/api/2/public/priceer?symbols=%s"
+const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker?symbols=%s"
 
 type hitbtcResponse struct {
 	Symbol    string    `json:"symbol"`

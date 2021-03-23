@@ -39,7 +39,7 @@ func (o *Kyber) Fetch(pairs []Pair) []FetchResult {
 
 const kyberURL = "https://api.kyber.network/change24h"
 
-type kyberPriceer struct {
+type kyberTicker struct {
 	Timestamp    intAsUnixTimestampMs `json:"timestamp"`
 	TokenName    string               `json:"token_name"`
 	TokenSymbol  string               `json:"token_symbol"`
@@ -53,15 +53,15 @@ type kyberPriceer struct {
 
 func (o *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	results := make([]FetchResult, 0)
-	var priceers map[string]kyberPriceer
-	err := json.Unmarshal(res.Body, &priceers)
+	var tickers map[string]kyberTicker
+	err := json.Unmarshal(res.Body, &tickers)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
 
 	for _, pair := range pairs {
 		//nolint:gocritic
-		if t, is := priceers[pair.Quote+"_"+pair.Base]; !is {
+		if t, is := tickers[pair.Quote+"_"+pair.Base]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
