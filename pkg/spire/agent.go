@@ -21,9 +21,9 @@ import (
 	"net/http"
 	"net/rpc"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 const AgentLoggerTag = "SPIRE_AGENT"

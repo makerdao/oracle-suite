@@ -24,8 +24,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/datastore/testutil"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/datastore/testutil"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 func TestPrices_len(t *testing.T) {

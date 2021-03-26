@@ -18,7 +18,7 @@ package messages
 import (
 	"encoding/json"
 
-	"github.com/makerdao/gofer/pkg/oracle"
+	"github.com/makerdao/oracle-suite/pkg/oracle"
 )
 
 var PriceMessageName = "price"

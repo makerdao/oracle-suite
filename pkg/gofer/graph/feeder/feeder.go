@@ -20,10 +20,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
-	"github.com/makerdao/gofer/pkg/gofer/origins"
-	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
+	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 const LoggerTag = "FEEDER"

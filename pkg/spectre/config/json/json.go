@@ -21,7 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/makerdao/gofer/pkg/spectre/config"
+	"github.com/makerdao/oracle-suite/pkg/spectre/config"
 )
 
 type ConfigErr struct {

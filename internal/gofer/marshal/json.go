@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 type json struct {

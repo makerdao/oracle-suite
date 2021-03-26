@@ -18,8 +18,8 @@ package spire
 import (
 	"net/rpc"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 type Spire struct {

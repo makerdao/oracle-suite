@@ -19,8 +19,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 type messageHandler struct {

@@ -23,11 +23,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/gofer/pkg/log"
-	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
-	"github.com/makerdao/gofer/pkg/spire"
-	"github.com/makerdao/gofer/pkg/spire/config"
-	configJSON "github.com/makerdao/gofer/pkg/spire/config/json"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
+	"github.com/makerdao/oracle-suite/pkg/spire"
+	"github.com/makerdao/oracle-suite/pkg/spire/config"
+	configJSON "github.com/makerdao/oracle-suite/pkg/spire/config/json"
 )
 
 var (

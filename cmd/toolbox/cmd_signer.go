@@ -21,8 +21,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 )
 
 type signerOptions struct {

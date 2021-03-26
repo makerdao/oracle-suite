@@ -22,8 +22,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 const LoggerTag = "P2P"

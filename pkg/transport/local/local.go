@@ -18,7 +18,7 @@ package local
 import (
 	"errors"
 
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")

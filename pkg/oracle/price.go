@@ -23,8 +23,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 const PriceMultiplier = 1e18

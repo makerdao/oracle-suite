@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/oracle-suite/internal/query"
 )
 
 // Handler is interface that all Origin API handlers should implement.

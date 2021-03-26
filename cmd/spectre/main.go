@@ -22,10 +22,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/gofer/pkg/log"
-	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
-	"github.com/makerdao/gofer/pkg/spectre/config"
-	configJSON "github.com/makerdao/gofer/pkg/spectre/config/json"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
+	"github.com/makerdao/oracle-suite/pkg/spectre/config"
+	configJSON "github.com/makerdao/oracle-suite/pkg/spectre/config/json"
 )
 
 func main() {

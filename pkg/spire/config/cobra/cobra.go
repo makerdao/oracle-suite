@@ -18,7 +18,7 @@ package cobra
 import (
 	"github.com/spf13/pflag"
 
-	"github.com/makerdao/gofer/pkg/spire/config"
+	"github.com/makerdao/oracle-suite/pkg/spire/config"
 )
 
 func RegisterFlags(cfg *config.Config, flags *pflag.FlagSet) {

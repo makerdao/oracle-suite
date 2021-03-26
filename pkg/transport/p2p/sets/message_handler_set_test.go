@@ -22,7 +22,7 @@ import (
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 type testMessageHandler struct {

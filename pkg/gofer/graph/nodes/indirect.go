@@ -20,7 +20,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 type ErrPrice struct {

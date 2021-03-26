@@ -2,7 +2,7 @@
 
 > As in a [tool](https://en.wikipedia.org/wiki/Gofer) that specializes in the delivery of special items.
 
-A command line interface for the [Gofer Go library](https://github.com/makerdao/gofer) to enable getting reliable
+A command line interface for the [Gofer Go library](https://github.com/makerdao/oracle-suite) to enable getting reliable
 crypto-asset prices.
 
 ## Usage
@@ -83,13 +83,13 @@ gofer COMMAND -h
 To install the `gofer` command into your `${GOPATH}/bin` directory:
 
 ```sh 
-go get -u github.com/makerdao/gofer/cli/cmd/gofer
+go get -u github.com/makerdao/oracle-suite/cli/cmd/gofer
 ```
 
 Should you wish to compile the binary from code, try:
 
 ```sh 
-git clone https://github.com/makerdao/gofer/cli.git
+git clone https://github.com/makerdao/oracle-suite/cli.git
 cd gofer-cli
 make
 ```

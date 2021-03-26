@@ -22,12 +22,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/gofer/internal/gofer/marshal"
-	"github.com/makerdao/gofer/pkg/gofer"
-	configJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
-	"github.com/makerdao/gofer/pkg/gofer/rpc"
-	"github.com/makerdao/gofer/pkg/log"
-	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
+	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	configJSON "github.com/makerdao/oracle-suite/pkg/gofer/config/json"
+	"github.com/makerdao/oracle-suite/pkg/gofer/rpc"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 )
 
 // errSilent is used to return an non-zero status code without an error

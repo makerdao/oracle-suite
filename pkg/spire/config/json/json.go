@@ -21,7 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/makerdao/gofer/pkg/spire/config"
+	"github.com/makerdao/oracle-suite/pkg/spire/config"
 )
 
 type ConfigErr struct {

@@ -24,16 +24,16 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/makerdao/gofer/pkg/datastore"
-	"github.com/makerdao/gofer/pkg/ethereum"
-	ethereumGeth "github.com/makerdao/gofer/pkg/ethereum/geth"
-	"github.com/makerdao/gofer/pkg/log"
-	oracleGeth "github.com/makerdao/gofer/pkg/oracle/geth"
-	"github.com/makerdao/gofer/pkg/spectre"
-	"github.com/makerdao/gofer/pkg/transport"
-	"github.com/makerdao/gofer/pkg/transport/messages"
-	"github.com/makerdao/gofer/pkg/transport/p2p"
-	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
+	"github.com/makerdao/oracle-suite/pkg/datastore"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	ethereumGeth "github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	oracleGeth "github.com/makerdao/oracle-suite/pkg/oracle/geth"
+	"github.com/makerdao/oracle-suite/pkg/spectre"
+	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/ethkey"
 )
 
 var ErrFailedToReadPassphraseFile = errors.New("failed to read passphrase file")

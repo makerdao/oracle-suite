@@ -18,7 +18,7 @@ package rpc
 import (
 	"net/rpc"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 // Gofer implements the gofer.Gofer interface. It uses a remote RPC server

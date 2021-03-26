@@ -21,14 +21,14 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/makerdao/gofer/pkg/datastore"
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/geth"
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/spire"
-	"github.com/makerdao/gofer/pkg/transport"
-	"github.com/makerdao/gofer/pkg/transport/p2p"
-	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
+	"github.com/makerdao/oracle-suite/pkg/datastore"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/spire"
+	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/ethkey"
 )
 
 var ErrFailedToReadPassphraseFile = errors.New("failed to read passphrase file")

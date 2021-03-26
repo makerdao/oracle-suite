@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/mocks"
-	"github.com/makerdao/gofer/pkg/log/null"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer/mocks"
+	"github.com/makerdao/oracle-suite/pkg/log/null"
 )
 
 var (

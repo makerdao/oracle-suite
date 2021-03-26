@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/internal/gofer/marshal/testutil"
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/internal/gofer/marshal/testutil"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 func TestPlain_Nodes(t *testing.T) {

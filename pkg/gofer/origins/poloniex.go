@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/oracle-suite/internal/query"
 )
 
 const poloniexURL = "https://poloniex.com/public?command=returnTicker"

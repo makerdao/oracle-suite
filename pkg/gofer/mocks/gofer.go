@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 type Gofer struct {

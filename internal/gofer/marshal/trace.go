@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 type trace struct {

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/internal/gofer/marshal"
-	"github.com/makerdao/gofer/pkg/gofer/config"
+	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
+	"github.com/makerdao/oracle-suite/pkg/gofer/config"
 )
 
 // These are the command options that can be set by CLI flags.

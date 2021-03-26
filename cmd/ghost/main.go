@@ -22,12 +22,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
-	ghostJSON "github.com/makerdao/gofer/pkg/ghost/config/json"
-	"github.com/makerdao/gofer/pkg/gofer"
-	goferJSON "github.com/makerdao/gofer/pkg/gofer/config/json"
-	"github.com/makerdao/gofer/pkg/log"
-	logLogrus "github.com/makerdao/gofer/pkg/log/logrus"
+	ghostConfig "github.com/makerdao/oracle-suite/pkg/ghost/config"
+	ghostJSON "github.com/makerdao/oracle-suite/pkg/ghost/config/json"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	goferJSON "github.com/makerdao/oracle-suite/pkg/gofer/config/json"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 )
 
 func main() {

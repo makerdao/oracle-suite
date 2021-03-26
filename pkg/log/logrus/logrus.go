@@ -18,7 +18,7 @@ package logrus
 import (
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 type Logger struct {

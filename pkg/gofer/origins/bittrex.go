@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/oracle-suite/internal/query"
 )
 
 const bittrexURL = "https://api.bittrex.com/api/v1.1/public/getmarketsummaries"

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/internal/query"
+	"github.com/makerdao/oracle-suite/internal/query"
 )
 
 // Gemini URL

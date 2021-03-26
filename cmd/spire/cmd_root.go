@@ -18,8 +18,8 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/spire/config"
-	configCobra "github.com/makerdao/gofer/pkg/spire/config/cobra"
+	"github.com/makerdao/oracle-suite/pkg/spire/config"
+	configCobra "github.com/makerdao/oracle-suite/pkg/spire/config/cobra"
 )
 
 type options struct {

@@ -21,8 +21,8 @@ import (
 	cryptoPB "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 )
 
 // Eth key type uses the Ethereum keys to sign and verify messages.

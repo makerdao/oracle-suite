@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 func NewPushCmd(opts *options) *cobra.Command {

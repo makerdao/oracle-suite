@@ -20,9 +20,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/geth"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 func NewPriceCmd(opts *options) *cobra.Command {

@@ -21,7 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
 var (

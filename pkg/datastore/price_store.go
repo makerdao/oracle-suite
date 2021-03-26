@@ -18,8 +18,8 @@ package datastore
 import (
 	"sync"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 type FeederPrice struct {

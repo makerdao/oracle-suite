@@ -18,7 +18,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/spectre/config"
+	"github.com/makerdao/oracle-suite/pkg/spectre/config"
 )
 
 type options struct {

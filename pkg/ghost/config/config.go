@@ -22,15 +22,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/geth"
-	"github.com/makerdao/gofer/pkg/ghost"
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/transport"
-	"github.com/makerdao/gofer/pkg/transport/messages"
-	"github.com/makerdao/gofer/pkg/transport/p2p"
-	"github.com/makerdao/gofer/pkg/transport/p2p/ethkey"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/ghost"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/ethkey"
 )
 
 var ErrFailedToReadPassphraseFile = errors.New("failed to read passphrase file")

@@ -25,11 +25,11 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/pkg/ethereum"
-	ethereumGeth "github.com/makerdao/gofer/pkg/ethereum/geth"
-	"github.com/makerdao/gofer/pkg/oracle"
-	oracleGeth "github.com/makerdao/gofer/pkg/oracle/geth"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	ethereumGeth "github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/makerdao/oracle-suite/pkg/oracle"
+	oracleGeth "github.com/makerdao/oracle-suite/pkg/oracle/geth"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 type medianOptions struct {

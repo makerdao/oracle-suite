@@ -22,11 +22,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/graph/feeder"
-	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
-	"github.com/makerdao/gofer/pkg/gofer/origins"
-	"github.com/makerdao/gofer/pkg/log/null"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
+	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
+	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
+	"github.com/makerdao/oracle-suite/pkg/log/null"
 )
 
 var (

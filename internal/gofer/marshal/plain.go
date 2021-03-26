@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 type plain struct {

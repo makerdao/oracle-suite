@@ -1,4 +1,7 @@
 {
+  "rpc": {
+    "address": ":8080"
+  },
   "origins": {
     "example": {
       "type": "exchange",

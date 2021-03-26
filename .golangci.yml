@@ -67,7 +67,7 @@ linters-settings:
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
-    local-prefixes: github.com/makerdao/gofer
+    local-prefixes: github.com/makerdao/oracle-suite
   # TODO: replace `make test-license` with goheader
   #goheader:
   #  template-path: ./LICENSE_HEADER
@@ -225,4 +225,3 @@ issues:
   new: true
   # Show only new issues created after git revision `REV`
   new-from-rev: 8575515511b98d47c5d7368c50a699c873216b42
-

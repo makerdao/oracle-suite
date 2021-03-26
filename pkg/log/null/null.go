@@ -15,7 +15,7 @@
 
 package null
 
-import "github.com/makerdao/gofer/pkg/log"
+import "github.com/makerdao/oracle-suite/pkg/log"
 
 type Null struct{}
 

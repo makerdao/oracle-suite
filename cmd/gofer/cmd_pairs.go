@@ -20,8 +20,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/gofer/internal/gofer/marshal"
-	"github.com/makerdao/gofer/pkg/gofer"
+	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
 func NewPairsCmd(opts *options) *cobra.Command {

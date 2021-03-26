@@ -36,11 +36,11 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/makerdao/gofer/pkg/log"
-	"github.com/makerdao/gofer/pkg/transport/p2p/allowlist"
-	"github.com/makerdao/gofer/pkg/transport/p2p/denylist"
-	"github.com/makerdao/gofer/pkg/transport/p2p/logger"
-	"github.com/makerdao/gofer/pkg/transport/p2p/sets"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/allowlist"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/denylist"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/logger"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/sets"
 )
 
 var ErrConnectionClosed = errors.New("connection is closed")

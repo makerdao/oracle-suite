@@ -22,13 +22,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/gofer/pkg/datastore/testutil"
-	"github.com/makerdao/gofer/pkg/ethereum"
-	"github.com/makerdao/gofer/pkg/ethereum/mocks"
-	"github.com/makerdao/gofer/pkg/log/null"
-	"github.com/makerdao/gofer/pkg/oracle"
-	"github.com/makerdao/gofer/pkg/transport/local"
-	"github.com/makerdao/gofer/pkg/transport/messages"
+	"github.com/makerdao/oracle-suite/pkg/datastore/testutil"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
+	"github.com/makerdao/oracle-suite/pkg/log/null"
+	"github.com/makerdao/oracle-suite/pkg/oracle"
+	"github.com/makerdao/oracle-suite/pkg/transport/local"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 func TestDatastore_Prices(t *testing.T) {

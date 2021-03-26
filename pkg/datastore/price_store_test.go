@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/gofer/pkg/datastore/testutil"
+	"github.com/makerdao/oracle-suite/pkg/datastore/testutil"
 )
 
 func TestPriceStore_Add(t *testing.T) {

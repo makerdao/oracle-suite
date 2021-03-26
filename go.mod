@@ -1,4 +1,4 @@
-module github.com/makerdao/gofer
+module github.com/makerdao/oracle-suite
 
 go 1.14
 

@@ -18,8 +18,8 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	ghostConfig "github.com/makerdao/gofer/pkg/ghost/config"
-	goferConfig "github.com/makerdao/gofer/pkg/gofer/config"
+	ghostConfig "github.com/makerdao/oracle-suite/pkg/ghost/config"
+	goferConfig "github.com/makerdao/oracle-suite/pkg/gofer/config"
 )
 
 type options struct {

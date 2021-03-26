@@ -16,9 +16,9 @@
 package graph
 
 import (
-	"github.com/makerdao/gofer/pkg/gofer"
-	"github.com/makerdao/gofer/pkg/gofer/graph/feeder"
-	"github.com/makerdao/gofer/pkg/gofer/graph/nodes"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
+	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
 )
 
 // AsyncGofer implements the gofer.Gofer interface. It works just like Graph

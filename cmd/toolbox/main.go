@@ -20,7 +20,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/makerdao/gofer/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 func main() {
