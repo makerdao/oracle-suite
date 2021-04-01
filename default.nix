@@ -5,4 +5,5 @@
   src = ./.;
   vendorSha256 = "07fzxllv6zbh38z28l6pi0iv1ynndrcb6lb77hv26ilprx3gzfvm";
   subPackages = [ "cmd/gofer" "cmd/spire" ];
+  postConfigure = "export CGO_ENABLED=0";
 }
