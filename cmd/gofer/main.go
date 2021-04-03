@@ -30,11 +30,8 @@ import (
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 )
 
-// errSilent is used to return an non-zero status code without an error
-// message.
-type errSilent struct{}
-
-func (e errSilent) Error() string { return "" }
+// exitCode to be returned by the application.
+var exitCode = 0
 
 func main() {
 	opts := options{
@@ -49,11 +46,12 @@ func main() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		if _, ok := err.(errSilent); !ok {
-			fmt.Printf("Error: %s\n", err)
+		fmt.Printf("Error: %s\n", err)
+		if exitCode == 0 {
+			os.Exit(1)
 		}
-		os.Exit(1)
 	}
+	os.Exit(exitCode)
 }
 
 func newLogger(level string) (log.Logger, error) {

@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -26,32 +27,46 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
+type traceItem struct {
+	writer io.Writer
+	item   []byte
+}
+
 type trace struct {
-	items [][]byte
+	items []traceItem
 }
 
 func newTrace() *trace {
 	return &trace{}
 }
 
-// Read implements the Marshaller interface.
-func (t *trace) Bytes() ([]byte, error) {
-	return bytes.Join(t.items, []byte("\n")), nil
-}
-
 // Write implements the Marshaller interface.
-func (t *trace) Write(item interface{}) error {
+func (t *trace) Write(writer io.Writer, item interface{}) error {
 	var i []byte
 	switch typedItem := item.(type) {
 	case *gofer.Price:
 		i = t.handlePrice(typedItem)
 	case *gofer.Model:
-		i = t.handleNode(typedItem)
+		i = t.handleModel(typedItem)
+	case error:
+		i = []byte(fmt.Sprintf("Error: %s", typedItem.Error()))
 	default:
 		return fmt.Errorf("unsupported data type")
 	}
 
-	t.items = append(t.items, i)
+	t.items = append(t.items, traceItem{writer: writer, item: i})
+	return nil
+}
+
+// Flush implements the Marshaller interface.
+func (t *trace) Flush() error {
+	var err error
+	for _, i := range t.items {
+		_, err = i.writer.Write(i.item)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -90,7 +105,7 @@ func (*trace) handlePrice(price *gofer.Price) []byte {
 	return buf.Bytes()
 }
 
-func (t *trace) handleNode(node *gofer.Model) []byte {
+func (t *trace) handleModel(node *gofer.Model) []byte {
 	tree := renderTree(func(node interface{}) ([]byte, []interface{}) {
 		n := node.(*gofer.Model)
 		s := renderNode(

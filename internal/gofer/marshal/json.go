@@ -16,17 +16,22 @@
 package marshal
 
 import (
-	"bytes"
 	encodingJSON "encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
+type jsonItem struct {
+	writer io.Writer
+	item   interface{}
+}
+
 type json struct {
 	ndjson bool
-	items  []interface{}
+	items  []jsonItem
 }
 
 func newJSON(ndjson bool) *json {
@@ -35,42 +40,61 @@ func newJSON(ndjson bool) *json {
 	}
 }
 
-// Bytes implements the Marshaller interface.
-func (j *json) Bytes() ([]byte, error) {
-	buf := bytes.Buffer{}
-	if j.ndjson {
-		for _, item := range j.items {
-			bts, err := encodingJSON.Marshal(item)
-			if err != nil {
-				return nil, err
-			}
-			buf.Write(bts)
-			buf.WriteByte('\n')
-		}
-	} else {
-		bts, err := encodingJSON.Marshal(j.items)
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(bts)
-		buf.WriteByte('\n')
-	}
-	return buf.Bytes(), nil
-}
-
 // Write implements the Marshaller interface.
-func (j *json) Write(item interface{}) error {
+func (j *json) Write(writer io.Writer, item interface{}) error {
 	var i interface{}
 	switch typedItem := item.(type) {
 	case *gofer.Price:
 		i = j.handlePrice(typedItem)
 	case *gofer.Model:
-		i = j.handleNode(typedItem)
+		i = j.handleModel(typedItem)
+	case error:
+		i = j.handleError(typedItem)
 	default:
 		return fmt.Errorf("unsupported data type")
 	}
 
-	j.items = append(j.items, i)
+	j.items = append(j.items, jsonItem{writer: writer, item: i})
+	return nil
+}
+
+// Flush implements the Marshaller interface.
+func (j *json) Flush() error {
+	if j.ndjson {
+		for _, item := range j.items {
+			bts, err := encodingJSON.Marshal(item.item)
+			if err != nil {
+				return err
+			}
+			_, err = item.writer.Write(bts)
+			if err != nil {
+				return err
+			}
+			_, err = item.writer.Write([]byte{'\n'})
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		items := map[io.Writer][]interface{}{}
+		for _, i := range j.items {
+			items[i.writer] = append(items[i.writer], i.item)
+		}
+		for w, is := range items {
+			bts, err := encodingJSON.Marshal(is)
+			if err != nil {
+				return err
+			}
+			_, err = w.Write(bts)
+			if err != nil {
+				return err
+			}
+			_, err = w.Write([]byte{'\n'})
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -78,8 +102,14 @@ func (*json) handlePrice(price *gofer.Price) interface{} {
 	return jsonPriceFromGoferPrice(price)
 }
 
-func (*json) handleNode(node *gofer.Model) interface{} {
+func (*json) handleModel(node *gofer.Model) interface{} {
 	return node.Pair.String()
+}
+
+func (*json) handleError(err error) interface{} {
+	return struct {
+		Error string `json:"error"`
+	}{Error: err.Error()}
 }
 
 type jsonPrice struct {

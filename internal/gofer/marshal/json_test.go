@@ -27,44 +27,46 @@ import (
 
 func TestJSON_Nodes(t *testing.T) {
 	var err error
+	b := &bytes.Buffer{}
 	m := newJSON(false)
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	cd := gofer.Pair{Base: "C", Quote: "D"}
 	ns := testutil.Models(ab, cd)
 
-	err = m.Write(ns[ab])
+	err = m.Write(b, ns[ab])
 	assert.NoError(t, err)
 
-	err = m.Write(ns[cd])
+	err = m.Write(b, ns[cd])
 	assert.NoError(t, err)
 
-	b, err := m.Bytes()
+	err = m.Flush()
 	assert.NoError(t, err)
 
 	expected := `["A/B", "C/D"]`
 
-	assert.JSONEq(t, expected, string(b))
+	assert.JSONEq(t, expected, b.String())
 }
 
 func TestNDJSON_Nodes(t *testing.T) {
 	var err error
+	b := &bytes.Buffer{}
 	m := newJSON(true)
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	cd := gofer.Pair{Base: "C", Quote: "D"}
 	ns := testutil.Models(ab, cd)
 
-	err = m.Write(ns[ab])
+	err = m.Write(b, ns[ab])
 	assert.NoError(t, err)
 
-	err = m.Write(ns[cd])
+	err = m.Write(b, ns[cd])
 	assert.NoError(t, err)
 
-	b, err := m.Bytes()
+	err = m.Flush()
 	assert.NoError(t, err)
 
-	result := bytes.Split(b, []byte("\n"))
+	result := bytes.Split(b.Bytes(), []byte("\n"))
 
 	assert.JSONEq(t, `"A/B"`, string(result[0]))
 	assert.JSONEq(t, `"C/D"`, string(result[1]))
@@ -72,15 +74,16 @@ func TestNDJSON_Nodes(t *testing.T) {
 
 func TestJSON_Prices(t *testing.T) {
 	var err error
+	b := &bytes.Buffer{}
 	m := newJSON(false)
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	ts := testutil.Prices(ab)
 
-	err = m.Write(ts[ab])
+	err = m.Write(b, ts[ab])
 	assert.NoError(t, err)
 
-	b, err := m.Bytes()
+	err = m.Flush()
 	assert.NoError(t, err)
 
 	expected := `
@@ -188,5 +191,5 @@ func TestJSON_Prices(t *testing.T) {
 		]
 	`
 
-	assert.JSONEq(t, expected, string(b))
+	assert.JSONEq(t, expected, b.String())
 }
