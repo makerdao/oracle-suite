@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/makerdao/oracle-suite/internal/query"
+
 	"github.com/stretchr/testify/suite"
 )
 
