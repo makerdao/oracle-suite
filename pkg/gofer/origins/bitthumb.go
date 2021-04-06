@@ -50,7 +50,7 @@ func (c *BitThump) localPairName(pair Pair) string {
 }
 
 func (c *BitThump) getURL(pair Pair) string {
-	return fmt.Sprintf(coinbaseProURL, c.localPairName(pair))
+	return fmt.Sprintf(bitThumpURL, c.localPairName(pair))
 }
 
 func (c *BitThump) Fetch(pairs []Pair) []FetchResult {
