@@ -16,39 +16,57 @@
 package marshal
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
+type plainItem struct {
+	writer io.Writer
+	item   []byte
+}
+
 type plain struct {
-	items [][]byte
+	items []plainItem
 }
 
 func newPlain() *plain {
 	return &plain{}
 }
 
-// Read implements the Marshaller interface.
-func (p *plain) Bytes() ([]byte, error) {
-	return append(bytes.Join(p.items, []byte("\n")), '\n'), nil
-}
-
 // Write implements the Marshaller interface.
-func (p *plain) Write(item interface{}) error {
+func (p *plain) Write(writer io.Writer, item interface{}) error {
 	var i []byte
 	switch typedItem := item.(type) {
 	case *gofer.Price:
 		i = p.handlePrice(typedItem)
 	case *gofer.Model:
-		i = p.handleNode(typedItem)
+		i = p.handleModel(typedItem)
+	case error:
+		i = []byte(fmt.Sprintf("Error: %s", typedItem.Error()))
 	default:
 		return fmt.Errorf("unsupported data type")
 	}
 
-	p.items = append(p.items, i)
+	p.items = append(p.items, plainItem{writer: writer, item: i})
+	return nil
+}
+
+// Flush implements the Marshaller interface.
+func (p *plain) Flush() error {
+	var err error
+	for _, i := range p.items {
+		_, err = i.writer.Write(i.item)
+		if err != nil {
+			return err
+		}
+		_, err = i.writer.Write([]byte{'\n'})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -59,6 +77,6 @@ func (*plain) handlePrice(price *gofer.Price) []byte {
 	return []byte(fmt.Sprintf("%s %f", price.Pair, price.Price))
 }
 
-func (*plain) handleNode(node *gofer.Model) []byte {
+func (*plain) handleModel(node *gofer.Model) []byte {
 	return []byte(node.Pair.String())
 }

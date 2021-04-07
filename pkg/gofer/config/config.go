@@ -100,7 +100,7 @@ type Instances struct {
 func (c *Config) ConfigureGofer(logger log.Logger) (gofer.Gofer, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
 	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
 	gof := graph.NewGofer(gra, fed)
@@ -111,7 +111,7 @@ func (c *Config) ConfigureGofer(logger log.Logger) (gofer.Gofer, error) {
 func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
 	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
 	gof := graph.NewAsyncGofer(gra, fed)
@@ -122,7 +122,7 @@ func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 		Logger:  logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to initialize rpc agent: %w", err)
 	}
 	return srv, nil
 }
@@ -175,7 +175,7 @@ func (c *Config) buildRoots(graphs map[gofer.Pair]nodes.Aggregator) error {
 			}
 			graphs[modelPair] = nodes.NewMedianAggregatorNode(modelPair, params.MinSourceSuccess)
 		default:
-			return fmt.Errorf("unknown method: %s", model.Method)
+			return fmt.Errorf("unknown method %s for pair %s", model.Method, name)
 		}
 	}
 

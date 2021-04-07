@@ -16,6 +16,7 @@
 package marshal
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,15 +29,16 @@ func TestTrace_Graph(t *testing.T) {
 	disableColors()
 
 	var err error
+	b := &bytes.Buffer{}
 	m := newTrace()
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	ns := testutil.Models(ab)
 
-	err = m.Write(ns[ab])
+	err = m.Write(b, ns[ab])
 	assert.NoError(t, err)
 
-	b, err := m.Bytes()
+	err = m.Flush()
 	assert.NoError(t, err)
 
 	expected := `
@@ -50,22 +52,23 @@ Graph for A/B:
       └──origin(origin:b, pair:A/B)
 `[1:]
 
-	assert.Equal(t, expected, string(b))
+	assert.Equal(t, expected, b.String())
 }
 
 func TestTrace_Prices(t *testing.T) {
 	disableColors()
 
 	var err error
+	b := &bytes.Buffer{}
 	m := newTrace()
 
 	ab := gofer.Pair{Base: "A", Quote: "B"}
 	ts := testutil.Prices(ab)
 
-	err = m.Write(ts[ab])
+	err = m.Write(b, ts[ab])
 	assert.NoError(t, err)
 
-	b, err := m.Bytes()
+	err = m.Flush()
 	assert.NoError(t, err)
 
 	expected := `
@@ -80,5 +83,5 @@ Price for A/B:
             Error: something
 `[1:]
 
-	assert.Equal(t, expected, string(b))
+	assert.Equal(t, expected, b.String())
 }

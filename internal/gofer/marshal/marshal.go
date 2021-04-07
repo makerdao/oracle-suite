@@ -16,7 +16,9 @@
 package marshal
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 )
 
 // FormatType describes output format type.
@@ -32,8 +34,8 @@ const (
 // Marshaller is the interface which must be implemented by different
 // marshallers used to format output for the CLI.
 type Marshaller interface {
-	Bytes() ([]byte, error)
-	Write(item interface{}) error
+	Write(writer io.Writer, item interface{}) error
+	Flush() error
 }
 
 // Marshal implements the Marshaller interface. It wraps other marshaller based
@@ -58,14 +60,14 @@ func NewMarshal(format FormatType) (*Marshal, error) {
 	return nil, fmt.Errorf("unsupported format")
 }
 
-// Bytes implements the Marshaller interface.
-func (m *Marshal) Bytes() ([]byte, error) {
-	return m.marshaller.Bytes()
+// Write implements the Marshaller interface.
+func (m *Marshal) Write(writer io.Writer, item interface{}) error {
+	return m.marshaller.Write(writer, item)
 }
 
-// Write implements the Marshaller interface.
-func (m *Marshal) Write(w interface{}) error {
-	return m.marshaller.Write(w)
+// Flush implements the Marshaller interface.
+func (m *Marshal) Flush() error {
+	return m.marshaller.Flush()
 }
 
 // Marshall marshals list of items.
@@ -75,17 +77,18 @@ func Marshall(format FormatType, items ...interface{}) ([]byte, error) {
 		return nil, err
 	}
 
+	buf := &bytes.Buffer{}
 	for _, item := range items {
-		err = m.Write(item)
+		err = m.Write(buf, item)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	b, err := m.Bytes()
+	err = m.Flush()
 	if err != nil {
 		return nil, err
 	}
 
-	return b, nil
+	return buf.Bytes(), nil
 }

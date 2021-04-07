@@ -16,7 +16,7 @@
 package main
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -32,30 +32,38 @@ func NewPricesCmd(opts *options) *cobra.Command {
 		Short:   "Return prices for given PAIRs",
 		Long:    `Return prices for given PAIRs.`,
 		RunE: func(c *cobra.Command, args []string) (err error) {
-			log, err := newLogger(opts.LogVerbosity)
-			if err != nil {
-				return
-			}
-
 			mar, err := marshal.NewMarshal(opts.OutputFormat.format)
 			if err != nil {
-				return
+				return err
+			}
+			defer func() {
+				if err != nil {
+					exitCode = 1
+					_ = mar.Write(os.Stderr, err)
+				}
+				_ = mar.Flush()
+				// Set err to nil because error was already handled by marshaller.
+				err = nil
+			}()
+
+			log, err := newLogger(opts.LogVerbosity)
+			if err != nil {
+				return err
 			}
 
 			gof, err := newGofer(opts, opts.ConfigFilePath, log)
 			if err != nil {
-				return
+				return err
 			}
 
 			if sg, ok := gof.(gofer.StartableGofer); ok {
 				err = sg.Start()
 				if err != nil {
-					return
+					return err
 				}
 				defer func() {
-					gerr := sg.Stop()
-					if err == nil {
-						err = gerr
+					if err := sg.Stop(); err != nil {
+						_ = mar.Write(os.Stderr, err)
 					}
 				}()
 			}
@@ -67,26 +75,20 @@ func NewPricesCmd(opts *options) *cobra.Command {
 
 			prices, err := gof.Prices(pairs...)
 			if err != nil {
-				return
+				return err
 			}
 
 			for _, p := range prices {
-				err = mar.Write(p)
-				if err != nil {
-					return
+				if err := mar.Write(os.Stdout, p); err != nil {
+					_ = mar.Write(os.Stderr, err)
 				}
 			}
 
-			bts, err := mar.Bytes()
-			if err != nil {
-				return
-			}
-
-			fmt.Print(string(bts))
-
+			// If any pair was returned with an error, then we should return a non-zero status code.
 			for _, p := range prices {
 				if p.Error != "" {
-					return errSilent{}
+					exitCode = 1
+					break
 				}
 			}
 
