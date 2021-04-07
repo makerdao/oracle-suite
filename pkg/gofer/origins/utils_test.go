@@ -16,6 +16,8 @@
 package origins
 
 import (
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -32,9 +34,9 @@ func testRealAPICall(suite Suite, origin Handler, base, quote string) {
 }
 
 func testRealBatchAPICall(suite Suite, origin Handler, pairs []Pair) {
-	//if os.Getenv("GOFER_TEST_API_CALLS") == "" {
-	//	suite.T().SkipNow()
-	//}
+	if os.Getenv("GOFER_TEST_API_CALLS") == "" {
+		suite.T().SkipNow()
+	}
 
 	suite.Assert().IsType(suite.Origin(), origin)
 
