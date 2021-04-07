@@ -101,9 +101,12 @@ func DefaultSet() *Set {
 	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
 	return NewSet(map[string]Handler{
+		"balancer":      &Balancer{Pool: httpWorkerPool},
 		"binance":       &Binance{Pool: httpWorkerPool},
 		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
 		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},
+		"bitthumb":      &BitThump{Pool: httpWorkerPool},
+		"bithumb":       &BitThump{Pool: httpWorkerPool},
 		"bittrex":       &Bittrex{Pool: httpWorkerPool},
 		"coinbasepro":   &CoinbasePro{Pool: httpWorkerPool},
 		"cryptocompare": &CryptoCompare{Pool: httpWorkerPool},
@@ -122,6 +125,7 @@ func DefaultSet() *Set {
 		"loopring":      &Loopring{Pool: httpWorkerPool},
 		"okex":          &Okex{Pool: httpWorkerPool},
 		"poloniex":      &Poloniex{Pool: httpWorkerPool},
+		"sushiswap":     &Sushiswap{Pool: httpWorkerPool},
 		"uniswap":       &Uniswap{Pool: httpWorkerPool},
 		"upbit":         &Upbit{Pool: httpWorkerPool},
 	})
