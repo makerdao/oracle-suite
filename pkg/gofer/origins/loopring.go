@@ -45,10 +45,6 @@ func (l *Loopring) localPairName(pairs ...Pair) string {
 	return strings.Join(list, ",")
 }
 
-func (l *Loopring) getURL() string {
-	return loopringURL
-}
-
 func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
