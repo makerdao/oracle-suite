@@ -18,6 +18,7 @@ package origins
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,21 +26,10 @@ import (
 )
 
 // Loopring URL
-const loopringURL = "https://api.loopring.io/api/v2/overview"
-
-type pairResponse struct {
-	Price  stringAsFloat64 `json:"last"`
-	Ask    stringAsFloat64 `json:"lowestAsk"`
-	Bid    stringAsFloat64 `json:"highestBid"`
-	Volume stringAsFloat64 `json:"quoteVolume"`
-}
+const loopringURL = "https://api3.loopring.io/api/v3/ticker?market=%s"
 
 type loopringResponse struct {
-	ResultInfo struct {
-		Code    int
-		Message string
-	} `json:"resultInfo"`
-	Data map[string]pairResponse `json:"data"`
+	Tickers [][]string `json:"tickers"`
 }
 
 // Loopring origin handler
@@ -47,8 +37,12 @@ type Loopring struct {
 	Pool query.WorkerPool
 }
 
-func (l *Loopring) localPairName(pair Pair) string {
-	return fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote))
+func (l *Loopring) localPairName(pairs ...Pair) string {
+	var list []string
+	for _, pair := range pairs {
+		list = append(list, fmt.Sprintf("%s-%s", strings.ToUpper(pair.Base), strings.ToUpper(pair.Quote)))
+	}
+	return strings.Join(list, ",")
 }
 
 func (l *Loopring) getURL() string {
@@ -58,7 +52,7 @@ func (l *Loopring) getURL() string {
 func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
-		URL: l.getURL(),
+		URL: fmt.Sprintf(loopringURL, l.localPairName(pairs...)),
 	}
 	// make query
 	res := l.Pool.Query(req)
@@ -74,11 +68,8 @@ func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse loopring response: %w", err))
 	}
-	if resp.ResultInfo.Code != 0 || resp.ResultInfo.Message != "SUCCESS" {
+	if len(resp.Tickers) != len(pairs) {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("wrong loopring response %s", res.Body))
-	}
-	if resp.Data == nil {
-		return fetchResultListWithErrors(pairs, fmt.Errorf("empty `data` field for loopring response: %s", res.Body))
 	}
 
 	var results []FetchResult
@@ -90,17 +81,42 @@ func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
 
 func (l *Loopring) pickPairDetails(response loopringResponse, pair Pair) FetchResult {
 	pairName := l.localPairName(pair)
-	pairRes, ok := response.Data[pairName]
-	if !ok {
+	var pairRes []string
+	for _, pairResponse := range response.Tickers {
+		if len(pairResponse) > 0 && pairResponse[0] == pairName {
+			pairRes = pairResponse
+			break
+		}
+	}
+	if pairRes == nil {
 		return fetchResultWithError(pair, fmt.Errorf("no %s pair exist in loopring response", pair))
+	}
+	if len(pairRes) < 10 {
+		return fetchResultWithError(pair, fmt.Errorf("invalid pair response for pair %s: %v", pair, pairRes))
+	}
+	timestamp, err := strconv.ParseInt(pairRes[1], 10, 64)
+	if err != nil {
+		return fetchResultWithError(pair, fmt.Errorf("failed to parse timestamp for pair %s: %w", pair, err))
+	}
+
+	price, err := strconv.ParseFloat(pairRes[7], 10)
+	if err != nil {
+		return fetchResultWithError(pair, fmt.Errorf("failed to parse price for pair %s: %w", pair, err))
+	}
+	bid, err := strconv.ParseFloat(pairRes[9], 10)
+	if err != nil {
+		return fetchResultWithError(pair, fmt.Errorf("failed to parse bid for pair %s: %w", pair, err))
+	}
+	ask, err := strconv.ParseFloat(pairRes[10], 10)
+	if err != nil {
+		return fetchResultWithError(pair, fmt.Errorf("failed to parse ask for pair %s: %w", pair, err))
 	}
 	// building Price
 	return fetchResult(Price{
 		Pair:      pair,
-		Price:     pairRes.Price.val(),
-		Volume24h: pairRes.Volume.val(),
-		Ask:       pairRes.Ask.val(),
-		Bid:       pairRes.Bid.val(),
-		Timestamp: time.Now(),
+		Price:     price,
+		Ask:       ask,
+		Bid:       bid,
+		Timestamp: time.Unix(timestamp, 0),
 	})
 }

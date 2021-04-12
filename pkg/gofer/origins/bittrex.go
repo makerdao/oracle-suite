@@ -23,20 +23,17 @@ import (
 	"github.com/makerdao/oracle-suite/internal/query"
 )
 
-const bittrexURL = "https://api.bittrex.com/api/v1.1/public/getmarketsummaries"
+const bittrexURL = "https://api.bittrex.com/api/v1.1/public/getticker?market=%s"
 
 type bittrexResponse struct {
-	Success bool                    `json:"success"`
-	Result  []bittrexSymbolResponse `json:"result"`
+	Success bool                  `json:"success"`
+	Result  bittrexSymbolResponse `json:"result"`
 }
 
 type bittrexSymbolResponse struct {
-	MarketName string  `json:"MarketName"`
-	Ask        float64 `json:"Ask"`
-	Bid        float64 `json:"Bid"`
-	Last       float64 `json:"Last"`
-	Volume     float64 `json:"Volume"`
-	TimeStamp  string  `json:"TimeStamp"`
+	Ask  float64 `json:"Ask"`
+	Bid  float64 `json:"Bid"`
+	Last float64 `json:"Last"`
 }
 
 // Bittrex origin handler
@@ -62,63 +59,39 @@ func (b *Bittrex) localPairName(pair Pair) string {
 }
 
 func (b *Bittrex) Fetch(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(b, pairs)
+}
+
+func (b *Bittrex) callOne(pair Pair) (*Price, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: bittrexURL,
+		URL: fmt.Sprintf(bittrexURL, b.localPairName(pair)),
 	}
 
 	// make query
 	res := b.Pool.Query(req)
 	if res == nil {
-		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
+		return nil, ErrEmptyOriginResponse
 	}
 	if res.Error != nil {
-		return fetchResultListWithErrors(pairs, res.Error)
+		return nil, res.Error
 	}
 
 	// parse JSON
 	var resp bittrexResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse Bittrex response: %w", err))
+		return nil, fmt.Errorf("failed to parse Bittrex response: %w", err)
 	}
 	if !resp.Success {
-		return fetchResultListWithErrors(pairs, fmt.Errorf("wrong response from Bittrex %v", resp))
+		return nil, fmt.Errorf("wrong response from Bittrex %v", resp)
 	}
 
-	// convert response from a slice to a map
-	respMap := map[string]bittrexSymbolResponse{}
-	for _, symbolResp := range resp.Result {
-		respMap[symbolResp.MarketName] = symbolResp
-	}
-
-	// prepare result
-	results := make([]FetchResult, 0)
-	for _, pair := range pairs {
-		if r, ok := respMap[b.localPairName(pair)]; !ok {
-			results = append(results, FetchResult{
-				Price: Price{Pair: pair},
-				Error: ErrMissingResponseForPair,
-			})
-		} else {
-			// parse timestamp
-			ts, err := time.Parse("2006-01-02T15:04:05", r.TimeStamp)
-			if err != nil {
-				ts = time.Unix(0, 0)
-			}
-
-			results = append(results, FetchResult{
-				Price: Price{
-					Pair:      pair,
-					Price:     r.Last,
-					Bid:       r.Bid,
-					Ask:       r.Ask,
-					Volume24h: r.Volume,
-					Timestamp: ts,
-				},
-			})
-		}
-	}
-
-	return results
+	return &Price{
+		Pair:      pair,
+		Price:     resp.Result.Last,
+		Bid:       resp.Result.Bid,
+		Ask:       resp.Result.Ask,
+		Timestamp: time.Now(),
+	}, nil
 }
