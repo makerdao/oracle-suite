@@ -225,7 +225,6 @@ func (suite *DdexSuite) TestRealAPICall() {
 		{Base: "ETH", Quote: "USDC"},
 		{Base: "ETH", Quote: "DAI"},
 		{Base: "WBTC", Quote: "USDT"},
-		{Base: "ETH", Quote: "SAI"},
 	}
 	testRealBatchAPICall(suite, &Ddex{Pool: query.NewHTTPWorkerPool(1)}, pairs)
 }

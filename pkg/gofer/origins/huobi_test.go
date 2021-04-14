@@ -133,7 +133,9 @@ func (suite *HuobiSuite) TestRealAPICall() {
 	huobi := &Huobi{Pool: query.NewHTTPWorkerPool(1)}
 	testRealAPICall(suite, huobi, "ETH", "BTC")
 	testRealBatchAPICall(suite, huobi, []Pair{
-		{Base: "BOT", Quote: "ETH"},
+		{Base: "SNT", Quote: "USDT"},
+		{Base: "SNX", Quote: "USDT"},
+		{Base: "YFI", Quote: "USDT"},
 		{Base: "ETH", Quote: "BTC"},
 	})
 }

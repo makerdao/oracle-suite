@@ -25,34 +25,36 @@ import (
 )
 
 const successResponse = `{
-    "resultInfo": {
-        "code": 0,
-        "message": "SUCCESS"
-    },
-    "data": {
-        "USDC-USDT": {
-            "last": "0.9997",
-            "lowestAsk": "1.0000",
-            "highestBid": "0.9998",
-            "percentChange": "0.0001",
-            "baseVolume": "36061.29",
-            "quoteVolume": "36053.99",
-            "high24hr": "1.0002",
-            "low24hr": "0.9990",
-            "isFrozen": "0"
-        },
-        "LRC-USDT": {
-            "last": "0.1221",
-            "lowestAsk": "0.1221",
-            "highestBid": "0.1215",
-            "percentChange": "0.1192",
-            "baseVolume": "1488717.990",
-            "quoteVolume": "181251.50",
-            "high24hr": "0.1323",
-            "low24hr": "0.1091",
-            "isFrozen": "0"
-        }
-    }
+	"tickers":[
+		[
+			"LRC-ETH",
+			"1618137071822",
+			"1021326019000000000000000",
+			"270371208810000000000",
+			"0.00026440",
+			"0.00026900",
+			"0.00026191",
+			"0.00026700",
+			"727",
+			"0.00026699",
+			"0.00026940",
+			"",""
+		],
+		[
+			"LRC-USDT",
+			"1618137071822",
+			"766306355200000000000000",
+			"438371710590",
+			"0.5688",
+			"0.5880",
+			"0.5501",
+			"0.5742",
+			"694",
+			"0.5743",
+			"0.5757",
+			"",""
+		]
+	]
 }`
 
 // Define the suite, and absorb the built-in basic suite
@@ -122,7 +124,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 
 	// Error wrong code
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"resultInfo":{"code":1,"message":"SUCCESS"}}`),
+		Body: []byte(`{"tickers":{}}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
@@ -130,7 +132,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 
 	// Error wrong message
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"resultInfo":{"code":0,"message":"Wrong"}}`),
+		Body: []byte(`{"tickers":[]}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
@@ -138,14 +140,16 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 
 	// Error no data
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"}}`),
+		Body: []byte(`{"tickers":[[]]}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 	// Error no pair in data
 	resp = &query.HTTPResponse{
-		Body: []byte(`{"resultInfo":{"code":0,"message":"SUCCESS"},"data":{}}`),
+		Body: []byte(`{"tickers":[
+			["LRC-USDT"]
+		]}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
@@ -153,8 +157,8 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 }
 
 func (suite *LoopringSuite) TestSuccessResponse() {
-	pair := Pair{Base: "LRC", Quote: "USDT"}
-	pair2 := Pair{Base: "USDC", Quote: "USDT"}
+	pair := Pair{Base: "LRC", Quote: "ETH"}
+	pair2 := Pair{Base: "LRC", Quote: "USDT"}
 
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
@@ -163,17 +167,15 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 	cr := suite.origin.Fetch([]Pair{pair, pair2})
 
 	suite.NoError(cr[0].Error)
-	suite.Equal(0.1221, cr[0].Price.Price)
-	suite.Equal(181251.50, cr[0].Price.Volume24h)
-	suite.Equal(0.1221, cr[0].Price.Ask)
-	suite.Equal(0.1215, cr[0].Price.Bid)
+	suite.Equal(0.000267, cr[0].Price.Price)
+	suite.Equal(0.0002694, cr[0].Price.Ask)
+	suite.Equal(0.00026699, cr[0].Price.Bid)
 	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(2))
 
 	suite.NoError(cr[1].Error)
-	suite.Equal(0.9997, cr[1].Price.Price)
-	suite.Equal(36053.99, cr[1].Price.Volume24h)
-	suite.Equal(1.0, cr[1].Price.Ask)
-	suite.Equal(0.9998, cr[1].Price.Bid)
+	suite.Equal(0.5742, cr[1].Price.Price)
+	suite.Equal(0.5757, cr[1].Price.Ask)
+	suite.Equal(0.5743, cr[1].Price.Bid)
 	suite.Greater(cr[1].Price.Timestamp.Unix(), int64(2))
 }
 

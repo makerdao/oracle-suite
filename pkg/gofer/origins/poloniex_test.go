@@ -186,7 +186,6 @@ func (suite *PoloniexSuite) TestRealAPICall() {
 		&Poloniex{Pool: query.NewHTTPWorkerPool(1)},
 		[]Pair{
 			{Base: "ETH", Quote: "BTC"},
-			{Base: "GNT", Quote: "BTC"},
 			{Base: "REP", Quote: "BTC"},
 			{Base: "BTC", Quote: "USDT"},
 		},

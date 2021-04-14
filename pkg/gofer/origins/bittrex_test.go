@@ -76,16 +76,11 @@ func (suite *BittrexSuite) TestFailOnWrongInput() {
 			{
 			   "success":true,
 			   "message":"",
-			   "result":[
-				  {
-					 "MarketName":"BTC-ETH",
-					 "Volume":10.1,
-					 "Last":"1.1",
-					 "TimeStamp":"2020-09-18T12:10:59.29",
-					 "Bid":1.0,
-					 "Ask":1.3
-				  },
-			   ]
+			   "result": {
+				 "Last":"1.1",
+				 "Bid":1.0,
+				 "Ask":1.3
+			  }
 			}
 		`),
 	}
@@ -99,16 +94,11 @@ func (suite *BittrexSuite) TestFailOnWrongInput() {
 			{
 			   "success":true,
 			   "message":"",
-			   "result":[
-				  {
-					 "MarketName":"AAA-BBB",
-					 "Volume":10.1,
-					 "Last":"1.1",
-					 "TimeStamp":"2020-09-18T12:10:59.29",
-					 "Bid":1.0,
-					 "Ask":1.3
-				  },
-			   ]
+			   "result": {
+				 "Last":"1.1",
+				 "Bid":1.0,
+				 "Ask":1.3
+			  }
 			}
 		`),
 	}
@@ -119,46 +109,24 @@ func (suite *BittrexSuite) TestFailOnWrongInput() {
 
 func (suite *BittrexSuite) TestSuccessResponse() {
 	pairBTCETH := Pair{Base: "BTC", Quote: "ETH"}
-	pairBTCUSD := Pair{Base: "BTC", Quote: "USD"}
 
 	resp := &query.HTTPResponse{
 		Body: []byte(`
 			{
 			   "success":true,
 			   "message":"",
-			   "result":[
-				  {
-					 "MarketName":"ETH-BTC",
-					 "Volume":10.1,
-					 "Last":1.1,
-					 "TimeStamp":"2020-09-18T12:10:59.29",
-					 "Bid":1.0,
-					 "Ask":1.3
-				  },
-				  {
-					 "MarketName":"USD-BTC",
-					 "Volume":20.1,
-					 "Last":2.1,
-					 "TimeStamp":"2020-09-18T12:10:59.29",
-					 "Bid":2.0,
-					 "Ask":2.3
-				  },
-				  {
-					 "MarketName":"EUR-BTC",
-					 "Volume":30.1,
-					 "Last":3.1,
-					 "TimeStamp":"2020-09-18T12:10:59.29",
-					 "Bid":3.0,
-					 "Ask":3.3
-				  }
-			   ]
+			   "result": {
+				 "Last":1.1,
+				 "Bid":1.0,
+				 "Ask":1.3
+			  }
 			}
 		`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
-	fr := suite.origin.Fetch([]Pair{pairBTCETH, pairBTCUSD})
+	fr := suite.origin.Fetch([]Pair{pairBTCETH})
 
-	suite.Len(fr, 2)
+	suite.Len(fr, 1)
 
 	// BTC/ETH
 	suite.NoError(fr[0].Error)
@@ -166,17 +134,7 @@ func (suite *BittrexSuite) TestSuccessResponse() {
 	suite.Equal(1.1, fr[0].Price.Price)
 	suite.Equal(1.0, fr[0].Price.Bid)
 	suite.Equal(1.3, fr[0].Price.Ask)
-	suite.Equal(10.1, fr[0].Price.Volume24h)
 	suite.Greater(fr[0].Price.Timestamp.Unix(), int64(0))
-
-	// BTC/USD
-	suite.NoError(fr[1].Error)
-	suite.Equal(pairBTCUSD, fr[1].Price.Pair)
-	suite.Equal(2.1, fr[1].Price.Price)
-	suite.Equal(2.0, fr[1].Price.Bid)
-	suite.Equal(2.3, fr[1].Price.Ask)
-	suite.Equal(20.1, fr[1].Price.Volume24h)
-	suite.Greater(fr[1].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *BittrexSuite) TestRealAPICall() {
@@ -184,9 +142,7 @@ func (suite *BittrexSuite) TestRealAPICall() {
 		suite,
 		&Bittrex{Pool: query.NewHTTPWorkerPool(1)},
 		[]Pair{
-			{Base: "GNT", Quote: "BTC"},
 			{Base: "MANA", Quote: "BTC"},
-			{Base: "REP", Quote: "BTC"},
 			{Base: "BAT", Quote: "BTC"},
 			{Base: "BTC", Quote: "USD"},
 		},
