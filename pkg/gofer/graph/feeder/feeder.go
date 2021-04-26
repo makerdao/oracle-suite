@@ -124,14 +124,14 @@ func (f *Feeder) Stop() {
 // findFeedableNodes returns a list of children nodes from given root nodes
 // which implement Feedable interface.
 func (f *Feeder) findFeedableNodes(ns []nodes.Node) []Feedable {
-	tn := time.Now()
+	//tn := time.Now()
 
 	var feedables []Feedable
 	nodes.Walk(func(n nodes.Node) {
 		if feedable, ok := n.(Feedable); ok {
-			if tn.Sub(feedable.Price().Time) > feedable.MinTTL() {
-				feedables = append(feedables, feedable)
-			}
+			//if tn.Sub(feedable.Price().Time) > feedable.MinTTL() {
+			feedables = append(feedables, feedable)
+			//}
 		}
 	}, ns...)
 
@@ -257,5 +257,5 @@ func getMinTTL(ns []nodes.Node) time.Duration {
 		return time.Second
 	}
 
-	return minTTL
+	return minTTL / 2
 }

@@ -72,8 +72,9 @@ func (f *Fx) getURL(base string, quotes []Pair) string {
 }
 
 func (f *Fx) callByBase(base string, pairs []Pair) ([]FetchResult, error) {
+	url := f.getURL(base, pairs)
 	req := &query.HTTPRequest{
-		URL: f.getURL(base, pairs),
+		URL: url,
 	}
 
 	// Make query.
@@ -88,10 +89,10 @@ func (f *Fx) callByBase(base string, pairs []Pair) ([]FetchResult, error) {
 	var resp fxResponse
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse FX response: %w", err)
+		return nil, fmt.Errorf("failed to parse FX response for url %s: %w", url, err)
 	}
 	if resp.Rates == nil {
-		return nil, fmt.Errorf("failed to parse FX response: %+v", resp)
+		return nil, fmt.Errorf("failed to parse FX response for url %s: %+v", url, resp)
 	}
 
 	results := make([]FetchResult, len(pairs))
