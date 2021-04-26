@@ -21,7 +21,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/oracle"
 )
 
-var PriceMessageName = "price_v1"
+var PriceMessageName = "price_v0"
 
 type Price struct {
 	Price *oracle.Price   `json:"price"`
