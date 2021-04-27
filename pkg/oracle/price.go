@@ -41,16 +41,24 @@ type Price struct {
 	V byte
 	R [32]byte
 	S [32]byte
+
+	// StarkWare signature:
+	StarkR  []byte
+	StarkS  []byte
+	StarkPK []byte
 }
 
 // jsonPrice is the JSON representation of the Price structure.
 type jsonPrice struct {
-	Wat string `json:"wat"`
-	Val string `json:"val"`
-	Age int64  `json:"age"`
-	V   string `json:"v"`
-	R   string `json:"r"`
-	S   string `json:"s"`
+	Wat     string `json:"wat"`
+	Val     string `json:"val"`
+	Age     int64  `json:"age"`
+	V       string `json:"v"`
+	R       string `json:"r"`
+	S       string `json:"s"`
+	StarkR  string `json:"stark_r"`
+	StarkS  string `json:"stark_s"`
+	StarkPK string `json:"stark_pk"`
 }
 
 func (p *Price) SetFloat64Price(price float64) {
@@ -104,25 +112,31 @@ func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 	}
 
 	return log.Fields{
-		"form": from,
-		"wat":  p.Wat,
-		"age":  p.Age.String(),
-		"val":  p.Val.String(),
-		"hash": hex.EncodeToString(p.hash()),
-		"V":    hex.EncodeToString([]byte{p.V}),
-		"R":    hex.EncodeToString(p.R[:]),
-		"S":    hex.EncodeToString(p.S[:]),
+		"form":    from,
+		"wat":     p.Wat,
+		"age":     p.Age.String(),
+		"val":     p.Val.String(),
+		"hash":    hex.EncodeToString(p.hash()),
+		"V":       hex.EncodeToString([]byte{p.V}),
+		"R":       hex.EncodeToString(p.R[:]),
+		"S":       hex.EncodeToString(p.S[:]),
+		"starkR":  hex.EncodeToString(p.StarkR),
+		"starkS":  hex.EncodeToString(p.StarkS),
+		"starkPK": hex.EncodeToString(p.StarkPK),
 	}
 }
 
 func (p *Price) MarshalJSON() ([]byte, error) {
 	return json.Marshal(jsonPrice{
-		Wat: p.Wat,
-		Val: p.Val.String(),
-		Age: p.Age.Unix(),
-		V:   hex.EncodeToString([]byte{p.V}),
-		R:   hex.EncodeToString(p.R[:]),
-		S:   hex.EncodeToString(p.S[:]),
+		Wat:     p.Wat,
+		Val:     p.Val.String(),
+		Age:     p.Age.Unix(),
+		V:       hex.EncodeToString([]byte{p.V}),
+		R:       hex.EncodeToString(p.R[:]),
+		S:       hex.EncodeToString(p.S[:]),
+		StarkR:  hex.EncodeToString(p.StarkR),
+		StarkS:  hex.EncodeToString(p.StarkS),
+		StarkPK: hex.EncodeToString(p.StarkPK),
 	})
 }
 
@@ -158,6 +172,21 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
+	p.StarkR, err = hex.DecodeString(j.StarkR)
+	if err != nil {
+		return err
+	}
+
+	p.StarkS, err = hex.DecodeString(j.StarkS)
+	if err != nil {
+		return err
+	}
+
+	p.StarkPK, err = hex.DecodeString(j.StarkPK)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -170,7 +199,6 @@ func (p *Price) hash() []byte {
 	// Time:
 	age := make([]byte, 32)
 	binary.BigEndian.PutUint64(age[24:], uint64(p.Age.Unix()))
-
 	// Asset name:
 	wat := make([]byte, 32)
 	copy(wat, p.Wat)
