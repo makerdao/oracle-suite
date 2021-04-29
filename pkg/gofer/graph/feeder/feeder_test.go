@@ -384,7 +384,7 @@ func TestFeeder_ch11427(t *testing.T) {
 				Timestamp: time.Now(),
 			},
 		},
-	}, 1 * time.Second)
+	}, 1*time.Second)
 
 	f := NewFeeder(s, null.New())
 
