@@ -80,33 +80,41 @@ func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
 	}
 }
 
-// Feed sets Prices to Feedable nodes. This method takes list of root Models
+// Feed sets Prices to Feedable nodes. This method takes list of root nodes
 // and sets Prices to all of their children that implement the Feedable interface.
 func (f *Feeder) Feed(ns ...nodes.Node) Warnings {
-	return f.fetchPricesAndFeedThemToFeedableNodes(f.findFeedableNodes(ns))
+	return f.fetchPricesAndFeedThemToFeedableNodes(f.findFeedableNodes(ns, time.Now()))
 }
 
 // Start starts a goroutine which updates prices as often as the lowest TTL is.
 func (f *Feeder) Start(ns ...nodes.Node) error {
 	f.log.Infof("Starting")
 
-	warns := f.Feed(ns...)
-	if len(warns.List) > 0 {
-		f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
+	minTTL := getMinTTL(ns)
+	if minTTL < time.Second {
+		minTTL = time.Second
 	}
 
-	ticker := time.NewTicker(getMinTTL(ns))
+	feed := func() {
+		// We have to add minTTL to the current time because we want
+		// to find all nodes that will expire before the next tick.
+		t := time.Now().Add(minTTL)
+		warns := f.fetchPricesAndFeedThemToFeedableNodes(f.findFeedableNodes(ns, t))
+		if len(warns.List) > 0 {
+			f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
+		}
+	}
+
+	ticker := time.NewTicker(minTTL)
 	go func() {
+		feed()
 		for {
 			select {
 			case <-f.doneCh:
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				warns := f.Feed(ns...)
-				if len(warns.List) > 0 {
-					f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
-				}
+				feed()
 			}
 		}
 	}()
@@ -122,14 +130,13 @@ func (f *Feeder) Stop() {
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes
-// which implement Feedable interface.
-func (f *Feeder) findFeedableNodes(ns []nodes.Node) []Feedable {
-	tn := time.Now()
-
+// which implement Feedable interface, and their price is expired according
+// to the time from the t arg.
+func (f *Feeder) findFeedableNodes(ns []nodes.Node, t time.Time) []Feedable {
 	var feedables []Feedable
 	nodes.Walk(func(n nodes.Node) {
 		if feedable, ok := n.(Feedable); ok {
-			if tn.Sub(feedable.Price().Time) > feedable.MinTTL() {
+			if t.Sub(feedable.Price().Time) >= feedable.MinTTL() {
 				feedables = append(feedables, feedable)
 			}
 		}
@@ -243,6 +250,7 @@ func mapOriginResult(origin string, fr origins.FetchResult) nodes.OriginPrice {
 	}
 }
 
+// getMinTTL returns the lowest minTTL value from given nodes.
 func getMinTTL(ns []nodes.Node) time.Duration {
 	minTTL := time.Duration(0)
 	nodes.Walk(func(n nodes.Node) {
@@ -252,10 +260,5 @@ func getMinTTL(ns []nodes.Node) time.Duration {
 			}
 		}
 	}, ns...)
-
-	if minTTL < time.Second {
-		return time.Second
-	}
-
 	return minTTL
 }
