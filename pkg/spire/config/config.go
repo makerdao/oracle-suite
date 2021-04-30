@@ -138,15 +138,19 @@ func (c *Config) configureSigner(a *geth.Account) ethereum.Signer {
 
 func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
 	cfg := p2p.Config{
-		Context:        ctx,
-		PrivateKey:     ethkey.NewPrivKey(s),
-		ListenAddrs:    c.P2P.ListenAddrs,
-		BootstrapAddrs: c.P2P.BootstrapAddrs,
-		BlockedAddrs:   c.P2P.BlockedAddrs,
-		Logger:         l,
+		Context:           ctx,
+		MessagePrivateKey: ethkey.NewPrivKey(s),
+		ListenAddrs:       c.P2P.ListenAddrs,
+		BootstrapAddrs:    c.P2P.BootstrapAddrs,
+		BlockedAddrs:      c.P2P.BlockedAddrs,
+		Logger:            l,
 	}
 	for _, feed := range c.Feeds {
-		cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
+		if strings.HasPrefix(feed, "0x") {
+			cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
+		} else {
+			cfg.AllowedPeers = append(cfg.AllowedPeers, feed)
+		}
 	}
 
 	p, err := p2p.New(cfg)

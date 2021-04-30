@@ -147,7 +147,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	if len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64 {
+	if (len(j.V) == 0 && len(j.R) != 0 && len(j.S) != 0) && (len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64) {
 		return ErrInvalidJSONSignature
 	}
 
@@ -155,21 +155,27 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	p.Val, _ = new(big.Int).SetString(j.Val, 10)
 	p.Age = time.Unix(j.Age, 0)
 
-	v := [1]byte{}
-	_, err = hex.Decode(v[:], []byte(j.V))
-	if err != nil {
-		return err
-	}
-	p.V = v[0]
-
-	_, err = hex.Decode(p.R[:], []byte(j.R))
-	if err != nil {
-		return err
+	if len(j.V) != 0 {
+		v := [1]byte{}
+		_, err = hex.Decode(v[:], []byte(j.V))
+		if err != nil {
+			return err
+		}
+		p.V = v[0]
 	}
 
-	_, err = hex.Decode(p.S[:], []byte(j.S))
-	if err != nil {
-		return err
+	if len(j.R) != 0 {
+		_, err = hex.Decode(p.R[:], []byte(j.R))
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(j.S) != 0 {
+		_, err = hex.Decode(p.S[:], []byte(j.S))
+		if err != nil {
+			return err
+		}
 	}
 
 	p.StarkR, err = hex.DecodeString(j.StarkR)

@@ -66,11 +66,12 @@ type NodeConfig struct {
 	Context context.Context
 	Logger  log.Logger
 
-	ListenAddrs    []multiaddr.Multiaddr
-	BootstrapAddrs []multiaddr.Multiaddr
-	BlockedAddrs   []multiaddr.Multiaddr
-	AllowedPeers   []peer.ID
-	PrivateKey     crypto.PrivKey
+	ListenAddrs       []multiaddr.Multiaddr
+	BootstrapAddrs    []multiaddr.Multiaddr
+	BlockedAddrs      []multiaddr.Multiaddr
+	AllowedPeers      []peer.ID
+	PeerPrivateKey    crypto.PrivKey
+	MessagePrivateKey crypto.PrivKey
 }
 
 type Node struct {
@@ -80,7 +81,9 @@ type Node struct {
 	host              host.Host
 	pubSub            *pubsub.PubSub
 	dht               routerCloser
-	privKey           crypto.PrivKey
+	peerPrivKey       crypto.PrivKey
+	messagePrivKey    crypto.PrivKey
+	messageAuthorID   peer.ID
 	listenAddrs       []multiaddr.Multiaddr
 	bootstrapAddrs    []multiaddr.Multiaddr
 	blockedAddrs      []multiaddr.Multiaddr
@@ -101,10 +104,11 @@ type Node struct {
 	newDHT    func(n *Node) (routerCloser, error)
 }
 
-func NewNode(cfg NodeConfig) *Node {
+func NewNode(cfg NodeConfig) (*Node, error) {
 	n := &Node{
 		ctx:               cfg.Context,
-		privKey:           cfg.PrivateKey,
+		peerPrivKey:       cfg.PeerPrivateKey,
+		messagePrivKey:    cfg.MessagePrivateKey,
 		bootstrapAddrs:    cfg.BootstrapAddrs,
 		listenAddrs:       cfg.ListenAddrs,
 		blockedAddrs:      cfg.BlockedAddrs,
@@ -119,25 +123,51 @@ func NewNode(cfg NodeConfig) *Node {
 		closed:            false,
 	}
 
+	// Get message author ID from provided private key:
+	if cfg.MessagePrivateKey != nil {
+		id, err := peer.IDFromPublicKey(cfg.MessagePrivateKey.GetPublic())
+		if err != nil {
+			return nil, err
+		}
+		n.messageAuthorID = id
+	}
+
 	// Systems providers:
-	n.newHost = func(h *Node) (host.Host, error) {
+	n.newHost = func(n *Node) (host.Host, error) {
 		opts := []libp2p.Option{
 			libp2p.ListenAddrs(n.listenAddrs...),
 			libp2p.ConnectionGater(n.connGaterSet),
 		}
-		if n.privKey != nil {
-			opts = append(opts, libp2p.Identity(n.privKey))
+		// If peerPrivKey is set, use it as peer identity:
+		if n.peerPrivKey != nil {
+			opts = append(opts, libp2p.Identity(n.peerPrivKey))
 		}
-		return libp2p.New(h.ctx, opts...)
+		h, err := libp2p.New(n.ctx, opts...)
+		if err != nil {
+			return nil, err
+		}
+		// If messagePrivKey is set, we have to add this key to peerstore,
+		// otherwise it'll be impossible to use it to sign messages:
+		if n.messagePrivKey != nil {
+			err = h.Peerstore().AddPrivKey(n.messageAuthorID, n.messagePrivKey)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return h, nil
 	}
-	n.newPubSub = func(h *Node) (*pubsub.PubSub, error) {
-		return pubsub.NewGossipSub(n.ctx, n.host)
+	n.newPubSub = func(n *Node) (*pubsub.PubSub, error) {
+		var opts []pubsub.Option
+		if n.messagePrivKey != nil {
+			opts = append(opts, pubsub.WithMessageAuthor(n.messageAuthorID))
+		}
+		return pubsub.NewGossipSub(n.ctx, n.host, opts...)
 	}
 	n.newDHT = func(h *Node) (routerCloser, error) {
 		return dht.New(n.ctx, n.host)
 	}
 
-	return n
+	return n, nil
 }
 
 func (n *Node) Start() error {
