@@ -147,7 +147,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	if (len(j.V) == 0 && len(j.R) != 0 && len(j.S) != 0) && (len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64) {
+	if (len(j.V)+len(j.R)+len(j.S) != 0) && (len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64) {
 		return ErrInvalidJSONSignature
 	}
 

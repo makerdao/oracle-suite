@@ -22,9 +22,9 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/oracle"
 )
 
-var PriceMessageName = "price_v0"
+var PriceMessageName = "price/v0"
 
-var ErrMalformedMessage = errors.New("malformed price message")
+var ErrPriceMalformedMessage = errors.New("malformed price message")
 
 type Price struct {
 	Price *oracle.Price   `json:"price"`
@@ -41,7 +41,7 @@ func (p *Price) Unmarshall(b []byte) error {
 		return err
 	}
 	if p.Price == nil {
-		return ErrMalformedMessage
+		return ErrPriceMalformedMessage
 	}
 	return nil
 }

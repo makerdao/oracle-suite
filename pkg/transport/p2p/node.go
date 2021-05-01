@@ -47,7 +47,7 @@ var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
 
-const rendezvousString = "spire/0.0-dev"
+const rendezvousString = "spire/v0.0-dev"
 
 func init() {
 	// It's required to increase timeouts because signing messages using
@@ -66,12 +66,12 @@ type NodeConfig struct {
 	Context context.Context
 	Logger  log.Logger
 
-	ListenAddrs       []multiaddr.Multiaddr
-	BootstrapAddrs    []multiaddr.Multiaddr
-	BlockedAddrs      []multiaddr.Multiaddr
-	AllowedPeers      []peer.ID
-	PeerPrivateKey    crypto.PrivKey
-	MessagePrivateKey crypto.PrivKey
+	ListenAddrs    []multiaddr.Multiaddr
+	BootstrapAddrs []multiaddr.Multiaddr
+	BlockedAddrs   []multiaddr.Multiaddr
+	AllowedPeers   []peer.ID
+	PeerPrivKey    crypto.PrivKey
+	MessagePrivKey crypto.PrivKey
 }
 
 type Node struct {
@@ -107,8 +107,8 @@ type Node struct {
 func NewNode(cfg NodeConfig) (*Node, error) {
 	n := &Node{
 		ctx:               cfg.Context,
-		peerPrivKey:       cfg.PeerPrivateKey,
-		messagePrivKey:    cfg.MessagePrivateKey,
+		peerPrivKey:       cfg.PeerPrivKey,
+		messagePrivKey:    cfg.MessagePrivKey,
 		bootstrapAddrs:    cfg.BootstrapAddrs,
 		listenAddrs:       cfg.ListenAddrs,
 		blockedAddrs:      cfg.BlockedAddrs,
@@ -124,8 +124,8 @@ func NewNode(cfg NodeConfig) (*Node, error) {
 	}
 
 	// Get message author ID from provided private key:
-	if cfg.MessagePrivateKey != nil {
-		id, err := peer.IDFromPublicKey(cfg.MessagePrivateKey.GetPublic())
+	if cfg.MessagePrivKey != nil {
+		id, err := peer.IDFromPublicKey(cfg.MessagePrivKey.GetPublic())
 		if err != nil {
 			return nil, err
 		}
