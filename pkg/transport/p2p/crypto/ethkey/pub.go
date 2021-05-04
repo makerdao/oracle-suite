@@ -65,7 +65,7 @@ func (p *PubKey) Raw() ([]byte, error) {
 
 // Type implements the crypto.Key interface.
 func (p *PubKey) Type() cryptoPB.KeyType {
-	return KeyType_Eth
+	return KeyTypeID
 }
 
 // Verify implements the crypto.PubKey interface.

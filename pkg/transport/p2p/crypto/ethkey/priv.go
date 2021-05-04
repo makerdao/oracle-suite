@@ -65,7 +65,7 @@ func (p *PrivKey) Raw() ([]byte, error) {
 
 // Type implements the crypto.Key interface.
 func (p *PrivKey) Type() cryptoPB.KeyType {
-	return KeyType_Eth
+	return KeyTypeID
 }
 
 // Sign implements the crypto.PrivateKey interface.

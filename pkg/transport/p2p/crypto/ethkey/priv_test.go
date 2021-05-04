@@ -68,5 +68,5 @@ func TestPrivKey_Sign(t *testing.T) {
 }
 
 func TestPrivKey_Type(t *testing.T) {
-	assert.Equal(t, KeyType_Eth, NewPrivKey(&mocks.Signer{}).Type())
+	assert.Equal(t, KeyTypeID, NewPrivKey(&mocks.Signer{}).Type())
 }

@@ -16,13 +16,18 @@
 package config
 
 import (
+	"bytes"
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/libp2p/go-libp2p-core/crypto"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
@@ -33,10 +38,12 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/ethkey"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
-var ErrFailedToReadPassphraseFile = errors.New("failed to read passphrase file")
+var ErrFailedToLoadConfiguration = errors.New("failed to load Spectre's configuration")
+var ErrFailedToReadPassphraseFile = errors.New("failed to read the ethereum password file")
+var ErrFailedToParsePrivKeySeed = errors.New("failed to parse the privKeySeed field")
 
 type Config struct {
 	Ethereum Ethereum        `json:"ethereum"`
@@ -54,6 +61,7 @@ type Ethereum struct {
 }
 
 type P2P struct {
+	PrivKeySeed    string   `json:"privKeySeed"`
 	ListenAddrs    []string `json:"listenAddrs"`
 	BootstrapAddrs []string `json:"bootstrapAddrs"`
 	BlockedAddrs   []string `json:"blockedAddrs"`
@@ -86,22 +94,22 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
 	}
 
 	// Signer:
 	sig := c.configureSigner(acc)
 
 	// Transport:
-	tra, err := c.configureTransport(deps.Context, sig, deps.Logger)
+	tra, err := c.configureTransport(deps.Context, deps.Logger)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
 	}
 
 	// Create Ethereum client:
 	eth, err := c.configureEthClient(sig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
 	}
 
 	// Datastore:
@@ -140,17 +148,28 @@ func (c *Config) configureSigner(a *ethereumGeth.Account) ethereum.Signer {
 	return ethereumGeth.NewSigner(a)
 }
 
-func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
+func (c *Config) configureTransport(ctx context.Context, l log.Logger) (transport.Transport, error) {
+	peerPrivKey, err := c.generatePrivKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// Spectre doesn't create any messages so there is no need to
+	// configure the MessagePrivKey field.
 	cfg := p2p.Config{
 		Context:        ctx,
-		PrivateKey:     ethkey.NewPrivKey(s),
+		PeerPrivKey:    peerPrivKey,
 		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
 		Logger:         l,
 	}
 	for _, feed := range c.Feeds {
-		cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
+		if strings.HasPrefix(feed, "0x") {
+			cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
+		} else {
+			cfg.AllowedPeers = append(cfg.AllowedPeers, feed)
+		}
 	}
 
 	p, err := p2p.New(cfg)
@@ -224,10 +243,28 @@ func (c *Config) configureSpectre(
 	return spectre.NewSpectre(cfg)
 }
 
+func (c *Config) generatePrivKey() (crypto.PrivKey, error) {
+	if len(c.P2P.PrivKeySeed) == 0 {
+		return nil, nil
+	}
+	seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
+	}
+	if len(seed) != ed25519.SeedSize {
+		return nil, fmt.Errorf("%v: seed must be 32 bytes", ErrFailedToParsePrivKeySeed)
+	}
+	privKey, _, err := crypto.GenerateEd25519Key(bytes.NewReader(seed))
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
+	}
+	return privKey, nil
+}
+
 func (c *Config) readAccountPassphrase(path string) (string, error) {
 	passphraseFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", ErrFailedToReadPassphraseFile
+		return "", fmt.Errorf("%v: %v", ErrFailedToReadPassphraseFile, err)
 	}
 	return strings.TrimSuffix(string(passphraseFile), "\n"), nil
 }

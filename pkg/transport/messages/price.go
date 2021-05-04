@@ -17,11 +17,14 @@ package messages
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/makerdao/oracle-suite/pkg/oracle"
 )
 
-var PriceMessageName = "price_v0"
+var PriceMessageName = "price/v0"
+
+var ErrPriceMalformedMessage = errors.New("malformed price message")
 
 type Price struct {
 	Price *oracle.Price   `json:"price"`
@@ -33,7 +36,14 @@ func (p *Price) Marshall() ([]byte, error) {
 }
 
 func (p *Price) Unmarshall(b []byte) error {
-	return json.Unmarshal(b, p)
+	err := json.Unmarshal(b, p)
+	if err != nil {
+		return err
+	}
+	if p.Price == nil {
+		return ErrPriceMalformedMessage
+	}
+	return nil
 }
 
 func (p *Price) MarshalBinary() ([]byte, error) {

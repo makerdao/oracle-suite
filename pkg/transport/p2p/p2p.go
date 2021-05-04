@@ -40,8 +40,12 @@ type Config struct {
 	Context context.Context
 	Logger  log.Logger
 
-	// PrivateKey is a key used to sign and verify messages in the network.
-	PrivateKey crypto.PrivKey
+	// PeerPrivKey is a key used for peer identity. If empty, then random key
+	// is used.
+	PeerPrivKey crypto.PrivKey
+	// MessagePrivKey is a key used to sign messages. If empty, then message
+	// are signed with the same key which is used for peer identity.
+	MessagePrivKey crypto.PrivKey
 	// ListenAddrs is a list of multiaddresses on which this node will be
 	// listening on. If empty, the localhost, and a random port will be used.
 	ListenAddrs []string
@@ -83,18 +87,21 @@ func New(cfg Config) (*P2P, error) {
 		return nil, err
 	}
 
-	p := &P2P{
-		node: NewNode(NodeConfig{
-			Context:        cfg.Context,
-			Logger:         cfg.Logger.WithField("tag", LoggerTag),
-			ListenAddrs:    listenAddrs,
-			BootstrapAddrs: bootstrapAddrs,
-			BlockedAddrs:   blockedAddrs,
-			AllowedPeers:   allowedPeers,
-			PrivateKey:     cfg.PrivateKey,
-		}),
+	n, err := NewNode(NodeConfig{
+		Context:        cfg.Context,
+		Logger:         cfg.Logger.WithField("tag", LoggerTag),
+		ListenAddrs:    listenAddrs,
+		BootstrapAddrs: bootstrapAddrs,
+		BlockedAddrs:   blockedAddrs,
+		AllowedPeers:   allowedPeers,
+		PeerPrivKey:    cfg.PeerPrivKey,
+		MessagePrivKey: cfg.MessagePrivKey,
+	})
+	if err != nil {
+		return nil, err
 	}
 
+	p := &P2P{node: n}
 	err = p.node.Start()
 	if err != nil {
 		return nil, err

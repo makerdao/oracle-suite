@@ -69,7 +69,7 @@ func newServer(opts *options, log log.Logger) (*spire.Agent, error) {
 		}
 	}
 
-	s, err := opts.Config.ConfigureServer(config.Dependencies{
+	s, err := opts.Config.ConfigureAgent(config.Dependencies{
 		Context: context.Background(),
 		Logger:  log,
 	})

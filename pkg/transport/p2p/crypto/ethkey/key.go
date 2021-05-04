@@ -25,8 +25,8 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 )
 
-// Eth key type uses the Ethereum keys to sign and verify messages.
-const KeyType_Eth cryptoPB.KeyType = 10 //nolint:golint,stylecheck
+// KeyTypeID uses the Ethereum keys to sign and verify messages.
+const KeyTypeID cryptoPB.KeyType = 10
 
 // NewSigner points to a function which create new Ethereum signer used to
 // verify signatures.
@@ -35,8 +35,8 @@ var NewSigner = func() ethereum.Signer {
 }
 
 func init() {
-	crypto.PubKeyUnmarshallers[KeyType_Eth] = UnmarshalEthPublicKey
-	crypto.PrivKeyUnmarshallers[KeyType_Eth] = UnmarshalEthPrivateKey
+	crypto.PubKeyUnmarshallers[KeyTypeID] = UnmarshalEthPublicKey
+	crypto.PrivKeyUnmarshallers[KeyTypeID] = UnmarshalEthPrivateKey
 }
 
 // AddressToPeerID converts an Ethereum address to a peer ID. If address is

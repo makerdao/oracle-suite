@@ -43,7 +43,7 @@ func TestPubKey_Raw(t *testing.T) {
 }
 
 func TestPubKey_Type(t *testing.T) {
-	assert.Equal(t, KeyType_Eth, NewPubKey(testAddress1).Type())
+	assert.Equal(t, KeyTypeID, NewPubKey(testAddress1).Type())
 }
 
 func TestPubKey_Verify(t *testing.T) {
