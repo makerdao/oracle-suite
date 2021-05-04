@@ -2,9 +2,8 @@ PACKAGE ?= gofer
 GO_FILES := $(shell { git ls-files; } | grep ".go$$")
 LICENSED_FILES := $(shell { git ls-files; } | grep ".go$$")
 
-BUILD_SOURCES := cmd/gofer/*.go
 BUILD_DIR := bin
-BUILD_TARGET := $(BUILD_DIR)/gofer
+BUILD_TARGET := $(BUILD_DIR)/gofer $(BUILD_DIR)/spire
 BUILD_FLAGS ?= all
 
 OUT_DIR := workdir
@@ -21,7 +20,7 @@ $(BUILD_TARGET): export GOARCH ?= amd64
 $(BUILD_TARGET): export CGO_ENABLED ?= 0
 $(BUILD_TARGET): $(GO_FILES)
 	mkdir -p $(@D)
-	$(GO) build -tags $(BUILD_FLAGS) -o $@ $(BUILD_SOURCES)
+	$(GO) build -tags $(BUILD_FLAGS) -o $@ cmd/$(notdir $@)/*.go
 
 clean:
 	rm -rf $(OUT_DIR) $(BUILD_DIR)
@@ -80,4 +79,3 @@ $(TEST_BUILD_TARGET): clean-test $(TEST_BUILD_PACKAGE_FILES)
 run-test: $(TEST_BUILD_TARGET)
 	$(TEST_BUILD_TARGET) -test.v -gofer.test-api-calls
 .PHONY: run-test
-
