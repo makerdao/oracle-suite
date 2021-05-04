@@ -34,42 +34,44 @@ type mockHandler struct {
 	fetchPairs []origins.Pair
 	// delay is a simulated delay during price fetching
 	delay time.Duration
+	// updateTimestamp determines if a price's timestamp should be updated on
+	// every fetch
+	updateTimestamp bool
 }
 
 func (m *mockHandler) Fetch(pairs []origins.Pair) []origins.FetchResult {
 	m.fetchPairs = pairs
-
-	var fr []origins.FetchResult
-	for _, pair := range pairs {
-		fr = append(fr, origins.FetchResult{
-			Price: m.mockedPrices[pair],
-			Error: nil,
-		})
-	}
-
 	if m.delay > 0 {
 		time.Sleep(m.delay)
 	}
-
+	var fr []origins.FetchResult
+	for _, pair := range pairs {
+		p := m.mockedPrices[pair]
+		if m.updateTimestamp {
+			p.Timestamp = time.Now()
+		}
+		fr = append(fr, origins.FetchResult{
+			Price: p,
+			Error: nil,
+		})
+	}
 	return fr
 }
 
-func originsSetMock(prices map[string][]origins.Price, delay time.Duration) *origins.Set {
+func originsSetMock(prices map[string][]origins.Price, delay time.Duration, updateTimestamp bool) *origins.Set {
 	handlers := map[string]origins.Handler{}
 	for origin, prices := range prices {
 		pricesMap := map[origins.Pair]origins.Price{}
 		for _, price := range prices {
 			pricesMap[price.Pair] = price
 		}
-
-		handlers[origin] = &mockHandler{mockedPrices: pricesMap, delay: delay}
+		handlers[origin] = &mockHandler{mockedPrices: pricesMap, delay: delay, updateTimestamp: updateTimestamp}
 	}
-
 	return origins.NewSet(handlers)
 }
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil, 0), null.New())
+	f := NewFeeder(originsSetMock(nil, 0, false), null.New())
 
 	// Feed method shouldn't panic
 	warns := f.Feed()
@@ -78,7 +80,7 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil, 0), null.New())
+	f := NewFeeder(originsSetMock(nil, 0, false), null.New())
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 
 	// Feed method shouldn't panic
@@ -99,7 +101,7 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	}, 0)
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -151,7 +153,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 				Timestamp: time.Unix(30000, 0),
 			},
 		},
-	}, 0)
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -234,7 +236,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	}, 0)
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -270,7 +272,7 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	}, 0)
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -317,7 +319,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	}, 0)
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -367,11 +369,11 @@ func Test_getGCDTTL(t *testing.T) {
 	assert.Equal(t, 2*time.Second, getGCDTTL([]nodes.Node{root}))
 }
 
-// Test for ch11427 issue. Feeder updates feed nodes based on the interval
-// from getMinTTL function. Because feeding process takes some time, during
-// the next tick, the time difference from the last update was shorter than the
-// value returned by getMinTTL. Because of this, some nodes were only updated
-// every second tick.
+// Test for ch11427 issue. Feeder updates feed nodes based on the interval from
+// the getGCDTTL function. Because the feeding process takes some time, during
+// the next tick, the time difference from the last update was shorter than
+// the value returned by the getGCDTTL. Because of this, some nodes were only
+// updated every second tick.
 func TestFeeder_ch11427(t *testing.T) {
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
@@ -384,7 +386,7 @@ func TestFeeder_ch11427(t *testing.T) {
 				Timestamp: time.Now(),
 			},
 		},
-	}, 1*time.Second)
+	}, 750*time.Millisecond, true)
 
 	f := NewFeeder(s, null.New())
 
@@ -392,11 +394,11 @@ func TestFeeder_ch11427(t *testing.T) {
 	o := nodes.NewOriginNode(nodes.OriginPair{
 		Origin: "test",
 		Pair:   gofer.Pair{Base: "A", Quote: "B"},
-	}, 1*time.Second, 2*time.Second)
+	}, 1*time.Second, 1500*time.Millisecond)
 	g.AddChild(o)
 
 	f.Start(o)
 	defer f.Stop()
-	time.Sleep(time.Second)
+	time.Sleep(2500 * time.Millisecond)
 	assert.False(t, o.Expired())
 }
