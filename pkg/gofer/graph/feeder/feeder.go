@@ -94,7 +94,7 @@ func (f *Feeder) Start(ns ...nodes.Node) error {
 	if gcdTTL < time.Second {
 		gcdTTL = time.Second
 	}
-	f.log.WithField("interval", gcdTTL.String()).Infof("Update interval (GCM of all TTLs)")
+	f.log.WithField("interval", gcdTTL.String()).Infof("Update interval (GCD of all TTLs)")
 
 	feed := func() {
 		// We have to add gcdTTL to the current time because we want
