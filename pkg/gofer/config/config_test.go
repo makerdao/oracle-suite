@@ -233,8 +233,8 @@ func TestConfig_buildGraphs_DefaultTTL(t *testing.T) {
 	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
-	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
-	assert.Equal(t, 30*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
+	assert.Equal(t, 60*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
 }
 
 func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
@@ -256,8 +256,8 @@ func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
 	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
-	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
-	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
+	assert.Equal(t, 180*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
 }
 
 func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
@@ -279,6 +279,6 @@ func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
 	p, _ := gofer.NewPair("A/B")
 	g, _ := config.buildGraphs()
 
-	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
-	assert.Equal(t, 90*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
+	assert.Equal(t, 180*time.Second, g[p].Children()[0].(*nodes.OriginNode).MaxTTL())
+	assert.Equal(t, 120*time.Second, g[p].Children()[0].(*nodes.OriginNode).MinTTL())
 }
