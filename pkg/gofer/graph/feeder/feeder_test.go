@@ -352,19 +352,19 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	assert.Equal(t, 11.0, o.Price().Volume24h)
 }
 
-func Test_getMinTTL(t *testing.T) {
+func Test_getGCDTTL(t *testing.T) {
 	p := gofer.Pair{Base: "A", Quote: "B"}
 	root := nodes.NewMedianAggregatorNode(p, 1)
 	ttl := time.Second * time.Duration(time.Now().Unix()+10)
 	on1 := nodes.NewOriginNode(nodes.OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
-	on2 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 5*time.Second, ttl)
+	on2 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 6*time.Second, ttl)
 	on3 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 10*time.Second, ttl)
 
 	root.AddChild(on1)
 	root.AddChild(on2)
 	root.AddChild(on3)
 
-	assert.Equal(t, 5*time.Second, getMinTTL([]nodes.Node{root}))
+	assert.Equal(t, 2*time.Second, getGCDTTL([]nodes.Node{root}))
 }
 
 // Test for ch11427 issue. Feeder updates feed nodes based on the interval

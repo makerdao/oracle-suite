@@ -90,22 +90,23 @@ func (f *Feeder) Feed(ns ...nodes.Node) Warnings {
 func (f *Feeder) Start(ns ...nodes.Node) error {
 	f.log.Infof("Starting")
 
-	minTTL := getMinTTL(ns)
-	if minTTL < time.Second {
-		minTTL = time.Second
+	gcdTTL := getGCDTTL(ns)
+	if gcdTTL < time.Second {
+		gcdTTL = time.Second
 	}
+	f.log.WithField("interval", gcdTTL.String()).Infof("Update interval (GCM of all TTLs)")
 
 	feed := func() {
-		// We have to add minTTL to the current time because we want
+		// We have to add gcdTTL to the current time because we want
 		// to find all nodes that will expire before the next tick.
-		t := time.Now().Add(minTTL)
+		t := time.Now().Add(gcdTTL)
 		warns := f.fetchPricesAndFeedThemToFeedableNodes(f.findFeedableNodes(ns, t))
 		if len(warns.List) > 0 {
 			f.log.WithError(warns.ToError()).Warn("Unable to feed some nodes")
 		}
 	}
 
-	ticker := time.NewTicker(minTTL)
+	ticker := time.NewTicker(gcdTTL)
 	go func() {
 		feed()
 		for {
@@ -250,15 +251,23 @@ func mapOriginResult(origin string, fr origins.FetchResult) nodes.OriginPrice {
 	}
 }
 
-// getMinTTL returns the lowest minTTL value from given nodes.
-func getMinTTL(ns []nodes.Node) time.Duration {
-	minTTL := time.Duration(0)
+// getGCDTTL returns the greatest common divisor of nodes minTTLs.
+func getGCDTTL(ns []nodes.Node) time.Duration {
+	ttl := time.Duration(0)
 	nodes.Walk(func(n nodes.Node) {
 		if f, ok := n.(Feedable); ok {
-			if minTTL == 0 || f.MinTTL() < minTTL {
-				minTTL = f.MinTTL()
+			if ttl == 0 {
+				ttl = f.MinTTL()
 			}
+			a := ttl
+			b := f.MinTTL()
+			for b != 0 {
+				t := b
+				b = a % b
+				a = t
+			}
+			ttl = a
 		}
 	}, ns...)
-	return minTTL
+	return ttl
 }
