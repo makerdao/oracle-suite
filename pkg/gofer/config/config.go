@@ -32,8 +32,8 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
-const defaultMaxTTL = 60 * time.Second
-const minTTLDifference = 30 * time.Second
+const defaultTTL = 60 * time.Second
+const maxTTL = 60 * time.Second
 
 type ErrCyclicReference struct {
 	Pair gofer.Pair
@@ -268,7 +268,7 @@ func (c *Config) originNode(model PriceModel, source Source) (nodes.Node, error)
 		Pair:   sourcePair,
 	}
 
-	ttl := defaultMaxTTL
+	ttl := defaultTTL
 	if model.TTL > 0 {
 		ttl = time.Second * time.Duration(model.TTL)
 	}
@@ -276,7 +276,7 @@ func (c *Config) originNode(model PriceModel, source Source) (nodes.Node, error)
 		ttl = time.Second * time.Duration(source.TTL)
 	}
 
-	return nodes.NewOriginNode(originPair, ttl-minTTLDifference, ttl), nil
+	return nodes.NewOriginNode(originPair, ttl, ttl+maxTTL), nil
 }
 
 func (c *Config) detectCycle(graphs map[gofer.Pair]nodes.Aggregator) error {

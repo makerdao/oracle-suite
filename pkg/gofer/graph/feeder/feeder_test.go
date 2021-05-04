@@ -28,42 +28,50 @@ import (
 )
 
 type mockHandler struct {
-	// list of mocked Prices to be returned by Fetch method
+	// mockedPrices is a list of mocked prices to be returned by Fetch method
 	mockedPrices map[origins.Pair]origins.Price
-	// list of pairs provided to Fetch method on last call
+	// fetchPairs is a list of pairs provided to Fetch method on last call
 	fetchPairs []origins.Pair
+	// delay is a simulated delay during price fetching
+	delay time.Duration
+	// updateTimestamp determines if a price's timestamp should be updated on
+	// every fetch
+	updateTimestamp bool
 }
 
 func (m *mockHandler) Fetch(pairs []origins.Pair) []origins.FetchResult {
 	m.fetchPairs = pairs
-
+	if m.delay > 0 {
+		time.Sleep(m.delay)
+	}
 	var fr []origins.FetchResult
 	for _, pair := range pairs {
+		p := m.mockedPrices[pair]
+		if m.updateTimestamp {
+			p.Timestamp = time.Now()
+		}
 		fr = append(fr, origins.FetchResult{
-			Price: m.mockedPrices[pair],
+			Price: p,
 			Error: nil,
 		})
 	}
-
 	return fr
 }
 
-func originsSetMock(prices map[string][]origins.Price) *origins.Set {
+func originsSetMock(prices map[string][]origins.Price, delay time.Duration, updateTimestamp bool) *origins.Set {
 	handlers := map[string]origins.Handler{}
 	for origin, prices := range prices {
 		pricesMap := map[origins.Pair]origins.Price{}
 		for _, price := range prices {
 			pricesMap[price.Pair] = price
 		}
-
-		handlers[origin] = &mockHandler{mockedPrices: pricesMap}
+		handlers[origin] = &mockHandler{mockedPrices: pricesMap, delay: delay, updateTimestamp: updateTimestamp}
 	}
-
 	return origins.NewSet(handlers)
 }
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil), null.New())
+	f := NewFeeder(originsSetMock(nil, 0, false), null.New())
 
 	// Feed method shouldn't panic
 	warns := f.Feed()
@@ -72,7 +80,7 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil), null.New())
+	f := NewFeeder(originsSetMock(nil, 0, false), null.New())
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 
 	// Feed method shouldn't panic
@@ -93,7 +101,7 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	})
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -145,7 +153,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 				Timestamp: time.Unix(30000, 0),
 			},
 		},
-	})
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -208,7 +216,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 	assert.Equal(t, 30.0, o4.Price().Volume24h)
 	assert.Equal(t, time.Unix(30000, 0), o4.Price().Time)
 
-	// Check if pairs was properly grouped per origins and check if the E/F pair
+	// Check if pairs were properly grouped per origins and check if the E/F pair
 	// appeared only once:
 	testPairs := s.Handlers()["test"].(*mockHandler).fetchPairs
 	test2Pairs := s.Handlers()["test2"].(*mockHandler).fetchPairs
@@ -228,7 +236,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	})
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -264,7 +272,7 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	})
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -311,7 +319,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 				Timestamp: time.Unix(10000, 0),
 			},
 		},
-	})
+	}, 0, false)
 
 	f := NewFeeder(s, null.New())
 
@@ -346,32 +354,51 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 	assert.Equal(t, 11.0, o.Price().Volume24h)
 }
 
-func Test_getMinTTL(t *testing.T) {
+func Test_getGCDTTL(t *testing.T) {
 	p := gofer.Pair{Base: "A", Quote: "B"}
 	root := nodes.NewMedianAggregatorNode(p, 1)
 	ttl := time.Second * time.Duration(time.Now().Unix()+10)
 	on1 := nodes.NewOriginNode(nodes.OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
-	on2 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 5*time.Second, ttl)
+	on2 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 6*time.Second, ttl)
 	on3 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 10*time.Second, ttl)
 
 	root.AddChild(on1)
 	root.AddChild(on2)
 	root.AddChild(on3)
 
-	assert.Equal(t, 5*time.Second, getMinTTL([]nodes.Node{root}))
+	assert.Equal(t, 2*time.Second, getGCDTTL([]nodes.Node{root}))
 }
 
-func Test_getMinTTL_SorterThanOneSecond(t *testing.T) {
-	p := gofer.Pair{Base: "A", Quote: "B"}
-	root := nodes.NewMedianAggregatorNode(p, 1)
-	ttl := time.Second * time.Duration(time.Now().Unix()+10)
-	on1 := nodes.NewOriginNode(nodes.OriginPair{Origin: "a", Pair: p}, 12*time.Second, ttl)
-	on2 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, -5*time.Second, ttl)
-	on3 := nodes.NewOriginNode(nodes.OriginPair{Origin: "b", Pair: p}, 0*time.Second, ttl)
+// Test for ch11427 issue. Feeder updates feed nodes based on the interval from
+// the getGCDTTL function. Because the feeding process takes some time, during
+// the next tick, the time difference from the last update was shorter than
+// the value returned by the getGCDTTL. Because of this, some nodes were only
+// updated every second tick.
+func TestFeeder_ch11427(t *testing.T) {
+	s := originsSetMock(map[string][]origins.Price{
+		"test": {
+			origins.Price{
+				Pair:      origins.Pair{Base: "A", Quote: "B"},
+				Price:     11,
+				Bid:       10,
+				Ask:       12,
+				Volume24h: 11,
+				Timestamp: time.Now(),
+			},
+		},
+	}, 750*time.Millisecond, true)
 
-	root.AddChild(on1)
-	root.AddChild(on2)
-	root.AddChild(on3)
+	f := NewFeeder(s, null.New())
 
-	assert.Equal(t, 1*time.Second, getMinTTL([]nodes.Node{root}))
+	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
+	o := nodes.NewOriginNode(nodes.OriginPair{
+		Origin: "test",
+		Pair:   gofer.Pair{Base: "A", Quote: "B"},
+	}, 1*time.Second, 1500*time.Millisecond)
+	g.AddChild(o)
+
+	f.Start(o)
+	defer f.Stop()
+	time.Sleep(2500 * time.Millisecond)
+	assert.False(t, o.Expired())
 }
