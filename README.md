@@ -1,11 +1,15 @@
-# Gofer Go Library
-> A [tool](https://en.wikipedia.org/wiki/Gofer) that specializes in the delivery of special items. 
+# Oracle Suite
 
-A Go library to enable getting reliable crypto-asset prices.
+A set of tools that can be used to run Oracles.
 
-[![CircleCI](https://circleci.com/gh/makerdao/gofer.svg?style=svg&circle-token=a7007c0430edac55d1625526a2ad7c0151bbc8c6)](https://circleci.com/gh/makerdao/gofer)
+## Gofer
 
-# Gofer CLI Tool
+A tool to fetch and calculate reliable asset prices.
 
-see: [cmd/gofer](cmd/gofer)
+see: [Gofer CLI Readme](cmd/gofer/README.md)
 
+## Spire
+
+A peer-to-peer node & client for broadcast signed asset prices.
+
+see: [Spire CLI Readme](cmd/spire/README.md)
