@@ -2,8 +2,7 @@
   "ethereum": {
     "from": "",
     "keystore": "",
-    "password": "",
-    "rpc": ""
+    "password": ""
   },
   "p2p": {
     "listenAddrs": [],
