@@ -17,6 +17,7 @@ package local
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
@@ -32,6 +33,7 @@ type Local struct {
 }
 
 type subscription struct {
+	typ    reflect.Type
 	msgs   chan []byte
 	status chan transport.Status
 	doneCh chan struct{}
@@ -46,11 +48,12 @@ func New(buffer int) *Local {
 }
 
 // Subscribe implements the transport.Transport interface.
-func (l *Local) Subscribe(topic string) error {
+func (l *Local) Subscribe(topic string, typ transport.Message) error {
 	if _, ok := l.subs[topic]; ok {
 		return ErrAlreadySubscribed
 	}
 	l.subs[topic] = subscription{
+		typ:    reflect.TypeOf(typ).Elem(),
 		msgs:   make(chan []byte, l.buffer),
 		status: make(chan transport.Status),
 		doneCh: make(chan struct{}),
@@ -83,13 +86,14 @@ func (l *Local) Broadcast(topic string, message transport.Message) error {
 }
 
 // WaitFor implements the transport.Transport interface.
-func (l *Local) WaitFor(topic string, message transport.Message) chan transport.Status {
+func (l *Local) WaitFor(topic string) chan transport.Status {
 	if sub, ok := l.subs[topic]; ok {
 		go func() {
 			select {
 			case <-sub.doneCh:
 				return
 			case msg := <-sub.msgs:
+				message := reflect.New(sub.typ).Interface().(transport.Message)
 				sub.status <- transport.Status{
 					Message: message,
 					Error:   message.Unmarshall(msg),

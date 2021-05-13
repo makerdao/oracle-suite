@@ -181,7 +181,7 @@ func (g *Ghost) broadcasterLoop() error {
 		return nil
 	}
 
-	err := g.transport.Subscribe(messages.PriceMessageName)
+	err := g.transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
 	if err != nil {
 		return err
 	}

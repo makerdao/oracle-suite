@@ -83,7 +83,7 @@ func (c *Datastore) Start() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	err := c.transport.Subscribe(messages.PriceMessageName)
+	err := c.transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
 	if err != nil {
 		return err
 	}
@@ -140,11 +140,10 @@ func (c *Datastore) collectorLoop() error {
 		defer c.mu.Unlock()
 
 		for {
-			price := &messages.Price{}
 			select {
 			case <-c.doneCh:
 				return
-			case status := <-c.transport.WaitFor(messages.PriceMessageName, price):
+			case status := <-c.transport.WaitFor(messages.PriceMessageName):
 				// If there was a problem while reading prices from the transport:
 				if status.Error != nil {
 					c.log.
@@ -152,6 +151,7 @@ func (c *Datastore) collectorLoop() error {
 						Warn("Unable to read prices from the transport")
 					continue
 				}
+				price := status.Message.(*messages.Price)
 
 				// Try to collect received price:
 				err := c.collectPrice(price)

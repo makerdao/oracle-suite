@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package node
 
 import (
 	"context"
@@ -37,10 +37,9 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/allowlist"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/denylist"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/logger"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/sets"
+	"github.com/makerdao/oracle-suite/pkg/log/null"
+	pkgTransport "github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node/sets"
 )
 
 var ErrConnectionClosed = errors.New("connection is closed")
@@ -62,18 +61,6 @@ type routerCloser interface {
 	Close() error
 }
 
-type NodeConfig struct {
-	Context context.Context
-	Logger  log.Logger
-
-	ListenAddrs    []multiaddr.Multiaddr
-	BootstrapAddrs []multiaddr.Multiaddr
-	BlockedAddrs   []multiaddr.Multiaddr
-	AllowedPeers   []peer.ID
-	PeerPrivKey    crypto.PrivKey
-	MessagePrivKey crypto.PrivKey
-}
-
 type Node struct {
 	mu sync.Mutex
 
@@ -83,19 +70,14 @@ type Node struct {
 	dht               routerCloser
 	peerPrivKey       crypto.PrivKey
 	messagePrivKey    crypto.PrivKey
-	messageAuthorID   peer.ID
+	messageAuthorPID  peer.ID
 	listenAddrs       []multiaddr.Multiaddr
-	bootstrapAddrs    []multiaddr.Multiaddr
-	blockedAddrs      []multiaddr.Multiaddr
-	allowedPeers      []peer.ID
 	notifeeSet        *sets.NotifeeSet
 	connGaterSet      *sets.ConnGaterSet
 	validatorSet      *sets.ValidatorSet
 	eventHandlerSet   *sets.EventHandlerSet
 	messageHandlerSet *sets.MessageHandlerSet
-	allowlist         *allowlist.Allowlist
-	denylist          *denylist.Denylist
-	subs              map[string]*subscription
+	subs              map[string]*Subscription
 	log               log.Logger
 	closed            bool
 
@@ -104,32 +86,25 @@ type Node struct {
 	newDHT    func(n *Node) (routerCloser, error)
 }
 
-func NewNode(cfg NodeConfig) (*Node, error) {
+func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 	n := &Node{
-		ctx:               cfg.Context,
-		peerPrivKey:       cfg.PeerPrivKey,
-		messagePrivKey:    cfg.MessagePrivKey,
-		bootstrapAddrs:    cfg.BootstrapAddrs,
-		listenAddrs:       cfg.ListenAddrs,
-		blockedAddrs:      cfg.BlockedAddrs,
-		allowedPeers:      cfg.AllowedPeers,
+		ctx:               ctx,
 		notifeeSet:        sets.NewNotifeeSet(),
 		connGaterSet:      sets.NewConnGaterSet(),
 		validatorSet:      sets.NewValidatorSet(),
 		eventHandlerSet:   sets.NewEventHandlerSet(),
 		messageHandlerSet: sets.NewMessageHandlerSet(),
-		subs:              make(map[string]*subscription),
-		log:               cfg.Logger,
+		subs:              make(map[string]*Subscription),
+		log:               null.New(),
 		closed:            false,
 	}
 
-	// Get message author ID from provided private key:
-	if cfg.MessagePrivKey != nil {
-		id, err := peer.IDFromPublicKey(cfg.MessagePrivKey.GetPublic())
+	// Apply options:
+	for _, opt := range opts {
+		err := opt(n)
 		if err != nil {
 			return nil, err
 		}
-		n.messageAuthorID = id
 	}
 
 	// Systems providers:
@@ -149,7 +124,7 @@ func NewNode(cfg NodeConfig) (*Node, error) {
 		// If messagePrivKey is set, we have to add this key to peerstore,
 		// otherwise it'll be impossible to use it to sign messages:
 		if n.messagePrivKey != nil {
-			err = h.Peerstore().AddPrivKey(n.messageAuthorID, n.messagePrivKey)
+			err = h.Peerstore().AddPrivKey(n.messageAuthorPID, n.messagePrivKey)
 			if err != nil {
 				return nil, err
 			}
@@ -159,7 +134,7 @@ func NewNode(cfg NodeConfig) (*Node, error) {
 	n.newPubSub = func(n *Node) (*pubsub.PubSub, error) {
 		var opts []pubsub.Option
 		if n.messagePrivKey != nil {
-			opts = append(opts, pubsub.WithMessageAuthor(n.messageAuthorID))
+			opts = append(opts, pubsub.WithMessageAuthor(n.messageAuthorPID))
 		}
 		return pubsub.NewGossipSub(n.ctx, n.host, opts...)
 	}
@@ -188,46 +163,14 @@ func (n *Node) Start() error {
 		return err
 	}
 
-	// Logger:
-	logger.Register(n, n.log)
-
-	// Allowlist:
-	n.allowlist = allowlist.Register(n, n.log)
-	for _, p := range n.allowedPeers {
-		n.allowlist.Allow(p)
-	}
-
-	// Denylist:
-	n.denylist = denylist.Register(n)
-	for _, a := range n.blockedAddrs {
-		err = n.denylist.Deny(a)
-		if err != nil {
-			n.log.
-				WithError(err).
-				WithField("maddr", a.String()).
-				Error("Unable to add given address to denylist")
-		}
-	}
-
 	n.host.Network().Notify(n.notifeeSet)
-
-	// Bootstrap peers:
-	for _, maddr := range n.bootstrapAddrs {
-		err = n.Connect(maddr)
-		if err != nil {
-			n.log.
-				WithFields(log.Fields{"addr": maddr.String()}).
-				WithError(err).
-				Warn("Unable to connect to bootstrap peer")
-		}
-	}
 
 	// Use a rendezvous point to announce our location:
 	routingDiscovery := discovery.NewRoutingDiscovery(n.dht)
 	discovery.Advertise(n.ctx, routingDiscovery, rendezvousString)
 
 	n.log.
-		WithFields(log.Fields{"addrs": n.nodeListenAddrs()}).
+		WithFields(log.Fields{"addrs": n.listenAddrStrs()}).
 		Info("Listening")
 
 	return nil
@@ -251,7 +194,7 @@ func (n *Node) Stop() error {
 			n.log.
 				WithError(err).
 				WithField("topic", t).
-				Error("Unable to close subscription")
+				Error("Unable to close Subscription")
 		}
 	}
 
@@ -308,7 +251,7 @@ func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
 	n.messageHandlerSet.Add(messageHandlers...)
 }
 
-func (n *Node) Subscribe(topic string) error {
+func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -319,7 +262,7 @@ func (n *Node) Subscribe(topic string) error {
 		return ErrAlreadySubscribed
 	}
 
-	err := n.pubSub.RegisterTopicValidator(topic, n.validatorSet.Validator(topic))
+	err := n.pubSub.RegisterTopicValidator(topic, n.validatorSet.Validator(topic, typ))
 	if err != nil {
 		return err
 	}
@@ -338,7 +281,7 @@ func (n *Node) Unsubscribe(topic string) error {
 		return ErrConnectionClosed
 	}
 
-	sub, err := n.subscription(topic)
+	sub, err := n.Subscription(topic)
 	if err != nil {
 		return err
 	}
@@ -346,7 +289,7 @@ func (n *Node) Unsubscribe(topic string) error {
 	return sub.close()
 }
 
-func (n *Node) subscription(topic string) (*subscription, error) {
+func (n *Node) Subscription(topic string) (*Subscription, error) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -360,8 +303,8 @@ func (n *Node) subscription(topic string) (*subscription, error) {
 	return nil, ErrNotSubscribed
 }
 
-// nodeListenAddrs returns all node's listen multiaddresses as a string list.
-func (n *Node) nodeListenAddrs() []string {
+// ListenAddrs returns all node's listen multiaddresses as a string list.
+func (n *Node) listenAddrStrs() []string {
 	var strs []string
 	for _, addr := range n.host.Addrs() {
 		strs = append(strs, fmt.Sprintf("%s/p2p/%s", addr.String(), n.host.ID()))

@@ -16,7 +16,7 @@
 package transport
 
 type Status struct {
-	Message Message
+	Message interface{}
 	Error   error
 }
 
@@ -26,19 +26,22 @@ type Message interface {
 }
 
 type Transport interface {
-	// Subscribe starts subscribing for messages with given topic.
-	Subscribe(topic string) error
+	// Subscribe starts subscribing for messages with given topic. The second
+	// argument is a type of a message given as a nil pointer,
+	// eg: (*Message)(nil).
+	Subscribe(topic string, typ Message) error
 	// Unsubscribe stops subscribing for messages with given topic.
 	Unsubscribe(topic string) error
 	// Broadcast sends a message with given topic to the network. To send
 	// a message, you must first subscribe appropriate topic.
 	Broadcast(topic string, message Message) error
 	// WaitFor returns a channel which will be blocked until message for given
-	// topic arrives. Then message will be unmarshalled using provided message
-	// structure. Note, that only messages for subscribed topics will be
-	// supported by this method, for unsubscribed topic nil will be returned.
-	// In case of an error, error will be returned in a Status structure.
-	WaitFor(topic string, message Message) chan Status
+	// topic arrives. Then message will be unmarshalled to type given in the
+	// Subscribe method. Note, that only messages for subscribed topics will
+	// be supported by this method, for unsubscribed topic nil will be
+	// returned. In case of an error, error will be returned in a Status
+	// structure.
+	WaitFor(topic string) chan Status
 	// Close closes connection.
 	Close() error
 }

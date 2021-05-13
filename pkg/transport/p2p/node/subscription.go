@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package node
 
 import (
 	"context"
@@ -22,12 +22,12 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/oracle-suite/pkg/transport"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/sets"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node/sets"
 )
 
 var ErrNilMessage = errors.New("message is nil")
 
-type subscription struct {
+type Subscription struct {
 	ctx            context.Context
 	topic          *pubsub.Topic
 	sub            *pubsub.Subscription
@@ -40,7 +40,7 @@ type subscription struct {
 	statusCh chan transport.Status
 }
 
-func newSubscription(node *Node, topic string) (*subscription, error) {
+func newSubscription(node *Node, topic string) (*Subscription, error) {
 	t, err := node.pubSub.Join(topic)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func newSubscription(node *Node, topic string) (*subscription, error) {
 		return nil, err
 	}
 
-	sub := &subscription{
+	sub := &Subscription{
 		ctx:            node.ctx,
 		topic:          t,
 		sub:            s,
@@ -68,7 +68,7 @@ func newSubscription(node *Node, topic string) (*subscription, error) {
 	return sub, err
 }
 
-func (s subscription) Publish(message transport.Message) error {
+func (s Subscription) Publish(message transport.Message) error {
 	b, err := message.Marshall()
 	if err != nil {
 		return err
@@ -80,30 +80,29 @@ func (s subscription) Publish(message transport.Message) error {
 	return s.topic.Publish(s.ctx, b)
 }
 
-func (s subscription) Next(message transport.Message) chan transport.Status {
+func (s Subscription) Next() chan transport.Status {
 	go func() {
-		msg, err := s.sub.Next(s.ctx)
-		if err == nil {
-			err = message.Unmarshall(msg.Data)
-		}
-		if msg != nil && err != nil {
-			s.messageHandler.Received(s.topic.String(), msg, message)
+		var msg transport.Message
+		psMsg, err := s.sub.Next(s.ctx)
+		if psMsg != nil && err != nil {
+			msg = psMsg.ValidatorData.(transport.Message)
+			s.messageHandler.Received(s.topic.String(), psMsg, msg)
 		}
 		s.statusCh <- transport.Status{
-			Message: message,
+			Message: msg,
 			Error:   err,
 		}
 	}()
 	return s.statusCh
 }
 
-func (s subscription) eventLoop() {
+func (s Subscription) eventLoop() {
 	go func() {
 		for {
 			pe, err := s.teh.NextPeerEvent(s.ctx)
 			if err != nil {
 				// The only situation when an error may be returned here is
-				// when the subscription is canceled.
+				// when the Subscription is canceled.
 				return
 			}
 			s.eventHandler.Handle(s.topic.String(), pe)
@@ -111,7 +110,7 @@ func (s subscription) eventLoop() {
 	}()
 }
 
-func (s subscription) close() error {
+func (s Subscription) close() error {
 	s.teh.Cancel()
 	s.sub.Cancel()
 	return s.topic.Close()
