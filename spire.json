@@ -5,6 +5,7 @@
     "password": ""
   },
   "p2p": {
+    "privKeySeed": "",
     "listenAddrs": [],
     "bootstrapAddrs": [],
     "blockedAddrs": []
@@ -13,5 +14,8 @@
     "address": ":8080"
   },
   "feeds": [],
-  "pairs": ["ETHUSD", "BTCUSD"]
+  "pairs": [
+    "ETHUSD",
+    "BTCUSD"
+  ]
 }
