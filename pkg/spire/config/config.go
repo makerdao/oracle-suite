@@ -162,6 +162,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		Signer:         s,
 		Logger:         l,
 	}
+	cfg.FeedersAddrs = []ethereum.Address{ethereum.HexToAddress(c.Ethereum.From)}
 	for _, feed := range c.Feeds {
 		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
 	}

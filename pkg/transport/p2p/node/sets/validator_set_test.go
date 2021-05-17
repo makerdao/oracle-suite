@@ -29,7 +29,7 @@ func TestValidatorSet_Validator_EmptySet(t *testing.T) {
 	vs := NewValidatorSet()
 
 	// If there is no validators, message should be accepted:
-	assert.Equal(t, pubsub.ValidationAccept, vs.Validator("foo", (*testMsg)(nil))(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
+	assert.Equal(t, pubsub.ValidationAccept, vs.Validator("foo")(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
 }
 
 func TestValidatorSet_Validator_Accept(t *testing.T) {
@@ -41,7 +41,7 @@ func TestValidatorSet_Validator_Accept(t *testing.T) {
 	})
 
 	// Message should be accepted:
-	assert.Equal(t, pubsub.ValidationAccept, vs.Validator("foo", (*testMsg)(nil))(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
+	assert.Equal(t, pubsub.ValidationAccept, vs.Validator("foo")(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
 }
 
 func TestValidatorSet_Validator_RejectFirst(t *testing.T) {
@@ -58,7 +58,7 @@ func TestValidatorSet_Validator_RejectFirst(t *testing.T) {
 	})
 
 	// Message should be rejected if at least one validator rejects it:
-	assert.Equal(t, pubsub.ValidationReject, vs.Validator("foo", (*testMsg)(nil))(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
+	assert.Equal(t, pubsub.ValidationReject, vs.Validator("foo")(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
 }
 
 func TestValidatorSet_Validator_RejectLast(t *testing.T) {
@@ -75,5 +75,5 @@ func TestValidatorSet_Validator_RejectLast(t *testing.T) {
 	})
 
 	// Message should be rejected if at least one validator rejects it:
-	assert.Equal(t, pubsub.ValidationReject, vs.Validator("foo", (*testMsg)(nil))(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
+	assert.Equal(t, pubsub.ValidationReject, vs.Validator("foo")(context.Background(), "", &pubsub.Message{Message: &pb.Message{Data: []byte{}}}))
 }

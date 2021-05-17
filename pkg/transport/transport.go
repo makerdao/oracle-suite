@@ -16,7 +16,7 @@
 package transport
 
 type Status struct {
-	Message interface{}
+	Message Message
 	Error   error
 }
 
@@ -36,8 +36,7 @@ type Transport interface {
 	// a message, you must first subscribe appropriate topic.
 	Broadcast(topic string, message Message) error
 	// WaitFor returns a channel which will be blocked until message for given
-	// topic arrives. Then message will be unmarshalled to type given in the
-	// Subscribe method. Note, that only messages for subscribed topics will
+	// topic arrives. Note, that only messages for subscribed topics will
 	// be supported by this method, for unsubscribed topic nil will be
 	// returned. In case of an error, error will be returned in a Status
 	// structure.

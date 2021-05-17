@@ -18,7 +18,9 @@ package node
 import (
 	"context"
 	"errors"
+	"reflect"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/oracle-suite/pkg/transport"
@@ -32,7 +34,8 @@ type Subscription struct {
 	topic          *pubsub.Topic
 	sub            *pubsub.Subscription
 	teh            *pubsub.TopicEventHandler
-	eventHandler   sets.EventHandler
+	validatorSet   *sets.ValidatorSet
+	eventHandler   sets.PubSubEventHandler
 	messageHandler sets.MessageHandler
 
 	// statusCh is used to send a notification about a new message, it's
@@ -40,32 +43,33 @@ type Subscription struct {
 	statusCh chan transport.Status
 }
 
-func newSubscription(node *Node, topic string) (*Subscription, error) {
-	t, err := node.pubSub.Join(topic)
-	if err != nil {
-		return nil, err
-	}
-	s, err := t.Subscribe()
-	if err != nil {
-		return nil, err
-	}
-	e, err := t.EventHandler()
-	if err != nil {
-		return nil, err
-	}
-
-	sub := &Subscription{
+func newSubscription(node *Node, topic string, typ transport.Message) (*Subscription, error) {
+	var err error
+	s := &Subscription{
 		ctx:            node.ctx,
-		topic:          t,
-		sub:            s,
-		teh:            e,
-		eventHandler:   node.eventHandlerSet,
+		validatorSet:   node.validatorSet,
+		eventHandler:   node.pubSubEventHandlerSet,
 		messageHandler: node.messageHandlerSet,
 		statusCh:       make(chan transport.Status),
 	}
-
-	sub.eventLoop()
-	return sub, err
+	err = node.pubSub.RegisterTopicValidator(topic, s.validator(topic, typ))
+	if err != nil {
+		return nil, err
+	}
+	s.topic, err = node.PubSub().Join(topic)
+	if err != nil {
+		return nil, err
+	}
+	s.sub, err = s.topic.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	s.teh, err = s.topic.EventHandler()
+	if err != nil {
+		return nil, err
+	}
+	s.eventLoop()
+	return s, err
 }
 
 func (s Subscription) Publish(message transport.Message) error {
@@ -84,9 +88,8 @@ func (s Subscription) Next() chan transport.Status {
 	go func() {
 		var msg transport.Message
 		psMsg, err := s.sub.Next(s.ctx)
-		if psMsg != nil && err != nil {
+		if psMsg != nil && err == nil {
 			msg = psMsg.ValidatorData.(transport.Message)
-			s.messageHandler.Received(s.topic.String(), psMsg, msg)
 		}
 		s.statusCh <- transport.Status{
 			Message: msg,
@@ -96,13 +99,33 @@ func (s Subscription) Next() chan transport.Status {
 	return s.statusCh
 }
 
+func (s Subscription) validator(topic string, typ transport.Message) pubsub.ValidatorEx {
+	// Validator actually have two roles in the libp2p: it unmarshalls messages
+	// and then validates them. Unmarshalled message is stored in the
+	// ValidatorData field which was created for this purpose:
+	// https://github.com/libp2p/go-libp2p-pubsub/pull/231
+	r := reflect.TypeOf(typ).Elem()
+	return func(ctx context.Context, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
+		msg := reflect.New(r).Interface().(transport.Message)
+		err := msg.Unmarshall(psMsg.Data)
+		if err != nil {
+			s.messageHandler.Broken(topic, psMsg, err)
+			return pubsub.ValidationReject
+		}
+		psMsg.ValidatorData = msg
+		vr := s.validatorSet.Validator(topic)(ctx, id, psMsg)
+		s.messageHandler.Received(topic, psMsg, vr)
+		return vr
+	}
+}
+
 func (s Subscription) eventLoop() {
 	go func() {
 		for {
 			pe, err := s.teh.NextPeerEvent(s.ctx)
 			if err != nil {
-				// The only situation when an error may be returned here is
-				// when the Subscription is canceled.
+				// The only time when an error may be returned here is
+				// when the subscription is canceled.
 				return
 			}
 			s.eventHandler.Handle(s.topic.String(), pe)

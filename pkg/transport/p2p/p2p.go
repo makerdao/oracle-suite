@@ -29,6 +29,7 @@ import (
 )
 
 const LoggerTag = "P2P"
+const rendezvousString = "spire/v0.0-dev"
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -88,15 +89,17 @@ func New(cfg Config) (*P2P, error) {
 		return nil, err
 	}
 
+	logger := cfg.Logger.WithField("tag", LoggerTag)
 	opts := []node.Options{
 		node.ListenAddrs(listenAddrs),
+		node.DHT(rendezvousString),
 		node.Bootstrap(bootstrapAddrs),
 		node.Denylist(blockedAddrs),
-		node.Logger(cfg.Logger),
+		node.Logger(logger),
 		node.ConnectionLogger(),
 		node.MessageLogger(),
 		node.PeerLogger(),
-		oracle.Oracle(cfg.FeedersAddrs, cfg.Signer, cfg.Logger),
+		oracle.Oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, node.PeerPrivKey(cfg.PeerPrivKey))
@@ -139,7 +142,7 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 }
 
 // WaitFor implements the transport.Transport interface.
-func (p *P2P) WaitFor(topic string, ) chan transport.Status {
+func (p *P2P) WaitFor(topic string) chan transport.Status {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil

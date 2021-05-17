@@ -28,10 +28,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/libp2p/go-libp2p-core/transport"
-	discovery "github.com/libp2p/go-libp2p-discovery"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
@@ -46,8 +43,6 @@ var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
 
-const rendezvousString = "spire/v0.0-dev"
-
 func init() {
 	// It's required to increase timeouts because signing messages using
 	// the Ethereum wallet may take more time than default timeout allows.
@@ -56,47 +51,42 @@ func init() {
 	swarm.DialTimeoutLocal = timeout
 }
 
-type routerCloser interface {
-	routing.Routing
-	Close() error
-}
-
 type Node struct {
 	mu sync.Mutex
 
-	ctx               context.Context
-	host              host.Host
-	pubSub            *pubsub.PubSub
-	dht               routerCloser
-	peerPrivKey       crypto.PrivKey
-	messagePrivKey    crypto.PrivKey
-	messageAuthorPID  peer.ID
-	listenAddrs       []multiaddr.Multiaddr
-	notifeeSet        *sets.NotifeeSet
-	connGaterSet      *sets.ConnGaterSet
-	validatorSet      *sets.ValidatorSet
-	eventHandlerSet   *sets.EventHandlerSet
-	messageHandlerSet *sets.MessageHandlerSet
-	subs              map[string]*Subscription
-	log               log.Logger
-	closed            bool
+	ctx                   context.Context
+	host                  host.Host
+	pubSub                *pubsub.PubSub
+	peerPrivKey           crypto.PrivKey
+	messagePrivKey        crypto.PrivKey
+	messageAuthorPID      peer.ID
+	listenAddrs           []multiaddr.Multiaddr
+	nodeEventHandler      *sets.NodeEventHandlerSet
+	pubSubEventHandlerSet *sets.PubSubEventHandlerSet
+	notifeeSet            *sets.NotifeeSet
+	connGaterSet          *sets.ConnGaterSet
+	validatorSet          *sets.ValidatorSet
+	messageHandlerSet     *sets.MessageHandlerSet
+	subs                  map[string]*Subscription
+	log                   log.Logger
+	closed                bool
 
 	newHost   func(n *Node) (host.Host, error)
 	newPubSub func(n *Node) (*pubsub.PubSub, error)
-	newDHT    func(n *Node) (routerCloser, error)
 }
 
 func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 	n := &Node{
-		ctx:               ctx,
-		notifeeSet:        sets.NewNotifeeSet(),
-		connGaterSet:      sets.NewConnGaterSet(),
-		validatorSet:      sets.NewValidatorSet(),
-		eventHandlerSet:   sets.NewEventHandlerSet(),
-		messageHandlerSet: sets.NewMessageHandlerSet(),
-		subs:              make(map[string]*Subscription),
-		log:               null.New(),
-		closed:            false,
+		ctx:                   ctx,
+		nodeEventHandler:      sets.NewNodeEventHandlerSet(),
+		pubSubEventHandlerSet: sets.NewPubSubEventHandlerSet(),
+		notifeeSet:            sets.NewNotifeeSet(),
+		connGaterSet:          sets.NewConnGaterSet(),
+		validatorSet:          sets.NewValidatorSet(),
+		messageHandlerSet:     sets.NewMessageHandlerSet(),
+		subs:                  make(map[string]*Subscription),
+		log:                   null.New(),
+		closed:                false,
 	}
 
 	// Apply options:
@@ -121,7 +111,7 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		// If messagePrivKey is set, we have to add this key to peerstore,
+		// If the messagePrivKey is set, we have to add this key to the peerstore,
 		// otherwise it'll be impossible to use it to sign messages:
 		if n.messagePrivKey != nil {
 			err = h.Peerstore().AddPrivKey(n.messageAuthorPID, n.messagePrivKey)
@@ -138,9 +128,8 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 		}
 		return pubsub.NewGossipSub(n.ctx, n.host, opts...)
 	}
-	n.newDHT = func(h *Node) (routerCloser, error) {
-		return dht.New(n.ctx, n.host)
-	}
+
+	n.nodeEventHandler.Handle(sets.NodeConfigured)
 
 	return n, nil
 }
@@ -148,6 +137,9 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 func (n *Node) Start() error {
 	n.log.Info("Starting")
 	var err error
+
+	n.nodeEventHandler.Handle(sets.NodeStarting)
+	defer n.nodeEventHandler.Handle(sets.NodeStarted)
 
 	// Systems:
 	n.host, err = n.newHost(n)
@@ -158,19 +150,11 @@ func (n *Node) Start() error {
 	if err != nil {
 		return err
 	}
-	n.dht, err = n.newDHT(n)
-	if err != nil {
-		return err
-	}
 
 	n.host.Network().Notify(n.notifeeSet)
 
-	// Use a rendezvous point to announce our location:
-	routingDiscovery := discovery.NewRoutingDiscovery(n.dht)
-	discovery.Advertise(n.ctx, routingDiscovery, rendezvousString)
-
 	n.log.
-		WithFields(log.Fields{"addrs": n.listenAddrStrs()}).
+		WithField("addrs", n.listenAddrStrs()).
 		Info("Listening")
 
 	return nil
@@ -181,7 +165,9 @@ func (n *Node) Stop() error {
 		return ErrConnectionClosed
 	}
 
+	n.nodeEventHandler.Handle(sets.NodeStopping)
 	defer n.log.Info("Stopped")
+	defer n.nodeEventHandler.Handle(sets.NodeStopped)
 
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -194,16 +180,8 @@ func (n *Node) Stop() error {
 			n.log.
 				WithError(err).
 				WithField("topic", t).
-				Error("Unable to close Subscription")
+				Error("Unable to close subscription")
 		}
-	}
-
-	// Close DHT:
-	err = n.dht.Close()
-	if err != nil {
-		n.log.
-			WithError(err).
-			Error("Unable to close DHT")
 	}
 
 	n.subs = nil
@@ -231,6 +209,14 @@ func (n *Node) Connect(maddr multiaddr.Multiaddr) error {
 	return nil
 }
 
+func (n *Node) AddNodeEventHandler(eventHandler ...sets.NodeEventHandler) {
+	n.nodeEventHandler.Add(eventHandler...)
+}
+
+func (n *Node) AddPubSubEventHandler(eventHandler ...sets.PubSubEventHandler) {
+	n.pubSubEventHandlerSet.Add(eventHandler...)
+}
+
 func (n *Node) AddNotifee(notifees ...network.Notifiee) {
 	n.notifeeSet.Add(notifees...)
 }
@@ -241,10 +227,6 @@ func (n *Node) AddConnectionGater(connGaters ...connmgr.ConnectionGater) {
 
 func (n *Node) AddValidator(validator sets.Validator) {
 	n.validatorSet.Add(validator)
-}
-
-func (n *Node) AddEventHandler(eventHandler ...sets.EventHandler) {
-	n.eventHandlerSet.Add(eventHandler...)
 }
 
 func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
@@ -262,12 +244,7 @@ func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
 		return ErrAlreadySubscribed
 	}
 
-	err := n.pubSub.RegisterTopicValidator(topic, n.validatorSet.Validator(topic, typ))
-	if err != nil {
-		return err
-	}
-
-	sub, err := newSubscription(n, topic)
+	sub, err := newSubscription(n, topic, typ)
 	if err != nil {
 		return err
 	}

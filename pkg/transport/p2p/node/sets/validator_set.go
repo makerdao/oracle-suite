@@ -17,12 +17,9 @@ package sets
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-
-	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 type Validator func(ctx context.Context, topic string, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult
@@ -45,16 +42,8 @@ func (n *ValidatorSet) Add(validator ...Validator) {
 
 // Validator returns function that implements pubsub.ValidatorEx. That function
 // will invoke all registered validators for given topic.
-func (n *ValidatorSet) Validator(topic string, typ transport.Message) pubsub.ValidatorEx {
-	reflTyp := reflect.TypeOf(typ).Elem()
+func (n *ValidatorSet) Validator(topic string) pubsub.ValidatorEx {
 	return func(ctx context.Context, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
-		msg := reflect.New(reflTyp).Interface().(transport.Message)
-		err := msg.Unmarshall(psMsg.Data)
-		if err != nil {
-			// TODO: log errors
-			return pubsub.ValidationReject
-		}
-		psMsg.ValidatorData = msg
 		for _, validator := range n.validators {
 			if result := validator(ctx, topic, id, psMsg); result != pubsub.ValidationAccept {
 				return result

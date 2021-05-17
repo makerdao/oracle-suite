@@ -181,11 +181,6 @@ func (g *Ghost) broadcasterLoop() error {
 		return nil
 	}
 
-	err := g.transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
-	if err != nil {
-		return err
-	}
-
 	ticker := time.NewTicker(g.interval)
 	wg := sync.WaitGroup{}
 	go func() {
