@@ -94,8 +94,8 @@ var (
 		"A/B": {
 			Type: "aggregator",
 			Parameters: map[string]string{
-				"method": "median",
-				"min":    "0",
+				"method":                   "median",
+				"minimumSuccessfulSources": "0",
 			},
 			Pair:      gofer.Pair{Base: "A", Quote: "B"},
 			Price:     10,
@@ -119,8 +119,8 @@ var (
 				{
 					Type: "aggregator",
 					Parameters: map[string]string{
-						"method": "median",
-						"min":    "0",
+						"method":                   "median",
+						"minimumSuccessfulSources": "0",
 					},
 					Pair:      gofer.Pair{Base: "A", Quote: "B"},
 					Price:     10,
@@ -160,8 +160,8 @@ var (
 		"X/Y": {
 			Type: "aggregator",
 			Parameters: map[string]string{
-				"method": "median",
-				"min":    "0",
+				"method":                   "median",
+				"minimumSuccessfulSources": "0",
 			},
 			Pair:      gofer.Pair{Base: "X", Quote: "Y"},
 			Price:     10,
