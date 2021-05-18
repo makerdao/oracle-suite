@@ -158,7 +158,7 @@ Global Flags:
   -c, --config string                    config file (default "./gofer.json")
   -f, --format plain|trace|json|ndjson   output format (default ndjson)
   -v, --log.verbosity string             verbosity level (default "info")
-      --norpc                            disabling the use of RPC agent
+      --norpc                            disable the use of RPC agent
 ```
 
 JSON output for a single asset pair consists of the following fields:
@@ -264,7 +264,7 @@ Global Flags:
   -c, --config string                    config file (default "./gofer.json")
   -f, --format plain|trace|json|ndjson   output format (default ndjson)
   -v, --log.verbosity string             verbosity level (default "info")
-      --norpc                            disabling the use of RPC agent
+      --norpc                            disable the use of RPC agent
 ```
 
 Examples:
