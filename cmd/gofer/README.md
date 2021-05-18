@@ -233,7 +233,7 @@ ETH/USD 3501.636879
 
 $ gofer price BTC/USD --format trace
 Price for BTC/USD:
-───aggregator(method:median, min:3, pair:BTC/USD, price:45287.18, timestamp:2021-05-18T10:35:00Z)
+───aggregator(method:median, minimumSuccessfulSources:3, pair:BTC/USD, price:45287.18, timestamp:2021-05-18T10:35:00Z)
    ├──origin(origin:bitstamp, pair:BTC/USD, price:45298.02, timestamp:2021-05-18T10:35:39Z)
    ├──origin(origin:bittrex, pair:BTC/USD, price:45287.18, timestamp:2021-05-18T10:35:43.335185Z)
    ├──origin(origin:coinbasepro, pair:BTC/USD, price:45282.53, timestamp:2021-05-18T10:35:43.285832Z)
@@ -353,9 +353,8 @@ func main() {
 	fmt.Printf("%s: %f", btcusd, p.Price)
 }
 ```
-<!--
-The full documentation for Gofer library can be found here: TODO
--->
+
+The full documentation for Gofer library can be found here: https://pkg.go.dev/github.com/makerdao/oracle-suite/pkg/gofer
 ## License
 
 [The GNU Affero General Public License](https://www.notion.so/LICENSE)
