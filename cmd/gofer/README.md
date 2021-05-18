@@ -1,7 +1,5 @@
 # Gofer CLI Readme
 
----
-
 > As in a [tool](https://en.wikipedia.org/wiki/Gofer) that specializes in the delivery of special items.
 
 Gofer is a tool that provides reliable asset prices taken from various sources.
