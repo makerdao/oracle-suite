@@ -356,9 +356,9 @@ func main() {
 	fmt.Printf("%s: %f", btcusd, price.Price)
 }
 ```
-
-The full documentation for Gofer library can be found here: URL
-
+<!--
+The full documentation for Gofer library can be found here: TODO
+-->
 ## License
 
 [The GNU Affero General Public License](https://www.notion.so/LICENSE)
