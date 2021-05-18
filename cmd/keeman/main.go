@@ -1,4 +1,4 @@
-//  Copyright (C) 2021 Maker Ecosystem Growth Holdings, INC.
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as
@@ -34,11 +34,16 @@ func cmd(args []string) error {
 
 	c := args[0]
 	switch c {
-	case "gen":
+	case "g", "gen", "generate":
 		return cmdGen(args)
-	case "der":
+	case "d", "der", "derive":
 		return cmdDer(args)
 	}
 
 	return fmt.Errorf("unknown command: %s", c)
+}
+
+func fileIsEmpty(file *os.File) bool {
+	info, err := file.Stat()
+	return err != nil || info.Size() == 0 && info.Mode()&os.ModeNamedPipe == 0
 }

@@ -1,4 +1,4 @@
-//  Copyright (C) 2021 Maker Ecosystem Growth Holdings, INC.
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as
@@ -16,62 +16,40 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 
-	"github.com/tyler-smith/go-bip32"
-	"github.com/tyler-smith/go-bip39"
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 )
 
-func gen(q string, bits int, pass string) error {
-	entropy, err := bip39.NewEntropy(bits)
-	if err != nil {
-		return err
-	}
-	mnemonic, err := bip39.NewMnemonic(entropy)
+func cmdGen(args []string) error {
+	n, err := genFlags(args)
 	if err != nil {
 		return err
 	}
 
-	if q == "mnemonic" {
-		fmt.Println(mnemonic)
-		return nil
-	}
-
-	seed := bip39.NewSeed(mnemonic, pass)
-
-	masterKey, err := bip32.NewMasterKey(seed)
+	mnemonic, err := hdwallet.NewMnemonic(n * 8)
 	if err != nil {
 		return err
 	}
-	if q == "xprv" {
-		fmt.Println(masterKey)
-		return nil
+
+	marshal, err := json.Marshal(mnemonic)
+	if err != nil {
+		return err
 	}
 
-	publicKey := masterKey.PublicKey()
-	if q == "xpub" {
-		fmt.Println(publicKey)
-		return nil
-	}
-
-	fmt.Println("          Mnemonic:", mnemonic)
-	fmt.Println("Master private key:", masterKey)
-	fmt.Println(" Master public key:", publicKey)
+	fmt.Println(string(marshal))
 
 	return nil
 }
 
-func cmdGen(args []string) error {
+func genFlags(args []string) (n int, err error) {
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
-	var bits int
-	fs.IntVar(&bits, "bits", 256, "Number of bits of entropy")
-	var pass string
-	fs.StringVar(&pass, "pass", "", "Seed password")
 
-	if err := fs.Parse(args[1:]); err != nil {
-		return err
-	}
+	fs.IntVar(&n, "bytes", 32, "Number of random bytes")
 
-	return gen(fs.Arg(0), bits, pass)
+	err = fs.Parse(args[1:])
+
+	return n, err
 }

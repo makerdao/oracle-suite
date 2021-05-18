@@ -1,4 +1,4 @@
-//  Copyright (C) 2021 Maker Ecosystem Growth Holdings, INC.
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as
@@ -24,15 +24,19 @@ import (
 	"github.com/google/uuid"
 )
 
-func NewKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *keystore.Key {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		panic(fmt.Sprintf("Could not create random uuid: %v", err))
-	}
+func NewKeyWithID(privateKeyECDSA *ecdsa.PrivateKey, id uuid.UUID) *keystore.Key {
 	key := &keystore.Key{
 		Id:         id,
 		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
 		PrivateKey: privateKeyECDSA,
 	}
 	return key
+}
+
+func NewKey(privateKeyECDSA *ecdsa.PrivateKey) *keystore.Key {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		panic(fmt.Sprintf("Could not create random uuid: %v", err))
+	}
+	return NewKeyWithID(privateKeyECDSA, id)
 }

@@ -1,4 +1,4 @@
-//  Copyright (C) 2021 Maker Ecosystem Growth Holdings, INC.
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as
@@ -16,97 +16,166 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/makerdao/oracle-suite/cmd/keeman/internal"
-	"github.com/tyler-smith/go-bip32"
-	"github.com/tyler-smith/go-bip39"
-
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+
+	"github.com/makerdao/oracle-suite/cmd/keeman/internal"
 )
 
-func der(q, mnemonic, pass, path string) error {
-	seed := bip39.NewSeed(mnemonic, pass)
-	masterKey, err := bip32.NewMasterKey(seed)
+func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, error) {
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
-		return err
-	}
-	if q == "xprv" {
-		fmt.Println(masterKey)
-		return nil
+		return nil, err
 	}
 
-	publicKey := masterKey.PublicKey()
-	if q == "xpub" {
-		fmt.Println(publicKey)
-		return nil
-	}
-
-	wallet, err := hdwallet.NewFromSeed(seed)
+	c, err := genCaps(wallet, path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	parsed, err := accounts.ParseDerivationPath(path)
+	account, err := wallet.Derive(path, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	account, err := wallet.Derive(parsed, false)
+	privateKey, err := wallet.PrivateKey(account)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if q == "addr" {
-		fmt.Println(account.Address.Hex())
-		return nil
+	k, err := genKeystore(privateKey, pass)
+	if err != nil {
+		return nil, err
 	}
 
+	var x interface{}
+	if err := json.Unmarshal(k, &x); err != nil {
+		return nil, err
+	}
+	return &derOut{
+		path.String(),
+		hexutil.Encode(crypto.FromECDSA(privateKey)),
+		x,
+		*c,
+	}, nil
+}
+
+type derOut struct {
+	Path     string      `json:"path"`
+	Prv      string      `json:"prv"`
+	Keystore interface{} `json:"keystore"`
+	Caps     caps        `json:"caps"`
+}
+type caps struct {
+	Shs  string `json:"shs"`
+	Sign string `json:"sign"`
+}
+
+func genCaps(wallet *hdwallet.Wallet, base accounts.DerivationPath) (*caps, error) {
+	if len(base) < 2 {
+		return nil, fmt.Errorf("derivation path needs at least two components")
+	}
+	if base[len(base)-2] != 0 {
+		return nil, fmt.Errorf("second to last path component needs to be 0")
+	}
+
+	path := make(accounts.DerivationPath, len(base))
+	copy(path[:], base[:])
+	path[len(path)-2] = 1
+	path[len(path)-1] = 0
+	f := accounts.DefaultIterator(path)
+
+	a, err := nextKey(wallet, f())
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := nextKey(wallet, f())
+	if err != nil {
+		return nil, err
+	}
+
+	return &caps{
+		base64.URLEncoding.EncodeToString(crypto.FromECDSA(a)),
+		base64.URLEncoding.EncodeToString(crypto.FromECDSA(b)),
+	}, nil
+}
+
+func nextKey(wallet *hdwallet.Wallet, path accounts.DerivationPath) (*ecdsa.PrivateKey, error) {
+	account, err := wallet.Derive(path, false)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("%+v", account)
 	key, err := wallet.PrivateKey(account)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return key, nil
+}
 
-	keyJson, err := keystore.EncryptKey(internal.NewKeyFromECDSA(key), pass, keystore.StandardScryptN, keystore.StandardScryptP)
+func genKeystore(key *ecdsa.PrivateKey, pass string) ([]byte, error) {
+	return keystore.EncryptKey(internal.NewKey(key), pass, keystore.StandardScryptN, keystore.StandardScryptP)
+}
+
+func cmdDer(args []string) error {
+	mnemonic, path, pass, err := derInput(args, os.Stdin)
 	if err != nil {
 		return err
 	}
-	if q == "json" {
-		fmt.Println(string(keyJson))
-		return nil
+
+	x, err := der(mnemonic, path, pass)
+	if err != nil {
+		return err
 	}
 
-	fmt.Println(" Master public key:", publicKey)
-	fmt.Println("   Derivation path:", path)
-	fmt.Println("  Ethereum address:", account.Address.Hex(), "https://etherscan.io/address/"+account.Address.Hex())
-	fmt.Println("                   ", "https://etherscan.io/address/"+account.Address.Hex())
+	marshal, err := json.Marshal(x)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(marshal))
 
 	return nil
 }
 
-func cmdDer(args []string) error {
-	if internal.FileIsEmpty(os.Stdin) {
-		return fmt.Errorf("missing mnemonic phrase")
-	}
-
+func derInput(args []string, file *os.File) (string, accounts.DerivationPath, string, error) {
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
-	var pass, path string
-	fs.StringVar(&pass, "pass", "", "Seed password")
+
+	var path, pass string
 	fs.StringVar(&path, "path", "m/44'/60'/0'/0/0", "Derivation path")
+	fs.StringVar(&pass, "pass", "", "Raw password or path to a file containing one")
 
 	if err := fs.Parse(args[1:]); err != nil {
-		return err
+		return "", nil, "", err
 	}
 
-	b, err := io.ReadAll(os.Stdin)
+	parsedPath, err := accounts.ParseDerivationPath(path)
 	if err != nil {
-		return err
+		return "", nil, "", err
 	}
 
-	return der(fs.Arg(0), string(b), pass, path)
+	if fileIsEmpty(file) {
+		return "", nil, "", fmt.Errorf("missing mnemonic phrase")
+	}
+
+	mnemonic, err := io.ReadAll(file)
+	if err != nil {
+		return "", nil, "", err
+	}
+
+	return strings.Trim(string(mnemonic), "\t \n"), parsedPath, internal.ReadLineOrPass(pass), err
 }
