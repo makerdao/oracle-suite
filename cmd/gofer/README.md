@@ -12,15 +12,14 @@ exactly, from how many sources you want to pull prices and what conditions they 
 
 ## Table of contents
 
-- [Gofer CLI Readme](#gofer-cli-readme)
-    * [Installation](#installation)
-    * [Price models](#price-models)
-    * [Commands](#commands)
-        + [gofer price](#-gofer-price-)
-        + [gofer pairs](#-gofer-pairs-)
-        + [gofer agent](#-gofer-agent-)
-    * [Gofer library](#gofer-library)
-    * [License](#license)
+* [Installation](#installation)
+* [Price models](#price-models)
+* [Commands](#commands)
+  * [gofer price](#gofer-price)
+  * [gofer pairs](#gofer-pairs)
+  * [gofer agent](#gofer-agent)
+* [Gofer library](#gofer-library)
+* [License](#license)
 
 ## Installation
 
@@ -172,7 +171,7 @@ JSON output for a single asset pair consists of the following fields:
 - `quote` - the quote asset name.
 - `price` - the current asset price.
 - `bid` - the bid price, 0 if it is impossible to retrive or calculate bid price.
-- `ask` - the ask price, may be 0 if it is impossible to retrive or calculate ask price.
+- `ask` - the ask price, 0 if it is impossible to retrive or calculate ask price.
 - `vol24` - the volume from last 24 hours, 0 if it is impossible to retrieve or calculate volume.
 - `ts` - the date from which the price was retrieved.
 - `params` - the list of additional parameters, it always contains the `method` field for aggregators and the `origin`
@@ -349,11 +348,11 @@ func main() {
 
 	// Initialize gofer and ask for BTC/USD price:
 	g := graph.NewGofer(m, f)
-	price, err := g.Price(btcusd)
+	p, err := g.Price(btcusd)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%s: %f", btcusd, price.Price)
+	fmt.Printf("%s: %f", btcusd, p.Price)
 }
 ```
 <!--
