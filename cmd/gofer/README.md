@@ -6,7 +6,9 @@
 
 Gofer is a tool that provides reliable asset prices taken from various sources.
 
-If you need reliable price information, getting them from a single source is not the best idea. The data source may fail or provide incorrect data. Gofer solves this problem. With Gofer, you can define precise price models that specify exactly, from how many sources you want to pull prices and what conditions they must meet to be considered reliable.
+If you need reliable price information, getting them from a single source is not the best idea. The data source may fail
+or provide incorrect data. Gofer solves this problem. With Gofer, you can define precise price models that specify
+exactly, from how many sources you want to pull prices and what conditions they must meet to be considered reliable.
 
 ## Table of contents
 
@@ -22,11 +24,11 @@ If you need reliable price information, getting them from a single source is not
 
 ## Installation
 
-To install it, you'll first need Go installed on your machine. Then you can use
-standard Go command: `go get -u github.com/makerdao/oracle-suite/cmd/gofer`.
+To install it, you'll first need Go installed on your machine. Then you can use standard Go
+command: `go get -u github.com/makerdao/oracle-suite/cmd/gofer`.
 
-Alternatively, you can build Gofer using `Makefile` directly from the repository.
-This approach is recommended if you wish to work on Gofer source.
+Alternatively, you can build Gofer using `Makefile` directly from the repository. This approach is recommended if you
+wish to work on Gofer source.
 
 ```bash
 git clone https://github.com/makerdao/oracle-suite.git
@@ -36,7 +38,9 @@ make
 
 ## Price models
 
-To start working with Gofer, you have to define price models first. Price models are defined in a JSON file. By default, the default config file location is `gofer.json` in the current directory. You can change the config file location using the `--config` flag.
+To start working with Gofer, you have to define price models first. Price models are defined in a JSON file. By default,
+the default config file location is `gofer.json` in the current directory. You can change the config file location using
+the `--config` flag.
 
 Simple price model for the `BTC/USD` asset pair may look like this:
 
@@ -46,7 +50,13 @@ Simple price model for the `BTC/USD` asset pair may look like this:
     "BTC/USD": {
       "method": "median",
       "sources": [
-        [{ "origin": "bitstamp", "pair": "BTC/USD", "ttl": 60 }]
+        [
+          {
+            "origin": "bitstamp",
+            "pair": "BTC/USD",
+            "ttl": 60
+          }
+        ]
       ],
       "params": {
         "minimumSuccessfulSources": 1
@@ -56,15 +66,16 @@ Simple price model for the `BTC/USD` asset pair may look like this:
 }
 ```
 
-All price models must be defined under the `priceModels` key as a map where a key is
-an asset pair name written as `XXX/YYY`, where `XXX` is the base asset name and `YYY`
-is the quote asset name. These symbols are case insensitive. The `/` as a separator is the only requirement here.
+All price models must be defined under the `priceModels` key as a map where a key is an asset pair name written
+as `XXX/YYY`, where `XXX` is the base asset name and `YYY`
+is the quote asset name. These symbols are case-insensitive. The `/` as a separator is the only requirement here.
 
 Price model for each asset pair consists of three keys: `method`, `sources` and `params`:
 
-- `sources` - contains a list of sources used to determine asset price. Each source must consist of one or more asset pairs. If multiple asset pairs are given, then the cross rate between them will be calculated. Each asset pair consists of two mandatory keys: `origin`, `pair`, and one optional: `ttl` (which is set to `60` by default).
-    - `origin` - a name of a provider from which price will be obtained. Currently, following
-      providers are supported:
+- `sources` - contains a list of sources used to determine asset price. Each source must consist of one or more asset
+  pairs. If multiple asset pairs are given, then the cross rate between them will be calculated. Each asset pair
+  consists of two mandatory keys: `origin`, `pair`, and one optional: `ttl` (which is set to `60` by default).
+    - `origin` - a name of a provider from which price will be obtained. Currently, following providers are supported:
         - `balancer` - [Balancer](https://balancer.finance/)
         - `binance` - [Binance](https://binance.com/)
         - `bitfinex` - [Bitfinex](https://bitfinex.com/)
@@ -93,10 +104,11 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
         - `upbit` - [Upbit](https://upbit.com/)
         - `.` - a special value (single dot) which refers to another price model in the config.
     - `pair` - a name of a pair to be fetched from given origin.
-    - `ttl` - a number of seconds after which the price should be updated. Additionally, if the price is older than the time defined by TTL by one minute, then the price will be considered outdated.
+    - `ttl` - a number of seconds after which the price should be updated. Additionally, if the price is older than the
+      time defined by TTL by one minute, then the price will be considered outdated.
 
-  As stated earlier, multiple sources may be provided to calculate the cross rate between
-  different assets. For example, to get `BTC/JPY` price, you may provide the following list of sources:
+  As stated earlier, multiple sources may be provided to calculate the cross rate between different assets. For example,
+  to get `BTC/JPY` price, you may provide the following list of sources:
 
     ```json
     [
@@ -108,24 +120,30 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
   To correctly calculate the cross rate, all adjacent pairs in a list must have a common asset.
 
 - `params` - usage depends on the value of the `method` field.
-- `method` - specifies the method used to calculate a single asset price from a given sources list. Currently, only the `median` method is supported:
-    - `median` - calculates the median price from given sources.
-      This method requires one parameter to be provided in the `params` field:
-        - `minimumSuccessfulSources` - minimum number of successfully retrieved
-          sources to consider calculated median price as reliable.
+- `method` - specifies the method used to calculate a single asset price from a given sources list. Currently, only
+  the `median` method is supported:
+    - `median` - calculates the median price from given sources. This method requires one parameter to be provided in
+      the `params` field:
+        - `minimumSuccessfulSources` - minimum number of successfully retrieved sources to consider calculated median
+          price as reliable.
 
 ## Commands
 
-Gofer is designed from the beginning to work with other programs, like [oracle-v2](https://github.com/makerdao/oracles-v2). For this reason, by default, a response is returned in the [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming) format. You can change the output format to `plain`, `json`, `ndjson`, or `trace` using the `--format` flag:
+Gofer is designed from the beginning to work with other programs,
+like [oracle-v2](https://github.com/makerdao/oracles-v2). For this reason, by default, a response is returned as
+the [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming) format. You can change the output format to `plain`, `json`
+, `ndjson`, or `trace` using the `--format` flag:
 
-- `plain` - simple, human-readable format with only basic information
-- `json` - json array with list of results
-- `ndjson` - same as `json` but instead of array, elements are returned in new lines
-- `trace` -  used to debug price models, prints a detailed graph with all possible information
+- `plain` - simple, human-readable format with only basic information.
+- `json` - json array with list of results.
+- `ndjson` - same as `json` but instead of array, elements are returned in new lines.
+- `trace` - used to debug price models, prints a detailed graph with all possible information.
 
 ### `gofer price`
 
-The `price` command returns a price for one or more asset pairs. If no pairs are provided then prices for all asset pairs defined in the config file will be returned. When at least one price fails to be retrieved correctly, then the command returns a non-zero status code.
+The `price` command returns a price for one or more asset pairs. If no pairs are provided then prices for all asset
+pairs defined in the config file will be returned. When at least one price fails to be retrieved correctly, then the
+command returns a non-zero status code.
 
 ```
 Return prices for given PAIRs.
@@ -143,12 +161,13 @@ Global Flags:
   -c, --config string                    config file (default "./gofer.json")
   -f, --format plain|trace|json|ndjson   output format (default ndjson)
   -v, --log.verbosity string             verbosity level (default "info")
-      --norpc                            todo
+      --norpc                            disabling the use of RPC agent
 ```
 
 JSON output for a single asset pair consists of the following fields:
 
-- `type` - may be `aggregator` or `origin`. The `aggregator` value means that a given price has been calculated based on other prices, the `origin` value is used when a price is returned directly from an origin.
+- `type` - may be `aggregator` or `origin`. The `aggregator` value means that a given price has been calculated based on
+  other prices, the `origin` value is used when a price is returned directly from an origin.
 - `base` - the base asset name.
 - `quote` - the quote asset name.
 - `price` - the current asset price.
@@ -156,7 +175,8 @@ JSON output for a single asset pair consists of the following fields:
 - `ask` - the ask price, may be 0 if it is impossible to retrive or calculate ask price.
 - `vol24` - the volume from last 24 hours, 0 if it is impossible to retrieve or calculate volume.
 - `ts` - the date from which the price was retrieved.
-- `params` - the list of additional parameters, it always contains the `method` field for aggregators and the `origin` field for origins.
+- `params` - the list of additional parameters, it always contains the `method` field for aggregators and the `origin`
+  field for origins.
 - `error` - the optional error message, if this field is present, then price is not relaiable.
 - `price` - the list of prices used in calculation. For origins it's always empty.
 
@@ -174,7 +194,7 @@ Example JSON output for BTC/USD pair:
    "ts":"2021-05-18T10:30:00Z",
    "params":{
       "method":"median",
-      "min":"3"
+      "minimumSuccessfulSources":"3"
    },
    "prices":[
       {
@@ -226,7 +246,10 @@ Price for BTC/USD:
 
 ### `gofer pairs`
 
-The `pairs` command can be used to check if there are defined price models for given pairs and also to debug existing price models. When the price model is missing, then the command returns a non-zero status code. If no pairs are provided then all asset pairs defined in the config file will be returned. In combination with the `--format=trace` flag, the command will return price models for given pairs.
+The `pairs` command can be used to check if there are defined price models for given pairs and also to debug existing
+price models. When the price model is missing, then the command returns a non-zero status code. If no pairs are provided
+then all asset pairs defined in the config file will be returned. In combination with the `--format=trace` flag, the
+command will return price models for given pairs.
 
 ```
 List all supported asset pairs.
@@ -244,7 +267,7 @@ Global Flags:
   -c, --config string                    config file (default "./gofer.json")
   -f, --format plain|trace|json|ndjson   output format (default ndjson)
   -v, --log.verbosity string             verbosity level (default "info")
-      --norpc                            todo
+      --norpc                            disabling the use of RPC agent
 ```
 
 Examples:
@@ -272,21 +295,25 @@ Graph for BTC/USD:
 
 The `agent` command runs Gofer in the agent mode.
 
-Excessive use of the `gofer price` command may invoke many API calls to external services which can lead to rate-limiting. To avoid this, the prices that were previously retrieved can be reused and updated only as often as is defined in the `ttl` parameters. To do this, Gofer needs to be run in agent mode.
+Excessive use of the `gofer price` command may invoke many API calls to external services which can lead to
+rate-limiting. To avoid this, the prices that were previously retrieved can be reused and updated only as often as is
+defined in the `ttl` parameters. To do this, Gofer needs to be run in agent mode.
 
 At first, the agent mode has to be enabled in the configuration file by adding the following field:
 
 ```json
 {
-    "rpc": {
-        "address": "127.0.0.1:8080"
-    }
+  "rpc": {
+    "address": "127.0.0.1:8080"
+  }
 }
 ```
 
-The above address is used as the listen address for the internal RPC server and as a server address for a client. Next, you have to launch the agent using the `gofer agent` command.
+The above address is used as the listen address for the internal RPC server and as a server address for a client. Next,
+you have to launch the agent using the `gofer agent` command.
 
-From now, the `gofer price` command will retrieve asset prices from the agent instead of retrieving them directly from the origins. If you want to temporarily disable this behavior you have to use the `--norpc` flag.
+From now, the `gofer price` command will retrieve asset prices from the agent instead of retrieving them directly from
+the origins. If you want to temporarily disable this behavior you have to use the `--norpc` flag.
 
 ## Gofer library
 
@@ -313,8 +340,8 @@ func main() {
 	bitfinexBTCUSD := nodes.OriginPair{Origin: "bitfinex", Pair: btcusd}
 	binanceBTCUSD := nodes.OriginPair{Origin: "binance", Pair: btcusd}
 	medianNode := nodes.NewMedianAggregatorNode(btcusd, 2)
-	medianNode.AddChild(nodes.NewOriginNode(bitfinexBTCUSD, time.Minute, 2 * time.Minute))
-	medianNode.AddChild(nodes.NewOriginNode(binanceBTCUSD, time.Minute, 2 * time.Minute))
+	medianNode.AddChild(nodes.NewOriginNode(bitfinexBTCUSD, time.Minute, 2*time.Minute))
+	medianNode.AddChild(nodes.NewOriginNode(binanceBTCUSD, time.Minute, 2*time.Minute))
 	m := map[gofer.Pair]nodes.Aggregator{btcusd: medianNode}
 
 	// Feeder is used to fetch prices:
