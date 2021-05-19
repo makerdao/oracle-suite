@@ -99,7 +99,7 @@ func TestJSON_Prices(t *testing.T) {
 			  "ts":"1970-01-01T00:00:10Z",
 			  "params":{
 				 "method":"median",
-				 "min":"1"
+				 "minimumSuccessfulSources":"1"
 			  },
 			  "prices":[
 				 {
@@ -154,7 +154,7 @@ func TestJSON_Prices(t *testing.T) {
 					"ts":"1970-01-01T00:00:10Z",
 					"params":{
 					   "method":"median",
-					   "min":"1"
+					   "minimumSuccessfulSources":"1"
 					},
 					"prices":[
 					   {

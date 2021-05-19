@@ -114,7 +114,7 @@ func TestMedianAggregatorNode_Price_ThreeOriginPrices(t *testing.T) {
 		},
 		OriginPrices:     []OriginPrice{c1.Price(), c2.Price(), c3.Price()},
 		AggregatorPrices: nil,
-		Parameters:       map[string]string{"method": "median", "min": "3"},
+		Parameters:       map[string]string{"method": "median", "minimumSuccessfulSources": "3"},
 		Error:            nil,
 	}
 
@@ -204,7 +204,7 @@ func TestMedianAggregatorNode_Price_ThreeAggregatorPrices(t *testing.T) {
 				},
 				OriginPrices:     []OriginPrice{c1.Price()},
 				AggregatorPrices: nil,
-				Parameters:       map[string]string{"method": "median", "min": "1"},
+				Parameters:       map[string]string{"method": "median", "minimumSuccessfulSources": "1"},
 				Error:            nil,
 			},
 			{
@@ -218,7 +218,7 @@ func TestMedianAggregatorNode_Price_ThreeAggregatorPrices(t *testing.T) {
 				},
 				OriginPrices:     []OriginPrice{c2.Price()},
 				AggregatorPrices: nil,
-				Parameters:       map[string]string{"method": "median", "min": "1"},
+				Parameters:       map[string]string{"method": "median", "minimumSuccessfulSources": "1"},
 				Error:            nil,
 			},
 			{
@@ -232,11 +232,11 @@ func TestMedianAggregatorNode_Price_ThreeAggregatorPrices(t *testing.T) {
 				},
 				OriginPrices:     []OriginPrice{c3.Price()},
 				AggregatorPrices: nil,
-				Parameters:       map[string]string{"method": "median", "min": "1"},
+				Parameters:       map[string]string{"method": "median", "minimumSuccessfulSources": "1"},
 				Error:            nil,
 			},
 		},
-		Parameters: map[string]string{"method": "median", "min": "3"},
+		Parameters: map[string]string{"method": "median", "minimumSuccessfulSources": "3"},
 		Error:      nil,
 	}
 
