@@ -18,30 +18,23 @@ package sets
 import (
 	"testing"
 
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEventHandlerSet_Handle(t *testing.T) {
-	ehs := NewEventHandlerSet()
-
-	pe := pubsub.PeerEvent{
-		Type: 1,
-		Peer: "a",
-	}
+func TestNodeEventHandlerSet_Handle(t *testing.T) {
+	ehs := NewNodeEventHandlerSet()
+	et := NodeStarting
 
 	// All event handlers should be invoked:
 	calls := 0
-	ehs.Add(EventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
-		assert.Equal(t, "foo", topic)
-		assert.Equal(t, pe, event)
+	ehs.Add(NodeEventHandlerFunc(func(event NodeEventType) {
+		assert.Equal(t, et, event)
 		calls++
 	}))
-	ehs.Add(EventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
-		assert.Equal(t, "foo", topic)
-		assert.Equal(t, pe, event)
+	ehs.Add(NodeEventHandlerFunc(func(event NodeEventType) {
+		assert.Equal(t, et, event)
 		calls++
 	}))
-	ehs.Handle("foo", pe)
+	ehs.Handle(et)
 	assert.Equal(t, 2, calls)
 }

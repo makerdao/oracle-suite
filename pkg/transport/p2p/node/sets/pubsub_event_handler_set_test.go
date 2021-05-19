@@ -13,39 +13,35 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package logger
+package sets
 
 import (
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"testing"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/stretchr/testify/assert"
 )
 
-type eventHandler struct {
-	peerStore peerstore.Peerstore
-	log       log.Logger
-}
+func TestPubSubEventHandlerSet_Handle(t *testing.T) {
+	ehs := NewPubSubEventHandlerSet()
 
-func (e eventHandler) Handle(topic string, event pubsub.PeerEvent) {
-	addrs := e.peerStore.PeerInfo(event.Peer).Addrs
-
-	switch event.Type {
-	case pubsub.PeerJoin:
-		e.log.
-			WithFields(log.Fields{
-				"peerID": event.Peer.String(),
-				"topic":  topic,
-				"addrs":  addrs,
-			}).
-			Debug("Connected to a peer")
-	case pubsub.PeerLeave:
-		e.log.
-			WithFields(log.Fields{
-				"peerID": event.Peer.String(),
-				"topic":  topic,
-				"addrs":  addrs,
-			}).
-			Debug("Disconnected from a peer")
+	pe := pubsub.PeerEvent{
+		Type: 1,
+		Peer: "a",
 	}
+
+	// All event handlers should be invoked:
+	calls := 0
+	ehs.Add(PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
+		assert.Equal(t, "foo", topic)
+		assert.Equal(t, pe, event)
+		calls++
+	}))
+	ehs.Add(PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
+		assert.Equal(t, "foo", topic)
+		assert.Equal(t, pe, event)
+		calls++
+	}))
+	ehs.Handle("foo", pe)
+	assert.Equal(t, 2, calls)
 }

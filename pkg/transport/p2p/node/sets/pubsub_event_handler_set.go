@@ -19,41 +19,41 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-// EventHandlerFunc is a adapter for the EventHandler interface.
-type EventHandlerFunc func(topic string, event pubsub.PeerEvent)
+// PubSubEventHandlerFunc is a adapter for the PubSubEventHandler interface.
+type PubSubEventHandlerFunc func(topic string, event pubsub.PeerEvent)
 
 // Handle calls f(topic, event).
-func (f EventHandlerFunc) Handle(topic string, event pubsub.PeerEvent) {
+func (f PubSubEventHandlerFunc) Handle(topic string, event pubsub.PeerEvent) {
 	f(topic, event)
 }
 
-// EventHandler can ba implemented by type that supports handling the PubSub
+// PubSubEventHandler can ba implemented by type that supports handling the PubSub
 // system events.
-type EventHandler interface {
+type PubSubEventHandler interface {
 	// Handle is called on a new event.
 	Handle(topic string, event pubsub.PeerEvent)
 }
 
-// EventHandlerSet stores multiple instances of the EventHandler interface.
-type EventHandlerSet struct {
-	eventHandler []EventHandler
+// PubSubEventHandlerSet stores multiple instances of the PubSubEventHandler interface.
+type PubSubEventHandlerSet struct {
+	eventHandler []PubSubEventHandler
 }
 
-// NewEventHandlerSet creates new instance of the EventHandlerSet.
-func NewEventHandlerSet() *EventHandlerSet {
-	return &EventHandlerSet{}
+// NewPubSubEventHandlerSet creates new instance of the PubSubEventHandlerSet.
+func NewPubSubEventHandlerSet() *PubSubEventHandlerSet {
+	return &PubSubEventHandlerSet{}
 }
 
-// Add adds new EventHandler to the set.
-func (n *EventHandlerSet) Add(eventHandler ...EventHandler) {
+// Add adds new PubSubEventHandler to the set.
+func (n *PubSubEventHandlerSet) Add(eventHandler ...PubSubEventHandler) {
 	n.eventHandler = append(n.eventHandler, eventHandler...)
 }
 
 // Handle invokes all registered handlers for given topic.
-func (n *EventHandlerSet) Handle(topic string, event pubsub.PeerEvent) {
+func (n *PubSubEventHandlerSet) Handle(topic string, event pubsub.PeerEvent) {
 	for _, eventHandler := range n.eventHandler {
 		eventHandler.Handle(topic, event)
 	}
 }
 
-var _ EventHandler = (*EventHandlerSet)(nil)
+var _ PubSubEventHandler = (*PubSubEventHandlerSet)(nil)

@@ -38,7 +38,6 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
 var ErrFailedToLoadConfiguration = errors.New("failed to load Spectre's configuration")
@@ -101,7 +100,7 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	sig := c.configureSigner(acc)
 
 	// Transport:
-	tra, err := c.configureTransport(deps.Context, deps.Logger)
+	tra, err := c.configureTransport(deps.Context, sig, deps.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
 	}
@@ -148,7 +147,7 @@ func (c *Config) configureSigner(a *ethereumGeth.Account) ethereum.Signer {
 	return ethereumGeth.NewSigner(a)
 }
 
-func (c *Config) configureTransport(ctx context.Context, l log.Logger) (transport.Transport, error) {
+func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l log.Logger) (transport.Transport, error) {
 	peerPrivKey, err := c.generatePrivKey()
 	if err != nil {
 		return nil, err
@@ -162,14 +161,11 @@ func (c *Config) configureTransport(ctx context.Context, l log.Logger) (transpor
 		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
+		Signer:         s,
 		Logger:         l,
 	}
 	for _, feed := range c.Feeds {
-		if strings.HasPrefix(feed, "0x") {
-			cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
-		} else {
-			cfg.AllowedPeers = append(cfg.AllowedPeers, feed)
-		}
+		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
 	}
 
 	p, err := p2p.New(cfg)
@@ -177,7 +173,7 @@ func (c *Config) configureTransport(ctx context.Context, l log.Logger) (transpor
 		return nil, err
 	}
 
-	err = p.Subscribe(messages.PriceMessageName)
+	err = p.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
 	if err != nil {
 		_ = p.Close()
 		return nil, err

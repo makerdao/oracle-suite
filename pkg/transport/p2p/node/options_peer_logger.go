@@ -13,37 +13,39 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package logger
+package node
 
 import (
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node/sets"
 )
 
-type messageHandler struct {
-	peerStore peerstore.Peerstore
-	log       log.Logger
-}
-
-func (m *messageHandler) Published(topic string, raw []byte, message transport.Message) {
-	m.log.
-		WithFields(log.Fields{"topic": topic, "message": string(raw)}).
-		Debug("Published a new message")
-}
-
-func (m *messageHandler) Received(topic string, raw *pubsub.Message, message transport.Message) {
-	addrs := m.peerStore.PeerInfo(raw.ReceivedFrom).Addrs
-
-	m.log.
-		WithFields(log.Fields{
-			"topic":              topic,
-			"message":            string(raw.Data),
-			"peerID":             raw.GetFrom().String(),
-			"receivedFromPeerID": raw.ReceivedFrom.String(),
-			"receivedFromAddrs":  addrs,
-		}).
-		Debug("Received a new message")
+// PeerLogger logs all peers handled by libp2p's pubsub system.
+func PeerLogger() Options {
+	return func(n *Node) error {
+		n.AddPubSubEventHandler(sets.PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
+			addrs := n.Host().Peerstore().PeerInfo(event.Peer).Addrs
+			switch event.Type {
+			case pubsub.PeerJoin:
+				n.log.
+					WithFields(log.Fields{
+						"peerID": event.Peer.String(),
+						"topic":  topic,
+						"addrs":  addrs,
+					}).
+					Debug("Connected to a peer")
+			case pubsub.PeerLeave:
+				n.log.
+					WithFields(log.Fields{
+						"peerID": event.Peer.String(),
+						"topic":  topic,
+						"addrs":  addrs,
+					}).
+					Debug("Disconnected from a peer")
+			}
+		}))
+		return nil
+	}
 }

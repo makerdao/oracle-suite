@@ -26,21 +26,32 @@ import (
 )
 
 type testMessageHandler struct {
-	Topic   string
-	Raw     []byte
-	Message transport.Message
+	topic  string
+	raw    []byte
+	psMsg  *pubsub.Message
+	msg    transport.Message
+	result pubsub.ValidationResult
+	err    error
 }
 
-func (t *testMessageHandler) Published(topic string, raw []byte, message transport.Message) {
-	t.Topic = topic
-	t.Raw = raw
-	t.Message = message
+func (t *testMessageHandler) Published(topic string, raw []byte, msg transport.Message) {
+	t.topic = topic
+	t.raw = raw
+	t.msg = msg
 }
 
-func (t *testMessageHandler) Received(topic string, raw *pubsub.Message, message transport.Message) {
-	t.Topic = topic
-	t.Raw = raw.Data
-	t.Message = message
+func (t *testMessageHandler) Received(topic string, msg *pubsub.Message, result pubsub.ValidationResult) {
+	t.topic = topic
+	t.raw = msg.Data
+	t.psMsg = msg
+	t.result = result
+}
+
+func (t *testMessageHandler) Broken(topic string, msg *pubsub.Message, err error) {
+	t.topic = topic
+	t.raw = msg.Data
+	t.psMsg = msg
+	t.err = err
 }
 
 type testMsg struct {
@@ -67,33 +78,35 @@ func TestMessageHandlerSet_Published(t *testing.T) {
 	mhs.Published("foo", []byte("bar"), msg)
 
 	// All message handlers should be invoked:
-	assert.Equal(t, "foo", mh1.Topic)
-	assert.Equal(t, "foo", mh2.Topic)
-	assert.Equal(t, []byte("bar"), mh1.Raw)
-	assert.Equal(t, []byte("bar"), mh2.Raw)
-	assert.Equal(t, msg, mh1.Message)
-	assert.Equal(t, msg, mh2.Message)
+	assert.Equal(t, "foo", mh1.topic)
+	assert.Equal(t, "foo", mh2.topic)
+	assert.Equal(t, []byte("bar"), mh1.raw)
+	assert.Equal(t, []byte("bar"), mh2.raw)
+	assert.Equal(t, msg, mh1.msg)
+	assert.Equal(t, msg, mh2.msg)
 }
 
 func TestMessageHandlerSet_Received(t *testing.T) {
 	mhs := NewMessageHandlerSet()
 
-	msg := &testMsg{Val: "abc"}
+	msg := &pubsub.Message{
+		Message: &pb.Message{
+			Data: []byte("bar"),
+		},
+	}
 	mh1 := &testMessageHandler{}
 	mh2 := &testMessageHandler{}
 
 	mhs.Add(mh1, mh2)
-	mhs.Received("foo", &pubsub.Message{
-		Message: &pb.Message{
-			Data: []byte("bar"),
-		},
-	}, msg)
+	mhs.Received("foo", msg, pubsub.ValidationAccept)
 
 	// All message handlers should be invoked:
-	assert.Equal(t, "foo", mh1.Topic)
-	assert.Equal(t, "foo", mh2.Topic)
-	assert.Equal(t, []byte("bar"), mh1.Raw)
-	assert.Equal(t, []byte("bar"), mh2.Raw)
-	assert.Equal(t, msg, mh1.Message)
-	assert.Equal(t, msg, mh2.Message)
+	assert.Equal(t, "foo", mh1.topic)
+	assert.Equal(t, "foo", mh2.topic)
+	assert.Equal(t, []byte("bar"), mh1.raw)
+	assert.Equal(t, []byte("bar"), mh2.raw)
+	assert.Equal(t, msg, mh1.psMsg)
+	assert.Equal(t, msg, mh2.psMsg)
+	assert.Equal(t, pubsub.ValidationAccept, mh1.result)
+	assert.Equal(t, pubsub.ValidationAccept, mh2.result)
 }

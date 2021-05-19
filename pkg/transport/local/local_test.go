@@ -37,14 +37,14 @@ func (t *testMsg) Unmarshall(bytes []byte) error {
 func TestLocal_Subscribe(t *testing.T) {
 	l := New(0)
 
-	assert.NoError(t, l.Subscribe("foo"))
-	assert.IsType(t, ErrAlreadySubscribed, l.Subscribe("foo"))
+	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
+	assert.IsType(t, ErrAlreadySubscribed, l.Subscribe("foo", (*testMsg)(nil)))
 }
 
 func TestLocal_Unsubscribe(t *testing.T) {
 	l := New(0)
 
-	assert.NoError(t, l.Subscribe("foo"))
+	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
 	assert.NoError(t, l.Unsubscribe("foo"))
 	assert.IsType(t, ErrNotSubscribed, l.Unsubscribe("foo"))
 }
@@ -55,7 +55,7 @@ func TestLocal_Broadcast(t *testing.T) {
 	// Valid message:
 	vm := &testMsg{Val: "bar"}
 	assert.IsType(t, ErrNotSubscribed, l.Broadcast("foo", vm))
-	assert.NoError(t, l.Subscribe("foo"))
+	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
 	assert.NoError(t, l.Broadcast("foo", vm))
 }
 
@@ -63,10 +63,10 @@ func TestLocal_WaitFor(t *testing.T) {
 	l := New(1)
 
 	// Should return nil for unsubscribed topic:
-	assert.Nil(t, l.WaitFor("foo", &testMsg{}))
+	assert.Nil(t, l.WaitFor("foo"))
 
 	// Valid message:
-	assert.NoError(t, l.Subscribe("foo"))
+	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
 	assert.NoError(t, l.Broadcast("foo", &testMsg{Val: "bar"}))
-	assert.Equal(t, &testMsg{Val: "bar"}, (<-l.WaitFor("foo", &testMsg{})).Message)
+	assert.Equal(t, &testMsg{Val: "bar"}, (<-l.WaitFor("foo")).Message)
 }

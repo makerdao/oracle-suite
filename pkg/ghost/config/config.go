@@ -148,14 +148,12 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
+		Signer:         s,
 		Logger:         l,
 	}
+	cfg.FeedersAddrs = []ethereum.Address{ethereum.HexToAddress(c.Ethereum.From)}
 	for _, feed := range c.Feeds {
-		if strings.HasPrefix(feed, "0x") {
-			cfg.AllowedPeers = append(cfg.AllowedPeers, ethkey.AddressToPeerID(feed).Pretty())
-		} else {
-			cfg.AllowedPeers = append(cfg.AllowedPeers, feed)
-		}
+		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
 	}
 
 	p, err := p2p.New(cfg)
@@ -163,7 +161,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		return nil, err
 	}
 
-	err = p.Subscribe(messages.PriceMessageName)
+	err = p.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
 	if err != nil {
 		_ = p.Close()
 		return nil, err

@@ -41,17 +41,23 @@ func init() {
 
 // AddressToPeerID converts an Ethereum address to a peer ID. If address is
 // invalid then empty ID will be returned.
-func AddressToPeerID(a string) peer.ID {
-	null := common.Address{}
-	addr := common.HexToAddress(a)
-	if addr == null {
-		return ""
-	}
+func AddressToPeerID(addr ethereum.Address) peer.ID {
 	id, err := peer.IDFromPublicKey(NewPubKey(addr))
 	if err != nil {
 		return ""
 	}
 	return id
+}
+
+// HexAddressToPeerID converts an Ethereum address given as hex string to
+// a peer ID. If address is invalid then empty ID will be returned.
+func HexAddressToPeerID(a string) peer.ID {
+	null := common.Address{}
+	addr := common.HexToAddress(a)
+	if addr == null {
+		return ""
+	}
+	return AddressToPeerID(addr)
 }
 
 func PeerIDToAddress(id peer.ID) ethereum.Address {

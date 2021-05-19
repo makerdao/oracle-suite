@@ -19,21 +19,26 @@ import (
 	"context"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node"
+	"github.com/makerdao/oracle-suite/pkg/transport/p2p/oracle"
 )
 
 const LoggerTag = "P2P"
+const rendezvousString = "spire/v0.0-dev"
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
+// P2P is a little wrapper for the Node that implements the Transport
+// interface.
 type P2P struct {
-	node *Node
+	node *node.Node
 }
 
 type Config struct {
@@ -55,10 +60,11 @@ type Config struct {
 	// blocked. If an address on that list contains an IP and a peer ID, both
 	// will be blocked separately.
 	BlockedAddrs []string
-	// AllowedPeers is a list of peer IDs which are allowed to publish messages
-	// to the network. Messages from peers outside this list will be ignored
-	// and not relayed. If empty, all messages will be accepted.
-	AllowedPeers []string
+	// FeedersAddrs is a list of price feeders. Only feeders can create new
+	// messages in the network.
+	FeedersAddrs []ethereum.Address
+	// Signer used to verify price messages.
+	Signer ethereum.Signer
 }
 
 // New returns a new instance of a transport, implemented with
@@ -82,21 +88,27 @@ func New(cfg Config) (*P2P, error) {
 	if err != nil {
 		return nil, err
 	}
-	allowedPeers, err := strsToPeerIDs(cfg.AllowedPeers)
-	if err != nil {
-		return nil, err
+
+	logger := cfg.Logger.WithField("tag", LoggerTag)
+	opts := []node.Options{
+		node.ListenAddrs(listenAddrs),
+		node.DHT(rendezvousString),
+		node.Bootstrap(bootstrapAddrs),
+		node.Denylist(blockedAddrs),
+		node.Logger(logger),
+		node.ConnectionLogger(),
+		node.MessageLogger(),
+		node.PeerLogger(),
+		oracle.Oracle(cfg.FeedersAddrs, cfg.Signer, logger),
+	}
+	if cfg.PeerPrivKey != nil {
+		opts = append(opts, node.PeerPrivKey(cfg.PeerPrivKey))
+	}
+	if cfg.MessagePrivKey != nil {
+		opts = append(opts, node.MessagePrivKey(cfg.MessagePrivKey))
 	}
 
-	n, err := NewNode(NodeConfig{
-		Context:        cfg.Context,
-		Logger:         cfg.Logger.WithField("tag", LoggerTag),
-		ListenAddrs:    listenAddrs,
-		BootstrapAddrs: bootstrapAddrs,
-		BlockedAddrs:   blockedAddrs,
-		AllowedPeers:   allowedPeers,
-		PeerPrivKey:    cfg.PeerPrivKey,
-		MessagePrivKey: cfg.MessagePrivKey,
-	})
+	n, err := node.NewNode(cfg.Context, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +123,8 @@ func New(cfg Config) (*P2P, error) {
 }
 
 // Subscribe implements the transport.Transport interface.
-func (p *P2P) Subscribe(topic string) error {
-	return p.node.Subscribe(topic)
+func (p *P2P) Subscribe(topic string, typ transport.Message) error {
+	return p.node.Subscribe(topic, typ)
 }
 
 // Unsubscribe implements the transport.Transport interface.
@@ -122,7 +134,7 @@ func (p *P2P) Unsubscribe(topic string) error {
 
 // Broadcast implements the transport.Transport interface.
 func (p *P2P) Broadcast(topic string, message transport.Message) error {
-	sub, err := p.node.subscription(topic)
+	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return err
 	}
@@ -130,12 +142,12 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 }
 
 // WaitFor implements the transport.Transport interface.
-func (p *P2P) WaitFor(topic string, message transport.Message) chan transport.Status {
-	sub, err := p.node.subscription(topic)
+func (p *P2P) WaitFor(topic string) chan transport.Status {
+	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil
 	}
-	return sub.Next(message)
+	return sub.Next()
 }
 
 // Close implements the transport.Transport interface.
@@ -155,18 +167,4 @@ func strsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 		maddrs = append(maddrs, maddr)
 	}
 	return maddrs, nil
-}
-
-// strsToPeerIDs converts peer IDs given as strings to a
-// list of peer.ID.
-func strsToPeerIDs(ids []string) ([]peer.ID, error) {
-	var pIDs []peer.ID
-	for _, s := range ids {
-		pID, err := peer.Decode(s)
-		if err != nil {
-			return nil, err
-		}
-		pIDs = append(pIDs, pID)
-	}
-	return pIDs, nil
 }

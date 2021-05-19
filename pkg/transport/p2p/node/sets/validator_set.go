@@ -43,9 +43,9 @@ func (n *ValidatorSet) Add(validator ...Validator) {
 // Validator returns function that implements pubsub.ValidatorEx. That function
 // will invoke all registered validators for given topic.
 func (n *ValidatorSet) Validator(topic string) pubsub.ValidatorEx {
-	return func(ctx context.Context, id peer.ID, message *pubsub.Message) pubsub.ValidationResult {
+	return func(ctx context.Context, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
 		for _, validator := range n.validators {
-			if result := validator(ctx, topic, id, message); result != pubsub.ValidationAccept {
+			if result := validator(ctx, topic, id, psMsg); result != pubsub.ValidationAccept {
 				return result
 			}
 		}
