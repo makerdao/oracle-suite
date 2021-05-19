@@ -160,7 +160,7 @@ func (n *MedianAggregatorNode) Price() AggregatorPrice {
 		},
 		OriginPrices:     originPrices,
 		AggregatorPrices: aggregatorPrices,
-		Parameters:       map[string]string{"method": "median", "min": strconv.Itoa(n.minSources)},
+		Parameters:       map[string]string{"method": "median", "minimumSuccessfulSources": strconv.Itoa(n.minSources)},
 		Error:            err,
 	}
 }

@@ -73,11 +73,11 @@ func TestTrace_Prices(t *testing.T) {
 
 	expected := `
 Price for A/B:
-───aggregator(method:median, min:1, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+───aggregator(method:median, minimumSuccessfulSources:1, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
    ├──origin(origin:a, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
    ├──aggregator(method:indirect, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
    │  └──origin(origin:a, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
-   └──aggregator(method:median, min:1, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
+   └──aggregator(method:median, minimumSuccessfulSources:1, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
       ├──origin(origin:a, pair:A/B, price:10, timestamp:1970-01-01T00:00:10Z)
       └──origin(origin:b, pair:A/B, price:20, timestamp:1970-01-01T00:00:20Z)
             Error: something
