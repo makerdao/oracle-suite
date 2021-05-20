@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -119,7 +118,7 @@ func nextKey(wallet *hdwallet.Wallet, path accounts.DerivationPath) (*ecdsa.Priv
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("%+v", account)
+
 	key, err := wallet.PrivateKey(account)
 	if err != nil {
 		return nil, err

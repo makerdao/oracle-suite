@@ -1,2 +1,3 @@
-{ pkgs ? import <nixpkgs> { }, oracle-suite ? pkgs.callPackage ./default.nix { } }:
-pkgs.mkShell { buildInputs = [ oracle-suite.gofer oracle-suite.spire oracle-suite.keeman ]; }
+{ pkgs ? import <nixpkgs> { }, oracle-suite ? pkgs.callPackage ./default.nix { buildGoModule = pkgs.buildGo116Module; }
+}:
+pkgs.mkShell { buildInputs = [ pkgs.jq oracle-suite ]; }
