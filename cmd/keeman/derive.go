@@ -16,8 +16,11 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -29,6 +32,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	crypto2 "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
 	"github.com/makerdao/oracle-suite/cmd/keeman/internal"
@@ -40,7 +45,17 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 		return nil, err
 	}
 
-	c, err := genCaps(wallet, path)
+	f, err := iteratorForGroup(path, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := genCaps(wallet, f)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := genP2p(wallet, f)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +70,24 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 		return nil, err
 	}
 
-	k, err := genKeystore(privateKey, pass)
+	k, err := newKeystore(privateKey, pass)
+	if err != nil {
+		return nil, err
+	}
+
+	return &derOut{
+		Path:     path,
+		Prv:      hexutil.Encode(crypto.FromECDSA(privateKey)),
+		Keystore: k,
+		Caps:     c,
+		P2p:      p,
+	}, nil
+}
+
+type ks interface{}
+
+func newKeystore(key *ecdsa.PrivateKey, pass string) (ks, error) {
+	k, err := keystore.EncryptKey(internal.NewKey(key), pass, keystore.StandardScryptN, keystore.StandardScryptP)
 	if err != nil {
 		return nil, err
 	}
@@ -64,26 +96,85 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 	if err := json.Unmarshal(k, &x); err != nil {
 		return nil, err
 	}
-	return &derOut{
-		path.String(),
-		hexutil.Encode(crypto.FromECDSA(privateKey)),
-		x,
-		*c,
-	}, nil
+
+	return x, nil
 }
 
 type derOut struct {
-	Path     string      `json:"path"`
-	Prv      string      `json:"prv"`
-	Keystore interface{} `json:"keystore"`
-	Caps     caps        `json:"caps"`
+	Path     accounts.DerivationPath `json:"path"`
+	Prv      string                  `json:"prv"`
+	Keystore ks                      `json:"keystore"`
+	Caps     *caps                   `json:"caps"`
+	P2p      *p2p                    `json:"p2p"`
 }
 type caps struct {
-	Shs  string `json:"shs"`
-	Sign string `json:"sign"`
+	Shs  []byte `json:"shs"`
+	Sign []byte `json:"sign"`
 }
 
-func genCaps(wallet *hdwallet.Wallet, base accounts.DerivationPath) (*caps, error) {
+func (c caps) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Shs  string `json:"shs"`
+		Sign string `json:"sign"`
+	}{Shs: base64.URLEncoding.EncodeToString(c.Shs), Sign: base64.URLEncoding.EncodeToString(c.Sign)})
+}
+
+type p2p struct {
+	Seed []byte  `json:"seed"`
+	Id   peer.ID `json:"id"`
+}
+
+func (p p2p) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Seed string `json:"seed"`
+		Id   string `json:"id"`
+	}{Seed: hex.EncodeToString(p.Seed), Id: p.Id.String()})
+}
+
+func genCaps(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*caps, error) {
+	a, err := nextKey(wallet, iterate())
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := nextKey(wallet, iterate())
+	if err != nil {
+		return nil, err
+	}
+
+	return &caps{Shs: crypto.FromECDSA(a), Sign: crypto.FromECDSA(b)}, nil
+}
+func genP2p(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*p2p, error) {
+	privateKey, err := nextKey(wallet, iterate())
+	if err != nil {
+		return nil, err
+	}
+	seed := crypto.FromECDSA(privateKey)[:32]
+
+	privKey, err := peerPrivKey(seed)
+	if err != nil {
+		return nil, err
+	}
+	id, err := peer.IDFromPublicKey(privKey.GetPublic())
+	if err != nil {
+		return nil, err
+	}
+
+	return &p2p{Seed: seed, Id: id}, nil
+}
+
+func peerPrivKey(seed []byte) (crypto2.PrivKey, error) {
+	if len(seed) != ed25519.SeedSize {
+		return nil, fmt.Errorf("seed must be of size %d bytes - %d given", ed25519.SeedSize, len(seed))
+	}
+	privKey, _, err := crypto2.GenerateEd25519Key(bytes.NewReader(seed))
+	if err != nil {
+		return nil, err
+	}
+	return privKey, nil
+}
+
+func iteratorForGroup(base accounts.DerivationPath, group uint32) (func() accounts.DerivationPath, error) {
 	if len(base) < 2 {
 		return nil, fmt.Errorf("derivation path needs at least two components")
 	}
@@ -93,24 +184,10 @@ func genCaps(wallet *hdwallet.Wallet, base accounts.DerivationPath) (*caps, erro
 
 	path := make(accounts.DerivationPath, len(base))
 	copy(path[:], base[:])
-	path[len(path)-2] = 1
+	path[len(path)-2] = group
 	path[len(path)-1] = 0
-	f := accounts.DefaultIterator(path)
 
-	a, err := nextKey(wallet, f())
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := nextKey(wallet, f())
-	if err != nil {
-		return nil, err
-	}
-
-	return &caps{
-		base64.URLEncoding.EncodeToString(crypto.FromECDSA(a)),
-		base64.URLEncoding.EncodeToString(crypto.FromECDSA(b)),
-	}, nil
+	return accounts.DefaultIterator(path), nil
 }
 
 func nextKey(wallet *hdwallet.Wallet, path accounts.DerivationPath) (*ecdsa.PrivateKey, error) {
@@ -118,16 +195,7 @@ func nextKey(wallet *hdwallet.Wallet, path accounts.DerivationPath) (*ecdsa.Priv
 	if err != nil {
 		return nil, err
 	}
-
-	key, err := wallet.PrivateKey(account)
-	if err != nil {
-		return nil, err
-	}
-	return key, nil
-}
-
-func genKeystore(key *ecdsa.PrivateKey, pass string) ([]byte, error) {
-	return keystore.EncryptKey(internal.NewKey(key), pass, keystore.StandardScryptN, keystore.StandardScryptP)
+	return wallet.PrivateKey(account)
 }
 
 func cmdDer(args []string) error {
