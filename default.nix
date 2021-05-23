@@ -1,4 +1,4 @@
-{ buildGoModule }:
+{ buildGoModule ? (import <nixpkgs> { }).buildGo116Module }:
 buildGoModule {
   pname = "oracle-suite";
   version = "dev20210521";
