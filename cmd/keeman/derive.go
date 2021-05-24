@@ -50,6 +50,11 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 		return nil, err
 	}
 
+	s, err := genSsb(wallet, f)
+	if err != nil {
+		return nil, err
+	}
+
 	c, err := genCaps(wallet, f)
 	if err != nil {
 		return nil, err
@@ -81,6 +86,7 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 		Keystore: k,
 		Caps:     c,
 		P2p:      p,
+		Ssb:      s,
 	}, nil
 }
 
@@ -106,44 +112,21 @@ type derOut struct {
 	Keystore ks                      `json:"keystore"`
 	Caps     *caps                   `json:"caps"`
 	P2p      *p2p                    `json:"p2p"`
-}
-type caps struct {
-	Shs  []byte `json:"shs"`
-	Sign []byte `json:"sign"`
-}
-
-func (c caps) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		Shs  string `json:"shs"`
-		Sign string `json:"sign"`
-	}{Shs: base64.URLEncoding.EncodeToString(c.Shs), Sign: base64.URLEncoding.EncodeToString(c.Sign)})
+	Ssb      *ssb                    `json:"ssb"`
 }
 
 type p2p struct {
 	Seed []byte  `json:"seed"`
-	Id   peer.ID `json:"id"`
+	ID   peer.ID `json:"id"`
 }
 
 func (p p2p) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Seed string `json:"seed"`
-		Id   string `json:"id"`
-	}{Seed: hex.EncodeToString(p.Seed), Id: p.Id.String()})
+		ID   string `json:"id"`
+	}{Seed: hex.EncodeToString(p.Seed), ID: p.ID.String()})
 }
 
-func genCaps(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*caps, error) {
-	a, err := nextKey(wallet, iterate())
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := nextKey(wallet, iterate())
-	if err != nil {
-		return nil, err
-	}
-
-	return &caps{Shs: crypto.FromECDSA(a), Sign: crypto.FromECDSA(b)}, nil
-}
 func genP2p(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*p2p, error) {
 	privateKey, err := nextKey(wallet, iterate())
 	if err != nil {
@@ -160,7 +143,66 @@ func genP2p(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*p
 		return nil, err
 	}
 
-	return &p2p{Seed: seed, Id: id}, nil
+	return &p2p{Seed: seed, ID: id}, nil
+}
+
+type caps struct {
+	Shs  []byte `json:"shs"`
+	Sign []byte `json:"sign"`
+}
+
+func (c caps) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Shs  string `json:"shs"`
+		Sign string `json:"sign"`
+	}{Shs: base64.URLEncoding.EncodeToString(c.Shs), Sign: base64.URLEncoding.EncodeToString(c.Sign)})
+}
+
+func genCaps(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*caps, error) {
+	a, err := nextKey(wallet, iterate())
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := nextKey(wallet, iterate())
+	if err != nil {
+		return nil, err
+	}
+	return &caps{Shs: crypto.FromECDSA(a), Sign: crypto.FromECDSA(b)}, nil
+}
+
+type ssb struct {
+	Type    string `json:"curve"`
+	Public  []byte `json:"public"`
+	Private []byte `json:"private"`
+}
+
+func (s ssb) MarshalJSON() ([]byte, error) {
+	pub := base64.URLEncoding.EncodeToString(s.Public)
+	return json.Marshal(struct {
+		Curve   string `json:"curve"`
+		Public  string `json:"public"`
+		Private string `json:"private"`
+		ID      string `json:"id"`
+	}{
+		Curve:   s.Type,
+		Public:  pub + "." + s.Type,
+		Private: base64.URLEncoding.EncodeToString(s.Private) + "." + s.Type,
+		ID:      "@" + pub + "." + s.Type,
+	})
+}
+
+func genSsb(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*ssb, error) {
+	k, err := nextKey(wallet, iterate())
+	if err != nil {
+		return nil, err
+	}
+	a := ed25519.NewKeyFromSeed(crypto.FromECDSA(k))
+	return &ssb{
+		Type:    "ed25519",
+		Private: a,
+		Public:  a.Public().(ed25519.PublicKey),
+	}, nil
 }
 
 func peerPrivKey(seed []byte) (crypto2.PrivKey, error) {
