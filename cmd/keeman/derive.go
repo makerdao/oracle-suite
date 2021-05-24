@@ -45,17 +45,17 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 		return nil, err
 	}
 
-	f, err := iteratorForGroup(path, 1)
+	iter, err := iteratorForGroup(path, 1)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := genSsb(wallet, f)
+	c, err := genCaps(wallet, iter)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := genCaps(wallet, f)
+	s, err := genSsb(wallet, chGrp(path, 3))
 	if err != nil {
 		return nil, err
 	}
@@ -192,8 +192,8 @@ func (s ssb) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func genSsb(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*ssb, error) {
-	k, err := nextKey(wallet, iterate())
+func genSsb(wallet *hdwallet.Wallet, path accounts.DerivationPath) (*ssb, error) {
+	k, err := nextKey(wallet, path)
 	if err != nil {
 		return nil, err
 	}
