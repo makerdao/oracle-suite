@@ -60,7 +60,7 @@ func der(mnemonic string, path accounts.DerivationPath, pass string) (*derOut, e
 		return nil, err
 	}
 
-	p, err := genP2p(wallet, f)
+	p, err := genP2p(wallet, chGrp(path, 2))
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +127,8 @@ func (p p2p) MarshalJSON() ([]byte, error) {
 	}{Seed: hex.EncodeToString(p.Seed), ID: p.ID.String()})
 }
 
-func genP2p(wallet *hdwallet.Wallet, iterate func() accounts.DerivationPath) (*p2p, error) {
-	privateKey, err := nextKey(wallet, iterate())
+func genP2p(wallet *hdwallet.Wallet, path accounts.DerivationPath) (*p2p, error) {
+	privateKey, err := nextKey(wallet, path)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +214,13 @@ func peerPrivKey(seed []byte) (crypto2.PrivKey, error) {
 		return nil, err
 	}
 	return privKey, nil
+}
+
+func chGrp(base accounts.DerivationPath, group uint32) accounts.DerivationPath {
+	path := make(accounts.DerivationPath, len(base))
+	copy(path[:], base[:])
+	path[len(path)-2] = group
+	return path
 }
 
 func iteratorForGroup(base accounts.DerivationPath, group uint32) (func() accounts.DerivationPath, error) {
