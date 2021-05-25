@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	log2 "github.com/ipfs/go-log/v2"
 	"github.com/sirupsen/logrus"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -54,12 +53,6 @@ func newLogger(opts *options) (log.Logger, error) {
 	lr := logrus.New()
 	lr.SetLevel(ll)
 	lr.SetFormatter(opts.LogFormat.Formatter())
-
-	fromString, err := log2.LevelFromString(level)
-	if err != nil {
-		return nil, err
-	}
-	log2.SetAllLoggers(fromString)
 
 	return logLogrus.New(lr), nil
 }
