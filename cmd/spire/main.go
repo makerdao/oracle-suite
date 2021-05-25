@@ -22,12 +22,13 @@ import (
 	"path/filepath"
 
 	log2 "github.com/ipfs/go-log/v2"
+	"github.com/sirupsen/logrus"
+
 	"github.com/makerdao/oracle-suite/pkg/log"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/spire"
 	"github.com/makerdao/oracle-suite/pkg/spire/config"
 	configJSON "github.com/makerdao/oracle-suite/pkg/spire/config/json"
-	"github.com/sirupsen/logrus"
 )
 
 var (
