@@ -6,7 +6,7 @@ let
     src = ./.;
     buildPhase = "true";
     installPhase = ''
-      echo "$(git rev-parse --short HEAD 2>/dev/null || find . -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | sed -r 's/\s+//g')" > $out
+      echo "$(git rev-parse --short HEAD 2>/dev/null || find * -type f -name '*.go' -print0 | sort -z | xargs -0 sha1sum | sha1sum | sed -r 's/[^\da-f]+//g')" > $out
     '';
   };
   ver = "${pkgs.lib.removeSuffix "\n" (builtins.readFile "${rev}")}";
@@ -14,7 +14,7 @@ in buildGoModule {
   pname = "oracle-suite";
   version = "dev_${ver}";
   src = ./.;
-  vendorSha256 = "11xjwx8gn2iwca66783fmddnjs3z5pnn0rk87lpbpas9p6pipakj";
+  vendorSha256 = "14i98l2vgdwcp4kcpxdchjffr22ywy6vsn50blr2l0irgm8i517d";
   subPackages = [ "cmd/..." ];
   postConfigure = "export CGO_ENABLED=0";
   postInstall = "cp ./gofer.json ./spire.json $out";

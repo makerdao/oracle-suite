@@ -21,13 +21,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
+	log2 "github.com/ipfs/go-log/v2"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/spire"
 	"github.com/makerdao/oracle-suite/pkg/spire/config"
 	configJSON "github.com/makerdao/oracle-suite/pkg/spire/config/json"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -53,6 +53,12 @@ func newLogger(opts *options) (log.Logger, error) {
 	lr := logrus.New()
 	lr.SetLevel(ll)
 	lr.SetFormatter(opts.LogFormat.Formatter())
+
+	fromString, err := log2.LevelFromString(level)
+	if err != nil {
+		return nil, err
+	}
+	log2.SetAllLoggers(fromString)
 
 	return logLogrus.New(lr), nil
 }
