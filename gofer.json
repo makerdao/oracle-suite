@@ -3,9 +3,9 @@
     "address": ":8080"
   },
   "origins": {
-    "example": {
-      "type": "exchange",
-      "name": "some-exchange",
+    "operexchangerates": {
+      "type": "operexchangerates",
+      "name": "operexchangerates",
       "params": {
         "apiKey": "ABC"
       }
