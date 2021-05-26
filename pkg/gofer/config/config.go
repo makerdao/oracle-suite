@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/makerdao/oracle-suite/internal/query"
+
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
@@ -102,7 +104,8 @@ func (c *Config) ConfigureGofer(logger log.Logger) (gofer.Gofer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
-	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
+
+	fed := feeder.NewFeeder(c.buildOrigins(), logger)
 	gof := graph.NewGofer(gra, fed)
 	return gof, nil
 }
@@ -113,7 +116,8 @@ func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
-	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
+
+	fed := feeder.NewFeeder(c.buildOrigins(), logger)
 	gof := graph.NewAsyncGofer(gra, fed)
 	srv, err := rpc.NewAgent(rpc.AgentConfig{
 		Gofer:   gof,
@@ -130,6 +134,23 @@ func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 // ConfigureRPCClient returns a new rpc.RPC instance.
 func (c *Config) ConfigureRPCClient(l log.Logger) (*rpc.Gofer, error) {
 	return rpc.NewGofer("tcp", c.RPC.Address), nil
+}
+
+func (c *Config) buildOrigins() *origins.Set {
+	const defaultWorkerCount = 5
+	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
+
+	defaultOrigins := origins.DefaultSet(httpWorkerPool)
+
+	for name, origin := range c.Origins {
+		handler := origins.NewHandler(origin.Type, httpWorkerPool, origin.Params)
+		if handler == nil {
+			// TODO: log error ?
+			continue
+		}
+		defaultOrigins.SetHandler(name, handler)
+	}
+	return defaultOrigins
 }
 
 func (c *Config) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {
