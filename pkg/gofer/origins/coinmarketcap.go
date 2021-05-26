@@ -45,6 +45,10 @@ type coinMarketCapResponse struct {
 }
 
 func NewCoinMarketCap(pool query.WorkerPool, jsonParams json.RawMessage) *CoinMarketCap {
+	if jsonParams == nil {
+		return &CoinMarketCap{Pool: pool, APIKey: ""}
+	}
+
 	var params coinMarketCapParams
 	err := json.Unmarshal(jsonParams, &params)
 	if err != nil {

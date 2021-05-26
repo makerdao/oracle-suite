@@ -32,6 +32,10 @@ type openExchangeRatesResponse struct {
 }
 
 func NewOpenExchangeRates(pool query.WorkerPool, jsonParams json.RawMessage) *OpenExchangeRates {
+	if jsonParams == nil {
+		return &OpenExchangeRates{Pool: pool, APIKey: ""}
+	}
+
 	var params openExchangeRatesParams
 	err := json.Unmarshal(jsonParams, &params)
 	if err != nil {
