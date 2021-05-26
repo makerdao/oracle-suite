@@ -26,9 +26,9 @@ import (
 const openExchangeRatesURL = "https://openexchangerates.org/api/latest.json?app_id=%s&base=%s&symbols=%s"
 
 type openExchangeRatesResponse struct {
-	Timestamp intAsUnixTimestampMs `json:"timestamp"`
-	Base      string               `json:"base"`
-	Rates     map[string]float64   `json:"rates"`
+	Timestamp intAsUnixTimestamp `json:"timestamp"`
+	Base      string             `json:"base"`
+	Rates     map[string]float64 `json:"rates"`
 }
 
 func NewOpenExchangeRates(pool query.WorkerPool, jsonParams json.RawMessage) *OpenExchangeRates {
