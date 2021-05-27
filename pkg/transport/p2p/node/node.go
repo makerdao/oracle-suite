@@ -24,11 +24,12 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/transport"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
@@ -57,10 +58,7 @@ type Node struct {
 	ctx                   context.Context
 	host                  host.Host
 	pubSub                *pubsub.PubSub
-	peerPrivKey           crypto.PrivKey
-	messagePrivKey        crypto.PrivKey
-	messageAuthorPID      peer.ID
-	listenAddrs           []multiaddr.Multiaddr
+	peerstore             peerstore.Peerstore
 	nodeEventHandler      *sets.NodeEventHandlerSet
 	pubSubEventHandlerSet *sets.PubSubEventHandlerSet
 	notifeeSet            *sets.NotifeeSet
@@ -71,13 +69,14 @@ type Node struct {
 	log                   log.Logger
 	closed                bool
 
-	newHost   func(n *Node) (host.Host, error)
-	newPubSub func(n *Node) (*pubsub.PubSub, error)
+	hostOpts   []libp2p.Option
+	pubsubOpts []pubsub.Option
 }
 
 func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 	n := &Node{
 		ctx:                   ctx,
+		peerstore:             pstoremem.NewPeerstore(),
 		nodeEventHandler:      sets.NewNodeEventHandlerSet(),
 		pubSubEventHandlerSet: sets.NewPubSubEventHandlerSet(),
 		notifeeSet:            sets.NewNotifeeSet(),
@@ -97,38 +96,6 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 		}
 	}
 
-	// Systems providers:
-	n.newHost = func(n *Node) (host.Host, error) {
-		opts := []libp2p.Option{
-			libp2p.ListenAddrs(n.listenAddrs...),
-			libp2p.ConnectionGater(n.connGaterSet),
-		}
-		// If peerPrivKey is set, use it as peer identity:
-		if n.peerPrivKey != nil {
-			opts = append(opts, libp2p.Identity(n.peerPrivKey))
-		}
-		h, err := libp2p.New(n.ctx, opts...)
-		if err != nil {
-			return nil, err
-		}
-		// If the messagePrivKey is set, we have to add this key to the peerstore,
-		// otherwise it'll be impossible to use it to sign messages:
-		if n.messagePrivKey != nil {
-			err = h.Peerstore().AddPrivKey(n.messageAuthorPID, n.messagePrivKey)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return h, nil
-	}
-	n.newPubSub = func(n *Node) (*pubsub.PubSub, error) {
-		var opts []pubsub.Option
-		if n.messagePrivKey != nil {
-			opts = append(opts, pubsub.WithMessageAuthor(n.messageAuthorPID))
-		}
-		return pubsub.NewGossipSub(n.ctx, n.host, opts...)
-	}
-
 	n.nodeEventHandler.Handle(sets.NodeConfigured)
 
 	return n, nil
@@ -139,23 +106,25 @@ func (n *Node) Start() error {
 	var err error
 
 	n.nodeEventHandler.Handle(sets.NodeStarting)
-	defer n.nodeEventHandler.Handle(sets.NodeStarted)
 
-	// Systems:
-	n.host, err = n.newHost(n)
+	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
+		libp2p.Peerstore(n.peerstore),
+		libp2p.ConnectionGater(n.connGaterSet),
+	}, n.hostOpts...)...)
 	if err != nil {
 		return err
 	}
-	n.pubSub, err = n.newPubSub(n)
+	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
 	if err != nil {
 		return err
 	}
-
 	n.host.Network().Notify(n.notifeeSet)
 
 	n.log.
 		WithField("addrs", n.listenAddrStrs()).
 		Info("Listening")
+
+	n.nodeEventHandler.Handle(sets.NodeStarted)
 
 	return nil
 }
@@ -195,6 +164,10 @@ func (n *Node) Host() host.Host {
 
 func (n *Node) PubSub() *pubsub.PubSub {
 	return n.pubSub
+}
+
+func (n *Node) Peerstore() peerstore.Peerstore {
+	return n.peerstore
 }
 
 func (n *Node) Connect(maddr multiaddr.Multiaddr) error {

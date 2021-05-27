@@ -26,14 +26,16 @@ import (
 func PeerLogger() Options {
 	return func(n *Node) error {
 		n.AddPubSubEventHandler(sets.PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
-			addrs := n.Host().Peerstore().PeerInfo(event.Peer).Addrs
+			addrs := n.Peerstore().PeerInfo(event.Peer).Addrs
 			switch event.Type {
 			case pubsub.PeerJoin:
+				ps, _ := n.Peerstore().GetProtocols(event.Peer)
 				n.log.
 					WithFields(log.Fields{
 						"peerID": event.Peer.String(),
 						"topic":  topic,
 						"addrs":  addrs,
+						"protos": ps,
 					}).
 					Debug("Connected to a peer")
 			case pubsub.PeerLeave:
