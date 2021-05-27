@@ -32,7 +32,7 @@ func NewPricesCmd(opts *options) *cobra.Command {
 		Short:   "Return prices for given PAIRs",
 		Long:    `Return prices for given PAIRs.`,
 		RunE: func(c *cobra.Command, args []string) (err error) {
-			mar, err := marshal.NewMarshal(opts.OutputFormat.format)
+			mar, err := marshal.NewMarshal(opts.Format.format)
 			if err != nil {
 				return err
 			}
@@ -46,7 +46,7 @@ func NewPricesCmd(opts *options) *cobra.Command {
 				err = nil
 			}()
 
-			log, err := newLogger(opts.LogVerbosity)
+			log, err := newLogger(opts)
 			if err != nil {
 				return err
 			}
