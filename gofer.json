@@ -60,7 +60,7 @@
         [{ "origin": "binance", "pair": "BAT/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
         [{ "origin": "bittrex", "pair": "BAT/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
         [{ "origin": "coinbasepro", "pair": "BAT/USD" }],
-        [{ "origin": "upbit", "pair": "BAT/KRW" },{ "origin": ".", "pair": "KRW/USD" }]
+        [{ "origin": "upbit", "pair": "BAT/KRW" },{ "origin": "fx", "pair": "KRW/USD" }]
       ],
       "params": {
         "minimumSuccessfulSources": 3
@@ -256,6 +256,17 @@
       ],
       "params": {
         "minimumSuccessfulSources": 3
+      }
+    },
+    "USDC/USD": {
+      "method": "median",
+      "sources": [
+        [{ "origin": "binance", "pair": "BTC/USDC" },{ "origin": ".", "pair": "BTC/USD" }],
+        [{ "origin": "coinbasepro", "pair": "BTC/USDC" },{ "origin": ".", "pair": "BTC/USD" }],
+        [{ "origin": "poloniex", "pair": "BTC/USDC" },{ "origin": ".", "pair": "BTC/USD" }]
+      ],
+      "params": {
+        "minimumSuccessfulSources": 2
       }
     },
     "USDT/USD": {
