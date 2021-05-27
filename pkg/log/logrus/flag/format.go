@@ -66,7 +66,7 @@ func (f *FormatTypeValue) Type() string {
 // Formatter returns the logrus.Formatter for selected type.
 func (f *FormatTypeValue) Formatter() logrus.Formatter {
 	if f.format == "" {
-		FormattersMap[DefaultFormatter]()
+		return FormattersMap[DefaultFormatter]()
 	}
 	return FormattersMap[f.format]()
 }
