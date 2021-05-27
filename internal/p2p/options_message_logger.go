@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package node
+package p2p
 
 import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"

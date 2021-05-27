@@ -69,7 +69,6 @@ type RPC struct {
 
 type Dependencies struct {
 	Context context.Context
-	Context context.Context
 	Logger  log.Logger
 }
 
