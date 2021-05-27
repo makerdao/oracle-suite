@@ -21,15 +21,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
+	"github.com/makerdao/oracle-suite/internal/p2p"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/oracle"
 )
 
 const LoggerTag = "P2P"
 const rendezvousString = "spire/v0.0-dev"
+const userAgentString = "spire/v0.0-dev"
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -38,7 +38,7 @@ var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 // P2P is a little wrapper for the Node that implements the Transport
 // interface.
 type P2P struct {
-	node *node.Node
+	node *p2p.Node
 }
 
 type Config struct {
@@ -63,6 +63,8 @@ type Config struct {
 	// FeedersAddrs is a list of price feeders. Only feeders can create new
 	// messages in the network.
 	FeedersAddrs []ethereum.Address
+	// DHT indicates whenever DHT should be enabled.
+	DHT bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
 }
@@ -90,25 +92,29 @@ func New(cfg Config) (*P2P, error) {
 	}
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)
-	opts := []node.Options{
-		node.ListenAddrs(listenAddrs),
-		node.DHT(rendezvousString),
-		node.Bootstrap(bootstrapAddrs),
-		node.Denylist(blockedAddrs),
-		node.Logger(logger),
-		node.ConnectionLogger(),
-		node.MessageLogger(),
-		node.PeerLogger(),
-		oracle.Oracle(cfg.FeedersAddrs, cfg.Signer, logger),
+	opts := []p2p.Options{
+		p2p.UserAgent(userAgentString),
+		p2p.ListenAddrs(listenAddrs),
+		p2p.Denylist(blockedAddrs),
+		p2p.Logger(logger),
+		p2p.ConnectionLogger(),
+		p2p.MessageLogger(),
+		p2p.PeerLogger(),
+		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {
-		opts = append(opts, node.PeerPrivKey(cfg.PeerPrivKey))
+		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
 	}
 	if cfg.MessagePrivKey != nil {
-		opts = append(opts, node.MessagePrivKey(cfg.MessagePrivKey))
+		opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
+	}
+	if cfg.DHT {
+		opts = append(opts, p2p.DHT(rendezvousString, bootstrapAddrs))
+	} else {
+		opts = append(opts, p2p.Bootstrap(bootstrapAddrs))
 	}
 
-	n, err := node.NewNode(cfg.Context, opts...)
+	n, err := p2p.NewNode(cfg.Context, opts...)
 	if err != nil {
 		return nil, err
 	}
