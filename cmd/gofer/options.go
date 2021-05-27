@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 
+	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
+
 	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
 	"github.com/makerdao/oracle-suite/pkg/gofer/config"
 )
@@ -26,8 +28,9 @@ import (
 // These are the command options that can be set by CLI flags.
 type options struct {
 	LogVerbosity   string
+	LogFormat      logrusFlag.FormatTypeValue
 	ConfigFilePath string
-	OutputFormat   formatTypeValue
+	Format         formatTypeValue
 	Config         config.Config
 	NoRPC          bool
 }

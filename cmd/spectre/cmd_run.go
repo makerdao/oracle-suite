@@ -24,24 +24,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewRunCmd(o *options) *cobra.Command {
+func NewRunCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "run",
 		Args:  cobra.ExactArgs(0),
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			absPath, err := filepath.Abs(o.ConfigFilePath)
+			absPath, err := filepath.Abs(opts.ConfigFilePath)
 			if err != nil {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity)
+			l, err := newLogger(opts)
 			if err != nil {
 				return err
 			}
 
-			ins, err := newSpectre(o, absPath, l)
+			ins, err := newSpectre(opts, absPath, l)
 			if err != nil {
 				return err
 			}

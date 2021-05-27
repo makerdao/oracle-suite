@@ -18,11 +18,13 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
 	"github.com/makerdao/oracle-suite/pkg/spectre/config"
 )
 
 type options struct {
 	LogVerbosity   string
+	LogFormat      logrusFlag.FormatTypeValue
 	ConfigFilePath string
 	Config         config.Config
 }
@@ -39,10 +41,14 @@ func NewRootCommand(opts *options) *cobra.Command {
 
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.LogVerbosity,
-		"log.verbosity",
-		"v",
+		"log.verbosity", "v",
 		"info",
 		"verbosity level",
+	)
+	rootCmd.PersistentFlags().Var(
+		&opts.LogFormat,
+		"log.format",
+		"log format",
 	)
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.ConfigFilePath,

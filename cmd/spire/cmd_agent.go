@@ -31,7 +31,7 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Long:  ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			var err error
-			logger, err = newLogger(opts.Verbosity)
+			logger, err = newLogger(opts)
 			if err != nil {
 				return err
 			}

@@ -32,7 +32,7 @@ func NewPullCmd(opts *options) *cobra.Command {
 		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
 			var err error
 
-			logger, err = newLogger(opts.Verbosity)
+			logger, err = newLogger(opts)
 			if err != nil {
 				return err
 			}
