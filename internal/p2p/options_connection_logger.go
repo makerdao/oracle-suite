@@ -13,10 +13,11 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package node
+package p2p
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -25,13 +26,14 @@ import (
 // ConnectionLogger logs connected and disconnected hosts,
 func ConnectionLogger() Options {
 	return func(n *Node) error {
-		cl := &connectionLoggerNotifee{log: n.log}
+		cl := &connectionLoggerNotifee{ps: n.Peerstore(), log: n.log}
 		n.AddNotifee(cl)
 		return nil
 	}
 }
 
 type connectionLoggerNotifee struct {
+	ps  peerstore.Peerstore
 	log log.Logger
 }
 
@@ -48,7 +50,7 @@ func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn
 			"peerID": conn.RemotePeer().String(),
 			"addr":   conn.RemoteMultiaddr().String(),
 		}).
-		Debug("Connected to a host")
+		Info("Connected to a host")
 }
 
 // Disconnected implements the network.Notifiee interface.
@@ -58,7 +60,7 @@ func (n *connectionLoggerNotifee) Disconnected(_ network.Network, conn network.C
 			"peerID": conn.RemotePeer().String(),
 			"addr":   conn.RemoteMultiaddr().String(),
 		}).
-		Debug("Disconnected from a host")
+		Info("Disconnected from a host")
 }
 
 // OpenedStream implements the network.Notifiee interface.

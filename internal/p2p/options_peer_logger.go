@@ -13,29 +13,38 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package node
+package p2p
 
 import (
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
+	"github.com/makerdao/oracle-suite/internal/p2p/sets"
 	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node/sets"
 )
 
 // PeerLogger logs all peers handled by libp2p's pubsub system.
 func PeerLogger() Options {
 	return func(n *Node) error {
 		n.AddPubSubEventHandler(sets.PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
-			addrs := n.Host().Peerstore().PeerInfo(event.Peer).Addrs
+			addrs := n.Peerstore().PeerInfo(event.Peer).Addrs
+			ua := getPeerUserAgent(n.Peerstore(), event.Peer)
+			pp := getPeerProtocols(n.Peerstore(), event.Peer)
+			pv := getPeerProtocolVersion(n.Peerstore(), event.Peer)
+
 			switch event.Type {
 			case pubsub.PeerJoin:
 				n.log.
 					WithFields(log.Fields{
-						"peerID": event.Peer.String(),
-						"topic":  topic,
-						"addrs":  addrs,
+						"peerID":          event.Peer.String(),
+						"topic":           topic,
+						"addrs":           addrs,
+						"userAgent":       ua,
+						"protocolVersion": pv,
+						"protocols":       pp,
 					}).
-					Debug("Connected to a peer")
+					Info("Connected to a peer")
 			case pubsub.PeerLeave:
 				n.log.
 					WithFields(log.Fields{
@@ -43,9 +52,30 @@ func PeerLogger() Options {
 						"topic":  topic,
 						"addrs":  addrs,
 					}).
-					Debug("Disconnected from a peer")
+					Info("Disconnected from a peer")
 			}
 		}))
 		return nil
 	}
+}
+
+func getPeerProtocols(ps peerstore.Peerstore, pid peer.ID) []string {
+	pp, _ := ps.GetProtocols(pid)
+	return pp
+}
+
+func getPeerUserAgent(ps peerstore.Peerstore, pid peer.ID) string {
+	av, _ := ps.Get(pid, "AgentVersion")
+	if s, ok := av.(string); ok {
+		return s
+	}
+	return ""
+}
+
+func getPeerProtocolVersion(ps peerstore.Peerstore, pid peer.ID) string {
+	av, _ := ps.Get(pid, "ProtocolVersion")
+	if s, ok := av.(string); ok {
+		return s
+	}
+	return ""
 }

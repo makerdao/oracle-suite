@@ -39,6 +39,11 @@ with aggregates that increase reliability in the DeFi environment.`,
 		"info",
 		"verbosity level",
 	)
+	rootCmd.PersistentFlags().Var(
+		&opts.LogFormat,
+		"log.format",
+		"log format",
+	)
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.ConfigFilePath,
 		"config",
@@ -47,7 +52,7 @@ with aggregates that increase reliability in the DeFi environment.`,
 		"config file",
 	)
 	rootCmd.PersistentFlags().VarP(
-		&opts.OutputFormat,
+		&opts.Format,
 		"format",
 		"f",
 		"output format",

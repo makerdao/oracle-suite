@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package node
+package p2p
 
 import (
 	"context"
@@ -23,8 +23,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
+	"github.com/makerdao/oracle-suite/internal/p2p/sets"
 	"github.com/makerdao/oracle-suite/pkg/transport"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node/sets"
 )
 
 var ErrNilMessage = errors.New("message is nil")

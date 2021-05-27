@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package oracle
+package p2p
 
 import (
 	"context"
@@ -22,18 +22,18 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
+	"github.com/makerdao/oracle-suite/internal/p2p"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/node"
 )
 
-// Oracle adds a validator for price messages. The validator checks if the
+// oracle adds a validator for price messages. The validator checks if the
 // author of the message is allowed to send price messages and if the price
 // message is valid.
-func Oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logger) node.Options {
-	return func(n *node.Node) error {
+func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logger) p2p.Options {
+	return func(n *p2p.Node) error {
 		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
 			priceMsg, ok := psMsg.ValidatorData.(*messages.Price)
 			if !ok {

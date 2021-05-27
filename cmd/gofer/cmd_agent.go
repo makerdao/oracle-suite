@@ -30,7 +30,7 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Short: "Start an RPC server",
 		Long:  `Start an RPC server.`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			log, err := newLogger(opts.LogVerbosity)
+			log, err := newLogger(opts)
 			if err != nil {
 				return err
 			}
