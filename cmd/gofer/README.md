@@ -157,6 +157,7 @@ Flags:
 Global Flags:
   -c, --config string                    config file (default "./gofer.json")
   -f, --format plain|trace|json|ndjson   output format (default ndjson)
+      --log.format text|json             log format
   -v, --log.verbosity string             verbosity level (default "info")
       --norpc                            disable the use of RPC agent
 ```
@@ -263,6 +264,7 @@ Flags:
 Global Flags:
   -c, --config string                    config file (default "./gofer.json")
   -f, --format plain|trace|json|ndjson   output format (default ndjson)
+      --log.format text|json             log format
   -v, --log.verbosity string             verbosity level (default "info")
       --norpc                            disable the use of RPC agent
 ```
