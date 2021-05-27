@@ -77,6 +77,14 @@ func Logger(logger log.Logger) Options {
 	}
 }
 
+// UserAgent sets the libp2p user-agent sent along with the identify protocol.
+func UserAgent(userAgent string) Options {
+	return func(n *Node) error {
+		n.hostOpts = append(n.hostOpts, libp2p.UserAgent(userAgent))
+		return nil
+	}
+}
+
 // CircuitRelay configures node to use circuit relay.
 func CircuitRelay(relayAddrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {

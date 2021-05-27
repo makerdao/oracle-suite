@@ -29,6 +29,7 @@ import (
 
 const LoggerTag = "P2P"
 const rendezvousString = "spire/v0.0-dev"
+const userAgentString = "spire/v0.0-dev"
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -91,25 +92,26 @@ func New(cfg Config) (*P2P, error) {
 	}
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)
-	opts := []p2p.Options{p2p.ListenAddrs(listenAddrs)}
-	if cfg.DHT {
-		opts = append(opts, p2p.DHT(rendezvousString, bootstrapAddrs))
-	} else {
-		opts = append(opts, p2p.Bootstrap(bootstrapAddrs))
-	}
-	opts = append(opts, []p2p.Options{
+	opts := []p2p.Options{
+		p2p.UserAgent(userAgentString),
+		p2p.ListenAddrs(listenAddrs),
 		p2p.Denylist(blockedAddrs),
 		p2p.Logger(logger),
 		p2p.ConnectionLogger(),
 		p2p.MessageLogger(),
 		p2p.PeerLogger(),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
-	}...)
+	}
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
 	}
 	if cfg.MessagePrivKey != nil {
 		opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
+	}
+	if cfg.DHT {
+		opts = append(opts, p2p.DHT(rendezvousString, bootstrapAddrs))
+	} else {
+		opts = append(opts, p2p.Bootstrap(bootstrapAddrs))
 	}
 
 	n, err := p2p.NewNode(cfg.Context, opts...)

@@ -16,6 +16,8 @@
 package p2p
 
 import (
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
@@ -27,17 +29,22 @@ func PeerLogger() Options {
 	return func(n *Node) error {
 		n.AddPubSubEventHandler(sets.PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
 			addrs := n.Peerstore().PeerInfo(event.Peer).Addrs
+			ua := getPeerUserAgent(n.Peerstore(), event.Peer)
+			pp := getPeerProtocols(n.Peerstore(), event.Peer)
+			pv := getPeerProtocolVersion(n.Peerstore(), event.Peer)
+
 			switch event.Type {
 			case pubsub.PeerJoin:
-				ps, _ := n.Peerstore().GetProtocols(event.Peer)
 				n.log.
 					WithFields(log.Fields{
-						"peerID": event.Peer.String(),
-						"topic":  topic,
-						"addrs":  addrs,
-						"protos": ps,
+						"peerID":          event.Peer.String(),
+						"topic":           topic,
+						"addrs":           addrs,
+						"userAgent":       ua,
+						"protocolVersion": pv,
+						"protocols":       pp,
 					}).
-					Debug("Connected to a peer")
+					Info("Connected to a peer")
 			case pubsub.PeerLeave:
 				n.log.
 					WithFields(log.Fields{
@@ -45,9 +52,30 @@ func PeerLogger() Options {
 						"topic":  topic,
 						"addrs":  addrs,
 					}).
-					Debug("Disconnected from a peer")
+					Info("Disconnected from a peer")
 			}
 		}))
 		return nil
 	}
+}
+
+func getPeerProtocols(ps peerstore.Peerstore, pid peer.ID) []string {
+	pp, _ := ps.GetProtocols(pid)
+	return pp
+}
+
+func getPeerUserAgent(ps peerstore.Peerstore, pid peer.ID) string {
+	av, _ := ps.Get(pid, "AgentVersion")
+	if s, ok := av.(string); ok {
+		return s
+	}
+	return ""
+}
+
+func getPeerProtocolVersion(ps peerstore.Peerstore, pid peer.ID) string {
+	av, _ := ps.Get(pid, "ProtocolVersion")
+	if s, ok := av.(string); ok {
+		return s
+	}
+	return ""
 }
