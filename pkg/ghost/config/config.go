@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -199,17 +200,18 @@ func (c *Config) configureGhost(
 }
 
 func (c *Config) generatePrivKey() (crypto.PrivKey, error) {
-	if len(c.P2P.PrivKeySeed) == 0 {
-		return nil, nil
+	seedReader := rand.Reader
+	if len(c.P2P.PrivKeySeed) != 0 {
+		seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
+		if err != nil {
+			return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
+		}
+		if len(seed) != ed25519.SeedSize {
+			return nil, fmt.Errorf("%v: seed must be 32 bytes", ErrFailedToParsePrivKeySeed)
+		}
+		seedReader = bytes.NewReader(seed)
 	}
-	seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
-	}
-	if len(seed) != ed25519.SeedSize {
-		return nil, fmt.Errorf("%v: seed must be 32 bytes", ErrFailedToParsePrivKeySeed)
-	}
-	privKey, _, err := crypto.GenerateEd25519Key(bytes.NewReader(seed))
+	privKey, _, err := crypto.GenerateEd25519Key(seedReader)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
 	}
