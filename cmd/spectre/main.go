@@ -41,14 +41,15 @@ func main() {
 	}
 }
 
-func newLogger(level string) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(level)
+func newLogger(opts *options) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(opts.LogVerbosity)
 	if err != nil {
 		return nil, err
 	}
 
 	lr := logrus.New()
 	lr.SetLevel(ll)
+	lr.SetFormatter(opts.LogFormat.Formatter())
 
 	return logLogrus.New(lr), nil
 }

@@ -18,14 +18,16 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
 	"github.com/makerdao/oracle-suite/pkg/spire/config"
 	configCobra "github.com/makerdao/oracle-suite/pkg/spire/config/cobra"
 )
 
 type options struct {
-	Verbosity  string
-	ConfigPath string
-	Config     config.Config
+	LogVerbosity string
+	LogFormat    logrusFlag.FormatTypeValue
+	ConfigPath   string
+	Config       config.Config
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
@@ -39,13 +41,16 @@ func NewRootCommand(opts *options) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().StringVarP(
-		&opts.Verbosity,
-		"verbosity",
-		"v",
-		"error",
-		"log verbosity level",
+		&opts.LogVerbosity,
+		"log.verbosity", "v",
+		"info",
+		"verbosity level",
 	)
-
+	rootCmd.PersistentFlags().Var(
+		&opts.LogFormat,
+		"log.format",
+		"log format",
+	)
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.ConfigPath,
 		"config",

@@ -35,7 +35,7 @@ var exitCode = 0
 
 func main() {
 	opts := options{
-		OutputFormat: formatTypeValue{format: marshal.NDJSON},
+		Format: formatTypeValue{format: marshal.NDJSON},
 	}
 
 	rootCmd := NewRootCommand(&opts)
@@ -54,14 +54,15 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func newLogger(level string) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(level)
+func newLogger(opts *options) (log.Logger, error) {
+	ll, err := logrus.ParseLevel(opts.LogVerbosity)
 	if err != nil {
 		return nil, err
 	}
 
 	lr := logrus.New()
 	lr.SetLevel(ll)
+	lr.SetFormatter(opts.LogFormat.Formatter())
 
 	return logLogrus.New(lr), nil
 }
