@@ -32,9 +32,6 @@ type geminiResponse struct {
 	Price  string `json:"last"`
 	Ask    string `json:"ask"`
 	Bid    string `json:"bid"`
-	Volume struct {
-		Timestamp int64 `json:"timestamp"`
-	}
 }
 
 // Gemini origin handler
@@ -95,6 +92,6 @@ func (g *Gemini) callOne(pair Pair) (*Price, error) {
 		Price:     price,
 		Ask:       ask,
 		Bid:       bid,
-		Timestamp: time.Unix(resp.Volume.Timestamp/1000, 0),
+		Timestamp: time.Now(),
 	}, nil
 }

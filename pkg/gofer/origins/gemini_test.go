@@ -109,7 +109,7 @@ func (suite *GeminiSuite) TestFailOnWrongInput() {
 func (suite *GeminiSuite) TestSuccessResponse() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	resp := &query.HTTPResponse{
-		Body: []byte(`{"last":"1","ask":"2","bid":"4","volume":{"timestamp":2000}}`),
+		Body: []byte(`{"last":"1","ask":"2","bid":"4"}`),
 	}
 	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
@@ -117,7 +117,7 @@ func (suite *GeminiSuite) TestSuccessResponse() {
 	suite.Equal(1.0, cr[0].Price.Price)
 	suite.Equal(2.0, cr[0].Price.Ask)
 	suite.Equal(4.0, cr[0].Price.Bid)
-	suite.Equal(cr[0].Price.Timestamp.Unix(), int64(2))
+	suite.Greater(cr[0].Price.Timestamp.Unix(), int64(0))
 }
 
 func (suite *GeminiSuite) TestRealAPICall() {
