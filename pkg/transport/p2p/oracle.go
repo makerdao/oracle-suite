@@ -52,7 +52,7 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			if ethkey.AddressToPeerID(*priceFrom) != psMsg.GetFrom() {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
-					Info("Rejected a price message, the message author and price signature doesn't match")
+					Info("Rejected a price message, the message author and price signature don't match")
 				return pubsub.ValidationReject
 			}
 			// Check is the author is allowed to send price messages:

@@ -12,11 +12,9 @@
     "disableDHT": false
   },
   "rpc": {
+    "enable": true,
     "address": ":8080"
   },
   "feeds": [],
-  "pairs": [
-    "ETHUSD",
-    "BTCUSD"
-  ]
+  "pairs": []
 }
