@@ -5,13 +5,16 @@
     "password": ""
   },
   "p2p": {
+    "privKeySeed": "",
     "listenAddrs": [],
     "bootstrapAddrs": [],
-    "blockedAddrs": []
+    "blockedAddrs": [],
+    "disableDHT": false
   },
   "rpc": {
+    "enable": true,
     "address": ":8080"
   },
   "feeds": [],
-  "pairs": ["ETHUSD", "BTCUSD"]
+  "pairs": []
 }

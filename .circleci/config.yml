@@ -27,7 +27,7 @@ commands:
 jobs:
   test:
     docker:
-      - image: circleci/golang:1.15
+      - image: circleci/golang:1.16
     parallelism: 1
 
     steps:
@@ -60,7 +60,7 @@ jobs:
 
   test-api:
     docker:
-      - image: circleci/golang:1.15
+      - image: circleci/golang:1.16
     parallelism: 1
 
     steps:

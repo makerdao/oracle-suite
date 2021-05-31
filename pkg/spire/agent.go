@@ -44,50 +44,57 @@ type AgentConfig struct {
 	Network   string
 	Address   string
 	Logger    log.Logger
+	SkipRPC   bool
 }
 
 func NewAgent(cfg AgentConfig) (*Agent, error) {
-	server := &Agent{
+	s := &Agent{
 		api: &API{
 			datastore: cfg.Datastore,
 			transport: cfg.Transport,
 			signer:    cfg.Signer,
 			log:       cfg.Logger.WithField("tag", AgentLoggerTag),
 		},
-		rpc:     rpc.NewServer(),
 		network: cfg.Network,
 		address: cfg.Address,
 		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
-	err := server.rpc.Register(server.api)
-	if err != nil {
-		return nil, err
+	if !cfg.SkipRPC {
+		s.rpc = rpc.NewServer()
+		err := s.rpc.Register(s.api)
+		if err != nil {
+			return nil, err
+		}
+		s.rpc.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 	}
-	server.rpc.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
-	return server, nil
+
+	return s, nil
 }
 
 func (s *Agent) Start() error {
 	s.log.Infof("Starting")
 	var err error
 
-	s.listener, err = net.Listen(s.network, s.address)
-	if err != nil {
-		return err
-	}
-
 	err = s.api.datastore.Start()
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		err := http.Serve(s.listener, nil)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.log.WithError(err).Error("RPC server crashed")
-		}
-	}()
+	if s.rpc != nil {
+		s.log.Debugln("Starting Spire RPC server")
 
+		s.listener, err = net.Listen(s.network, s.address)
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			err := http.Serve(s.listener, nil)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				s.log.WithError(err).Error("RPC server crashed")
+			}
+		}()
+	}
 	return nil
 }
 
@@ -97,11 +104,13 @@ func (s *Agent) Stop() {
 
 	err = s.api.datastore.Stop()
 	if err != nil {
-		s.log.WithError(err).Error("Unable to stop Gofer")
+		s.log.WithError(err).Error("Unable to stop Datastore")
 	}
 
-	err = s.listener.Close()
-	if err != nil {
-		s.log.WithError(err).Error("Unable to close RPC listener")
+	if s.rpc != nil {
+		err = s.listener.Close()
+		if err != nil {
+			s.log.WithError(err).Error("Unable to close RPC listener")
+		}
 	}
 }

@@ -57,14 +57,15 @@ type Ethereum struct {
 }
 
 type P2P struct {
-	PrivKeySeed    string   `json:"privKeySeed"`
-	ListenAddrs    []string `json:"listenAddrs"`
-	BootstrapAddrs []string `json:"bootstrapAddrs"`
-	BlockedAddrs   []string `json:"blockedAddrs"`
-	DisableDHT     bool     `json:"disableDHT"`
+	PrivKeySeed      string   `json:"privKeySeed"`
+	ListenAddrs      []string `json:"listenAddrs"`
+	BootstrapAddrs   []string `json:"bootstrapAddrs"`
+	BlockedAddrs     []string `json:"blockedAddrs"`
+	DisableDiscovery bool     `json:"disableDiscovery"`
 }
 
 type RPC struct {
+	Disable bool   `json:"disable"`
 	Address string `json:"address"`
 }
 
@@ -100,6 +101,7 @@ func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 		Network:   "tcp",
 		Address:   c.RPC.Address,
 		Logger:    deps.Logger,
+		SkipRPC:   c.RPC.Disable,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
@@ -161,7 +163,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
-		DHT:            !c.P2P.DisableDHT,
+		Discovery:      !c.P2P.DisableDiscovery,
 		Signer:         s,
 		Logger:         l,
 	}

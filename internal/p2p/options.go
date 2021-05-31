@@ -132,8 +132,8 @@ func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 	}
 }
 
-// DHT configures node to use kad-dht for a node discovery.
-func DHT(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options {
+// Discovery configures node to use kad-dht for node discovery.
+func Discovery(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
 		var err error
 		var kadDHT *dht.IpfsDHT
@@ -157,7 +157,7 @@ func DHT(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options 
 				if err = kadDHT.Bootstrap(n.ctx); err != nil {
 					n.log.
 						WithError(err).
-						Error("Unable to bootstrap DHT")
+						Error("Unable to bootstrap Discovery")
 					return
 				}
 				routingDiscovery := discovery.NewRoutingDiscovery(kadDHT)
@@ -166,7 +166,7 @@ func DHT(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options 
 				if err != nil {
 					n.log.
 						WithError(err).
-						Error("Unable to find peers with DHT")
+						Error("Unable to find peers with Discovery")
 					return
 				}
 				go func() {
@@ -193,7 +193,7 @@ func DHT(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options 
 				if err != nil {
 					n.log.
 						WithError(err).
-						Error("Unable to close DHT")
+						Error("Unable to close Discovery")
 				}
 			}
 		}))

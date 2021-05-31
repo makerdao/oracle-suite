@@ -12,3 +12,44 @@
 //
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+)
+
+func cmdGen(args []string) error {
+	n, err := genFlags(args)
+	if err != nil {
+		return err
+	}
+
+	mnemonic, err := hdwallet.NewMnemonic(n * 8)
+	if err != nil {
+		return err
+	}
+
+	marshal, err := json.Marshal(mnemonic)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(marshal))
+
+	return nil
+}
+
+func genFlags(args []string) (n int, err error) {
+	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
+
+	fs.IntVar(&n, "bytes", 32, "Number of random bytes")
+
+	err = fs.Parse(args[1:])
+
+	return n, err
+}

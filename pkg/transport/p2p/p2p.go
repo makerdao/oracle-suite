@@ -63,8 +63,8 @@ type Config struct {
 	// FeedersAddrs is a list of price feeders. Only feeders can create new
 	// messages in the network.
 	FeedersAddrs []ethereum.Address
-	// DHT indicates whenever DHT should be enabled.
-	DHT bool
+	// Discovery indicates whenever Discovery should be enabled.
+	Discovery bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
 }
@@ -102,14 +102,17 @@ func New(cfg Config) (*P2P, error) {
 		p2p.PeerLogger(),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
+
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
 	}
+
 	if cfg.MessagePrivKey != nil {
 		opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
 	}
-	if cfg.DHT {
-		opts = append(opts, p2p.DHT(rendezvousString, bootstrapAddrs))
+
+	if cfg.Discovery {
+		opts = append(opts, p2p.Discovery(rendezvousString, bootstrapAddrs))
 	} else {
 		opts = append(opts, p2p.Bootstrap(bootstrapAddrs))
 	}

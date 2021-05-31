@@ -3,7 +3,7 @@ GO_FILES := $(shell { git ls-files; } | grep ".go$$")
 LICENSED_FILES := $(shell { git ls-files; } | grep ".go$$")
 
 BUILD_DIR := bin
-BUILD_TARGET := $(BUILD_DIR)/gofer $(BUILD_DIR)/spire
+BUILD_TARGET := $(BUILD_DIR)/gofer $(BUILD_DIR)/spire $(BUILD_DIR)/keeman
 BUILD_FLAGS ?= all
 
 OUT_DIR := workdir
@@ -27,7 +27,7 @@ clean:
 .PHONY: clean
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run ./... --timeout 5m
 .PHONY: lint
 
 test:

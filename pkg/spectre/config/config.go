@@ -61,11 +61,11 @@ type Ethereum struct {
 }
 
 type P2P struct {
-	PrivKeySeed    string   `json:"privKeySeed"`
-	ListenAddrs    []string `json:"listenAddrs"`
-	BootstrapAddrs []string `json:"bootstrapAddrs"`
-	BlockedAddrs   []string `json:"blockedAddrs"`
-	DisableDHT     bool     `json:"disableDHT"`
+	PrivKeySeed      string   `json:"privKeySeed"`
+	ListenAddrs      []string `json:"listenAddrs"`
+	BootstrapAddrs   []string `json:"bootstrapAddrs"`
+	BlockedAddrs     []string `json:"blockedAddrs"`
+	DisableDiscovery bool     `json:"disableDiscovery"`
 }
 
 type Options struct {
@@ -163,7 +163,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
-		DHT:            !c.P2P.DisableDHT,
+		Discovery:      !c.P2P.DisableDiscovery,
 		Signer:         s,
 		Logger:         l,
 	}

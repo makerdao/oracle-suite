@@ -31,5 +31,5 @@ func RegisterFlags(cfg *config.Config, flags *pflag.FlagSet) {
 	flags.StringSliceVar(&cfg.P2P.BlockedAddrs, "config.p2p.blocked", nil, "")
 
 	flags.StringSliceVar(&cfg.Feeds, "config.feeds", nil, "")
-	flags.StringSliceVar(&cfg.Feeds, "config.pairs", nil, "")
+	flags.StringSliceVar(&cfg.Pairs, "config.pairs", nil, "")
 }

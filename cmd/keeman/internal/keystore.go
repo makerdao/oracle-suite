@@ -12,3 +12,31 @@
 //
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package internal
+
+import (
+	"crypto/ecdsa"
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
+)
+
+func NewKeyWithID(privateKeyECDSA *ecdsa.PrivateKey, id uuid.UUID) *keystore.Key {
+	key := &keystore.Key{
+		Id:         id,
+		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
+		PrivateKey: privateKeyECDSA,
+	}
+	return key
+}
+
+func NewKey(privateKeyECDSA *ecdsa.PrivateKey) *keystore.Key {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		panic(fmt.Sprintf("Could not create random uuid: %v", err))
+	}
+	return NewKeyWithID(privateKeyECDSA, id)
+}
