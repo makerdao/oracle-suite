@@ -17,6 +17,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/makerdao/oracle-suite/internal/query"
 	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
@@ -26,89 +27,93 @@ type apiKeyParams struct {
 	APIKey string `json:"apiKey"`
 }
 
-func parseParamsToAPIKey(params json.RawMessage) string {
+func parseParamsToAPIKey(params json.RawMessage) (string, error) {
 	if params == nil {
-		return ""
+		return "", fmt.Errorf("invalid origin parameters")
 	}
 
 	var res apiKeyParams
 	err := json.Unmarshal(params, &res)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("failed to marshal origin parameters: %w", err)
 	}
-	return res.APIKey
+	return res.APIKey, nil
 }
 
 //nolint
-func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage) origins.Handler {
+func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage) (origins.Handler, error) {
 	switch handlerType {
 	case "balancer":
-		return &origins.Balancer{Pool: pool}
+		return &origins.Balancer{Pool: pool}, nil
 	case "binance":
-		return &origins.Binance{Pool: pool}
+		return &origins.Binance{Pool: pool}, nil
 	case "bitfinex":
-		return &origins.Bitfinex{Pool: pool}
+		return &origins.Bitfinex{Pool: pool}, nil
 	case "bitstamp":
-		return &origins.Bitstamp{Pool: pool}
+		return &origins.Bitstamp{Pool: pool}, nil
 	case "bitthumb":
-		return &origins.BitThump{Pool: pool}
+		return &origins.BitThump{Pool: pool}, nil
 	case "bithumb":
-		return &origins.BitThump{Pool: pool}
+		return &origins.BitThump{Pool: pool}, nil
 	case "bittrex":
-		return &origins.Bittrex{Pool: pool}
+		return &origins.Bittrex{Pool: pool}, nil
 	case "coinbase", "coinbasepro":
-		return &origins.CoinbasePro{Pool: pool}
+		return &origins.CoinbasePro{Pool: pool}, nil
 	case "cryptocompare":
-		return &origins.CryptoCompare{Pool: pool}
+		return &origins.CryptoCompare{Pool: pool}, nil
 	case "coinmarketcap":
-		apiKey := parseParamsToAPIKey(params)
-		return &origins.CoinMarketCap{Pool: pool, APIKey: apiKey}
+		apiKey, err := parseParamsToAPIKey(params)
+		if err != nil {
+			return nil, err
+		}
+		return &origins.CoinMarketCap{Pool: pool, APIKey: apiKey}, nil
 	case "ddex":
-		return &origins.Ddex{Pool: pool}
+		return &origins.Ddex{Pool: pool}, nil
 	case "folgory":
-		return &origins.Folgory{Pool: pool}
+		return &origins.Folgory{Pool: pool}, nil
 	case "ftx":
-		return &origins.Ftx{Pool: pool}
+		return &origins.Ftx{Pool: pool}, nil
 	case "fx":
-		return &origins.Fx{Pool: pool}
+		return &origins.Fx{Pool: pool}, nil
 	case "gateio":
-		return &origins.Gateio{Pool: pool}
+		return &origins.Gateio{Pool: pool}, nil
 	case "gemini":
-		return &origins.Gemini{Pool: pool}
+		return &origins.Gemini{Pool: pool}, nil
 	case "hitbtc":
-		return &origins.Hitbtc{Pool: pool}
+		return &origins.Hitbtc{Pool: pool}, nil
 	case "huobi":
-		return &origins.Huobi{Pool: pool}
+		return &origins.Huobi{Pool: pool}, nil
 	case "kraken":
-		return &origins.Kraken{Pool: pool}
+		return &origins.Kraken{Pool: pool}, nil
 	case "kucoin":
-		return &origins.Kucoin{Pool: pool}
+		return &origins.Kucoin{Pool: pool}, nil
 	case "kyber":
-		return &origins.Kyber{Pool: pool}
+		return &origins.Kyber{Pool: pool}, nil
 	case "loopring":
-		return &origins.Loopring{Pool: pool}
+		return &origins.Loopring{Pool: pool}, nil
 	case "okex":
-		return &origins.Okex{Pool: pool}
-	case "operexchangerates":
-		apiKey := parseParamsToAPIKey(params)
-		return &origins.OpenExchangeRates{Pool: pool, APIKey: apiKey}
+		return &origins.Okex{Pool: pool}, nil
+	case "openexchangerates":
+		apiKey, err := parseParamsToAPIKey(params)
+		if err != nil {
+			return nil, err
+		}
+		return &origins.OpenExchangeRates{Pool: pool, APIKey: apiKey}, nil
 	case "poloniex":
-		return &origins.Poloniex{Pool: pool}
+		return &origins.Poloniex{Pool: pool}, nil
 	case "sushiswap":
-		return &origins.Sushiswap{Pool: pool}
+		return &origins.Sushiswap{Pool: pool}, nil
 	case "uniswap":
-		return &origins.Uniswap{Pool: pool}
+		return &origins.Uniswap{Pool: pool}, nil
 	case "upbit":
-		return &origins.Upbit{Pool: pool}
+		return &origins.Upbit{Pool: pool}, nil
 	}
 
-	return nil
+	return nil, origins.ErrUnknownOrigin
 }
 
 func DefaultOriginSet(pool query.WorkerPool) *origins.Set {
 	return origins.NewSet(map[string]origins.Handler{
-		//"coinmarketcap":     &origins.Balancer{Pool: pool},
-		//"operexchangerates": &origins.Balancer{Pool: pool},
 		"balancer":      &origins.Balancer{Pool: pool},
 		"binance":       &origins.Binance{Pool: pool},
 		"bitfinex":      &origins.Bitfinex{Pool: pool},

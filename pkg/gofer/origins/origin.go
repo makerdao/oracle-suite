@@ -96,14 +96,6 @@ func NewSet(list map[string]Handler) *Set {
 	return &Set{list: list}
 }
 
-func (e *Set) GetHandler(name string) Handler {
-	handler, ok := e.list[name]
-	if !ok {
-		return nil
-	}
-	return handler
-}
-
 func (e *Set) SetHandler(name string, handler Handler) {
 	e.list[name] = handler
 }
