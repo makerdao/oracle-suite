@@ -44,24 +44,6 @@ type coinMarketCapResponse struct {
 	Data map[string]coinMarketCapPairResponse
 }
 
-func NewCoinMarketCap(pool query.WorkerPool, jsonParams json.RawMessage) *CoinMarketCap {
-	if jsonParams == nil {
-		return &CoinMarketCap{Pool: pool, APIKey: ""}
-	}
-
-	var params coinMarketCapParams
-	err := json.Unmarshal(jsonParams, &params)
-	if err != nil {
-		// TODO: log error ?
-		return nil
-	}
-	return &CoinMarketCap{Pool: pool, APIKey: params.APIKey}
-}
-
-type coinMarketCapParams struct {
-	APIKey string `json:"apiKey"`
-}
-
 // Exchange handler
 type CoinMarketCap struct {
 	Pool   query.WorkerPool

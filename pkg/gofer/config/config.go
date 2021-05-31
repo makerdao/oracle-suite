@@ -140,10 +140,10 @@ func (c *Config) buildOrigins() *origins.Set {
 	const defaultWorkerCount = 5
 	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
-	defaultOrigins := origins.DefaultSet(httpWorkerPool)
+	defaultOrigins := DefaultOriginSet(httpWorkerPool)
 
 	for name, origin := range c.Origins {
-		handler := origins.NewHandler(origin.Type, httpWorkerPool, origin.Params)
+		handler := NewHandler(origin.Type, httpWorkerPool, origin.Params)
 		if handler == nil {
 			// TODO: log error ?
 			continue

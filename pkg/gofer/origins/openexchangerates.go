@@ -31,24 +31,6 @@ type openExchangeRatesResponse struct {
 	Rates     map[string]float64 `json:"rates"`
 }
 
-func NewOpenExchangeRates(pool query.WorkerPool, jsonParams json.RawMessage) *OpenExchangeRates {
-	if jsonParams == nil {
-		return &OpenExchangeRates{Pool: pool, APIKey: ""}
-	}
-
-	var params openExchangeRatesParams
-	err := json.Unmarshal(jsonParams, &params)
-	if err != nil {
-		// TODO: log error ?
-		return nil
-	}
-	return &OpenExchangeRates{Pool: pool, APIKey: params.APIKey}
-}
-
-type openExchangeRatesParams struct {
-	APIKey string `json:"apiKey"`
-}
-
 // OpenExchangeRates origin handler
 type OpenExchangeRates struct {
 	Pool   query.WorkerPool
