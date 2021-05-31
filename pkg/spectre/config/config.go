@@ -163,7 +163,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		ListenAddrs:    c.P2P.ListenAddrs,
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
-		DHT:            !c.P2P.DisableDHT,
+		Discovery:      !c.P2P.DisableDHT,
 		Signer:         s,
 		Logger:         l,
 	}
