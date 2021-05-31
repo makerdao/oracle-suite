@@ -57,12 +57,12 @@ type Ethereum struct {
 }
 
 type P2P struct {
-	PrivKeySeed    string   `json:"privKeySeed"`
-	ListenAddrs    []string `json:"listenAddrs"`
-	BootstrapAddrs []string `json:"bootstrapAddrs"`
-	BlockedAddrs   []string `json:"blockedAddrs"`
-	DisableDHT     bool     `json:"disableDHT"`
-	DisablePubSub  bool     `json:"disablePubSub"`
+	PrivKeySeed      string   `json:"privKeySeed"`
+	ListenAddrs      []string `json:"listenAddrs"`
+	BootstrapAddrs   []string `json:"bootstrapAddrs"`
+	BlockedAddrs     []string `json:"blockedAddrs"`
+	DisableDHT       bool     `json:"disableDHT"`
+	DisableDatastore bool     `json:"disableDatastore"`
 }
 
 type RPC struct {
@@ -92,17 +92,23 @@ func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 	}
 
 	// Datastore:
-	dat := c.configureDatastore(sig, tra, deps.Logger)
+	var dat spire.Datastore
+	if c.P2P.DisableDatastore {
+		dat = datastore.NewLoggingNullDatastore(deps.Logger)
+	} else {
+		dat = c.configureDatastore(sig, tra, deps.Logger)
+	}
 
 	// Spire's RPC Agent:
 	srv, err := spire.NewAgent(spire.AgentConfig{
-		Datastore: dat,
-		Transport: tra,
-		Signer:    sig,
-		Network:   "tcp",
-		Address:   c.RPC.Address,
-		Logger:    deps.Logger,
-		SkipRPC:   c.RPC.Disable,
+		Datastore:     dat,
+		Transport:     tra,
+		Signer:        sig,
+		Network:       "tcp",
+		Address:       c.RPC.Address,
+		Logger:        deps.Logger,
+		SkipRPC:       c.RPC.Disable,
+		SkipDatastore: c.P2P.DisableDatastore,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
@@ -165,7 +171,6 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		BootstrapAddrs: c.P2P.BootstrapAddrs,
 		BlockedAddrs:   c.P2P.BlockedAddrs,
 		DHT:            !c.P2P.DisableDHT,
-		PubSub:         !c.P2P.DisablePubSub,
 		Signer:         s,
 		Logger:         l,
 	}

@@ -38,13 +38,14 @@ type Agent struct {
 }
 
 type AgentConfig struct {
-	Datastore Datastore
-	Transport transport.Transport
-	Signer    ethereum.Signer
-	Network   string
-	Address   string
-	Logger    log.Logger
-	SkipRPC   bool
+	Datastore     Datastore
+	Transport     transport.Transport
+	Signer        ethereum.Signer
+	Network       string
+	Address       string
+	Logger        log.Logger
+	SkipRPC       bool
+	SkipDatastore bool
 }
 
 func NewAgent(cfg AgentConfig) (*Agent, error) {
@@ -59,7 +60,6 @@ func NewAgent(cfg AgentConfig) (*Agent, error) {
 		address: cfg.Address,
 		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
-
 	if !cfg.SkipRPC {
 		s.rpc = rpc.NewServer()
 		err := s.rpc.Register(s.api)

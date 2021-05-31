@@ -65,8 +65,6 @@ type Config struct {
 	FeedersAddrs []ethereum.Address
 	// DHT indicates whenever DHT should be enabled.
 	DHT bool
-	// PubSub indicates whether PubSub should be enabled.
-	PubSub bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
 }
