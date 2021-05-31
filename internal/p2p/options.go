@@ -132,8 +132,8 @@ func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 	}
 }
 
-// DHT configures node to use kad-dht for a node discovery.
-func DHT(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options {
+// DHTPeerDiscovery configures node to use kad-dht for node discovery.
+func DHTPeerDiscovery(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
 		var err error
 		var kadDHT *dht.IpfsDHT
