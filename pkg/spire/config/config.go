@@ -62,7 +62,6 @@ type P2P struct {
 	BootstrapAddrs   []string `json:"bootstrapAddrs"`
 	BlockedAddrs     []string `json:"blockedAddrs"`
 	DisableDiscovery bool     `json:"disableDiscovery"`
-	DisableDatastore bool     `json:"disableDatastore"`
 }
 
 type RPC struct {
@@ -92,23 +91,17 @@ func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 	}
 
 	// Datastore:
-	var dat spire.Datastore
-	if c.P2P.DisableDatastore {
-		dat = datastore.NewLoggingNullDatastore(deps.Logger)
-	} else {
-		dat = c.configureDatastore(sig, tra, deps.Logger)
-	}
+	dat := c.configureDatastore(sig, tra, deps.Logger)
 
 	// Spire's RPC Agent:
 	srv, err := spire.NewAgent(spire.AgentConfig{
-		Datastore:     dat,
-		Transport:     tra,
-		Signer:        sig,
-		Network:       "tcp",
-		Address:       c.RPC.Address,
-		Logger:        deps.Logger,
-		SkipRPC:       c.RPC.Disable,
-		SkipDatastore: c.P2P.DisableDatastore,
+		Datastore: dat,
+		Transport: tra,
+		Signer:    sig,
+		Network:   "tcp",
+		Address:   c.RPC.Address,
+		Logger:    deps.Logger,
+		SkipRPC:   c.RPC.Disable,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)

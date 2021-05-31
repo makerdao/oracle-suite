@@ -38,14 +38,13 @@ type Agent struct {
 }
 
 type AgentConfig struct {
-	Datastore     Datastore
-	Transport     transport.Transport
-	Signer        ethereum.Signer
-	Network       string
-	Address       string
-	Logger        log.Logger
-	SkipRPC       bool
-	SkipDatastore bool
+	Datastore Datastore
+	Transport transport.Transport
+	Signer    ethereum.Signer
+	Network   string
+	Address   string
+	Logger    log.Logger
+	SkipRPC   bool
 }
 
 func NewAgent(cfg AgentConfig) (*Agent, error) {
@@ -73,7 +72,7 @@ func NewAgent(cfg AgentConfig) (*Agent, error) {
 }
 
 func (s *Agent) Start() error {
-	s.log.Infof("Starting Spire Agent")
+	s.log.Infof("Starting")
 	var err error
 
 	err = s.api.datastore.Start()
@@ -105,7 +104,7 @@ func (s *Agent) Stop() {
 
 	err = s.api.datastore.Stop()
 	if err != nil {
-		s.log.WithError(err).Error("Unable to stop Spire Datastore")
+		s.log.WithError(err).Error("Unable to stop Datastore")
 	}
 
 	if s.rpc != nil {
