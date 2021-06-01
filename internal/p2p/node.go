@@ -109,12 +109,17 @@ func (n *Node) Start() error {
 	n.nodeEventHandler.Handle(sets.NodeStarting)
 
 	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
+		libp2p.EnableNATService(),
+		libp2p.DisableRelay(),
 		libp2p.Peerstore(n.peerstore),
 		libp2p.ConnectionGater(n.connGaterSet),
 	}, n.hostOpts...)...)
 	if err != nil {
 		return err
 	}
+
+	n.nodeEventHandler.Handle(sets.NodeHostStarted)
+
 	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
 	if err != nil {
 		return err
@@ -125,6 +130,7 @@ func (n *Node) Start() error {
 		WithField("addrs", n.listenAddrStrs()).
 		Info("Listening")
 
+	n.nodeEventHandler.Handle(sets.NodePubSubStarted)
 	n.nodeEventHandler.Handle(sets.NodeStarted)
 
 	return nil

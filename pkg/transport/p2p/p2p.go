@@ -28,7 +28,6 @@ import (
 )
 
 const LoggerTag = "P2P"
-const rendezvousString = "spire/v0.0-dev"
 const userAgentString = "spire/v0.0-dev"
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
@@ -112,7 +111,7 @@ func New(cfg Config) (*P2P, error) {
 	}
 
 	if cfg.Discovery {
-		opts = append(opts, p2p.Discovery(rendezvousString, bootstrapAddrs))
+		opts = append(opts, p2p.Discovery(bootstrapAddrs))
 	} else {
 		opts = append(opts, p2p.Bootstrap(bootstrapAddrs))
 	}

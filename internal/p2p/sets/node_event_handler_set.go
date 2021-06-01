@@ -20,6 +20,8 @@ type NodeEventType int
 const (
 	NodeConfigured NodeEventType = iota
 	NodeStarting
+	NodeHostStarted
+	NodePubSubStarted
 	NodeStarted
 	NodeStopping
 	NodeStopped
