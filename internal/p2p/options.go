@@ -16,9 +16,12 @@
 package p2p
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p"
 	relay "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -112,19 +115,46 @@ func CircuitRelay(relayAddrs []multiaddr.Multiaddr) Options {
 // Bootstrap configures node to use given list of addresses as bootstrap nodes.
 func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
+		var addrInfos []*peer.AddrInfo
+		for _, maddr := range addrs {
+			ai, err := peer.AddrInfoFromP2pAddr(maddr)
+			if err != nil {
+				return err
+			}
+			addrInfos = append(addrInfos, ai)
+		}
+
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
 			if event != sets.NodeStarted {
 				return
 			}
-			for _, maddr := range addrs {
-				err := n.Connect(maddr)
-				if err != nil {
-					n.log.
-						WithFields(log.Fields{"addr": maddr.String()}).
-						WithError(err).
-						Warn("Unable to connect to the bootstrap peer")
+			connect := func() {
+				for _, addrInfo := range addrInfos {
+					for _, maddr := range addrInfo.Addrs {
+						if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
+							continue
+						}
+						err := n.Connect(maddr)
+						if err != nil {
+							n.log.
+								WithFields(log.Fields{"addr": addrInfo.String()}).
+								WithError(err).
+								Warn("Unable to connect to the bootstrap peer")
+						}
+					}
 				}
 			}
+			go func() {
+				t := time.NewTimer(2 * time.Minute)
+				connect()
+				select {
+				case <-n.ctx.Done():
+					t.Stop()
+					return
+				case <-t.C:
+					connect()
+				}
+			}()
 		}))
 		return nil
 	}

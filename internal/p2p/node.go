@@ -57,6 +57,7 @@ type Node struct {
 	mu sync.Mutex
 
 	ctx                   context.Context
+	ctxCancel             context.CancelFunc
 	host                  host.Host
 	pubSub                *pubsub.PubSub
 	peerstore             peerstore.Peerstore
@@ -75,8 +76,10 @@ type Node struct {
 }
 
 func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
+	ctx, ctxCancel := context.WithCancel(ctx)
 	n := &Node{
 		ctx:                   ctx,
+		ctxCancel:             ctxCancel,
 		peerstore:             pstoremem.NewPeerstore(),
 		nodeEventHandler:      sets.NewNodeEventHandlerSet(),
 		pubSubEventHandlerSet: sets.NewPubSubEventHandlerSet(),
@@ -143,6 +146,7 @@ func (n *Node) Stop() error {
 
 	n.nodeEventHandler.Handle(sets.NodeStopping)
 	defer n.log.Info("Stopped")
+	defer n.ctxCancel()
 	defer n.nodeEventHandler.Handle(sets.NodeStopped)
 
 	n.mu.Lock()
