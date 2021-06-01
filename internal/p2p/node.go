@@ -109,6 +109,7 @@ func (n *Node) Start() error {
 	n.nodeEventHandler.Handle(sets.NodeStarting)
 
 	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
+		libp2p.EnableNATService(),
 		libp2p.DisableRelay(),
 		libp2p.Peerstore(n.peerstore),
 		libp2p.ConnectionGater(n.connGaterSet),
