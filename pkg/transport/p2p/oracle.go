@@ -30,8 +30,8 @@ import (
 )
 
 // oracle adds a validator for price messages. The validator checks if the
-// author of the message is allowed to send price messages and if the price
-// message is valid.
+// author of the message is allowed to send price messages, the price
+// message is valid, and if the price is not older than 5 min.
 func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logger) p2p.Options {
 	return func(n *p2p.Node) error {
 		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {

@@ -19,9 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	relay "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -133,7 +131,7 @@ func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 }
 
 // Discovery configures node to use kad-dht for node discovery.
-func Discovery(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Options {
+func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
 		var err error
 		var kadDHT *dht.IpfsDHT
@@ -143,48 +141,23 @@ func Discovery(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Op
 			return err
 		}
 
-		n.hostOpts = append(n.hostOpts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-			kadDHT, err = dht.New(n.ctx, h, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
-			if err != nil {
-				return nil, err
-			}
-			return kadDHT, err
-		}))
-
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
 			switch event {
-			case sets.NodeStarted:
-				if err = kadDHT.Bootstrap(n.ctx); err != nil {
-					n.log.
-						WithError(err).
-						Error("Unable to bootstrap Discovery")
-					return
-				}
-				routingDiscovery := discovery.NewRoutingDiscovery(kadDHT)
-				discovery.Advertise(n.ctx, routingDiscovery, rendezvousString)
-				peerChan, err := routingDiscovery.FindPeers(n.ctx, rendezvousString)
+			case sets.NodeHostStarted:
+				kadDHT, err = dht.New(n.ctx, n.host, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
 				if err != nil {
 					n.log.
 						WithError(err).
-						Error("Unable to find peers with Discovery")
+						Error("Unable to initialize KAD-DHT")
 					return
 				}
-				go func() {
-					for peerAddrInfo := range peerChan {
-						if peerAddrInfo.ID == n.Host().ID() {
-							continue
-						}
-						for _, maddr := range peerAddrInfo.Addrs {
-							err := n.Connect(maddr)
-							if err != nil {
-								n.log.
-									WithError(err).
-									WithField("addr", maddr.String()).
-									Warn("Unable to connect to the peer")
-							}
-						}
-					}
-				}()
+				if err = kadDHT.Bootstrap(n.ctx); err != nil {
+					n.log.
+						WithError(err).
+						Error("Unable to bootstrap KAD-DHT")
+					return
+				}
+				n.pubsubOpts = append(n.pubsubOpts, pubsub.WithDiscovery(discovery.NewRoutingDiscovery(kadDHT)))
 			case sets.NodeStopping:
 				if kadDHT == nil {
 					return
@@ -193,7 +166,7 @@ func Discovery(rendezvousString string, bootstrapAddrs []multiaddr.Multiaddr) Op
 				if err != nil {
 					n.log.
 						WithError(err).
-						Error("Unable to close Discovery")
+						Error("Unable to close KAD-DHT")
 				}
 			}
 		}))
