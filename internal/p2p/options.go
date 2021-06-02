@@ -179,6 +179,10 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
 			switch event {
 			case sets.NodeHostStarted:
+				n.log.
+					WithField("bootstrapAddrs", bootstrapAddrs).
+					Info("Starting KAD-DHT discovery")
+
 				kadDHT, err = dht.New(n.ctx, n.host, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
 				if err != nil {
 					n.log.
