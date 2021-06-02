@@ -348,7 +348,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/makerdao/oracle-suite/internal/query"
+	
 	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer/config"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
@@ -366,8 +369,11 @@ func main() {
 	medianNode.AddChild(nodes.NewOriginNode(binanceBTCUSD, time.Minute, 2*time.Minute))
 	m := map[gofer.Pair]nodes.Aggregator{btcusd: medianNode}
 
+	const defaultWorkerCount = 5
+	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
+
 	// Feeder is used to fetch prices:
-	f := feeder.NewFeeder(origins.DefaultSet(), null.New())
+	f := feeder.NewFeeder(config.DefaultOriginSet(httpWorkerPool), null.New())
 
 	// Initialize gofer and ask for BTC/USD price:
 	g := graph.NewGofer(m, f)
