@@ -74,7 +74,11 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 	case "ftx":
 		return &origins.Ftx{Pool: pool}, nil
 	case "fx":
-		return &origins.Fx{Pool: pool}, nil
+		apiKey, err := parseParamsToAPIKey(params)
+		if err != nil {
+			return nil, err
+		}
+		return &origins.Fx{Pool: pool, APIKey: apiKey}, nil
 	case "gateio":
 		return &origins.Gateio{Pool: pool}, nil
 	case "gemini":
@@ -127,7 +131,6 @@ func DefaultOriginSet(pool query.WorkerPool) *origins.Set {
 		"ddex":          &origins.Ddex{Pool: pool},
 		"folgory":       &origins.Folgory{Pool: pool},
 		"ftx":           &origins.Ftx{Pool: pool},
-		"fx":            &origins.Fx{Pool: pool},
 		"gateio":        &origins.Gateio{Pool: pool},
 		"gemini":        &origins.Gemini{Pool: pool},
 		"hitbtc":        &origins.Hitbtc{Pool: pool},
