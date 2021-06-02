@@ -35,9 +35,9 @@ make
 
 ## Origins configuration
 
-Some origins might require additional configuration parameters like `API Key`.
-In current implementation we have `openexchangerates` and `coinmarketcap`. Both of this origins requires `API Key`.
-To configure this origins we provided `origins` field in configuration files.
+Some origins might require additional configuration parameters like an `API Key`.
+In the current implementation, we have `openexchangerates` and `coinmarketcap`. Both of these origins require an `API Key`.
+To configure these origins we have to provide `origins` field in the configuration file.
 
 Example: 
 
