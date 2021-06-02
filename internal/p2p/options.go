@@ -112,7 +112,8 @@ func CircuitRelay(relayAddrs []multiaddr.Multiaddr) Options {
 	}
 }
 
-// Bootstrap configures node to use given list of addresses as bootstrap nodes.
+// Bootstrap configures node to use given bootstrapping nodes. It periodically
+// checks if the connection to these nodes is maintained.
 func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
 		var addrInfos []*peer.AddrInfo
@@ -123,30 +124,29 @@ func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 			}
 			addrInfos = append(addrInfos, ai)
 		}
-
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event != sets.NodeStarted {
-				return
-			}
-			connect := func() {
-				for _, addrInfo := range addrInfos {
-					for _, maddr := range addrInfo.Addrs {
-						if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
-							continue
-						}
-						err := n.Connect(maddr)
-						if err != nil {
-							n.log.
-								WithFields(log.Fields{"addr": addrInfo.String()}).
-								WithError(err).
-								Warn("Unable to connect to the bootstrap peer")
-						}
-					}
+		connect := func() {
+			for _, addrInfo := range addrInfos {
+				if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
+					continue
+				}
+				n.log.
+					WithField("peerID", addrInfo.ID.Pretty()).
+					WithField("addrs", addrInfo.Addrs).
+					Info("Connecting to the bootstrap peer")
+				err := n.host.Connect(n.ctx, *addrInfo)
+				if err != nil {
+					n.log.
+						WithField("peerID", addrInfo.ID.Pretty()).
+						WithField("addrs", addrInfo.Addrs).
+						WithError(err).
+						Warn("Unable to connect to the bootstrap peer")
 				}
 			}
-			go func() {
-				t := time.NewTimer(2 * time.Minute)
-				connect()
+		}
+		connectRoutine := func() {
+			t := time.NewTimer(2 * time.Minute)
+			connect()
+			for {
 				select {
 				case <-n.ctx.Done():
 					t.Stop()
@@ -154,7 +154,12 @@ func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 				case <-t.C:
 					connect()
 				}
-			}()
+			}
+		}
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
+			if event == sets.NodeStarted {
+				go connectRoutine()
+			}
 		}))
 		return nil
 	}
