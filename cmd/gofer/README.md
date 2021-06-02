@@ -33,6 +33,28 @@ cd oracle-suite
 make
 ```
 
+## Origins configuration
+
+Some origins might require additional configuration parameters like `API Key`.
+In current implementation we have `openexchangerates` and `coinmarketcap`. Both of this origins requires `API Key`.
+To configure this origins we provided `origins` field in configuration files.
+
+Example: 
+
+```json
+{
+  "origins": {
+    "openexchangerates": {
+      "type": "openexchangerates",
+      "name": "openexchangerates",
+      "params": {
+        "apiKey": "API_KEY"
+      }
+    }
+  }
+}
+```
+
 ## Price models
 
 To start working with Gofer, you have to define price models first. Price models are defined in a JSON file. By default,
@@ -95,6 +117,7 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
         - `kyber` - [Kyber](https://blog.kyber.network/)
         - `loopring` - [Loopring](https://loopring.org/)
         - `okex` - [OKEx](https://okex.com/)
+        - `openexchangerates` - [OpenExchangeRates](https://openexchangerates.org)
         - `poloniex` - [Poloniex](https://poloniex.com/)
         - `sushiswap` - [Sushiswap](https://sushi.com/)
         - `uniswap` - [Uniswap](https://uniswap.org/)
