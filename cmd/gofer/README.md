@@ -12,6 +12,7 @@ exactly, from how many sources you want to pull prices and what conditions they 
 
 * [Installation](#installation)
 * [Price models](#price-models)
+* [Origins configuration](#origins-configuration)
 * [Commands](#commands)
   * [gofer price](#gofer-price)
   * [gofer pairs](#gofer-pairs)
@@ -31,28 +32,6 @@ wish to work on Gofer source.
 git clone https://github.com/makerdao/oracle-suite.git
 cd oracle-suite
 make
-```
-
-## Origins configuration
-
-Some origins might require additional configuration parameters like an `API Key`.
-In the current implementation, we have `openexchangerates` and `coinmarketcap`. Both of these origins require an `API Key`.
-To configure these origins we have to provide `origins` field in the configuration file.
-
-Example: 
-
-```json
-{
-  "origins": {
-    "openexchangerates": {
-      "type": "openexchangerates",
-      "name": "openexchangerates",
-      "params": {
-        "apiKey": "API_KEY"
-      }
-    }
-  }
-}
 ```
 
 ## Price models
@@ -146,6 +125,29 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
       the `params` field:
         - `minimumSuccessfulSources` - minimum number of successfully retrieved sources to consider calculated median
           price as reliable.
+
+## Origins configuration
+
+Some origins might require additional configuration parameters like an `API Key`.
+In the current implementation, we have `openexchangerates` and `coinmarketcap`. Both of these origins require an `API Key`.
+To configure these origins we have to provide `origins` field in the configuration file.
+
+Example: 
+
+```json
+{
+  "origins": {
+    "openexchangerates": {
+      "type": "openexchangerates",
+      "params": {
+        "apiKey": "API_KEY"
+      }
+    }
+  }
+}
+```
+- `type` - this key corresponds to the built-in origin set
+- `params` - this object will map the params to the specific origin configuration (apiKey is one example)
 
 ## Commands
 
