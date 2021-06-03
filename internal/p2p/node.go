@@ -26,13 +26,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/transport"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	swarm "github.com/libp2p/go-libp2p-swarm"
-	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
 
@@ -57,6 +55,7 @@ type Node struct {
 	mu sync.Mutex
 
 	ctx                   context.Context
+	ctxCancel             context.CancelFunc
 	host                  host.Host
 	pubSub                *pubsub.PubSub
 	peerstore             peerstore.Peerstore
@@ -75,8 +74,10 @@ type Node struct {
 }
 
 func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
+	ctx, ctxCancel := context.WithCancel(ctx)
 	n := &Node{
 		ctx:                   ctx,
+		ctxCancel:             ctxCancel,
 		peerstore:             pstoremem.NewPeerstore(),
 		nodeEventHandler:      sets.NewNodeEventHandlerSet(),
 		pubSubEventHandlerSet: sets.NewPubSubEventHandlerSet(),
@@ -143,6 +144,7 @@ func (n *Node) Stop() error {
 
 	n.nodeEventHandler.Handle(sets.NodeStopping)
 	defer n.log.Info("Stopped")
+	defer n.ctxCancel()
 	defer n.nodeEventHandler.Handle(sets.NodeStopped)
 
 	n.mu.Lock()
@@ -175,18 +177,6 @@ func (n *Node) PubSub() *pubsub.PubSub {
 
 func (n *Node) Peerstore() peerstore.Peerstore {
 	return n.peerstore
-}
-
-func (n *Node) Connect(maddr multiaddr.Multiaddr) error {
-	pi, err := peer.AddrInfoFromP2pAddr(maddr)
-	if err != nil {
-		return err
-	}
-	err = n.host.Connect(n.ctx, *pi)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (n *Node) AddNodeEventHandler(eventHandler ...sets.NodeEventHandler) {

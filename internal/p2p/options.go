@@ -16,9 +16,12 @@
 package p2p
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p"
 	relay "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -109,21 +112,53 @@ func CircuitRelay(relayAddrs []multiaddr.Multiaddr) Options {
 	}
 }
 
-// Bootstrap configures node to use given list of addresses as bootstrap nodes.
+// Bootstrap configures node to use given bootstrapping nodes. It periodically
+// checks if the connection to these nodes is maintained.
 func Bootstrap(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event != sets.NodeStarted {
-				return
+		var addrInfos []*peer.AddrInfo
+		for _, maddr := range addrs {
+			ai, err := peer.AddrInfoFromP2pAddr(maddr)
+			if err != nil {
+				return err
 			}
-			for _, maddr := range addrs {
-				err := n.Connect(maddr)
+			addrInfos = append(addrInfos, ai)
+		}
+		connect := func() {
+			for _, addrInfo := range addrInfos {
+				if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
+					continue
+				}
+				n.log.
+					WithField("peerID", addrInfo.ID.Pretty()).
+					WithField("addrs", addrInfo.Addrs).
+					Info("Connecting to the bootstrap peer")
+				err := n.host.Connect(n.ctx, *addrInfo)
 				if err != nil {
 					n.log.
-						WithFields(log.Fields{"addr": maddr.String()}).
+						WithField("peerID", addrInfo.ID.Pretty()).
+						WithField("addrs", addrInfo.Addrs).
 						WithError(err).
 						Warn("Unable to connect to the bootstrap peer")
 				}
+			}
+		}
+		connectRoutine := func() {
+			t := time.NewTimer(2 * time.Minute)
+			connect()
+			for {
+				select {
+				case <-n.ctx.Done():
+					t.Stop()
+					return
+				case <-t.C:
+					connect()
+				}
+			}
+		}
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
+			if event == sets.NodeStarted {
+				go connectRoutine()
 			}
 		}))
 		return nil
@@ -144,6 +179,10 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
 			switch event {
 			case sets.NodeHostStarted:
+				n.log.
+					WithField("bootstrapAddrs", bootstrapAddrs).
+					Info("Starting KAD-DHT discovery")
+
 				kadDHT, err = dht.New(n.ctx, n.host, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
 				if err != nil {
 					n.log.
