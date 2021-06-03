@@ -12,6 +12,7 @@ exactly, from how many sources you want to pull prices and what conditions they 
 
 * [Installation](#installation)
 * [Price models](#price-models)
+* [Origins configuration](#origins-configuration)
 * [Commands](#commands)
   * [gofer price](#gofer-price)
   * [gofer pairs](#gofer-pairs)
@@ -95,6 +96,7 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
         - `kyber` - [Kyber](https://blog.kyber.network/)
         - `loopring` - [Loopring](https://loopring.org/)
         - `okex` - [OKEx](https://okex.com/)
+        - `openexchangerates` - [OpenExchangeRates](https://openexchangerates.org)
         - `poloniex` - [Poloniex](https://poloniex.com/)
         - `sushiswap` - [Sushiswap](https://sushi.com/)
         - `uniswap` - [Uniswap](https://uniswap.org/)
@@ -123,6 +125,29 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
       the `params` field:
         - `minimumSuccessfulSources` - minimum number of successfully retrieved sources to consider calculated median
           price as reliable.
+
+## Origins configuration
+
+Some origins might require additional configuration parameters like an `API Key`.
+In the current implementation, we have `openexchangerates` and `coinmarketcap`. Both of these origins require an `API Key`.
+To configure these origins we have to provide `origins` field in the configuration file.
+
+Example: 
+
+```json
+{
+  "origins": {
+    "openexchangerates": {
+      "type": "openexchangerates",
+      "params": {
+        "apiKey": "API_KEY"
+      }
+    }
+  }
+}
+```
+- `type` - this key corresponds to the built-in origin set
+- `params` - this object will map the params to the specific origin configuration (apiKey is one example)
 
 ## Commands
 
@@ -325,7 +350,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/makerdao/oracle-suite/internal/query"
+	
 	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/makerdao/oracle-suite/pkg/gofer/config"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
@@ -343,8 +371,11 @@ func main() {
 	medianNode.AddChild(nodes.NewOriginNode(binanceBTCUSD, time.Minute, 2*time.Minute))
 	m := map[gofer.Pair]nodes.Aggregator{btcusd: medianNode}
 
+	const defaultWorkerCount = 5
+	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
+
 	// Feeder is used to fetch prices:
-	f := feeder.NewFeeder(origins.DefaultSet(), null.New())
+	f := feeder.NewFeeder(config.DefaultOriginSet(httpWorkerPool), null.New())
 
 	// Initialize gofer and ask for BTC/USD price:
 	g := graph.NewGofer(m, f)
