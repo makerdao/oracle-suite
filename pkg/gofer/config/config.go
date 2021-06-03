@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/makerdao/oracle-suite/internal/query"
+
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
@@ -102,7 +104,12 @@ func (c *Config) ConfigureGofer(logger log.Logger) (gofer.Gofer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
-	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
+
+	originSet, err := c.buildOrigins()
+	if err != nil {
+		return nil, err
+	}
+	fed := feeder.NewFeeder(originSet, logger)
 	gof := graph.NewGofer(gra, fed)
 	return gof, nil
 }
@@ -113,7 +120,12 @@ func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
-	fed := feeder.NewFeeder(origins.DefaultSet(), logger)
+
+	originSet, err := c.buildOrigins()
+	if err != nil {
+		return nil, err
+	}
+	fed := feeder.NewFeeder(originSet, logger)
 	gof := graph.NewAsyncGofer(gra, fed)
 	srv, err := rpc.NewAgent(rpc.AgentConfig{
 		Gofer:   gof,
@@ -130,6 +142,23 @@ func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 // ConfigureRPCClient returns a new rpc.RPC instance.
 func (c *Config) ConfigureRPCClient(l log.Logger) (*rpc.Gofer, error) {
 	return rpc.NewGofer("tcp", c.RPC.Address), nil
+}
+
+func (c *Config) buildOrigins() (*origins.Set, error) {
+	const defaultWorkerCount = 5
+	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
+
+	defaultOrigins := DefaultOriginSet(httpWorkerPool)
+
+	for name, origin := range c.Origins {
+		handler, err := NewHandler(origin.Type, httpWorkerPool, origin.Params)
+		if err != nil || handler == nil {
+			return nil, fmt.Errorf("failed to initiate %s origin with name %s due to error: %w",
+				origin.Type, origin.Name, err)
+		}
+		defaultOrigins.SetHandler(name, handler)
+	}
+	return defaultOrigins, nil
 }
 
 func (c *Config) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {

@@ -96,39 +96,8 @@ func NewSet(list map[string]Handler) *Set {
 	return &Set{list: list}
 }
 
-func DefaultSet() *Set {
-	const defaultWorkerCount = 5
-	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
-
-	return NewSet(map[string]Handler{
-		"balancer":      &Balancer{Pool: httpWorkerPool},
-		"binance":       &Binance{Pool: httpWorkerPool},
-		"bitfinex":      &Bitfinex{Pool: httpWorkerPool},
-		"bitstamp":      &Bitstamp{Pool: httpWorkerPool},
-		"bitthumb":      &BitThump{Pool: httpWorkerPool},
-		"bithumb":       &BitThump{Pool: httpWorkerPool},
-		"bittrex":       &Bittrex{Pool: httpWorkerPool},
-		"coinbasepro":   &CoinbasePro{Pool: httpWorkerPool},
-		"cryptocompare": &CryptoCompare{Pool: httpWorkerPool},
-		"coinmarketcap": &CoinMarketCap{Pool: httpWorkerPool, APIKey: "KEY_HERE"},
-		"ddex":          &Ddex{Pool: httpWorkerPool},
-		"folgory":       &Folgory{Pool: httpWorkerPool},
-		"ftx":           &Ftx{Pool: httpWorkerPool},
-		"fx":            &Fx{Pool: httpWorkerPool},
-		"gateio":        &Gateio{Pool: httpWorkerPool},
-		"gemini":        &Gemini{Pool: httpWorkerPool},
-		"hitbtc":        &Hitbtc{Pool: httpWorkerPool},
-		"huobi":         &Huobi{Pool: httpWorkerPool},
-		"kraken":        &Kraken{Pool: httpWorkerPool},
-		"kucoin":        &Kucoin{Pool: httpWorkerPool},
-		"kyber":         &Kyber{Pool: httpWorkerPool},
-		"loopring":      &Loopring{Pool: httpWorkerPool},
-		"okex":          &Okex{Pool: httpWorkerPool},
-		"poloniex":      &Poloniex{Pool: httpWorkerPool},
-		"sushiswap":     &Sushiswap{Pool: httpWorkerPool},
-		"uniswap":       &Uniswap{Pool: httpWorkerPool},
-		"upbit":         &Upbit{Pool: httpWorkerPool},
-	})
+func (e *Set) SetHandler(name string, handler Handler) {
+	e.list[name] = handler
 }
 
 func (e *Set) Handlers() map[string]Handler {
