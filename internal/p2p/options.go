@@ -16,12 +16,8 @@
 package p2p
 
 import (
-	"time"
-
 	"github.com/libp2p/go-libp2p"
-	relay "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -86,81 +82,29 @@ func UserAgent(userAgent string) Options {
 	}
 }
 
-// CircuitRelay configures node to use circuit relay.
-func CircuitRelay(relayAddrs []multiaddr.Multiaddr) Options {
+// DirectPeers is a gossipsub router option that specifies peers with direct
+// peering agreements. These peers are connected outside of the mesh, with all (valid)
+// message unconditionally forwarded to them. The router will maintain open connections
+// to these peers. Note that the peering agreement should be reciprocal with direct peers
+// symmetrically configured at both ends.
+func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
-		addrs, err := peer.AddrInfosFromP2pAddrs(relayAddrs...)
-		if err != nil {
-			return err
+		if len(addrs) == 0 {
+			return nil
 		}
 
-		n.hostOpts = append(n.hostOpts, libp2p.EnableAutoRelay())
-		if len(addrs) > 0 {
-			n.hostOpts = append(
-				n.hostOpts,
-				libp2p.EnableRelay(),
-				libp2p.StaticRelays(addrs),
-			)
-		} else {
-			n.hostOpts = append(
-				n.hostOpts,
-				libp2p.EnableRelay(relay.OptHop),
-			)
-		}
-
-		return nil
-	}
-}
-
-// Bootstrap configures node to use given bootstrapping nodes. It periodically
-// checks if the connection to these nodes is maintained.
-func Bootstrap(addrs []multiaddr.Multiaddr) Options {
-	return func(n *Node) error {
-		var addrInfos []*peer.AddrInfo
+		var addrInfos []peer.AddrInfo
 		for _, maddr := range addrs {
 			ai, err := peer.AddrInfoFromP2pAddr(maddr)
 			if err != nil {
 				return err
 			}
-			addrInfos = append(addrInfos, ai)
+			addrInfos = append(addrInfos, *ai)
 		}
-		connect := func() {
-			for _, addrInfo := range addrInfos {
-				if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
-					continue
-				}
-				n.log.
-					WithField("peerID", addrInfo.ID.Pretty()).
-					WithField("addrs", addrInfo.Addrs).
-					Info("Connecting to the bootstrap peer")
-				err := n.host.Connect(n.ctx, *addrInfo)
-				if err != nil {
-					n.log.
-						WithField("peerID", addrInfo.ID.Pretty()).
-						WithField("addrs", addrInfo.Addrs).
-						WithError(err).
-						Warn("Unable to connect to the bootstrap peer")
-				}
-			}
-		}
-		connectRoutine := func() {
-			t := time.NewTimer(2 * time.Minute)
-			connect()
-			for {
-				select {
-				case <-n.ctx.Done():
-					t.Stop()
-					return
-				case <-t.C:
-					connect()
-				}
-			}
-		}
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event == sets.NodeStarted {
-				go connectRoutine()
-			}
-		}))
+		n.pubsubOpts = append(
+			n.pubsubOpts,
+			pubsub.WithDirectPeers(addrInfos),
+		)
 		return nil
 	}
 }

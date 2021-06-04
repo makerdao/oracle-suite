@@ -39,6 +39,7 @@ import (
 	pkgTransport "github.com/makerdao/oracle-suite/pkg/transport"
 )
 
+var ErrNode = errors.New("libp2p node error")
 var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
@@ -51,6 +52,8 @@ func init() {
 	swarm.DialTimeoutLocal = timeout
 }
 
+// Node is a single node in the P2P mesh. It wraps the libp2p library to provide
+// an easier to use and use-case agnostic interface for the pubsub system.
 type Node struct {
 	mu sync.Mutex
 
@@ -94,7 +97,7 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 	for _, opt := range opts {
 		err := opt(n)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%v: unable to apply option: %v", ErrNode, err)
 		}
 	}
 
@@ -116,14 +119,14 @@ func (n *Node) Start() error {
 		libp2p.ConnectionGater(n.connGaterSet),
 	}, n.hostOpts...)...)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: unable to initialize libp2p: %v", ErrNode, err)
 	}
 
 	n.nodeEventHandler.Handle(sets.NodeHostStarted)
 
 	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: unable to initialize gosspib pubsub: %v", ErrNode, err)
 	}
 	n.host.Network().Notify(n.notifeeSet)
 
@@ -164,7 +167,11 @@ func (n *Node) Stop() error {
 
 	n.subs = nil
 	n.closed = true
-	return n.host.Close()
+	err = n.host.Close()
+	if err != nil {
+		return fmt.Errorf("%v: unable to close host: %v", ErrNode, err)
+	}
+	return nil
 }
 
 func (n *Node) Host() host.Host {
@@ -180,26 +187,44 @@ func (n *Node) Peerstore() peerstore.Peerstore {
 }
 
 func (n *Node) AddNodeEventHandler(eventHandler ...sets.NodeEventHandler) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.nodeEventHandler.Add(eventHandler...)
 }
 
 func (n *Node) AddPubSubEventHandler(eventHandler ...sets.PubSubEventHandler) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.pubSubEventHandlerSet.Add(eventHandler...)
 }
 
 func (n *Node) AddNotifee(notifees ...network.Notifiee) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.notifeeSet.Add(notifees...)
 }
 
 func (n *Node) AddConnectionGater(connGaters ...connmgr.ConnectionGater) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.connGaterSet.Add(connGaters...)
 }
 
 func (n *Node) AddValidator(validator sets.Validator) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.validatorSet.Add(validator)
 }
 
 func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.messageHandlerSet.Add(messageHandlers...)
 }
 
@@ -208,10 +233,10 @@ func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return ErrConnectionClosed
+		return fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
 	}
 	if _, ok := n.subs[topic]; ok {
-		return ErrAlreadySubscribed
+		return fmt.Errorf("%v: %v", ErrNode, ErrAlreadySubscribed)
 	}
 
 	sub, err := newSubscription(n, topic, typ)
@@ -225,7 +250,7 @@ func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
 
 func (n *Node) Unsubscribe(topic string) error {
 	if n.closed {
-		return ErrConnectionClosed
+		return fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
 	}
 
 	sub, err := n.Subscription(topic)
@@ -241,13 +266,13 @@ func (n *Node) Subscription(topic string) (*Subscription, error) {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return nil, ErrConnectionClosed
+		return nil, fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
 	}
 	if sub, ok := n.subs[topic]; ok {
 		return sub, nil
 	}
 
-	return nil, ErrNotSubscribed
+	return nil, fmt.Errorf("%v: %v", ErrNode, ErrNotSubscribed)
 }
 
 // ListenAddrs returns all node's listen multiaddresses as a string list.
