@@ -19,6 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -130,6 +131,7 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 					// bootstrap nodes aren't protected by KAD-DHT so we have
 					// do it manually
 					n.connmgr.Protect(addr.ID, "bootstrap")
+					n.peerstore.AddAddrs(addr.ID, addr.Addrs, peerstore.PermanentAddrTTL)
 				}
 				kadDHT, err = dht.New(n.ctx, n.host, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
 				if err != nil {
