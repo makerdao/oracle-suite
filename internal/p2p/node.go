@@ -23,7 +23,8 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/connmgr"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	coreConnmgr "github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -44,6 +45,9 @@ var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
 
+const minPeers = 100
+const maxPeers = 150
+
 func init() {
 	// It's required to increase timeouts because signing messages using
 	// the Ethereum wallet may take more time than default timeout allows.
@@ -62,6 +66,7 @@ type Node struct {
 	host                  host.Host
 	pubSub                *pubsub.PubSub
 	peerstore             peerstore.Peerstore
+	connmgr               coreConnmgr.ConnManager
 	nodeEventHandler      *sets.NodeEventHandlerSet
 	pubSubEventHandlerSet *sets.PubSubEventHandlerSet
 	notifeeSet            *sets.NotifeeSet
@@ -112,11 +117,13 @@ func (n *Node) Start() error {
 
 	n.nodeEventHandler.Handle(sets.NodeStarting)
 
+	n.connmgr = connmgr.NewConnManager(minPeers, maxPeers, 5*time.Minute)
 	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
 		libp2p.EnableNATService(),
 		libp2p.DisableRelay(),
 		libp2p.Peerstore(n.peerstore),
 		libp2p.ConnectionGater(n.connGaterSet),
+		libp2p.ConnectionManager(n.connmgr),
 	}, n.hostOpts...)...)
 	if err != nil {
 		return fmt.Errorf("%v: unable to initialize libp2p: %v", ErrNode, err)
@@ -207,7 +214,7 @@ func (n *Node) AddNotifee(notifees ...network.Notifiee) {
 	n.notifeeSet.Add(notifees...)
 }
 
-func (n *Node) AddConnectionGater(connGaters ...connmgr.ConnectionGater) {
+func (n *Node) AddConnectionGater(connGaters ...coreConnmgr.ConnectionGater) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
