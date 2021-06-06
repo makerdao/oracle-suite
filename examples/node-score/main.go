@@ -52,6 +52,8 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Println(h.ID().Pretty())
+
 	// create a new PubSub service using the GossipSub router
 	ps, err := pubsub.NewGossipSub(ctx, h, pubsub.WithPeerScore(
 		&pubsub.PeerScoreParams{
