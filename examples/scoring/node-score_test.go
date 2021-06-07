@@ -2,6 +2,7 @@ package scoring
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -227,10 +228,6 @@ func TestGossipsubAttackInvalidMessageSpam(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//attackerScore := func() float64 {
-	//	return ps.rt.(*GossipSubRouter).score.Score(attacker.ID())
-	//}
-
 	// Subscribe to mytopic on the legit host
 	_, err = ps.Subscribe(mytopic)
 	if err != nil {
@@ -284,8 +281,10 @@ func TestGossipsubAttackInvalidMessageSpam(t *testing.T) {
 					if tracer.rejectCount == 0 {
 						t.Fatal("Expected message rejection but got none")
 					}
+					fmt.Println(tracer.rejectCount)
 					// The legit node should have sent a PRUNE message
 					pc := getPruneCount()
+					fmt.Println(pc)
 					if pc == 0 {
 						t.Fatal("Expected attacker node to be PRUNED when score drops low enough")
 					}
