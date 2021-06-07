@@ -1,3 +1,18 @@
+//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package p2p
 
 import (
@@ -235,11 +250,52 @@ func TestNode_ConnectionLimit(t *testing.T) {
 	peers, err := GetPeerInfo(5)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		ConnectionLimit(1, 1, 0),
+	)
+	require.NoError(t, err)
+	require.NoError(t, n.Start())
+	defer n.Stop()
+
+	for i := 2; i < len(peers); i++ {
+		n, err := NewNode(
+			context.Background(),
+			PeerPrivKey(peers[i].PrivKey),
+			ListenAddrs(peers[i].ListenAddrs),
+			Discovery(nil),
+		)
+		require.NoError(t, err)
+		require.NoError(t, n.Start())
+		defer n.Stop()
+
+		require.NoError(t, n.Connect(peers[0].PeerAddrs[0]))
+	}
+
+	n.Host().ConnManager().TrimOpenConns(context.Background())
+	time.Sleep(time.Second)
+
+	conns := 0
+	for _, p := range n.Host().Peerstore().Peers() {
+		if n.Host().Network().Connectedness(p) == network.Connected {
+			conns++
+		}
+	}
+
+	assert.Equal(t, conns, 1)
+}
+
+func TestNode_DirectPeers(t *testing.T) {
+	peers, err := GetPeerInfo(5)
+	require.NoError(t, err)
+
+	n1, err := NewNode(
+		context.Background(),
+		PeerPrivKey(peers[0].PrivKey),
+		ListenAddrs(peers[0].ListenAddrs),
+		ConnectionLimit(0, 0, 0),
 		DirectPeers(peers[1].PeerAddrs),
 	)
 	require.NoError(t, err)
@@ -270,19 +326,11 @@ func TestNode_ConnectionLimit(t *testing.T) {
 		require.NoError(t, n.Connect(peers[0].PeerAddrs[0]))
 	}
 
+	// The connection between n1 and n2 nodes should be persisted even
+	// with a connection limit set to 0.
 	n1.Host().ConnManager().TrimOpenConns(context.Background())
 	time.Sleep(time.Second)
-
-	conns := 0
-	for _, p := range n1.Host().Peerstore().Peers() {
-		if n1.Host().Network().Connectedness(p) == network.Connected {
-			conns++
-		}
-	}
-
-	// There is a limit of 1 connection, but direct peers aren't counted,
-	// so the total number of connections should be 2:
-	assert.Equal(t, conns, 2)
+	assert.Equal(t, network.Connected, n1.Host().Network().Connectedness(n2.Host().ID()))
 }
 
 // Message is the simplest implementation of the transport.Message interface.
