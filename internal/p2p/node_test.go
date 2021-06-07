@@ -295,7 +295,7 @@ func TestNode_DirectPeers(t *testing.T) {
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
-		ConnectionLimit(0, 0, 0),
+		ConnectionLimit(1, 1, 0),
 		DirectPeers(peers[1].PeerAddrs),
 	)
 	require.NoError(t, err)
@@ -324,10 +324,11 @@ func TestNode_DirectPeers(t *testing.T) {
 		defer n.Stop()
 
 		require.NoError(t, n.Connect(peers[0].PeerAddrs[0]))
+		n1.Host().ConnManager().TagPeer(n.Host().ID(), "test", 1)
 	}
 
 	// The connection between n1 and n2 nodes should be persisted even
-	// with a connection limit set to 0.
+	// with a connection limit.
 	n1.Host().ConnManager().TrimOpenConns(context.Background())
 	time.Sleep(time.Second)
 	assert.Equal(t, network.Connected, n1.Host().Network().Connectedness(n2.Host().ID()))
