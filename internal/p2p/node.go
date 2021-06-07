@@ -27,11 +27,13 @@ import (
 	coreConnmgr "github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/transport"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	swarm "github.com/libp2p/go-libp2p-swarm"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
 
@@ -44,9 +46,6 @@ var ErrNode = errors.New("libp2p node error")
 var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
-
-const minPeers = 100
-const maxPeers = 150
 
 func init() {
 	// It's required to increase timeouts because signing messages using
@@ -106,6 +105,10 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 		}
 	}
 
+	if n.connmgr == nil {
+		n.connmgr = connmgr.NewConnManager(0, 0, 5*time.Minute)
+	}
+
 	n.nodeEventHandler.Handle(sets.NodeConfigured)
 
 	return n, nil
@@ -117,7 +120,6 @@ func (n *Node) Start() error {
 
 	n.nodeEventHandler.Handle(sets.NodeStarting)
 
-	n.connmgr = connmgr.NewConnManager(minPeers, maxPeers, 5*time.Minute)
 	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
 		libp2p.EnableNATService(),
 		libp2p.DisableRelay(),
@@ -138,7 +140,7 @@ func (n *Node) Start() error {
 	n.host.Network().Notify(n.notifeeSet)
 
 	n.log.
-		WithField("addrs", n.listenAddrStrs()).
+		WithField("listenAddrs", n.listenAddrStrs()).
 		Info("Listening")
 
 	n.nodeEventHandler.Handle(sets.NodePubSubStarted)
@@ -181,6 +183,14 @@ func (n *Node) Stop() error {
 	return nil
 }
 
+func (n *Node) Addrs() []multiaddr.Multiaddr {
+	var addrs []multiaddr.Multiaddr
+	for _, s := range n.listenAddrStrs() {
+		addrs = append(addrs, multiaddr.StringCast(s))
+	}
+	return addrs
+}
+
 func (n *Node) Host() host.Host {
 	return n.host
 }
@@ -191,6 +201,18 @@ func (n *Node) PubSub() *pubsub.PubSub {
 
 func (n *Node) Peerstore() peerstore.Peerstore {
 	return n.peerstore
+}
+
+func (n *Node) Connect(maddr multiaddr.Multiaddr) error {
+	pi, err := peer.AddrInfoFromP2pAddr(maddr)
+	if err != nil {
+		return err
+	}
+	err = n.host.Connect(n.ctx, *pi)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (n *Node) AddNodeEventHandler(eventHandler ...sets.NodeEventHandler) {

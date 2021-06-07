@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
@@ -31,6 +32,8 @@ import (
 
 const LoggerTag = "P2P"
 const userAgentString = "spire/v0.0-dev"
+const lowPeers = 100
+const highPeers = 150
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -111,6 +114,7 @@ func New(cfg Config) (*P2P, error) {
 		p2p.ListenAddrs(listenAddrs),
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
+		p2p.ConnectionLimit(lowPeers, highPeers, 5*time.Minute),
 		p2p.Logger(logger),
 		p2p.ConnectionLogger(),
 		p2p.MessageLogger(),
@@ -169,11 +173,14 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 }
 
 // WaitFor implements the transport.Transport interface.
-func (p *P2P) WaitFor(topic string) chan transport.Status {
+func (p *P2P) WaitFor(topic string) chan transport.ReceivedMessage {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil
 	}
+	go func() {
+
+	}()
 	return sub.Next()
 }
 

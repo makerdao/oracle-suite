@@ -16,7 +16,10 @@
 package p2p
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -83,10 +86,20 @@ func UserAgent(userAgent string) Options {
 	}
 }
 
-// DirectPeers is a gossipsub router option that specifies peers with direct
-// peering agreements. These peers are connected outside of the mesh, with all (valid)
+// ConnectionLimit limits the number of connections. When the number of
+// connections reaches a high value, then as many connections will be
+// dropped until we reach a low number of connections.
+func ConnectionLimit(low, high int, grace time.Duration) Options {
+	return func(n *Node) error {
+		n.connmgr = connmgr.NewConnManager(low, high, grace)
+		return nil
+	}
+}
+
+// DirectPeers is a gossipsub router option that specifies getPeerInfos with direct
+// peering agreements. These getPeerInfos are connected outside of the mesh, with all (valid)
 // message unconditionally forwarded to them. The router will maintain open connections
-// to these peers. Note that the peering agreement should be reciprocal with direct peers
+// to these getPeerInfos. Note that the peering agreement should be reciprocal with direct getPeerInfos
 // symmetrically configured at both ends.
 func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {

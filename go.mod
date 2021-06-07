@@ -17,6 +17,7 @@ require (
 	github.com/libp2p/go-libp2p v0.14.0
 	github.com/libp2p/go-libp2p-asn-util v0.0.0-20210422100720-09a655867a6c // indirect
 	github.com/libp2p/go-libp2p-circuit v0.4.0
+	github.com/libp2p/go-libp2p-connmgr v0.2.4 // indirect
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.12.0
