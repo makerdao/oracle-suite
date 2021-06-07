@@ -23,7 +23,7 @@ import (
 	"unicode"
 )
 
-func ReadLineOrPass(filename string) string {
+func ReadLineOrSame(filename string) string {
 	lines, err := readLines(filename, 1)
 	if err != nil {
 		return filename
