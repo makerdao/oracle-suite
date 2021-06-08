@@ -14,7 +14,7 @@ in buildGoModule {
   pname = "oracle-suite";
   version = "dev_${ver}";
   src = ./.;
-  vendorSha256 = "1lhag9b922hcarh5zyi9ahmcq999y568mil1i0ri1751isyhxrfk";
+  vendorSha256 = "06x1cravkxp2k33d3f01h3pglwrkbcgg7svm48frjyvfkihjx68r";
   subPackages = [ "cmd/..." ];
   postConfigure = "export CGO_ENABLED=0";
   postInstall = "cp ./gofer.json ./spire.json $out";
