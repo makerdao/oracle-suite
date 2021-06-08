@@ -29,6 +29,10 @@ import (
 // Denylist allows to block peer by their IP addresses or IDs.
 func Denylist(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
+		if len(addrs) == 0 {
+			return nil
+		}
+
 		cg := &denylistConnGater{log: n.log}
 		n.AddConnectionGater(cg)
 		for _, maddr := range addrs {

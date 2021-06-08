@@ -15,8 +15,9 @@
 
 package transport
 
-type Status struct {
+type ReceivedMessage struct {
 	Message Message
+	Data    interface{}
 	Error   error
 }
 
@@ -40,7 +41,7 @@ type Transport interface {
 	// be supported by this method, for unsubscribed topic nil will be
 	// returned. In case of an error, error will be returned in a Status
 	// structure.
-	WaitFor(topic string) chan Status
+	WaitFor(topic string) chan ReceivedMessage
 	// Close closes connection.
 	Close() error
 }

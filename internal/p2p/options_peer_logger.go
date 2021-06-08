@@ -24,7 +24,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
-// PeerLogger logs all peers handled by libp2p's pubsub system.
+// PeerLogger logs all getPeerInfos handled by libp2p's pubsub system.
 func PeerLogger() Options {
 	return func(n *Node) error {
 		n.AddPubSubEventHandler(sets.PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {
@@ -39,7 +39,7 @@ func PeerLogger() Options {
 					WithFields(log.Fields{
 						"peerID":          event.Peer.String(),
 						"topic":           topic,
-						"addrs":           addrs,
+						"listenAddrs":     addrs,
 						"userAgent":       ua,
 						"protocolVersion": pv,
 						"protocols":       pp,
@@ -48,9 +48,9 @@ func PeerLogger() Options {
 			case pubsub.PeerLeave:
 				n.log.
 					WithFields(log.Fields{
-						"peerID": event.Peer.String(),
-						"topic":  topic,
-						"addrs":  addrs,
+						"peerID":      event.Peer.String(),
+						"topic":       topic,
+						"listenAddrs": addrs,
 					}).
 					Info("Disconnected from a peer")
 			}

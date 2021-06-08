@@ -62,6 +62,7 @@ type P2P struct {
 	PrivKeySeed      string   `json:"privKeySeed"`
 	ListenAddrs      []string `json:"listenAddrs"`
 	BootstrapAddrs   []string `json:"bootstrapAddrs"`
+	DirectPeersAddrs []string `json:"directPeersAddrs"`
 	BlockedAddrs     []string `json:"blockedAddrs"`
 	DisableDiscovery bool     `json:"disableDiscovery"`
 }
@@ -144,15 +145,16 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	}
 
 	cfg := p2p.Config{
-		Context:        ctx,
-		PeerPrivKey:    peerPrivKey,
-		MessagePrivKey: ethkey.NewPrivKey(s),
-		ListenAddrs:    c.P2P.ListenAddrs,
-		BootstrapAddrs: c.P2P.BootstrapAddrs,
-		BlockedAddrs:   c.P2P.BlockedAddrs,
-		Discovery:      !c.P2P.DisableDiscovery,
-		Signer:         s,
-		Logger:         l,
+		Context:          ctx,
+		PeerPrivKey:      peerPrivKey,
+		MessagePrivKey:   ethkey.NewPrivKey(s),
+		ListenAddrs:      c.P2P.ListenAddrs,
+		BootstrapAddrs:   c.P2P.BootstrapAddrs,
+		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
+		BlockedAddrs:     c.P2P.BlockedAddrs,
+		Discovery:        !c.P2P.DisableDiscovery,
+		Signer:           s,
+		Logger:           l,
 	}
 	cfg.FeedersAddrs = []ethereum.Address{ethereum.HexToAddress(c.Ethereum.From)}
 	for _, feed := range c.Feeds {

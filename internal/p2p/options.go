@@ -19,10 +19,10 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	relay "github.com/libp2p/go-libp2p-circuit"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -86,81 +86,39 @@ func UserAgent(userAgent string) Options {
 	}
 }
 
-// CircuitRelay configures node to use circuit relay.
-func CircuitRelay(relayAddrs []multiaddr.Multiaddr) Options {
+// ConnectionLimit limits the number of connections. When the number of
+// connections reaches a high value, then as many connections will be
+// dropped until we reach a low number of connections.
+func ConnectionLimit(low, high int, grace time.Duration) Options {
 	return func(n *Node) error {
-		addrs, err := peer.AddrInfosFromP2pAddrs(relayAddrs...)
-		if err != nil {
-			return err
-		}
-
-		n.hostOpts = append(n.hostOpts, libp2p.EnableAutoRelay())
-		if len(addrs) > 0 {
-			n.hostOpts = append(
-				n.hostOpts,
-				libp2p.EnableRelay(),
-				libp2p.StaticRelays(addrs),
-			)
-		} else {
-			n.hostOpts = append(
-				n.hostOpts,
-				libp2p.EnableRelay(relay.OptHop),
-			)
-		}
-
+		n.connmgr = connmgr.NewConnManager(low, high, grace)
 		return nil
 	}
 }
 
-// Bootstrap configures node to use given bootstrapping nodes. It periodically
-// checks if the connection to these nodes is maintained.
-func Bootstrap(addrs []multiaddr.Multiaddr) Options {
+// DirectPeers is a gossipsub router option that specifies getPeerInfos with direct
+// peering agreements. These getPeerInfos are connected outside of the mesh, with all (valid)
+// message unconditionally forwarded to them. The router will maintain open connections
+// to these getPeerInfos. Note that the peering agreement should be reciprocal with direct getPeerInfos
+// symmetrically configured at both ends.
+func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
-		var addrInfos []*peer.AddrInfo
+		if len(addrs) == 0 {
+			return nil
+		}
+
+		var addrInfos []peer.AddrInfo
 		for _, maddr := range addrs {
 			ai, err := peer.AddrInfoFromP2pAddr(maddr)
 			if err != nil {
 				return err
 			}
-			addrInfos = append(addrInfos, ai)
+			addrInfos = append(addrInfos, *ai)
 		}
-		connect := func() {
-			for _, addrInfo := range addrInfos {
-				if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
-					continue
-				}
-				n.log.
-					WithField("peerID", addrInfo.ID.Pretty()).
-					WithField("addrs", addrInfo.Addrs).
-					Info("Connecting to the bootstrap peer")
-				err := n.host.Connect(n.ctx, *addrInfo)
-				if err != nil {
-					n.log.
-						WithField("peerID", addrInfo.ID.Pretty()).
-						WithField("addrs", addrInfo.Addrs).
-						WithError(err).
-						Warn("Unable to connect to the bootstrap peer")
-				}
-			}
-		}
-		connectRoutine := func() {
-			t := time.NewTimer(2 * time.Minute)
-			connect()
-			for {
-				select {
-				case <-n.ctx.Done():
-					t.Stop()
-					return
-				case <-t.C:
-					connect()
-				}
-			}
-		}
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event == sets.NodeStarted {
-				go connectRoutine()
-			}
-		}))
+		n.pubsubOpts = append(
+			n.pubsubOpts,
+			pubsub.WithDirectPeers(addrInfos),
+		)
 		return nil
 	}
 }
@@ -182,7 +140,12 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 				n.log.
 					WithField("bootstrapAddrs", bootstrapAddrs).
 					Info("Starting KAD-DHT discovery")
-
+				for _, addr := range addrs {
+					// bootstrap nodes aren't protected by KAD-DHT so we have
+					// do it manually
+					n.connmgr.Protect(addr.ID, "bootstrap")
+					n.peerstore.AddAddrs(addr.ID, addr.Addrs, peerstore.PermanentAddrTTL)
+				}
 				kadDHT, err = dht.New(n.ctx, n.host, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
 				if err != nil {
 					n.log.

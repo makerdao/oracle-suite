@@ -17,6 +17,9 @@ package p2p
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
@@ -29,10 +32,14 @@ import (
 
 const LoggerTag = "P2P"
 const userAgentString = "spire/v0.0-dev"
+const lowPeers = 100
+const highPeers = 150
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+
+var ErrP2P = errors.New("P2P transport error")
 
 // P2P is a little wrapper for the Node that implements the Transport
 // interface.
@@ -54,7 +61,12 @@ type Config struct {
 	// listening on. If empty, the localhost, and a random port will be used.
 	ListenAddrs []string
 	// BootstrapAddrs is a list multiaddresses of initial peers to connect to.
+	// This option is ignored when discovery is disabled.
 	BootstrapAddrs []string
+	// DirectPeersAddrs is a list multiaddresses of peers to which messages
+	// will be send directly. This option have to be configured symmetrically
+	// at both ends.
+	DirectPeersAddrs []string
 	// BlockedAddrs is a list of multiaddresses to which connection will be
 	// blocked. If an address on that list contains an IP and a peer ID, both
 	// will be blocked separately.
@@ -62,7 +74,9 @@ type Config struct {
 	// FeedersAddrs is a list of price feeders. Only feeders can create new
 	// messages in the network.
 	FeedersAddrs []ethereum.Address
-	// Discovery indicates whenever Discovery should be enabled.
+	// Discovery indicates whenever peer discovery should be enabled.
+	// If discovery is disabled, then DirectPeersAddrs must be used
+	// to connect to the network.
 	Discovery bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
@@ -79,52 +93,53 @@ func New(cfg Config) (*P2P, error) {
 
 	listenAddrs, err := strsToMaddrs(cfg.ListenAddrs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: unable to parse listenAddrs: %v", ErrP2P, err)
 	}
 	bootstrapAddrs, err := strsToMaddrs(cfg.BootstrapAddrs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: unable to parse bootstrapAddrs: %v", ErrP2P, err)
+	}
+	directPeersAddrs, err := strsToMaddrs(cfg.DirectPeersAddrs)
+	if err != nil {
+		return nil, fmt.Errorf("%v: unable to parse directPeersAddrs: %v", ErrP2P, err)
 	}
 	blockedAddrs, err := strsToMaddrs(cfg.BlockedAddrs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: unable to parse blockedAddrs: %v", ErrP2P, err)
 	}
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)
 	opts := []p2p.Options{
 		p2p.UserAgent(userAgentString),
 		p2p.ListenAddrs(listenAddrs),
+		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
+		p2p.ConnectionLimit(lowPeers, highPeers, 5*time.Minute),
 		p2p.Logger(logger),
 		p2p.ConnectionLogger(),
 		p2p.MessageLogger(),
 		p2p.PeerLogger(),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
-
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
 	}
-
 	if cfg.MessagePrivKey != nil {
 		opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
 	}
-
 	if cfg.Discovery {
 		opts = append(opts, p2p.Discovery(bootstrapAddrs))
-	} else {
-		opts = append(opts, p2p.Bootstrap(bootstrapAddrs))
 	}
 
 	n, err := p2p.NewNode(cfg.Context, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: unable to initialize node: %v", ErrP2P, err)
 	}
 
 	p := &P2P{node: n}
 	err = p.node.Start()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: unable to start node: %v", ErrP2P, err)
 	}
 
 	return p, nil
@@ -132,29 +147,40 @@ func New(cfg Config) (*P2P, error) {
 
 // Subscribe implements the transport.Transport interface.
 func (p *P2P) Subscribe(topic string, typ transport.Message) error {
-	return p.node.Subscribe(topic, typ)
+	err := p.node.Subscribe(topic, typ)
+	if err != nil {
+		return fmt.Errorf("%v: unable to subscribe to topic %s: %v", ErrP2P, topic, err)
+	}
+	return nil
 }
 
 // Unsubscribe implements the transport.Transport interface.
 func (p *P2P) Unsubscribe(topic string) error {
-	return p.node.Unsubscribe(topic)
+	err := p.node.Unsubscribe(topic)
+	if err != nil {
+		return fmt.Errorf("%v: unable to unsubscribe from topic %s: %v", ErrP2P, topic, err)
+	}
+	return nil
 }
 
 // Broadcast implements the transport.Transport interface.
 func (p *P2P) Broadcast(topic string, message transport.Message) error {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: unable to get subscription for %s topic: %v", ErrP2P, topic, err)
 	}
 	return sub.Publish(message)
 }
 
 // WaitFor implements the transport.Transport interface.
-func (p *P2P) WaitFor(topic string) chan transport.Status {
+func (p *P2P) WaitFor(topic string) chan transport.ReceivedMessage {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil
 	}
+	go func() {
+
+	}()
 	return sub.Next()
 }
 

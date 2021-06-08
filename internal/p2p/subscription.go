@@ -38,9 +38,9 @@ type Subscription struct {
 	eventHandler   sets.PubSubEventHandler
 	messageHandler sets.MessageHandler
 
-	// statusCh is used to send a notification about a new message, it's
+	// msgCh is used to send a notification about a new message, it's
 	// returned by the Transport.WaitFor function.
-	statusCh chan transport.Status
+	msgCh chan transport.ReceivedMessage
 }
 
 func newSubscription(node *Node, topic string, typ transport.Message) (*Subscription, error) {
@@ -50,7 +50,7 @@ func newSubscription(node *Node, topic string, typ transport.Message) (*Subscrip
 		validatorSet:   node.validatorSet,
 		eventHandler:   node.pubSubEventHandlerSet,
 		messageHandler: node.messageHandlerSet,
-		statusCh:       make(chan transport.Status),
+		msgCh:          make(chan transport.ReceivedMessage),
 	}
 	err = node.pubSub.RegisterTopicValidator(topic, s.validator(topic, typ))
 	if err != nil {
@@ -84,19 +84,20 @@ func (s Subscription) Publish(message transport.Message) error {
 	return s.topic.Publish(s.ctx, b)
 }
 
-func (s Subscription) Next() chan transport.Status {
+func (s Subscription) Next() chan transport.ReceivedMessage {
 	go func() {
 		var msg transport.Message
 		psMsg, err := s.sub.Next(s.ctx)
 		if psMsg != nil && err == nil {
 			msg = psMsg.ValidatorData.(transport.Message)
 		}
-		s.statusCh <- transport.Status{
+		s.msgCh <- transport.ReceivedMessage{
 			Message: msg,
+			Data:    psMsg,
 			Error:   err,
 		}
 	}()
-	return s.statusCh
+	return s.msgCh
 }
 
 func (s Subscription) validator(topic string, typ transport.Message) pubsub.ValidatorEx {
