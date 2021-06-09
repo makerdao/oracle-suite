@@ -18,11 +18,13 @@ package p2p
 import (
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
+//nolint:gomnd
 // NodeScoring configures node scoring parameters.
 func NodeScoring() Options {
 	return func(n *Node) error {
