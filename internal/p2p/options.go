@@ -104,6 +104,10 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 			return nil
 		}
 
+		n.log.
+			WithField("addrs", addrs).
+			Info("Adding direct peers")
+
 		var addrInfos []peer.AddrInfo
 		for _, maddr := range addrs {
 			ai, err := peer.AddrInfoFromP2pAddr(maddr)
