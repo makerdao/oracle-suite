@@ -111,7 +111,9 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 			gcTTL: time.Second * time.Duration(float64(cfg.PeerBurst)/cfg.PeerBytesPerSecond) * 2,
 		}
 		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult {
-			// TODO: Should we do another check for msg.ReceivedFrom?
+			if n.Host().ID() == id {
+				return pubsub.ValidationAccept
+			}
 			if rl.allow(msg.GetFrom(), len(msg.Data)) {
 				return pubsub.ValidationAccept
 			}

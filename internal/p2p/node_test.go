@@ -104,9 +104,9 @@ func TestNode_MessagePropagation(t *testing.T) {
 	// This test checks if messages are propagated between peers correctly.
 	//
 	// Topology:
-	//   n1 <--[manual connection]--> n2
+	//   n1 <--[manual connection]--> n2 <--[manual connection]--> n3
 
-	peers, err := GetPeerInfo(2)
+	peers, err := GetPeerInfo(3)
 	require.NoError(t, err)
 
 	n1, err := NewNode(
@@ -127,18 +127,33 @@ func TestNode_MessagePropagation(t *testing.T) {
 	require.NoError(t, n2.Start())
 	defer n2.Stop()
 
+	n3, err := NewNode(
+		context.Background(),
+		PeerPrivKey(peers[2].PrivKey),
+		ListenAddrs(peers[2].ListenAddrs),
+	)
+	require.NoError(t, err)
+	require.NoError(t, n3.Start())
+	defer n2.Stop()
+
 	require.NoError(t, n1.Connect(peers[1].PeerAddrs[0]))
+	require.NoError(t, n2.Connect(peers[2].PeerAddrs[0]))
 	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
 	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n3.Subscribe("test", (*Message)(nil)))
 
 	// Wait for the peers to connect to each other:
 	WaitFor(t, func() bool {
-		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
+		return len(n1.PubSub().ListPeers("test")) > 0 &&
+			len(n2.PubSub().ListPeers("test")) > 0 &&
+			len(n3.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
 	s1, err := n1.Subscription("test")
 	require.NoError(t, err)
 	s2, err := n2.Subscription("test")
+	require.NoError(t, err)
+	s3, err := n3.Subscription("test")
 	require.NoError(t, err)
 
 	err = s1.Publish(NewMessage("makerdao"))
@@ -147,6 +162,7 @@ func TestNode_MessagePropagation(t *testing.T) {
 	// Message should be received on both nodes:
 	WaitForMessage(t, s1.Next(), NewMessage("makerdao"), defaultTimeout)
 	WaitForMessage(t, s2.Next(), NewMessage("makerdao"), defaultTimeout)
+	WaitForMessage(t, s3.Next(), NewMessage("makerdao"), defaultTimeout)
 }
 
 // Message is the simplest implementation of the transport.Message interface.
