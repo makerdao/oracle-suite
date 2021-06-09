@@ -110,12 +110,12 @@ func New(cfg Config) (*P2P, error) {
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)
 	opts := []p2p.Options{
+		p2p.Logger(logger),
 		p2p.UserAgent(userAgentString),
 		p2p.ListenAddrs(listenAddrs),
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
 		p2p.ConnectionLimit(lowPeers, highPeers, 5*time.Minute),
-		p2p.Logger(logger),
 		p2p.ConnectionLogger(),
 		p2p.MessageLogger(),
 		p2p.PeerLogger(),
