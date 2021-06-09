@@ -31,7 +31,7 @@ func NodeScoring() Options {
 			AppSpecificScore:            func(peer.ID) float64 { return 0 },
 			AppSpecificWeight:           1,
 			IPColocationFactorWeight:    -1,
-			IPColocationFactorThreshold: 1,
+			IPColocationFactorThreshold: 4,
 			DecayInterval:               1 * time.Minute,
 			DecayToZero:                 0.01,
 			RetainScore:                 10 * time.Second,
