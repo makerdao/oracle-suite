@@ -17,12 +17,14 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 
+	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/spire"
@@ -36,7 +38,7 @@ var (
 )
 
 func main() {
-	var opts options
+	opts := options{Version: suite.Version}
 	rootCmd := NewRootCommand(&opts)
 
 	if err := rootCmd.Execute(); err != nil {

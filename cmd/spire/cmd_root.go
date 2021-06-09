@@ -28,12 +28,13 @@ type options struct {
 	LogFormat    logrusFlag.FormatTypeValue
 	ConfigPath   string
 	Config       config.Config
+	Version      string
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:           "spire",
-		Version:       "DEV",
+		Version:       opts.Version,
 		Short:         "",
 		Long:          ``,
 		SilenceErrors: false,
