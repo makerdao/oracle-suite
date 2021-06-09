@@ -45,27 +45,23 @@ func (m *messageLoggerHandler) Published(topic string, raw []byte, _ transport.M
 }
 
 func (m *messageLoggerHandler) Received(topic string, msg *pubsub.Message, _ pubsub.ValidationResult) {
-	addrs := m.node.Host().Peerstore().PeerInfo(msg.ReceivedFrom).Addrs
 	m.node.log.
 		WithFields(log.Fields{
 			"topic":              topic,
 			"message":            string(msg.Data),
 			"peerID":             msg.GetFrom().String(),
 			"receivedFromPeerID": msg.ReceivedFrom.String(),
-			"receivedFromAddrs":  addrs,
 		}).
 		Debug("Received a new message")
 }
 
 func (m *messageLoggerHandler) Broken(topic string, msg *pubsub.Message, err error) {
-	addrs := m.node.Host().Peerstore().PeerInfo(msg.ReceivedFrom).Addrs
 	m.node.log.
 		WithError(err).
 		WithFields(log.Fields{
 			"topic":              topic,
 			"peerID":             msg.GetFrom().String(),
 			"receivedFromPeerID": msg.ReceivedFrom.String(),
-			"receivedFromAddrs":  addrs,
 		}).
 		Debug("Unable to unmarshall received message")
 }

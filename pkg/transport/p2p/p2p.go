@@ -38,8 +38,9 @@ const lowPeers = 100
 const highPeers = 150
 
 // Values used to calculate limits for a rate limiter:
-const maxMessageSize = 128 * 1024
-const maxPairs = 50
+const maxMessageSize = 128 * 1024 // maximum expected message size in bytes
+const maxPairs = 50               // maximum expected number of asset pairs
+const priceUpdateInterval = 60    // expected price update interval in seconds
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -126,8 +127,8 @@ func New(cfg Config) (*P2P, error) {
 		p2p.Denylist(blockedAddrs),
 		p2p.ConnectionLimit(lowPeers, highPeers, 5*time.Minute),
 		p2p.RateLimiter(p2p.RateLimiterConfig{
-			GlobalBytesPerSecond: maxMessageSize * maxPairs / 60 * float64(len(cfg.FeedersAddrs)),
-			PeerBytesPerSecond:   maxMessageSize * maxPairs / 60,
+			GlobalBytesPerSecond: maxMessageSize * maxPairs / priceUpdateInterval * float64(len(cfg.FeedersAddrs)),
+			PeerBytesPerSecond:   maxMessageSize * maxPairs / priceUpdateInterval,
 			GlobalBurst:          maxMessageSize * maxPairs * len(cfg.FeedersAddrs),
 			PeerBurst:            maxMessageSize * maxPairs,
 		}),

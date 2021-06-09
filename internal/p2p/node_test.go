@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
@@ -132,6 +131,7 @@ func TestNode_MessagePropagation(t *testing.T) {
 	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
 	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
 
+	// Wait for the peers to connect to each other:
 	WaitFor(t, func() bool {
 		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
@@ -147,47 +147,6 @@ func TestNode_MessagePropagation(t *testing.T) {
 	// Message should be received on both nodes:
 	WaitForMessage(t, s1.Next(), NewMessage("makerdao"), defaultTimeout)
 	WaitForMessage(t, s2.Next(), NewMessage("makerdao"), defaultTimeout)
-}
-
-func TestNode_ConnectionLimit(t *testing.T) {
-	peers, err := GetPeerInfo(5)
-	require.NoError(t, err)
-
-	n, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[0].PrivKey),
-		ListenAddrs(peers[0].ListenAddrs),
-		ConnectionLimit(1, 1, 0),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n.Start())
-	defer n.Stop()
-
-	for i := 2; i < len(peers); i++ {
-		n, err := NewNode(
-			context.Background(),
-			PeerPrivKey(peers[i].PrivKey),
-			ListenAddrs(peers[i].ListenAddrs),
-			Discovery(nil),
-		)
-		require.NoError(t, err)
-		require.NoError(t, n.Start())
-		defer n.Stop()
-
-		require.NoError(t, n.Connect(peers[0].PeerAddrs[0]))
-	}
-
-	n.Host().ConnManager().TrimOpenConns(context.Background())
-	time.Sleep(time.Second)
-
-	conns := 0
-	for _, p := range n.Host().Peerstore().Peers() {
-		if n.Host().Network().Connectedness(p) == network.Connected {
-			conns++
-		}
-	}
-
-	assert.Equal(t, conns, 1)
 }
 
 // Message is the simplest implementation of the transport.Message interface.
@@ -272,6 +231,7 @@ func GetFreePorts(n int) ([]int, error) {
 	return ports, nil
 }
 
+// WaitFor waits until cond becomes true.
 func WaitFor(t *testing.T, cond func() bool, timeout time.Duration) {
 	s := time.Now()
 	for !cond() {
@@ -283,6 +243,7 @@ func WaitFor(t *testing.T, cond func() bool, timeout time.Duration) {
 	}
 }
 
+// WaitForMessage waits for expected message.
 func WaitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected *Message, timeout time.Duration) {
 	to := time.After(timeout)
 	select {
@@ -303,8 +264,10 @@ func WaitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected 
 	}
 }
 
+// CountMessages counts asynchronously received messages for specified time
+// duration, then returns results in channel.
 func CountMessages(sub *Subscription, duration time.Duration) chan map[peer.ID]int {
-	ch := make(chan map[peer.ID]int, 0)
+	ch := make(chan map[peer.ID]int)
 	go func() {
 		count := map[peer.ID]int{}
 		defer func() { ch <- count }()

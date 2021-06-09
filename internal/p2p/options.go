@@ -96,11 +96,8 @@ func ConnectionLimit(low, high int, grace time.Duration) Options {
 	}
 }
 
-// DirectPeers is a gossipsub router option that specifies getPeerInfos with direct
-// peering agreements. These getPeerInfos are connected outside of the mesh, with all (valid)
-// message unconditionally forwarded to them. The router will maintain open connections
-// to these getPeerInfos. Note that the peering agreement should be reciprocal with direct getPeerInfos
-// symmetrically configured at both ends.
+// DirectPeers enforces direct connection with given peers. Note that the
+// direct connection should be symmetrically configured at both ends.
 func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {
 		if len(addrs) == 0 {

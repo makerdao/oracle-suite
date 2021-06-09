@@ -23,21 +23,25 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"golang.org/x/time/rate"
+
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
+// RateLimiterConfig is a configuration for the RateLimiter option.
 type RateLimiterConfig struct {
-	// GlobalBytesPerSecond is a maximum number of allowed bytes/s to be
-	// received from the network.
-	GlobalBytesPerSecond float64
-	// PeerBytesPerSecond is a maximum number of allowed bytes/s to be
+	// PeerBytesPerSecond is the maximum number of bytes/s that can be
 	// received from a single peer.
 	PeerBytesPerSecond float64
-	// GlobalBurst is a burst value in bytes applied for a
-	// messages received from the network.
-	GlobalBurst int
-	// GlobalBurst is a burst value in bytes applied for a
-	// messages received from a singe peer.
+	// GlobalBurst is a burst value in bytes applied for a messages received
+	// from a singe peer.
 	PeerBurst int
+	// GlobalBytesPerSecond is the maximum number of bytes/s that can be
+	// received from the network. Messages rejected by peer limiters are not
+	// counted.
+	GlobalBytesPerSecond float64
+	// GlobalBurst is a burst value in bytes applied for a messages received
+	// from the network. Messages rejected by peer limiters are not counted.
+	GlobalBurst int
 }
 
 type rateLimiter struct {
@@ -45,49 +49,49 @@ type rateLimiter struct {
 
 	peerBtsPerSec float64
 	peerBurstSize int
-	globalLimiter *rate.Limiter
 	peerLimiters  map[peer.ID]*peerLimiter
+
+	// globalLimiter is used for all messages from any peer.
+	globalLimiter *rate.Limiter
+	// gcTTL is a time since last message after which peer will be removed
+	// by the gc method.
+	gcTTL time.Duration
 }
 
 type peerLimiter struct {
 	limiter *rate.Limiter
-	lastMsg time.Time
+	lastMsg time.Time // lastMsg is a time since last message.
 }
 
+// peerLimiter creates or returns previously created limiter for a given peer.
 func (p *rateLimiter) peerLimiter(id peer.ID) *peerLimiter {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
 	if _, ok := p.peerLimiters[id]; !ok {
 		p.peerLimiters[id] = &peerLimiter{
 			limiter: rate.NewLimiter(rate.Limit(p.peerBtsPerSec), p.peerBurstSize),
+			lastMsg: time.Now(),
 		}
 	}
-
 	return p.peerLimiters[id]
 }
 
-func (p *rateLimiter) allowPeer(id peer.ID, msgSize int) bool {
+// allow checks if a message of a given size can be received from given peer.
+func (p *rateLimiter) allow(id peer.ID, msgSize int) bool {
 	prl := p.peerLimiter(id)
 	prl.lastMsg = time.Now()
-
-	return prl.limiter.AllowN(prl.lastMsg, msgSize)
+	// It is important, that global limiter cannot be called if peer limiter
+	// returns false. Otherwise, a misbehaving peer may exhaust the limits
+	// for the entire network.
+	return prl.limiter.AllowN(prl.lastMsg, msgSize) && p.globalLimiter.AllowN(time.Now(), msgSize)
 }
 
-func (p *rateLimiter) allowGlobal(msgSize int) bool {
-	return p.globalLimiter.AllowN(time.Now(), msgSize)
-}
-
-func (p *rateLimiter) allow(id peer.ID, msgSize int) bool {
-	return p.allowPeer(id, msgSize) && p.allowGlobal(msgSize)
-}
-
-func (p *rateLimiter) gc(ttl time.Duration) {
+// gc removes inactive peers.
+func (p *rateLimiter) gc() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
 	for id, pl := range p.peerLimiters {
-		if time.Since(pl.lastMsg) >= ttl {
+		if time.Since(pl.lastMsg) >= p.gcTTL {
 			delete(p.peerLimiters, id)
 		}
 	}
@@ -102,27 +106,36 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 			peerBtsPerSec: cfg.PeerBytesPerSecond,
 			peerBurstSize: cfg.PeerBurst,
 			globalLimiter: rate.NewLimiter(rate.Limit(cfg.GlobalBytesPerSecond), cfg.GlobalBurst),
-			peerLimiters:  make(map[peer.ID]*peerLimiter, 0),
+			peerLimiters:  make(map[peer.ID]*peerLimiter),
+			// gcTTL is a time required to fill empty token bucket, then multiplied by two:
+			gcTTL: time.Second * time.Duration(float64(cfg.PeerBurst)/cfg.PeerBytesPerSecond) * 2,
 		}
+		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult {
+			// TODO: Should we do another check for msg.ReceivedFrom?
+			if rl.allow(msg.GetFrom(), len(msg.Data)) {
+				return pubsub.ValidationAccept
+			}
+			n.log.
+				WithFields(log.Fields{
+					"topic":              topic,
+					"peerID":             msg.GetFrom().String(),
+					"receivedFromPeerID": msg.ReceivedFrom.String(),
+				}).
+				Debug("The message was rejected due to rate limiting")
+			return pubsub.ValidationIgnore
+		})
 		go func() {
-			ttl := time.Second * time.Duration(float64(cfg.PeerBurst)/cfg.PeerBytesPerSecond)
 			t := time.NewTimer(time.Minute)
 			defer t.Stop()
 			for {
 				select {
-				case <-t.C:
-					rl.gc(ttl)
 				case <-n.ctx.Done():
 					return
+				case <-t.C:
+					rl.gc()
 				}
 			}
 		}()
-		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult {
-			if rl.allow(id, len(msg.Data)) {
-				return pubsub.ValidationAccept
-			}
-			return pubsub.ValidationIgnore
-		})
 		return nil
 	}
 }

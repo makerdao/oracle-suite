@@ -26,6 +26,12 @@ import (
 )
 
 func TestNode_RateLimiter_PeerLimit(t *testing.T) {
+	// This test checks if peer limits works correctly. The limit is set to
+	// 128 bytes/s, we will try to send two messages of 128 bytes each.
+	// The second one must be rejected because it will exceed the 128 bytes/s
+	// limit. Then we wait one second and try to send another 128 byte message.
+	// This time the message should be accepted.
+
 	peers, err := GetPeerInfo(2)
 	require.NoError(t, err)
 
@@ -37,7 +43,7 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 		RateLimiter(RateLimiterConfig{
 			GlobalBytesPerSecond: 1024,
 			PeerBytesPerSecond:   128,
-			GlobalBurst:          128,
+			GlobalBurst:          1024,
 			PeerBurst:            128,
 		}),
 	)
@@ -63,23 +69,30 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 	s2, err := n2.Subscription("test")
 	require.NoError(t, err)
 
+	// Wait for the peers to connect to each other:
 	WaitFor(t, func() bool {
 		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
+	// Send messages:
 	msgsCh := CountMessages(s1, 2*time.Second)
-
 	msg := NewMessage(strings.Repeat("a", 128))
 	require.NoError(t, s2.Publish(msg))
 	require.NoError(t, s2.Publish(msg)) // exceeds limit
 	time.Sleep(1 * time.Second)
 	require.NoError(t, s2.Publish(msg))
 
-	// Only one message should arrive, rest messages exceed the peer limit:
-	assert.Equal(t, 1, (<-msgsCh)[n2.Host().ID()])
+	// Only two messages should arrive, rest messages exceed the peer limit:
+	assert.Equal(t, 2, (<-msgsCh)[n2.Host().ID()])
 }
 
 func TestNode_RateLimiter_PeerBurst(t *testing.T) {
+	// This test checks if data burst for a peer works correctly. The value for
+	// the data limit is smaller than the message size. We will try to send two
+	// messages. The first one should be accepted because its size is within the
+	// burst limit. The second one should be rejected because it exceeds the
+	// burst limit.
+
 	peers, err := GetPeerInfo(2)
 	require.NoError(t, err)
 
@@ -117,21 +130,28 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 	s2, err := n2.Subscription("test")
 	require.NoError(t, err)
 
+	// Wait for the peers to connect to each other:
 	WaitFor(t, func() bool {
 		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
+	// Send messages:
+	msgsCh := CountMessages(s1, 2*time.Second)
 	msg := NewMessage(strings.Repeat("a", 1024))
 	require.NoError(t, s2.Publish(msg))
 	require.NoError(t, s2.Publish(msg))
 
-	msgs := <-CountMessages(s1, 2*time.Second)
-
 	// Only one message should arrive, second one exceeds the peer limit:
-	assert.Equal(t, 1, msgs[n2.Host().ID()])
+	assert.Equal(t, 1, (<-msgsCh)[n2.Host().ID()])
 }
 
 func TestNode_RateLimiter_GlobalBurst(t *testing.T) {
+	// This test checks if global data burst works correctly. The value for
+	// the global data limit is smaller than the message size. We will try to
+	// send two messages. The first one should be accepted because its size is
+	// within the burst limit. The second one should be rejected because it
+	// exceeds the burst limit.
+
 	peers, err := GetPeerInfo(2)
 	require.NoError(t, err)
 
@@ -169,16 +189,17 @@ func TestNode_RateLimiter_GlobalBurst(t *testing.T) {
 	s2, err := n2.Subscription("test")
 	require.NoError(t, err)
 
+	// Wait for the peers to connect to each other:
 	WaitFor(t, func() bool {
 		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
+	// Send messages:
+	msgsCh := CountMessages(s1, 2*time.Second)
 	msg := NewMessage(strings.Repeat("a", 1024))
 	require.NoError(t, s2.Publish(msg))
 	require.NoError(t, s2.Publish(msg))
 
-	msgs := <-CountMessages(s1, 2*time.Second)
-
-	// Only one message should arrive, second one exceeds the global limit:
-	assert.Equal(t, 1, msgs[n2.Host().ID()])
+	// Only one message should arrive, second one exceeds the peer limit:
+	assert.Equal(t, 1, (<-msgsCh)[n2.Host().ID()])
 }
