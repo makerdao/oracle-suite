@@ -40,12 +40,7 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		Discovery(nil),
-		RateLimiter(RateLimiterConfig{
-			GlobalBytesPerSecond: 1024,
-			PeerBytesPerSecond:   128,
-			GlobalBurst:          1024,
-			PeerBurst:            128,
-		}),
+		RateLimiter(128, 128),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
@@ -101,71 +96,7 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		Discovery(nil),
-		RateLimiter(RateLimiterConfig{
-			GlobalBytesPerSecond: 1,
-			PeerBytesPerSecond:   1,
-			GlobalBurst:          3 * 1024,
-			PeerBurst:            1024,
-		}),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n1.Start())
-	defer n1.Stop()
-
-	n2, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[1].PrivKey),
-		ListenAddrs(peers[1].ListenAddrs),
-		Discovery(peers[0].PeerAddrs),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
-
-	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
-
-	s1, err := n1.Subscription("test")
-	require.NoError(t, err)
-	s2, err := n2.Subscription("test")
-	require.NoError(t, err)
-
-	// Wait for the peers to connect to each other:
-	WaitFor(t, func() bool {
-		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
-	}, defaultTimeout)
-
-	// Send messages:
-	msgsCh := CountMessages(s1, 2*time.Second)
-	msg := NewMessage(strings.Repeat("a", 1024))
-	require.NoError(t, s2.Publish(msg))
-	require.NoError(t, s2.Publish(msg))
-
-	// Only one message should arrive, second one exceeds the peer limit:
-	assert.Equal(t, 1, (<-msgsCh)[n2.Host().ID()])
-}
-
-func TestNode_RateLimiter_GlobalBurst(t *testing.T) {
-	// This test checks if global data burst works correctly. The value for
-	// the global data limit is smaller than the message size. We will try to
-	// send two messages. The first one should be accepted because its size is
-	// within the burst limit. The second one should be rejected because it
-	// exceeds the burst limit.
-
-	peers, err := GetPeerInfo(2)
-	require.NoError(t, err)
-
-	n1, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[0].PrivKey),
-		ListenAddrs(peers[0].ListenAddrs),
-		Discovery(nil),
-		RateLimiter(RateLimiterConfig{
-			GlobalBytesPerSecond: 1,
-			PeerBytesPerSecond:   1,
-			GlobalBurst:          1024,
-			PeerBurst:            3 * 1024,
-		}),
+		RateLimiter(1, 1024),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())

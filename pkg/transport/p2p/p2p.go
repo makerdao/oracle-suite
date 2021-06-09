@@ -126,12 +126,7 @@ func New(cfg Config) (*P2P, error) {
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
 		p2p.ConnectionLimit(lowPeers, highPeers, 5*time.Minute),
-		p2p.RateLimiter(p2p.RateLimiterConfig{
-			GlobalBytesPerSecond: maxMessageSize * maxPairs / priceUpdateInterval * float64(len(cfg.FeedersAddrs)),
-			PeerBytesPerSecond:   maxMessageSize * maxPairs / priceUpdateInterval,
-			GlobalBurst:          maxMessageSize * maxPairs * len(cfg.FeedersAddrs),
-			PeerBurst:            maxMessageSize * maxPairs,
-		}),
+		p2p.RateLimiter(maxMessageSize * maxPairs / priceUpdateInterval, maxMessageSize * maxPairs),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {

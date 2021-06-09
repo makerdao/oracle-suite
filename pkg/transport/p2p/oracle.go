@@ -45,14 +45,14 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 				logger.
 					WithError(err).
 					WithField("peerID", psMsg.GetFrom().String()).
-					Info("Rejected a price message, invalid signature")
+					Info("The price message was rejected, invalid signature")
 				return pubsub.ValidationReject
 			}
 			// The libp2p message should be created by the same person who signs the price message:
 			if ethkey.AddressToPeerID(*priceFrom) != psMsg.GetFrom() {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
-					Info("Rejected a price message, the message author and price signature don't match")
+					Info("The price message was rejected, the message author and price signature don't match")
 				return pubsub.ValidationReject
 			}
 			// Check is the author is allowed to send price messages:
@@ -67,7 +67,7 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
 					WithField("feed", priceFrom.String()).
-					Info("Rejected a price message, the feeder is not allowed to send price messages")
+					Info("The price message was rejected, the feeder is not allowed to send price messages")
 				return pubsub.ValidationReject
 			}
 			// Check when message was created, ignore if older than 5 min, reject if older than 10 min:
@@ -75,7 +75,7 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
 					WithField("feed", priceFrom.String()).
-					Info("Rejected a price message, the message is older than 5 min")
+					Info("The price message was rejected, the message is older than 5 min")
 				if time.Since(priceMsg.Price.Age) > 10*time.Minute {
 					return pubsub.ValidationReject
 				}
