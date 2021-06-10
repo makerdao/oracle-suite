@@ -20,7 +20,7 @@ $(BUILD_TARGET): export GOARCH ?= amd64
 $(BUILD_TARGET): export CGO_ENABLED ?= 0
 $(BUILD_TARGET): $(GO_FILES)
 	mkdir -p $(@D)
-	$(GO) build -tags $(BUILD_FLAGS) -o $@ cmd/$(notdir $@)/*.go
+	$(GO) build -tags $(BUILD_FLAGS) $(LDFLAGS) -o $@ cmd/$(notdir $@)/*.go
 
 clean:
 	rm -rf $(OUT_DIR) $(BUILD_DIR)
@@ -79,3 +79,21 @@ $(TEST_BUILD_TARGET): clean-test $(TEST_BUILD_PACKAGE_FILES)
 run-test: $(TEST_BUILD_TARGET)
 	$(TEST_BUILD_TARGET) -test.v -gofer.test-api-calls
 .PHONY: run-test
+
+VERSION_TAG_CURRENT := $(shell git tag --list 'v*' --points-at HEAD | sort --version-sort | tr \~ - | tail -1)
+VERSION_TAG_LATEST := $(shell git tag --list 'v*' | tr - \~ | sort --version-sort | tr \~ - | tail -1)
+ifeq ($(VERSION_TAG_CURRENT),$(VERSION_TAG_LATEST))
+	VERSION := $(VERSION_TAG_CURRENT)
+endif
+
+VERSION_HASH := $(shell git rev-parse --short HEAD)
+VERSION_DATE := $(shell git log -1 --format=%cd --date=format:"%Y%m%d")
+ifeq ($(VERSION),)
+	VERSION := "dev-$(VERSION_HASH)-$(VERSION_DATE)"
+endif
+
+ifneq ($(shell git status --porcelain),)
+	VERSION := $(VERSION)-dirty
+endif
+
+LDFLAGS := -ldflags "-X github.com/makerdao/oracle-suite.Version=$(VERSION)"

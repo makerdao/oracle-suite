@@ -18,8 +18,21 @@ package suite
 import (
 	// We need to import embed package to be able to embed files
 	_ "embed"
+	"strings"
 )
 
 // Version is being used in executables
 //go:embed version
+var version string
+
 var Version string
+
+func init() {
+	if Version == "" {
+		v := strings.Split(version, "\n")[0]
+		if len(v) == 0 {
+			return
+		}
+		Version = v
+	}
+}
