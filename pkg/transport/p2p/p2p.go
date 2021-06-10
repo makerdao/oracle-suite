@@ -24,6 +24,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
+	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/internal/p2p"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -31,7 +32,6 @@ import (
 )
 
 const LoggerTag = "P2P"
-const userAgentString = "spire/v0.0-dev"
 const lowPeers = 100
 const highPeers = 150
 
@@ -111,7 +111,7 @@ func New(cfg Config) (*P2P, error) {
 	logger := cfg.Logger.WithField("tag", LoggerTag)
 	opts := []p2p.Options{
 		p2p.Logger(logger),
-		p2p.UserAgent(userAgentString),
+		p2p.UserAgent(fmt.Sprintf("spire/%s", suite.Version)),
 		p2p.ListenAddrs(listenAddrs),
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
