@@ -27,6 +27,22 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
+// RateLimiterConfig is a configuration for the RateLimiter option.
+type RateLimiterConfig struct {
+	// BytesPerSecond is the maximum rate of messages in bytes/s that can be
+	// created by a single peer.
+	BytesPerSecond float64
+	// BurstSize is a burst value in bytes for a messages created from a singe
+	// peer.
+	BurstSize int
+	// RelayBytesPerSecond is the maximum rate of messages in bytes/s that can
+	// be relayed by a single relay.
+	RelayBytesPerSecond float64
+	// RelayBurstSize is a burst value in bytes for a messages relayed by
+	// a singe peer.
+	RelayBurstSize int
+}
+
 type rateLimiter struct {
 	mu sync.Mutex
 
@@ -94,12 +110,12 @@ func (p *rateLimiter) gc() {
 //
 // burstSize is a burst value in bytes applied for a messages received
 // from a singe peer.
-func RateLimiter(bytesPerSecond float64, burstSize int) Options {
+func RateLimiter(cfg RateLimiterConfig) Options {
 	return func(n *Node) error {
 		// Rate limiter for message relays:
-		relayRL := newRateLimiter(bytesPerSecond, burstSize)
+		relayRL := newRateLimiter(cfg.RelayBytesPerSecond, cfg.RelayBurstSize)
 		// Rate limiter for message authors:
-		msgRL := newRateLimiter(bytesPerSecond, burstSize)
+		msgRL := newRateLimiter(cfg.BytesPerSecond, cfg.BurstSize)
 		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, msg *pubsub.Message) pubsub.ValidationResult {
 			if n.Host().ID() == id {
 				return pubsub.ValidationAccept
