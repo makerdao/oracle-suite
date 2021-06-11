@@ -7,7 +7,7 @@ commands:
       - run: mkdir -p /tmp/test-results
       - restore_cache:
           keys:
-            - go-mod-v5-{{ checksum "go.sum" }}
+            - go-mod-v6-{{ checksum "go.sum" }}
 
       - run:
           name: Install test dependencies
@@ -20,7 +20,7 @@ commands:
             go mod download
 
       - save_cache:
-          key: go-mod-v5-{{ checksum "go.sum" }}
+          key: go-mod-v6-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
 

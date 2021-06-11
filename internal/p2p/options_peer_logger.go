@@ -24,7 +24,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
-// PeerLogger logs all getPeerInfos handled by libp2p's pubsub system.
+// PeerLogger logs all peers handled by libp2p's pubsub system.
 func PeerLogger() Options {
 	return func(n *Node) error {
 		n.AddPubSubEventHandler(sets.PubSubEventHandlerFunc(func(topic string, event pubsub.PeerEvent) {

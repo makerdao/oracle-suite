@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
-	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/internal/p2p"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -32,8 +32,15 @@ import (
 )
 
 const LoggerTag = "P2P"
+
+// Values for connection limiter:
 const lowPeers = 100
 const highPeers = 150
+
+// Values used to calculate limits for a rate limiter:
+const maxMessageSize = 128 * 1024 // maximum expected message size in bytes
+const maxPairs = 50               // maximum expected number of asset pairs
+const priceUpdateInterval = 60    // expected price update interval in seconds
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -80,6 +87,10 @@ type Config struct {
 	Discovery bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
+
+	// Application info:
+	AppName    string
+	AppVersion string
 }
 
 // New returns a new instance of a transport, implemented with
@@ -111,14 +122,25 @@ func New(cfg Config) (*P2P, error) {
 	logger := cfg.Logger.WithField("tag", LoggerTag)
 	opts := []p2p.Options{
 		p2p.Logger(logger),
-		p2p.UserAgent(fmt.Sprintf("spire/%s", suite.Version)),
+		p2p.ConnectionLogger(),
+		p2p.MessageLogger(),
+		p2p.PeerLogger(),
+		p2p.UserAgent(fmt.Sprintf("%s/%s", cfg.AppName, cfg.AppVersion)),
 		p2p.ListenAddrs(listenAddrs),
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
 		p2p.ConnectionLimit(lowPeers, highPeers, 5*time.Minute),
-		p2p.ConnectionLogger(),
-		p2p.MessageLogger(),
-		p2p.PeerLogger(),
+		p2p.RateLimiter(p2p.RateLimiterConfig{
+			BytesPerSecond:      maxMessageSize * maxPairs / priceUpdateInterval,
+			BurstSize:           maxMessageSize * maxPairs,
+			RelayBytesPerSecond: maxMessageSize * maxPairs / priceUpdateInterval * float64(len(cfg.FeedersAddrs)),
+			RelayBurstSize:      maxMessageSize * maxPairs * len(cfg.FeedersAddrs),
+		}),
+		p2p.ConnectionLimit(
+			lowPeers,
+			highPeers,
+			5*time.Minute,
+		),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {
@@ -191,8 +213,8 @@ func (p *P2P) Close() error {
 
 // strsToMaddrs converts multiaddresses given as strings to a
 // list of multiaddr.Multiaddr.
-func strsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
-	var maddrs []multiaddr.Multiaddr
+func strsToMaddrs(addrs []string) ([]core.Multiaddr, error) {
+	var maddrs []core.Multiaddr
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {

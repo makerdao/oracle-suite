@@ -30,7 +30,9 @@ import (
 var ErrNilMessage = errors.New("message is nil")
 
 type Subscription struct {
-	ctx            context.Context
+	ctx      context.Context
+	ctxCanel context.CancelFunc
+
 	topic          *pubsub.Topic
 	sub            *pubsub.Subscription
 	teh            *pubsub.TopicEventHandler
@@ -45,8 +47,10 @@ type Subscription struct {
 
 func newSubscription(node *Node, topic string, typ transport.Message) (*Subscription, error) {
 	var err error
+	ctx, ctxCancel := context.WithCancel(node.ctx)
 	s := &Subscription{
-		ctx:            node.ctx,
+		ctx:            ctx,
+		ctxCanel:       ctxCancel,
 		validatorSet:   node.validatorSet,
 		eventHandler:   node.pubSubEventHandlerSet,
 		messageHandler: node.messageHandlerSet,
@@ -68,11 +72,12 @@ func newSubscription(node *Node, topic string, typ transport.Message) (*Subscrip
 	if err != nil {
 		return nil, err
 	}
+	s.messageLoop()
 	s.eventLoop()
 	return s, err
 }
 
-func (s Subscription) Publish(message transport.Message) error {
+func (s *Subscription) Publish(message transport.Message) error {
 	b, err := message.Marshall()
 	if err != nil {
 		return err
@@ -84,23 +89,11 @@ func (s Subscription) Publish(message transport.Message) error {
 	return s.topic.Publish(s.ctx, b)
 }
 
-func (s Subscription) Next() chan transport.ReceivedMessage {
-	go func() {
-		var msg transport.Message
-		psMsg, err := s.sub.Next(s.ctx)
-		if psMsg != nil && err == nil {
-			msg = psMsg.ValidatorData.(transport.Message)
-		}
-		s.msgCh <- transport.ReceivedMessage{
-			Message: msg,
-			Data:    psMsg,
-			Error:   err,
-		}
-	}()
+func (s *Subscription) Next() chan transport.ReceivedMessage {
 	return s.msgCh
 }
 
-func (s Subscription) validator(topic string, typ transport.Message) pubsub.ValidatorEx {
+func (s *Subscription) validator(topic string, typ transport.Message) pubsub.ValidatorEx {
 	// Validator actually have two roles in the libp2p: it unmarshalls messages
 	// and then validates them. Unmarshalled message is stored in the
 	// ValidatorData field which was created for this purpose:
@@ -120,7 +113,30 @@ func (s Subscription) validator(topic string, typ transport.Message) pubsub.Vali
 	}
 }
 
-func (s Subscription) eventLoop() {
+func (s *Subscription) messageLoop() {
+	go func() {
+		for {
+			var msg transport.Message
+			psMsg, err := s.sub.Next(s.ctx)
+
+			if psMsg != nil && err == nil {
+				msg = psMsg.ValidatorData.(transport.Message)
+			}
+			select {
+			case <-s.ctx.Done():
+				close(s.msgCh)
+				return
+			case s.msgCh <- transport.ReceivedMessage{
+				Message: msg,
+				Data:    psMsg,
+				Error:   err,
+			}:
+			}
+		}
+	}()
+}
+
+func (s *Subscription) eventLoop() {
 	go func() {
 		for {
 			pe, err := s.teh.NextPeerEvent(s.ctx)
@@ -134,7 +150,8 @@ func (s Subscription) eventLoop() {
 	}()
 }
 
-func (s Subscription) close() error {
+func (s *Subscription) close() error {
+	s.ctxCanel()
 	s.teh.Cancel()
 	s.sub.Cancel()
 	return s.topic.Close()
