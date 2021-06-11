@@ -40,7 +40,12 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		Discovery(nil),
-		RateLimiter(128, 128),
+		RateLimiter(RateLimiterConfig{
+			BytesPerSecond:      128,
+			BurstSize:           128,
+			RelayBytesPerSecond: 128,
+			RelayBurstSize:      128,
+		}),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
@@ -96,7 +101,12 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		Discovery(nil),
-		RateLimiter(1, 1024),
+		RateLimiter(RateLimiterConfig{
+			BytesPerSecond:      1,
+			BurstSize:           128,
+			RelayBytesPerSecond: 1,
+			RelayBurstSize:      128,
+		}),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
@@ -127,7 +137,7 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 
 	// Send messages:
 	msgsCh := CountMessages(s1, 2*time.Second)
-	msg := NewMessage(strings.Repeat("a", 1024))
+	msg := NewMessage(strings.Repeat("a", 128))
 	require.NoError(t, s2.Publish(msg))
 	require.NoError(t, s2.Publish(msg))
 
