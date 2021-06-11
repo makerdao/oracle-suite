@@ -15,7 +15,11 @@
 
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+
+	suite "github.com/makerdao/oracle-suite"
+)
 
 type options struct {
 	EthereumKeystore string
@@ -29,7 +33,7 @@ func NewRootCommand() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use:           "toolbox",
-		Version:       "DEV",
+		Version:       suite.Version,
 		Short:         "",
 		Long:          ``,
 		SilenceErrors: false,

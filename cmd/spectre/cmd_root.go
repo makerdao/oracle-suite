@@ -18,6 +18,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	suite "github.com/makerdao/oracle-suite"
 	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
 	"github.com/makerdao/oracle-suite/pkg/spectre/config"
 )
@@ -32,7 +33,7 @@ type options struct {
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:           "spectre",
-		Version:       "DEV",
+		Version:       suite.Version,
 		Short:         "",
 		Long:          ``,
 		SilenceErrors: false,

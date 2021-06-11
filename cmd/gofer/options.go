@@ -33,6 +33,7 @@ type options struct {
 	Format         formatTypeValue
 	Config         config.Config
 	NoRPC          bool
+	Version        string
 }
 
 var formatMap = map[marshal.FormatType]string{

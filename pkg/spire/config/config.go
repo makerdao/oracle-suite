@@ -28,6 +28,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 
+	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
@@ -168,6 +169,8 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           s,
 		Logger:           l,
+		AppName:          "spire",
+		AppVersion:       suite.Version,
 	}
 	cfg.FeedersAddrs = []ethereum.Address{ethereum.HexToAddress(c.Ethereum.From)}
 	for _, feed := range c.Feeds {

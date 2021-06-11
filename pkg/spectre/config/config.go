@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/libp2p/go-libp2p-core/crypto"
 
+	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	ethereumGeth "github.com/makerdao/oracle-suite/pkg/ethereum/geth"
@@ -168,6 +169,8 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           s,
 		Logger:           l,
+		AppName:          "spectre",
+		AppVersion:       suite.Version,
 	}
 	for _, feed := range c.Feeds {
 		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))

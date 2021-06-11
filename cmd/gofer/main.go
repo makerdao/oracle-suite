@@ -22,6 +22,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 	configJSON "github.com/makerdao/oracle-suite/pkg/gofer/config/json"
@@ -35,7 +36,8 @@ var exitCode = 0
 
 func main() {
 	opts := options{
-		Format: formatTypeValue{format: marshal.NDJSON},
+		Format:  formatTypeValue{format: marshal.NDJSON},
+		Version: suite.Version,
 	}
 
 	rootCmd := NewRootCommand(&opts)

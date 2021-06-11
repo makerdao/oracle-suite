@@ -18,6 +18,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	suite "github.com/makerdao/oracle-suite"
 	ghostConfig "github.com/makerdao/oracle-suite/pkg/ghost/config"
 	goferConfig "github.com/makerdao/oracle-suite/pkg/gofer/config"
 )
@@ -33,7 +34,7 @@ type options struct {
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:           "ghost",
-		Version:       "DEV",
+		Version:       suite.Version,
 		Short:         "",
 		Long:          ``,
 		SilenceErrors: false,

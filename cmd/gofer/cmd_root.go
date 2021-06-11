@@ -22,7 +22,7 @@ import (
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "gofer",
-		Version: "DEV",
+		Version: opts.Version,
 		Short:   "Tool for providing reliable data in the blockchain ecosystem",
 		Long: `
 Gofer is a CLI interface for the Gofer Go Library.

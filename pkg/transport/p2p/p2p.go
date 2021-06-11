@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
@@ -31,7 +32,6 @@ import (
 )
 
 const LoggerTag = "P2P"
-const userAgentString = "spire/v0.0-dev"
 
 // Values for connection limiter:
 const lowPeers = 100
@@ -87,6 +87,10 @@ type Config struct {
 	Discovery bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
+
+	// Application info:
+	AppName    string
+	AppVersion string
 }
 
 // New returns a new instance of a transport, implemented with
@@ -121,7 +125,7 @@ func New(cfg Config) (*P2P, error) {
 		p2p.ConnectionLogger(),
 		p2p.MessageLogger(),
 		p2p.PeerLogger(),
-		p2p.UserAgent(userAgentString),
+		p2p.UserAgent(fmt.Sprintf("%s/%s", cfg.AppName, cfg.AppVersion)),
 		p2p.ListenAddrs(listenAddrs),
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
@@ -132,6 +136,11 @@ func New(cfg Config) (*P2P, error) {
 			RelayBytesPerSecond: maxMessageSize * maxPairs / priceUpdateInterval * float64(len(cfg.FeedersAddrs)),
 			RelayBurstSize:      maxMessageSize * maxPairs * len(cfg.FeedersAddrs),
 		}),
+		p2p.ConnectionLimit(
+			lowPeers,
+			highPeers,
+			5*time.Minute,
+		),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {
@@ -204,8 +213,8 @@ func (p *P2P) Close() error {
 
 // strsToMaddrs converts multiaddresses given as strings to a
 // list of multiaddr.Multiaddr.
-func strsToMaddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
-	var maddrs []multiaddr.Multiaddr
+func strsToMaddrs(addrs []string) ([]core.Multiaddr, error) {
+	var maddrs []core.Multiaddr
 	for _, addrstr := range addrs {
 		maddr, err := multiaddr.NewMultiaddr(addrstr)
 		if err != nil {
