@@ -141,6 +141,7 @@ func New(cfg Config) (*P2P, error) {
 			highPeers,
 			5*time.Minute,
 		),
+		p2p.NodeScoring(),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {
