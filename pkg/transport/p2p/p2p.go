@@ -23,6 +23,8 @@ import (
 
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/internal/p2p"
@@ -119,6 +121,43 @@ func New(cfg Config) (*P2P, error) {
 		return nil, fmt.Errorf("%v: unable to parse blockedAddrs: %v", ErrP2P, err)
 	}
 
+	// Peer scoring parameters:
+	//nolint:gomnd
+	peerScoreParams := &pubsub.PeerScoreParams{
+		AppSpecificScore:            func(id peer.ID) float64 { return 0 },
+		AppSpecificWeight:           1,
+		IPColocationFactorWeight:    -1,
+		IPColocationFactorThreshold: 4,
+		DecayInterval:               1 * time.Minute,
+		DecayToZero:                 0.01,
+		RetainScore:                 10 * time.Second,
+		Topics:                      make(map[string]*pubsub.TopicScoreParams),
+	}
+	//nolint:gomnd
+	topicScoreParams := &pubsub.TopicScoreParams{
+		TopicWeight:                     1,
+		TimeInMeshWeight:                0.0027,
+		TimeInMeshQuantum:               time.Second,
+		TimeInMeshCap:                   3600,
+		MeshMessageDeliveriesWeight:     -0.25,
+		MeshMessageDeliveriesDecay:      0.97,
+		MeshMessageDeliveriesCap:        400,
+		MeshMessageDeliveriesThreshold:  200,
+		MeshMessageDeliveriesActivation: 30 * time.Second,
+		MeshMessageDeliveriesWindow:     5 * time.Minute,
+		MeshFailurePenaltyWeight:        -0.25,
+		MeshFailurePenaltyDecay:         0.997,
+		InvalidMessageDeliveriesWeight:  -99,
+		InvalidMessageDeliveriesDecay:   0.9994,
+	}
+	//nolint:gomnd
+	thresholds := &pubsub.PeerScoreThresholds{
+		GossipThreshold:   -100,
+		PublishThreshold:  -200,
+		GraylistThreshold: -400,
+		AcceptPXThreshold: 0,
+	}
+
 	logger := cfg.Logger.WithField("tag", LoggerTag)
 	opts := []p2p.Options{
 		p2p.Logger(logger),
@@ -141,6 +180,9 @@ func New(cfg Config) (*P2P, error) {
 			highPeers,
 			5*time.Minute,
 		),
+		p2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
+			return topicScoreParams
+		}),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {

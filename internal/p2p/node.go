@@ -109,7 +109,7 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 		n.connmgr = connmgr.NewConnManager(0, 0, 5*time.Minute)
 	}
 
-	n.nodeEventHandler.Handle(sets.NodeConfigured)
+	n.nodeEventHandler.Handle(sets.NodeConfiguredEvent{})
 
 	return n, nil
 }
@@ -118,7 +118,7 @@ func (n *Node) Start() error {
 	n.log.Info("Starting")
 	var err error
 
-	n.nodeEventHandler.Handle(sets.NodeStarting)
+	n.nodeEventHandler.Handle(sets.NodeStartingEvent{})
 
 	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
 		libp2p.EnableNATService(),
@@ -131,7 +131,7 @@ func (n *Node) Start() error {
 		return fmt.Errorf("%v: unable to initialize libp2p: %v", ErrNode, err)
 	}
 
-	n.nodeEventHandler.Handle(sets.NodeHostStarted)
+	n.nodeEventHandler.Handle(sets.NodeHostStartedEvent{})
 
 	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
 	if err != nil {
@@ -143,8 +143,8 @@ func (n *Node) Start() error {
 		WithField("listenAddrs", n.listenAddrStrs()).
 		Info("Listening")
 
-	n.nodeEventHandler.Handle(sets.NodePubSubStarted)
-	n.nodeEventHandler.Handle(sets.NodeStarted)
+	n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
+	n.nodeEventHandler.Handle(sets.NodeStartedEvent{})
 
 	return nil
 }
@@ -154,10 +154,10 @@ func (n *Node) Stop() error {
 		return ErrConnectionClosed
 	}
 
-	n.nodeEventHandler.Handle(sets.NodeStopping)
+	n.nodeEventHandler.Handle(sets.NodeStoppingEvent{})
 	defer n.log.Info("Stopped")
 	defer n.ctxCancel()
-	defer n.nodeEventHandler.Handle(sets.NodeStopped)
+	defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
 
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -258,6 +258,8 @@ func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
 }
 
 func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
+	defer n.nodeEventHandler.Handle(sets.NodeTopicSubscribedEvent{Topic: topic})
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -281,6 +283,8 @@ func (n *Node) Unsubscribe(topic string) error {
 	if n.closed {
 		return fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
 	}
+
+	defer n.nodeEventHandler.Handle(sets.NodeTopicUnsubscribedEvent{Topic: topic})
 
 	sub, err := n.Subscription(topic)
 	if err != nil {
