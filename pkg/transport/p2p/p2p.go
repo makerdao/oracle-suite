@@ -44,13 +44,53 @@ const maxMessageSize = 128 * 1024 // maximum expected message size in bytes
 const maxPairs = 50               // maximum expected number of asset pairs
 const priceUpdateInterval = 60    // expected price update interval in seconds
 
+// Peer scoring parameters:
+
+//nolint:gomnd
+var peerScoreParams = &pubsub.PeerScoreParams{
+	AppSpecificScore:            func(id peer.ID) float64 { return 0 },
+	AppSpecificWeight:           1,
+	IPColocationFactorWeight:    -1,
+	IPColocationFactorThreshold: 4,
+	DecayInterval:               1 * time.Minute,
+	DecayToZero:                 0.01,
+	RetainScore:                 10 * time.Second,
+	Topics:                      make(map[string]*pubsub.TopicScoreParams),
+}
+
+//nolint:gomnd
+var topicScoreParams = &pubsub.TopicScoreParams{
+	TopicWeight:                     1,
+	TimeInMeshWeight:                0.0027,
+	TimeInMeshQuantum:               time.Second,
+	TimeInMeshCap:                   3600,
+	MeshMessageDeliveriesWeight:     -0.25,
+	MeshMessageDeliveriesDecay:      0.97,
+	MeshMessageDeliveriesCap:        400,
+	MeshMessageDeliveriesThreshold:  200,
+	MeshMessageDeliveriesActivation: 30 * time.Second,
+	MeshMessageDeliveriesWindow:     5 * time.Minute,
+	MeshFailurePenaltyWeight:        -0.25,
+	MeshFailurePenaltyDecay:         0.997,
+	InvalidMessageDeliveriesWeight:  -99,
+	InvalidMessageDeliveriesDecay:   0.9994,
+}
+
+//nolint:gomnd
+var thresholds = &pubsub.PeerScoreThresholds{
+	GossipThreshold:   -100,
+	PublishThreshold:  -200,
+	GraylistThreshold: -400,
+	AcceptPXThreshold: 0,
+}
+
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
 var ErrP2P = errors.New("P2P transport error")
 
-// P2P is a little wrapper for the Node that implements the Transport
+// P2P is a little wrapper for the Node that implements the transport.Transport
 // interface.
 type P2P struct {
 	node *p2p.Node
@@ -119,43 +159,6 @@ func New(cfg Config) (*P2P, error) {
 	blockedAddrs, err := strsToMaddrs(cfg.BlockedAddrs)
 	if err != nil {
 		return nil, fmt.Errorf("%v: unable to parse blockedAddrs: %v", ErrP2P, err)
-	}
-
-	// Peer scoring parameters:
-	//nolint:gomnd
-	peerScoreParams := &pubsub.PeerScoreParams{
-		AppSpecificScore:            func(id peer.ID) float64 { return 0 },
-		AppSpecificWeight:           1,
-		IPColocationFactorWeight:    -1,
-		IPColocationFactorThreshold: 4,
-		DecayInterval:               1 * time.Minute,
-		DecayToZero:                 0.01,
-		RetainScore:                 10 * time.Second,
-		Topics:                      make(map[string]*pubsub.TopicScoreParams),
-	}
-	//nolint:gomnd
-	topicScoreParams := &pubsub.TopicScoreParams{
-		TopicWeight:                     1,
-		TimeInMeshWeight:                0.0027,
-		TimeInMeshQuantum:               time.Second,
-		TimeInMeshCap:                   3600,
-		MeshMessageDeliveriesWeight:     -0.25,
-		MeshMessageDeliveriesDecay:      0.97,
-		MeshMessageDeliveriesCap:        400,
-		MeshMessageDeliveriesThreshold:  200,
-		MeshMessageDeliveriesActivation: 30 * time.Second,
-		MeshMessageDeliveriesWindow:     5 * time.Minute,
-		MeshFailurePenaltyWeight:        -0.25,
-		MeshFailurePenaltyDecay:         0.997,
-		InvalidMessageDeliveriesWeight:  -99,
-		InvalidMessageDeliveriesDecay:   0.9994,
-	}
-	//nolint:gomnd
-	thresholds := &pubsub.PeerScoreThresholds{
-		GossipThreshold:   -100,
-		PublishThreshold:  -200,
-		GraylistThreshold: -400,
-		AcceptPXThreshold: 0,
 	}
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)

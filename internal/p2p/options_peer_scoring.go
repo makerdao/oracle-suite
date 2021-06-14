@@ -21,8 +21,6 @@ import (
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
 )
 
-const peerScoringWarnMsg = "Unable to set topic score parameters"
-
 // PeerScoring configures peer scoring parameters used in a pubsub system.
 func PeerScoring(
 	params *pubsub.PeerScoreParams,
@@ -33,19 +31,22 @@ func PeerScoring(
 		n.pubsubOpts = append(n.pubsubOpts, pubsub.WithPeerScore(params, thresholds))
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
 			if e, ok := event.(sets.NodeTopicSubscribedEvent); ok {
+				var err error
+				defer func() {
+					if err != nil {
+						n.log.
+							WithError(err).
+							WithField("topic", e.Topic).
+							Warn("Unable to set topic score parameters")
+					}
+				}()
 				sub, err := n.Subscription(e.Topic)
 				if err != nil {
-					n.log.
-						WithError(err).
-						WithField("topic", e.Topic).
-						Warn(peerScoringWarnMsg)
+					return
 				}
 				err = sub.topic.SetScoreParams(topicScoreParams(e.Topic))
 				if err != nil {
-					n.log.
-						WithError(err).
-						WithField("topic", e.Topic).
-						Warn(peerScoringWarnMsg)
+					return
 				}
 			}
 		}))
