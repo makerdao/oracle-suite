@@ -21,6 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
@@ -103,11 +104,9 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 		if len(addrs) == 0 {
 			return nil
 		}
-
 		n.log.
 			WithField("addrs", addrs).
 			Info("Adding direct peers")
-
 		var addrInfos []peer.AddrInfo
 		for _, maddr := range addrs {
 			ai, err := peer.AddrInfoFromP2pAddr(maddr)
@@ -120,6 +119,43 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 			n.pubsubOpts,
 			pubsub.WithDirectPeers(addrInfos),
 		)
+		connect := func() {
+			for _, addrInfo := range addrInfos {
+				if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
+					continue
+				}
+				n.log.
+					WithField("peerID", addrInfo.ID.Pretty()).
+					WithField("addrs", addrInfo.Addrs).
+					Info("Connecting to the direct peer")
+				err := n.host.Connect(n.ctx, addrInfo)
+				if err != nil {
+					n.log.
+						WithField("peerID", addrInfo.ID.Pretty()).
+						WithField("addrs", addrInfo.Addrs).
+						WithError(err).
+						Warn("Unable to connect to the direct peer")
+				}
+			}
+		}
+		connectRoutine := func() {
+			t := time.NewTimer(2 * time.Minute)
+			connect()
+			for {
+				select {
+				case <-n.ctx.Done():
+					t.Stop()
+					return
+				case <-t.C:
+					connect()
+				}
+			}
+		}
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
+			if event == sets.NodeStarted {
+				go connectRoutine()
+			}
+		}))
 		return nil
 	}
 }
