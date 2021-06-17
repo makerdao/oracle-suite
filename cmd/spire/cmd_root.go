@@ -56,7 +56,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 		&opts.ConfigPath,
 		"config",
 		"c",
-		"./spire.json",
+		"./config.json",
 		"spire config file",
 	)
 

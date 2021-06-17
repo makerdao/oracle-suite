@@ -48,7 +48,7 @@ with aggregates that increase reliability in the DeFi environment.`,
 		&opts.ConfigFilePath,
 		"config",
 		"c",
-		"./gofer.json",
+		"./config.json",
 		"config file",
 	)
 	rootCmd.PersistentFlags().VarP(
