@@ -41,27 +41,27 @@ func TestNode_AddrNotLeaking(t *testing.T) {
 	// are not revealed to other nodes in the network.
 	//
 	// Topology:
-	//   n1 <--[discovery]--> n2 <--[direct]--> n3
+	//   n0 <--[discovery]--> n1 <--[direct]--> n2
 	//
-	// - n1 node should only be connected to n2 node (through discovery)
-	// - n2 node should only be connected to n1 node (through discovery) and n2 (through direct connection)
-	// - n3 node should only be connected to n2 node (through direct connection)
-	// - the n1 node's address must not be exposed to n3 node
+	// - n0 node should only be connected to n1 node (through discovery)
+	// - n1 node should only be connected to n0 node (through discovery) and n1 (through direct connection)
+	// - n2 node should only be connected to n1 node (through direct connection)
+	// - the n0 node's address must not be exposed to n2 node
 
-	peers, err := GetPeerInfo(3)
+	peers, err := getPeerInfo(3)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n0, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		Discovery(nil),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n1.Start())
-	defer n1.Stop()
+	require.NoError(t, n0.Start())
+	defer n0.Stop()
 
-	n2, err := NewNode(
+	n1, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[1].PrivKey),
 		ListenAddrs(peers[1].ListenAddrs),
@@ -69,34 +69,34 @@ func TestNode_AddrNotLeaking(t *testing.T) {
 		Discovery(peers[0].PeerAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
+	require.NoError(t, n1.Start())
+	defer n1.Stop()
 
-	n3, err := NewNode(
+	n2, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[2].PrivKey),
 		ListenAddrs(peers[2].ListenAddrs),
 		DirectPeers(peers[1].PeerAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n3.Start())
-	defer n3.Stop()
+	require.NoError(t, n2.Start())
+	defer n2.Stop()
 
-	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n3.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n2.Subscribe("test", (*message)(nil)))
 
-	WaitFor(t, func() bool {
+	waitFor(t, func() bool {
+		lp := n0.PubSub().ListPeers("test")
+		return len(lp) == 1 && containsPeerID(lp, peers[1].ID)
+	}, defaultTimeout)
+	waitFor(t, func() bool {
 		lp := n1.PubSub().ListPeers("test")
-		return len(lp) == 1 && ContainsPeerID(lp, peers[1].ID)
+		return len(lp) == 2 && containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[2].ID)
 	}, defaultTimeout)
-	WaitFor(t, func() bool {
+	waitFor(t, func() bool {
 		lp := n2.PubSub().ListPeers("test")
-		return len(lp) == 2 && ContainsPeerID(lp, peers[0].ID) && ContainsPeerID(lp, peers[2].ID)
-	}, defaultTimeout)
-	WaitFor(t, func() bool {
-		lp := n3.PubSub().ListPeers("test")
-		return len(lp) == 1 && ContainsPeerID(lp, peers[1].ID)
+		return len(lp) == 1 && containsPeerID(lp, peers[1].ID)
 	}, defaultTimeout)
 }
 
@@ -104,15 +104,24 @@ func TestNode_MessagePropagation(t *testing.T) {
 	// This test checks if messages are propagated between peers correctly.
 	//
 	// Topology:
-	//   n1 <--[manual connection]--> n2 <--[manual connection]--> n3
+	//   n0 <--[manual connection]--> n1 <--[manual connection]--> n2
 
-	peers, err := GetPeerInfo(3)
+	peers, err := getPeerInfo(3)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n0, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
+	)
+	require.NoError(t, err)
+	require.NoError(t, n0.Start())
+	defer n0.Stop()
+
+	n1, err := NewNode(
+		context.Background(),
+		PeerPrivKey(peers[1].PrivKey),
+		ListenAddrs(peers[1].ListenAddrs),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
@@ -120,95 +129,86 @@ func TestNode_MessagePropagation(t *testing.T) {
 
 	n2, err := NewNode(
 		context.Background(),
-		PeerPrivKey(peers[1].PrivKey),
-		ListenAddrs(peers[1].ListenAddrs),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
-
-	n3, err := NewNode(
-		context.Background(),
 		PeerPrivKey(peers[2].PrivKey),
 		ListenAddrs(peers[2].ListenAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n3.Start())
-	defer n2.Stop()
+	require.NoError(t, n2.Start())
+	defer n1.Stop()
 
-	require.NoError(t, n1.Connect(peers[1].PeerAddrs[0]))
-	require.NoError(t, n2.Connect(peers[2].PeerAddrs[0]))
-	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n3.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n0.Connect(peers[1].PeerAddrs[0]))
+	require.NoError(t, n1.Connect(peers[2].PeerAddrs[0]))
+	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n2.Subscribe("test", (*message)(nil)))
 
 	// Wait for the peers to connect to each other:
-	WaitFor(t, func() bool {
-		return len(n1.PubSub().ListPeers("test")) > 0 &&
-			len(n2.PubSub().ListPeers("test")) > 0 &&
-			len(n3.PubSub().ListPeers("test")) > 0
+	waitFor(t, func() bool {
+		return len(n0.PubSub().ListPeers("test")) > 0 &&
+			len(n1.PubSub().ListPeers("test")) > 0 &&
+			len(n2.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
-	s1, err := n1.Subscription("test")
+	s1, err := n0.Subscription("test")
 	require.NoError(t, err)
-	s2, err := n2.Subscription("test")
+	s2, err := n1.Subscription("test")
 	require.NoError(t, err)
-	s3, err := n3.Subscription("test")
+	s3, err := n2.Subscription("test")
 	require.NoError(t, err)
 
-	err = s1.Publish(NewMessage("makerdao"))
+	err = s1.Publish(newMessage("makerdao"))
 	assert.NoError(t, err)
 
 	// Message should be received on both nodes:
-	WaitForMessage(t, s1.Next(), NewMessage("makerdao"), defaultTimeout)
-	WaitForMessage(t, s2.Next(), NewMessage("makerdao"), defaultTimeout)
-	WaitForMessage(t, s3.Next(), NewMessage("makerdao"), defaultTimeout)
+	waitForMessage(t, s1.Next(), newMessage("makerdao"), defaultTimeout)
+	waitForMessage(t, s2.Next(), newMessage("makerdao"), defaultTimeout)
+	waitForMessage(t, s3.Next(), newMessage("makerdao"), defaultTimeout)
 }
 
-// Message is the simplest implementation of the transport.Message interface.
-type Message []byte
+// message is the simplest implementation of the transport.Message interface.
+type message []byte
 
-// NewMessage Returns a new Message.
-func NewMessage(msg string) *Message {
-	b := Message(msg)
+// newMessage returns a new message.
+func newMessage(msg string) *message {
+	b := message(msg)
 	return &b
 }
 
-func (m *Message) String() string {
+func (m *message) String() string {
 	if m == nil {
 		return ""
 	}
 	return string(*m)
 }
 
-func (m *Message) Equal(msg *Message) bool {
+func (m *message) Equal(msg *message) bool {
 	return bytes.Equal(*m, *msg)
 }
 
-func (m *Message) Marshall() ([]byte, error) {
+func (m *message) Marshall() ([]byte, error) {
 	return *m, nil
 }
 
-func (m *Message) Unmarshall(bytes []byte) error {
+func (m *message) Unmarshall(bytes []byte) error {
 	*m = bytes
 	return nil
 }
 
-type PeerInfo struct {
+type peerInfo struct {
 	ID          peer.ID
 	PrivKey     crypto.PrivKey
 	ListenAddrs []multiaddr.Multiaddr
 	PeerAddrs   []multiaddr.Multiaddr
 }
 
-// GetPeerInfo returns n PeerInfo structs which can be used to generate
+// getPeerInfo returns n peerInfo structs which can be used to generate
 // random test nodes.
-func GetPeerInfo(n int) ([]PeerInfo, error) {
-	ps, err := GetFreePorts(n)
+func getPeerInfo(n int) ([]peerInfo, error) {
+	ps, err := getFreePorts(n)
 	if err != nil {
 		return nil, err
 	}
-	var pi []PeerInfo
+	var pi []peerInfo
 	for i := 0; i < n; i++ {
 		rr := rand.Reader
 		sk, _, err := crypto.GenerateEd25519Key(rr)
@@ -219,7 +219,7 @@ func GetPeerInfo(n int) ([]PeerInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		pi = append(pi, PeerInfo{
+		pi = append(pi, peerInfo{
 			ListenAddrs: []multiaddr.Multiaddr{multiaddr.StringCast(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", ps[i]))},
 			PeerAddrs:   []multiaddr.Multiaddr{multiaddr.StringCast(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/p2p/%s", ps[i], id.Pretty()))},
 			PrivKey:     sk,
@@ -229,8 +229,8 @@ func GetPeerInfo(n int) ([]PeerInfo, error) {
 	return pi, nil
 }
 
-// GetFreePorts returns n random ports available to use.
-func GetFreePorts(n int) ([]int, error) {
+// getFreePorts returns n random ports available to use.
+func getFreePorts(n int) ([]int, error) {
 	var ports []int
 	for i := 0; i < n; i++ {
 		addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
@@ -247,8 +247,8 @@ func GetFreePorts(n int) ([]int, error) {
 	return ports, nil
 }
 
-// WaitFor waits until cond becomes true.
-func WaitFor(t *testing.T, cond func() bool, timeout time.Duration) {
+// waitFor waits until cond becomes true.
+func waitFor(t *testing.T, cond func() bool, timeout time.Duration) {
 	s := time.Now()
 	for !cond() {
 		if time.Since(s) >= timeout {
@@ -259,8 +259,8 @@ func WaitFor(t *testing.T, cond func() bool, timeout time.Duration) {
 	}
 }
 
-// WaitForMessage waits for expected message.
-func WaitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected *Message, timeout time.Duration) {
+// waitForMessage waits for expected message.
+func waitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected *message, timeout time.Duration) {
 	to := time.After(timeout)
 	select {
 	case received := <-stat:
@@ -280,9 +280,9 @@ func WaitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected 
 	}
 }
 
-// CountMessages counts asynchronously received messages for specified time
+// countMessages counts asynchronously received messages for specified time
 // duration, then returns results in channel.
-func CountMessages(sub *Subscription, duration time.Duration) chan map[peer.ID]int {
+func countMessages(sub *Subscription, duration time.Duration) chan map[peer.ID]int {
 	ch := make(chan map[peer.ID]int)
 	go func() {
 		count := map[peer.ID]int{}
@@ -306,7 +306,7 @@ func CountMessages(sub *Subscription, duration time.Duration) chan map[peer.ID]i
 	return ch
 }
 
-func ContainsPeerID(ids []peer.ID, id peer.ID) bool {
+func containsPeerID(ids []peer.ID, id peer.ID) bool {
 	for _, i := range ids {
 		if i == id {
 			return true

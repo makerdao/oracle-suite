@@ -16,9 +16,14 @@
 package transport
 
 type ReceivedMessage struct {
+	// Message contains the message content. It is nil when the Error field
+	// is not nil.
 	Message Message
-	Data    interface{}
-	Error   error
+	// Data contains an optional data associated with the message. A type of
+	// the data is different depending on a transport implementation.
+	Data interface{}
+	// Error contains an optional error returned by a transport.
+	Error error
 }
 
 type Message interface {
@@ -26,15 +31,17 @@ type Message interface {
 	Unmarshall([]byte) error
 }
 
+// Transport is the interface for different implementation of a
+// publish–subscribe messaging solutions for the Oracle network.
 type Transport interface {
-	// Subscribe starts subscribing for messages with given topic. The second
-	// argument is a type of a message given as a nil pointer,
-	// eg: (*Message)(nil).
+	// Subscribe starts subscribing for messages with the given topic.
+	// The second argument is a type of a message given as a nil pointer,
+	// e.g.: (*Message)(nil).
 	Subscribe(topic string, typ Message) error
-	// Unsubscribe stops subscribing for messages with given topic.
+	// Unsubscribe stops subscribing for messages with the given topic.
 	Unsubscribe(topic string) error
-	// Broadcast sends a message with given topic to the network. To send
-	// a message, you must first subscribe appropriate topic.
+	// Broadcast sends a message with the given topic to the network. To send
+	// a message, you must first subscribe to appropriate topic.
 	Broadcast(topic string, message Message) error
 	// WaitFor returns a channel which will be blocked until message for given
 	// topic arrives. Note, that only messages for subscribed topics will

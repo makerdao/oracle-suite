@@ -208,7 +208,7 @@ func (g *Ghost) broadcasterLoop() error {
 						} else {
 							g.log.
 								WithFields(log.Fields{"assetPair": assetPair}).
-								Info("Price broadcasted")
+								Info("Price broadcast")
 						}
 					}
 					wg.Done()

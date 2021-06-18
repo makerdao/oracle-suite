@@ -42,7 +42,7 @@ func (a *AsyncGofer) Start() error {
 	return a.feeder.Start(ns...)
 }
 
-// Start stops asynchronous price updater.
+// Stop stops asynchronous price updater.
 func (a *AsyncGofer) Stop() error {
 	a.feeder.Stop()
 	return nil
