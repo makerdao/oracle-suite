@@ -109,9 +109,9 @@ func TestPrice_Marshall(t *testing.T) {
 	p.V = 0xAA
 	p.R = [32]byte{0x01}
 	p.S = [32]byte{0x02}
-	p.StarkR, _ = hex.DecodeString("586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1")
-	p.StarkS, _ = hex.DecodeString("e95eaf04c82791b6eddb416325fa96cf3464a9105b1e2dcb6d529cc8f44838")
-	p.StarkPK, _ = hex.DecodeString("bfd2fdb645150ce6df70b2511635117fb85ff60c6463ee4e91cff069bf10")
+	p.StarkR, _ = decodeHexNumber("586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1")
+	p.StarkS, _ = decodeHexNumber("95eaf04c82791b6eddb416325fa96cf3464a9105b1e2dcb6d529cc8f44838")
+	p.StarkPK, _ = decodeHexNumber("bfd2fdb645150ce6df70b2511635117fb85ff60c6463ee4e91cff069bf10")
 
 	// Marshall to JSON:
 	j, err := p.MarshalJSON()
@@ -124,28 +124,16 @@ func TestPrice_Marshall(t *testing.T) {
 		   "v":"aa",
 		   "r":"0100000000000000000000000000000000000000000000000000000000000000",
 		   "s":"0200000000000000000000000000000000000000000000000000000000000000",
-		   "stark_r":"586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1",
-		   "stark_s":"e95eaf04c82791b6eddb416325fa96cf3464a9105b1e2dcb6d529cc8f44838",
-		   "stark_pk":"bfd2fdb645150ce6df70b2511635117fb85ff60c6463ee4e91cff069bf10"
+		   "stark_r":"0x586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1",
+		   "stark_s":"0x95eaf04c82791b6eddb416325fa96cf3464a9105b1e2dcb6d529cc8f44838",
+		   "stark_pk":"0xbfd2fdb645150ce6df70b2511635117fb85ff60c6463ee4e91cff069bf10"
 		}`,
 		string(j),
 	)
 
 	// Unmarshall from JSON:
-	j2 := []byte(`
-		{
-		   "wat":"AAABBB",
-		   "val":"42000000000000000000",
-		   "age":1605371361,
-		   "v":"0xaa",
-		   "r":"0x0100000000000000000000000000000000000000000000000000000000000000",
-		   "s":"0x0200000000000000000000000000000000000000000000000000000000000000",
-		   "stark_r":"0x586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1",
-		   "stark_s":"0xe95eaf04c82791b6eddb416325fa96cf3464a9105b1e2dcb6d529cc8f44838",
-		   "stark_pk":"0xbfd2fdb645150ce6df70b2511635117fb85ff60c6463ee4e91cff069bf10"
-		}`)
 	var p2 Price
-	err = p2.UnmarshalJSON(j2)
+	err = p2.UnmarshalJSON(j)
 	assert.NoError(t, err)
 	assert.Equal(t, p.Wat, p2.Wat)
 	assert.Equal(t, p.Age, p2.Age)
