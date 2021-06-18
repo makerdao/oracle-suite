@@ -20,7 +20,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
@@ -30,7 +32,10 @@ import (
 const PriceMultiplier = 1e18
 
 var ErrPriceNotSet = errors.New("unable to sign a price because the price is not set")
-var ErrInvalidJSONSignature = errors.New("unable to unmarshal given JSON, VRS fields contain invalid signature")
+var ErrUnmarshallingFailure = errors.New("unable to unmarshal given JSON")
+var ErrUnmarshalling = func(err error, s string) error {
+	return fmt.Errorf("%w: %s: %s", ErrUnmarshallingFailure, s, err)
+}
 
 type Price struct {
 	Wat string    // Wat is the asset name.
@@ -144,11 +149,15 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	j := &jsonPrice{}
 	err := json.Unmarshal(bytes, j)
 	if err != nil {
-		return err
+		return ErrUnmarshalling(err, "price fields errors")
 	}
 
+	j.V = strings.TrimPrefix(j.V, "0x")
+	j.R = strings.TrimPrefix(j.R, "0x")
+	j.S = strings.TrimPrefix(j.S, "0x")
+
 	if (len(j.V)+len(j.R)+len(j.S) != 0) && (len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64) {
-		return ErrInvalidJSONSignature
+		return ErrUnmarshalling(err, "VRS fields contain invalid signature lengths")
 	}
 
 	p.Wat = j.Wat
@@ -159,7 +168,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		v := [1]byte{}
 		_, err = hex.Decode(v[:], []byte(j.V))
 		if err != nil {
-			return err
+			return ErrUnmarshalling(err, "unable to decode V param")
 		}
 		p.V = v[0]
 	}
@@ -167,30 +176,34 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	if len(j.R) != 0 {
 		_, err = hex.Decode(p.R[:], []byte(j.R))
 		if err != nil {
-			return err
+			return ErrUnmarshalling(err, "unable to decode R param")
 		}
 	}
 
 	if len(j.S) != 0 {
 		_, err = hex.Decode(p.S[:], []byte(j.S))
 		if err != nil {
-			return err
+			return ErrUnmarshalling(err, "unable to decode S param")
 		}
 	}
 
+	j.StarkR = strings.TrimPrefix(j.StarkR, "0x")
+	j.StarkS = strings.TrimPrefix(j.StarkS, "0x")
+	j.StarkPK = strings.TrimPrefix(j.StarkPK, "0x")
+
 	p.StarkR, err = hex.DecodeString(j.StarkR)
 	if err != nil {
-		return err
+		return ErrUnmarshalling(err, "unable to decode StarkR param")
 	}
 
 	p.StarkS, err = hex.DecodeString(j.StarkS)
 	if err != nil {
-		return err
+		return ErrUnmarshalling(err, "unable to decode StarkS param")
 	}
 
 	p.StarkPK, err = hex.DecodeString(j.StarkPK)
 	if err != nil {
-		return err
+		return ErrUnmarshalling(err, "unable to decode StarkPK param")
 	}
 
 	return nil
