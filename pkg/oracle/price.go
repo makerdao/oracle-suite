@@ -33,7 +33,8 @@ const PriceMultiplier = 1e18
 
 var ErrPriceNotSet = errors.New("unable to sign a price because the price is not set")
 var ErrUnmarshallingFailure = errors.New("unable to unmarshal given JSON")
-var ErrUnmarshalling = func(err error, s string) error {
+
+func errUnmarshalling(s string, err error) error {
 	return fmt.Errorf("%w: %s: %s", ErrUnmarshallingFailure, s, err)
 }
 
@@ -125,9 +126,9 @@ func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 		"V":       hex.EncodeToString([]byte{p.V}),
 		"R":       hex.EncodeToString(p.R[:]),
 		"S":       hex.EncodeToString(p.S[:]),
-		"starkR":  hex.EncodeToString(p.StarkR),
-		"starkS":  hex.EncodeToString(p.StarkS),
-		"starkPK": hex.EncodeToString(p.StarkPK),
+		"starkR":  encodeHexNumber(p.StarkR),
+		"starkS":  encodeHexNumber(p.StarkS),
+		"starkPK": encodeHexNumber(p.StarkPK),
 	}
 }
 
@@ -139,9 +140,9 @@ func (p *Price) MarshalJSON() ([]byte, error) {
 		V:       hex.EncodeToString([]byte{p.V}),
 		R:       hex.EncodeToString(p.R[:]),
 		S:       hex.EncodeToString(p.S[:]),
-		StarkR:  hex.EncodeToString(p.StarkR),
-		StarkS:  hex.EncodeToString(p.StarkS),
-		StarkPK: hex.EncodeToString(p.StarkPK),
+		StarkR:  encodeHexNumber(p.StarkR),
+		StarkS:  encodeHexNumber(p.StarkS),
+		StarkPK: encodeHexNumber(p.StarkPK),
 	})
 }
 
@@ -149,7 +150,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	j := &jsonPrice{}
 	err := json.Unmarshal(bytes, j)
 	if err != nil {
-		return ErrUnmarshalling(err, "price fields errors")
+		return errUnmarshalling("price fields errors", err)
 	}
 
 	j.V = strings.TrimPrefix(j.V, "0x")
@@ -157,7 +158,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	j.S = strings.TrimPrefix(j.S, "0x")
 
 	if (len(j.V)+len(j.R)+len(j.S) != 0) && (len(j.V) != 2 || len(j.R) != 64 || len(j.S) != 64) {
-		return ErrUnmarshalling(err, "VRS fields contain invalid signature lengths")
+		return errUnmarshalling("VRS fields contain invalid signature lengths", err)
 	}
 
 	p.Wat = j.Wat
@@ -168,7 +169,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 		v := [1]byte{}
 		_, err = hex.Decode(v[:], []byte(j.V))
 		if err != nil {
-			return ErrUnmarshalling(err, "unable to decode V param")
+			return errUnmarshalling("unable to decode V param", err)
 		}
 		p.V = v[0]
 	}
@@ -176,37 +177,46 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	if len(j.R) != 0 {
 		_, err = hex.Decode(p.R[:], []byte(j.R))
 		if err != nil {
-			return ErrUnmarshalling(err, "unable to decode R param")
+			return errUnmarshalling("unable to decode R param", err)
 		}
 	}
 
 	if len(j.S) != 0 {
 		_, err = hex.Decode(p.S[:], []byte(j.S))
 		if err != nil {
-			return ErrUnmarshalling(err, "unable to decode S param")
+			return errUnmarshalling("unable to decode S param", err)
 		}
 	}
 
-	j.StarkR = strings.TrimPrefix(j.StarkR, "0x")
-	j.StarkS = strings.TrimPrefix(j.StarkS, "0x")
-	j.StarkPK = strings.TrimPrefix(j.StarkPK, "0x")
-
-	p.StarkR, err = hex.DecodeString(j.StarkR)
+	p.StarkR, err = decodeHexNumber(j.StarkR)
 	if err != nil {
-		return ErrUnmarshalling(err, "unable to decode StarkR param")
+		return errUnmarshalling("unable to decode StarkR param", err)
 	}
 
-	p.StarkS, err = hex.DecodeString(j.StarkS)
+	p.StarkS, err = decodeHexNumber(j.StarkS)
 	if err != nil {
-		return ErrUnmarshalling(err, "unable to decode StarkS param")
+		return errUnmarshalling("unable to decode StarkS param", err)
 	}
 
-	p.StarkPK, err = hex.DecodeString(j.StarkPK)
+	p.StarkPK, err = decodeHexNumber(j.StarkPK)
 	if err != nil {
-		return ErrUnmarshalling(err, "unable to decode StarkPK param")
+		return errUnmarshalling("unable to decode StarkPK param", err)
 	}
 
 	return nil
+}
+
+func decodeHexNumber(s string) ([]byte, error) {
+	n, ok := (&big.Int{}).SetString(strings.TrimPrefix(s, "0x"), 16)
+	if !ok {
+		return nil, errors.New("unable to parse hex number")
+	}
+	return n.Bytes(), nil
+}
+
+func encodeHexNumber(b []byte) string {
+	n := (&big.Int{}).SetBytes(b)
+	return "0x" + n.Text(16)
 }
 
 // hash is an equivalent of keccak256(abi.encodePacked(val_, age_, wat))) in Solidity.
