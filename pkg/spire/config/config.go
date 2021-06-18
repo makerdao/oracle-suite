@@ -35,6 +35,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/spire"
 	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
@@ -179,6 +180,12 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 
 	p, err := p2p.New(cfg)
 	if err != nil {
+		return nil, err
+	}
+
+	err = p.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
+	if err != nil {
+		_ = p.Close()
 		return nil, err
 	}
 
