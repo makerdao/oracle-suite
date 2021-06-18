@@ -32,14 +32,13 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 	// limit. Then we wait one second and try to send another 128 byte message.
 	// This time the message should be accepted.
 
-	peers, err := GetPeerInfo(2)
+	peers, err := getPeerInfo(2)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n0, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
-		Discovery(nil),
 		RateLimiter(RateLimiterConfig{
 			BytesPerSecond:      128,
 			BurstSize:           128,
@@ -48,42 +47,42 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n1.Start())
-	defer n1.Stop()
+	require.NoError(t, n0.Start())
+	defer n0.Stop()
 
-	n2, err := NewNode(
+	n1, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[1].PrivKey),
 		ListenAddrs(peers[1].ListenAddrs),
-		Discovery(peers[0].PeerAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
+	require.NoError(t, n1.Start())
+	defer n1.Stop()
 
-	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n1.Connect(peers[0].PeerAddrs[0]))
+	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
 
-	s1, err := n1.Subscription("test")
+	s1, err := n0.Subscription("test")
 	require.NoError(t, err)
-	s2, err := n2.Subscription("test")
+	s2, err := n1.Subscription("test")
 	require.NoError(t, err)
 
 	// Wait for the peers to connect to each other:
-	WaitFor(t, func() bool {
-		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
+	waitFor(t, func() bool {
+		return len(n0.PubSub().ListPeers("test")) > 0 && len(n1.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
 	// Send messages:
-	msgsCh := CountMessages(s1, 2*time.Second)
-	msg := NewMessage(strings.Repeat("a", 128))
+	msgsCh := countMessages(s1, 2*time.Second)
+	msg := newMessage(strings.Repeat("a", 128))
 	require.NoError(t, s2.Publish(msg))
 	require.NoError(t, s2.Publish(msg)) // exceeds limit
 	time.Sleep(1 * time.Second)
 	require.NoError(t, s2.Publish(msg))
 
 	// Only two messages should arrive, rest messages exceed the peer limit:
-	assert.Equal(t, 2, (<-msgsCh)[n2.Host().ID()])
+	assert.Equal(t, 2, (<-msgsCh)[n1.Host().ID()])
 }
 
 func TestNode_RateLimiter_PeerBurst(t *testing.T) {
@@ -93,14 +92,13 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 	// burst limit. The second one should be rejected because it exceeds the
 	// burst limit.
 
-	peers, err := GetPeerInfo(2)
+	peers, err := getPeerInfo(2)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n0, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
-		Discovery(nil),
 		RateLimiter(RateLimiterConfig{
 			BytesPerSecond:      1,
 			BurstSize:           128,
@@ -109,38 +107,38 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n1.Start())
-	defer n1.Stop()
+	require.NoError(t, n0.Start())
+	defer n0.Stop()
 
-	n2, err := NewNode(
+	n1, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[1].PrivKey),
 		ListenAddrs(peers[1].ListenAddrs),
-		Discovery(peers[0].PeerAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
+	require.NoError(t, n1.Start())
+	defer n1.Stop()
 
-	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n1.Connect(peers[0].PeerAddrs[0]))
+	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
 
-	s1, err := n1.Subscription("test")
+	s1, err := n0.Subscription("test")
 	require.NoError(t, err)
-	s2, err := n2.Subscription("test")
+	s2, err := n1.Subscription("test")
 	require.NoError(t, err)
 
 	// Wait for the peers to connect to each other:
-	WaitFor(t, func() bool {
-		return len(n1.PubSub().ListPeers("test")) > 0 && len(n2.PubSub().ListPeers("test")) > 0
+	waitFor(t, func() bool {
+		return len(n0.PubSub().ListPeers("test")) > 0 && len(n1.PubSub().ListPeers("test")) > 0
 	}, defaultTimeout)
 
 	// Send messages:
-	msgsCh := CountMessages(s1, 2*time.Second)
-	msg := NewMessage(strings.Repeat("a", 128))
+	msgsCh := countMessages(s1, 2*time.Second)
+	msg := newMessage(strings.Repeat("a", 128))
 	require.NoError(t, s2.Publish(msg))
 	require.NoError(t, s2.Publish(msg))
 
 	// Only one message should arrive, second one exceeds the peer limit:
-	assert.Equal(t, 1, (<-msgsCh)[n2.Host().ID()])
+	assert.Equal(t, 1, (<-msgsCh)[n1.Host().ID()])
 }

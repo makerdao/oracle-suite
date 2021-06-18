@@ -124,6 +124,14 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 	}
 }
 
+// PubsubEventTracer provides a tracer for the pubsub system.
+func PubsubEventTracer(tracer pubsub.EventTracer) Options {
+	return func(n *Node) error {
+		n.pubsubOpts = append(n.pubsubOpts, pubsub.WithEventTracer(tracer))
+		return nil
+	}
+}
+
 // Discovery configures node to use kad-dht for node discovery.
 func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 	return func(n *Node) error {

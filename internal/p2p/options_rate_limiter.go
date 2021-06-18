@@ -131,7 +131,7 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 						"receivedFromPeerID": msg.ReceivedFrom.String(),
 					}).
 					Debug("The message was rejected, rate limit for relay exceeded")
-				return pubsub.ValidationIgnore
+				return pubsub.ValidationReject
 			}
 			if !msgRL.allow(msg.GetFrom(), len(msg.Data)) {
 				n.log.
@@ -141,7 +141,7 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 						"receivedFromPeerID": msg.ReceivedFrom.String(),
 					}).
 					Debug("The message was rejected, rate limit for message author exceeded")
-				return pubsub.ValidationIgnore
+				return pubsub.ValidationReject
 			}
 			return pubsub.ValidationAccept
 		})

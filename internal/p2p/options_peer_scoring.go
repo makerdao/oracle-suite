@@ -16,6 +16,9 @@
 package p2p
 
 import (
+	"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
@@ -28,7 +31,19 @@ func PeerScoring(
 	topicScoreParams func(topic string) *pubsub.TopicScoreParams) Options {
 
 	return func(n *Node) error {
-		n.pubsubOpts = append(n.pubsubOpts, pubsub.WithPeerScore(params, thresholds))
+		n.pubsubOpts = append(
+			n.pubsubOpts,
+			pubsub.WithPeerScore(params, thresholds),
+			pubsub.WithPeerScoreInspect(func(m map[peer.ID]*pubsub.PeerScoreSnapshot) {
+				for id, ps := range m {
+					n.log.
+						WithField("peerID", id).
+						WithField("score", ps.Score).
+						Debug("Peer score")
+				}
+			}, time.Minute),
+		)
+
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
 			if e, ok := event.(sets.NodeTopicSubscribedEvent); ok {
 				var err error

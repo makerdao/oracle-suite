@@ -59,11 +59,11 @@ func TestNode_MessagePrivKey(t *testing.T) {
 	require.NoError(t, n.Start())
 	defer n.Stop()
 
-	require.NoError(t, n.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n.Subscribe("test", (*message)(nil)))
 	s, err := n.Subscription("test")
 	require.NoError(t, err)
 
-	err = s.Publish(NewMessage("makerdao"))
+	err = s.Publish(newMessage("makerdao"))
 	require.NoError(t, err)
 
 	// The public key used to sign the message should be derived from the key
@@ -82,16 +82,26 @@ func TestNode_Discovery(t *testing.T) {
 	// other when Discovery option is used.
 	//
 	// Topology:
-	//   n1 <--[discovery]--> n2 <--[discovery]--> n3
+	//   n0 <--[discovery]--> n1 <--[discovery]--> n2
 
-	peers, err := GetPeerInfo(3)
+	peers, err := getPeerInfo(3)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n0, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		Discovery(nil),
+	)
+	require.NoError(t, err)
+	require.NoError(t, n0.Start())
+	defer n0.Stop()
+
+	n1, err := NewNode(
+		context.Background(),
+		PeerPrivKey(peers[1].PrivKey),
+		ListenAddrs(peers[1].ListenAddrs),
+		Discovery(peers[0].PeerAddrs),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
@@ -99,40 +109,30 @@ func TestNode_Discovery(t *testing.T) {
 
 	n2, err := NewNode(
 		context.Background(),
-		PeerPrivKey(peers[1].PrivKey),
-		ListenAddrs(peers[1].ListenAddrs),
+		PeerPrivKey(peers[2].PrivKey),
+		ListenAddrs(peers[2].ListenAddrs),
 		Discovery(peers[0].PeerAddrs),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n2.Start())
 	defer n2.Stop()
 
-	n3, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[2].PrivKey),
-		ListenAddrs(peers[2].ListenAddrs),
-		Discovery(peers[0].PeerAddrs),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n3.Start())
-	defer n3.Stop()
-
-	require.NoError(t, n1.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*Message)(nil)))
-	require.NoError(t, n3.Subscribe("test", (*Message)(nil)))
+	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
+	require.NoError(t, n2.Subscribe("test", (*message)(nil)))
 
 	// Every peer should see two other peers:
-	WaitFor(t, func() bool {
+	waitFor(t, func() bool {
+		lp := n0.PubSub().ListPeers("test")
+		return containsPeerID(lp, peers[1].ID) && containsPeerID(lp, peers[2].ID)
+	}, defaultTimeout)
+	waitFor(t, func() bool {
 		lp := n1.PubSub().ListPeers("test")
-		return ContainsPeerID(lp, peers[1].ID) && ContainsPeerID(lp, peers[2].ID)
+		return containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[2].ID)
 	}, defaultTimeout)
-	WaitFor(t, func() bool {
+	waitFor(t, func() bool {
 		lp := n2.PubSub().ListPeers("test")
-		return ContainsPeerID(lp, peers[0].ID) && ContainsPeerID(lp, peers[2].ID)
-	}, defaultTimeout)
-	WaitFor(t, func() bool {
-		lp := n3.PubSub().ListPeers("test")
-		return ContainsPeerID(lp, peers[0].ID) && ContainsPeerID(lp, peers[1].ID)
+		return containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[1].ID)
 	}, defaultTimeout)
 }
 
@@ -140,7 +140,7 @@ func TestNode_ConnectionLimit(t *testing.T) {
 	// This test checks whether the connection number is properly limited when
 	// the ConnectionLimit option is used.
 
-	peers, err := GetPeerInfo(5)
+	peers, err := getPeerInfo(5)
 	require.NoError(t, err)
 
 	n, err := NewNode(
@@ -184,10 +184,10 @@ func TestNode_DirectPeers(t *testing.T) {
 	// This test checks whether the direct connection between peers configured
 	// using the DirectPeers option is always maintained.
 
-	peers, err := GetPeerInfo(5)
+	peers, err := getPeerInfo(5)
 	require.NoError(t, err)
 
-	n1, err := NewNode(
+	n0, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
@@ -195,18 +195,18 @@ func TestNode_DirectPeers(t *testing.T) {
 		DirectPeers(peers[1].PeerAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n1.Start())
-	defer n1.Stop()
+	require.NoError(t, n0.Start())
+	defer n0.Stop()
 
-	n2, err := NewNode(
+	n1, err := NewNode(
 		context.Background(),
 		PeerPrivKey(peers[1].PrivKey),
 		ListenAddrs(peers[1].ListenAddrs),
 		DirectPeers(peers[0].PeerAddrs),
 	)
 	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
+	require.NoError(t, n1.Start())
+	defer n1.Stop()
 
 	for i := 2; i < len(peers); i++ {
 		n, err := NewNode(
@@ -221,14 +221,14 @@ func TestNode_DirectPeers(t *testing.T) {
 		require.NoError(t, n.Connect(peers[0].PeerAddrs[0]))
 		// Connection with tagged hosts are less likely to be dropped.
 		// By tagging them we can be sure it wasn't coincidence that
-		// the connection to n2 host is maintained after call to
+		// the connection to n1 host is maintained after call to
 		// the TrimOpenConns method.
-		n1.Host().ConnManager().TagPeer(n.Host().ID(), "test", 1)
+		n0.Host().ConnManager().TagPeer(n.Host().ID(), "test", 1)
 	}
 
-	// The connection between n1 and n2 nodes should be persisted even
+	// The connection between n0 and n1 nodes should be persisted even
 	// with a connection limit:
-	n1.Host().ConnManager().TrimOpenConns(context.Background())
+	n0.Host().ConnManager().TrimOpenConns(context.Background())
 	time.Sleep(time.Second)
-	assert.Equal(t, network.Connected, n1.Host().Network().Connectedness(n2.Host().ID()))
+	assert.Equal(t, network.Connected, n0.Host().Network().Connectedness(n1.Host().ID()))
 }
