@@ -24,34 +24,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewRunCmd(o *options) *cobra.Command {
+func NewRunCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
-		Use:   "run",
-		Args:  cobra.ExactArgs(0),
-		Short: "",
-		Long:  ``,
+		Use:     "run",
+		Args:    cobra.ExactArgs(0),
+		Aliases: []string{"agent"},
+		Short:   "",
+		Long:    ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			ghostAbsPath, err := filepath.Abs(o.GhostConfigFilePath)
+			ghostAbsPath, err := filepath.Abs(opts.GhostConfigFilePath)
 			if err != nil {
 				return err
 			}
 
-			goferAbsPath, err := filepath.Abs(o.GoferConfigFilePath)
+			l, err := newLogger(opts)
 			if err != nil {
 				return err
 			}
 
-			l, err := newLogger(o.LogVerbosity)
+			gof, err := newGofer(opts, ghostAbsPath, l)
 			if err != nil {
 				return err
 			}
 
-			gof, err := newGofer(o, goferAbsPath, l)
-			if err != nil {
-				return err
-			}
-
-			ins, err := newGhost(o, ghostAbsPath, gof, l)
+			ins, err := newGhost(opts, ghostAbsPath, gof, l)
 			if err != nil {
 				return err
 			}

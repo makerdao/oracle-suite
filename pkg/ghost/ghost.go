@@ -72,9 +72,6 @@ type Config struct {
 type Pair struct {
 	// AssetPair is the name of asset pair, e.g. ETHUSD.
 	AssetPair string
-	// OracleExpiration is the minimum time difference between the oracle time
-	// and current time required to send update.
-	OracleExpiration time.Duration
 }
 
 func NewGhost(config Config) (*Ghost, error) {

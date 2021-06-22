@@ -53,6 +53,11 @@ func newTestInstances() (*Agent, *Spire) {
 	log := null.New()
 	sig := &mocks.Signer{}
 	tra := local.New(0)
+	err := tra.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
+	if err != nil {
+		panic(err)
+	}
+
 	dat := datastore.NewDatastore(datastore.Config{
 		Signer:    sig,
 		Transport: tra,

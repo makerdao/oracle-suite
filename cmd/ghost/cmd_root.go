@@ -21,12 +21,13 @@ import (
 	suite "github.com/makerdao/oracle-suite"
 	ghostConfig "github.com/makerdao/oracle-suite/pkg/ghost/config"
 	goferConfig "github.com/makerdao/oracle-suite/pkg/gofer/config"
+	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
 )
 
 type options struct {
 	LogVerbosity        string
+	LogFormat           logrusFlag.FormatTypeValue
 	GhostConfigFilePath string
-	GoferConfigFilePath string
 	GhostConfig         ghostConfig.Config
 	GoferConfig         goferConfig.Config
 }
@@ -47,17 +48,16 @@ func NewRootCommand(opts *options) *cobra.Command {
 		"info",
 		"verbosity level",
 	)
+	rootCmd.PersistentFlags().Var(
+		&opts.LogFormat,
+		"log.format",
+		"log format",
+	)
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.GhostConfigFilePath,
 		"config", "c",
-		"./ghost.json",
+		"./config.json",
 		"ghost config file",
-	)
-	rootCmd.PersistentFlags().StringVar(
-		&opts.GoferConfigFilePath,
-		"config.gofer",
-		"./gofer.json",
-		"gofer config file",
 	)
 
 	return rootCmd

@@ -53,9 +53,9 @@ func NewRootCommand(opts *options) *cobra.Command {
 	)
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.ConfigFilePath,
-		"spectre-config",
+		"config",
 		"c",
-		"./spectre.json",
+		"./config.json",
 		"spectre config file",
 	)
 

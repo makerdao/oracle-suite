@@ -1,6 +1,13 @@
 {
+  "ethereum": {
+    "from": "",
+    "keystore": "",
+    "password": "",
+    "rpc": ""
+  },
   "rpc": {
-    "address": ":8080"
+    "disable": false,
+    "address": ":9000"
   },
   "origins": {
     "openexchangerates": {
@@ -26,7 +33,6 @@
         "minimumSuccessfulSources": 3
       }
     },
-
     "AVAX/USD": {
       "method": "median",
       "sources": [
@@ -159,6 +165,19 @@
         [{ "origin": "huobi", "pair": "FIL/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
         [{ "origin": "binance", "pair": "FIL/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
         [{ "origin": "okex", "pair": "FIL/USDT" },{ "origin": ".", "pair": "USDT/USD" }]
+      ],
+      "params": {
+        "minimumSuccessfulSources": 3
+      }
+    },
+    "KNC/USD": {
+      "method": "median",
+      "sources": [
+        [{ "origin": "binance", "pair": "KNC/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+        [{ "origin": "huobi", "pair": "KNC/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+        [{ "origin": "coinbasepro", "pair": "KNC/USD" }],
+        [{ "origin": "kyber", "pair": "KNC/ETH" },{ "origin": ".", "pair": "ETH/USD" }],
+        [{ "origin": "upbit", "pair": "KNC/KRW" },{ "origin": "openexchangerates", "pair": "KRW/USD", "ttl": 3600 }]
       ],
       "params": {
         "minimumSuccessfulSources": 3
@@ -365,6 +384,130 @@
         "minimumSuccessfulSources": 3
       }
     }
+  },
+  "options": {
+    "interval": 20
+  },
+  "feeds": [],
+  "pairs": [
+    "AAVEUSD",
+    "AVAXUSD",
+    "BALUSD",
+    "BATUSD",
+    "BTCUSD",
+    "COMPUSD",
+    "CRVUSD",
+    "DOTUSD",
+    "ETHBTC",
+    "ETHUSD",
+    "FILUSD",
+    "KNCETH",
+    "KNCUSD",
+    "LINKUSD",
+    "LRCUSD",
+    "MANAUSD",
+    "PAXGUSD",
+    "SNXUSD",
+    "SOLUSD",
+    "UNIUSD",
+    "USDTUSD",
+    "WNXMUSD",
+    "XRPUSD",
+    "XTZUSD",
+    "YFIUSD",
+    "ZECUSD",
+    "ZRXUSD"
+  ],
+  "medianizers": {
+    "AAVEUSD": {
+      "oracle": "0xe62872DFEbd323b03D27946f8e2491B454a69811",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "BALUSD": {
+      "oracle": "0x1D36d59e5a22cB51B30Bb6fA73b62D73f4A11745",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "BATUSD": {
+      "oracle": "0x18B4633D6E39870f398597f3c1bA8c4A41294966",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "BTCUSD": {
+      "oracle": "0xe0F30cb149fAADC7247E953746Be9BbBB6B5751f",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "COMPUSD": {
+      "oracle": "0xA3421Be733125405Ea20aA853839D34b364eB524",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ETHBTC": {
+      "oracle": "0x81A679f98b63B3dDf2F17CB5619f4d6775b3c5ED",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ETHUSD": {
+      "oracle": "0x64DE91F5A373Cd4c28de3600cB34C7C6cE410C85",
+      "oracleSpread": 1.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "KNCUSD": {
+      "oracle": "0x83076a2F42dc1925537165045c9FDe9A4B71AD97",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "LINKUSD": {
+      "oracle": "0xbAd4212d73561B240f10C56F27e6D9608963f17b",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "LRCUSD": {
+      "oracle": "0xcCe92282d9fe310F4c232b0DA9926d5F24611C7B",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "MANAUSD": {
+      "oracle": "0x681c4F8f69cF68852BAd092086ffEaB31F5B812c",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "UNIUSD": {
+      "oracle": "0x52f761908cc27b4d77ad7a329463cf08baf62153",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "USDTUSD": {
+      "oracle": "0x56D4bBF358D7790579b55eA6Af3f605BcA2c0C3A",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "YFIUSD": {
+      "oracle": "0x89AC26C0aFCB28EC55B6CD2F6b7DAD867Fa24639",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    },
+    "ZRXUSD": {
+      "oracle": "0x956ecD6a9A9A0d84e8eB4e6BaaC09329E202E55e",
+      "oracleSpread": 4.0,
+      "oracleExpiration": 15500,
+      "msgExpiration": 1800
+    }
   }
 }
-

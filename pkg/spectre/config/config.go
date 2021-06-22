@@ -47,11 +47,11 @@ var ErrFailedToReadPassphraseFile = errors.New("failed to read the ethereum pass
 var ErrFailedToParsePrivKeySeed = errors.New("failed to parse the privKeySeed field")
 
 type Config struct {
-	Ethereum Ethereum        `json:"ethereum"`
-	P2P      P2P             `json:"p2p"`
-	Options  Options         `json:"options"`
-	Feeds    []string        `json:"feeds"`
-	Pairs    map[string]Pair `json:"pairs"`
+	Ethereum    Ethereum              `json:"ethereum"`
+	P2P         P2P                   `json:"p2p"`
+	Options     Options               `json:"options"`
+	Feeds       []string              `json:"feeds"`
+	Medianizers map[string]Medianizer `json:"medianizers"`
 }
 
 type Ethereum struct {
@@ -74,8 +74,8 @@ type Options struct {
 	Interval int `json:"interval"`
 }
 
-type Pair struct {
-	Oracle           string  `json:"oracle"`
+type Medianizer struct {
+	Contract         string  `json:"oracle"`
 	OracleSpread     float64 `json:"oracleSpread"`
 	OracleExpiration int64   `json:"oracleExpiration"`
 	MsgExpiration    int64   `json:"msgExpiration"`
@@ -97,7 +97,7 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+		return nil, fmt.Errorf("(account) %v: %v", ErrFailedToLoadConfiguration, err)
 	}
 
 	// Signer:
@@ -106,13 +106,13 @@ func (c *Config) Configure(deps Dependencies) (*Instances, error) {
 	// Transport:
 	tra, err := c.configureTransport(deps.Context, sig, deps.Logger)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+		return nil, fmt.Errorf("(transport) %v: %v", ErrFailedToLoadConfiguration, err)
 	}
 
 	// Create Ethereum client:
 	eth, err := c.configureEthClient(sig)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+		return nil, fmt.Errorf("(ethereum) %v: %v", ErrFailedToLoadConfiguration, err)
 	}
 
 	// Datastore:
@@ -212,7 +212,7 @@ func (c *Config) configureDatastore(s ethereum.Signer, t transport.Transport, l 
 		feeds = append(feeds, ethereum.HexToAddress(feed))
 	}
 
-	for name := range c.Pairs {
+	for name := range c.Medianizers {
 		cfg.Pairs[name] = &datastore.Pair{Feeds: feeds}
 	}
 
@@ -234,13 +234,13 @@ func (c *Config) configureSpectre(
 		Pairs:     nil,
 	}
 
-	for name, pair := range c.Pairs {
+	for name, pair := range c.Medianizers {
 		cfg.Pairs = append(cfg.Pairs, &spectre.Pair{
 			AssetPair:        name,
 			OracleSpread:     pair.OracleSpread,
 			OracleExpiration: time.Second * time.Duration(pair.OracleExpiration),
 			PriceExpiration:  time.Second * time.Duration(pair.MsgExpiration),
-			Median:           oracleGeth.NewMedian(e, ethereum.HexToAddress(pair.Oracle)),
+			Median:           oracleGeth.NewMedian(e, ethereum.HexToAddress(pair.Contract)),
 		})
 	}
 

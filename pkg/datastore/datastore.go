@@ -83,11 +83,6 @@ func (c *Datastore) Start() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	err := c.transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
-	if err != nil {
-		return err
-	}
-
 	return c.collectorLoop()
 }
 
