@@ -166,6 +166,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		BootstrapAddrs:   c.P2P.BootstrapAddrs,
 		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
 		BlockedAddrs:     c.P2P.BlockedAddrs,
+		AssetPairs:       c.Pairs,
 		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           s,
 		Logger:           l,
@@ -225,6 +226,9 @@ func (c *Config) generatePrivKey() (crypto.PrivKey, error) {
 }
 
 func (c *Config) readAccountPassphrase(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
 	passphraseFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("%v: %v", ErrFailedToReadPassphraseFile, err)

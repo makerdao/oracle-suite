@@ -175,6 +175,9 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	for _, feed := range c.Feeds {
 		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
 	}
+	for pair, _ := range c.Pairs {
+		cfg.AssetPairs = append(cfg.AssetPairs, pair)
+	}
 
 	p, err := p2p.New(cfg)
 	if err != nil {
@@ -267,6 +270,9 @@ func (c *Config) generatePrivKey() (crypto.PrivKey, error) {
 }
 
 func (c *Config) readAccountPassphrase(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
 	passphraseFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("%v: %v", ErrFailedToReadPassphraseFile, err)

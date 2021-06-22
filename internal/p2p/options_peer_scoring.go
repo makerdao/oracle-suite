@@ -16,6 +16,7 @@
 package p2p
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -36,9 +37,14 @@ func PeerScoring(
 			pubsub.WithPeerScore(params, thresholds),
 			pubsub.WithPeerScoreInspect(func(m map[peer.ID]*pubsub.PeerScoreSnapshot) {
 				for id, ps := range m {
+					j, err := json.Marshal(ps)
+					if err != nil {
+						continue
+					}
+
 					n.log.
 						WithField("peerID", id).
-						WithField("score", ps.Score).
+						WithField("score", string(j)).
 						Debug("Peer score")
 				}
 			}, time.Minute),
@@ -59,9 +65,11 @@ func PeerScoring(
 				if err != nil {
 					return
 				}
-				err = sub.topic.SetScoreParams(topicScoreParams(e.Topic))
-				if err != nil {
-					return
+				if sp := topicScoreParams(e.Topic); sp != nil {
+					err = sub.topic.SetScoreParams(sp)
+					if err != nil {
+						return
+					}
 				}
 			}
 		}))

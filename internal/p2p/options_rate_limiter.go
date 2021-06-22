@@ -72,8 +72,6 @@ type peerLimiter struct {
 
 // peerLimiter creates or returns previously created limiter for a given peer.
 func (p *rateLimiter) peerLimiter(id peer.ID) *peerLimiter {
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	if _, ok := p.peerLimiters[id]; !ok {
 		p.peerLimiters[id] = &peerLimiter{
 			limiter: rate.NewLimiter(rate.Limit(p.bytesPerSecond), p.burstSize),
@@ -85,6 +83,8 @@ func (p *rateLimiter) peerLimiter(id peer.ID) *peerLimiter {
 
 // allow checks if a message of a given size can be received from a given peer.
 func (p *rateLimiter) allow(id peer.ID, msgSize int) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	prl := p.peerLimiter(id)
 	prl.lastMsg = time.Now()
 	return prl.limiter.AllowN(prl.lastMsg, msgSize)
