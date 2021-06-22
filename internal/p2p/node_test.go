@@ -104,7 +104,7 @@ func TestNode_MessagePropagation(t *testing.T) {
 	// This test checks if messages are propagated between peers correctly.
 	//
 	// Topology:
-	//   n0 <--[manual connection]--> n1 <--[manual connection]--> n2
+	//   n0 <--[direct connection]--> n1 <--[direct connection]--> n2
 
 	peers, err := getPeerInfo(3)
 	require.NoError(t, err)
@@ -113,6 +113,7 @@ func TestNode_MessagePropagation(t *testing.T) {
 		context.Background(),
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
+		DirectPeers(peers[1].PeerAddrs),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n0.Start())
@@ -122,6 +123,7 @@ func TestNode_MessagePropagation(t *testing.T) {
 		context.Background(),
 		PeerPrivKey(peers[1].PrivKey),
 		ListenAddrs(peers[1].ListenAddrs),
+		DirectPeers(append([]multiaddr.Multiaddr{}, peers[0].PeerAddrs[0], peers[2].PeerAddrs[0])),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
@@ -131,13 +133,12 @@ func TestNode_MessagePropagation(t *testing.T) {
 		context.Background(),
 		PeerPrivKey(peers[2].PrivKey),
 		ListenAddrs(peers[2].ListenAddrs),
+		DirectPeers(peers[1].PeerAddrs),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n2.Start())
 	defer n1.Stop()
 
-	require.NoError(t, n0.Connect(peers[1].PeerAddrs[0]))
-	require.NoError(t, n1.Connect(peers[2].PeerAddrs[0]))
 	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
 	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
 	require.NoError(t, n2.Subscribe("test", (*message)(nil)))
