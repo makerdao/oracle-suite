@@ -71,7 +71,7 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 	// Wait for the peers to connect to each other:
 	waitFor(t, func() bool {
 		return len(n0.PubSub().ListPeers("test")) > 0 && len(n1.PubSub().ListPeers("test")) > 0
-	}, defaultTimeout)
+	})
 
 	// Send messages:
 	msgsCh := countMessages(s1, 2*time.Second)
@@ -131,7 +131,7 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 	// Wait for the peers to connect to each other:
 	waitFor(t, func() bool {
 		return len(n0.PubSub().ListPeers("test")) > 0 && len(n1.PubSub().ListPeers("test")) > 0
-	}, defaultTimeout)
+	})
 
 	// Send messages:
 	msgsCh := countMessages(s1, 2*time.Second)

@@ -89,15 +89,15 @@ func TestNode_AddrNotLeaking(t *testing.T) {
 	waitFor(t, func() bool {
 		lp := n0.PubSub().ListPeers("test")
 		return len(lp) == 1 && containsPeerID(lp, peers[1].ID)
-	}, defaultTimeout)
+	})
 	waitFor(t, func() bool {
 		lp := n1.PubSub().ListPeers("test")
 		return len(lp) == 2 && containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[2].ID)
-	}, defaultTimeout)
+	})
 	waitFor(t, func() bool {
 		lp := n2.PubSub().ListPeers("test")
 		return len(lp) == 1 && containsPeerID(lp, peers[1].ID)
-	}, defaultTimeout)
+	})
 }
 
 func TestNode_MessagePropagation(t *testing.T) {
@@ -147,7 +147,7 @@ func TestNode_MessagePropagation(t *testing.T) {
 		return len(n0.PubSub().ListPeers("test")) > 0 &&
 			len(n1.PubSub().ListPeers("test")) > 0 &&
 			len(n2.PubSub().ListPeers("test")) > 0
-	}, defaultTimeout)
+	})
 
 	s1, err := n0.Subscription("test")
 	require.NoError(t, err)
@@ -160,9 +160,9 @@ func TestNode_MessagePropagation(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Message should be received on both nodes:
-	waitForMessage(t, s1.Next(), newMessage("makerdao"), defaultTimeout)
-	waitForMessage(t, s2.Next(), newMessage("makerdao"), defaultTimeout)
-	waitForMessage(t, s3.Next(), newMessage("makerdao"), defaultTimeout)
+	waitForMessage(t, s1.Next(), newMessage("makerdao"))
+	waitForMessage(t, s2.Next(), newMessage("makerdao"))
+	waitForMessage(t, s3.Next(), newMessage("makerdao"))
 }
 
 // message is the simplest implementation of the transport.Message interface.
@@ -248,10 +248,10 @@ func getFreePorts(n int) ([]int, error) {
 }
 
 // waitFor waits until cond becomes true.
-func waitFor(t *testing.T, cond func() bool, timeout time.Duration) {
+func waitFor(t *testing.T, cond func() bool) {
 	s := time.Now()
 	for !cond() {
-		if time.Since(s) >= timeout {
+		if time.Since(s) >= defaultTimeout {
 			assert.Fail(t, "timeout")
 			return
 		}
@@ -260,8 +260,8 @@ func waitFor(t *testing.T, cond func() bool, timeout time.Duration) {
 }
 
 // waitForMessage waits for expected message.
-func waitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected *message, timeout time.Duration) {
-	to := time.After(timeout)
+func waitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected *message) {
+	to := time.After(defaultTimeout)
 	select {
 	case received := <-stat:
 		require.NoError(t, received.Error, "subscription returned an error")

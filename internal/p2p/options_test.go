@@ -125,15 +125,15 @@ func TestNode_Discovery(t *testing.T) {
 	waitFor(t, func() bool {
 		lp := n0.PubSub().ListPeers("test")
 		return containsPeerID(lp, peers[1].ID) && containsPeerID(lp, peers[2].ID)
-	}, defaultTimeout)
+	})
 	waitFor(t, func() bool {
 		lp := n1.PubSub().ListPeers("test")
 		return containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[2].ID)
-	}, defaultTimeout)
+	})
 	waitFor(t, func() bool {
 		lp := n2.PubSub().ListPeers("test")
 		return containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[1].ID)
-	}, defaultTimeout)
+	})
 }
 
 func TestNode_ConnectionLimit(t *testing.T) {
