@@ -109,7 +109,7 @@ func TestPrice_Marshall(t *testing.T) {
 	p.V = 0xAA
 	p.R = [32]byte{0x01}
 	p.S = [32]byte{0x02}
-	p.StarkR, _ = decodeHexNumber("586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1")
+	p.StarkR, _ = decodeHexNumber("0x586fa4069e8aa28e3efda6164f4d66589d004c88177308c87fe7417733ae29e1")
 	p.StarkS, _ = decodeHexNumber("95eaf04c82791b6eddb416325fa96cf3464a9105b1e2dcb6d529cc8f44838")
 	p.StarkPK, _ = decodeHexNumber("bfd2fdb645150ce6df70b2511635117fb85ff60c6463ee4e91cff069bf10")
 

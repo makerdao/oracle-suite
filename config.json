@@ -384,8 +384,7 @@
         "minimumSuccessfulSources": 3
       }
     }
-  }
-,
+  },
   "options": {
     "interval": 20
   },
