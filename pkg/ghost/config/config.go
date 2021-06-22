@@ -149,6 +149,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		BootstrapAddrs:   c.P2P.BootstrapAddrs,
 		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
 		BlockedAddrs:     c.P2P.BlockedAddrs,
+		AssetPairs:       c.Pairs,
 		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           s,
 		Logger:           l,
@@ -158,9 +159,6 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	cfg.FeedersAddrs = []ethereum.Address{ethereum.HexToAddress(c.Ethereum.From)}
 	for _, feed := range c.Feeds {
 		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
-	}
-	for pair, _ := range c.Pairs {
-		cfg.AssetPairs = append(cfg.AssetPairs, pair)
 	}
 
 	p, err := p2p.New(cfg)

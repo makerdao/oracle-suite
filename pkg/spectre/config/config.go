@@ -175,7 +175,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	for _, feed := range c.Feeds {
 		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
 	}
-	for pair, _ := range c.Pairs {
+	for pair, _ := range c.Medianizers {
 		cfg.AssetPairs = append(cfg.AssetPairs, pair)
 	}
 
