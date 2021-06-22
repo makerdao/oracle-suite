@@ -16,6 +16,8 @@
 package spire
 
 import (
+	"strings"
+
 	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -79,7 +81,7 @@ func (n *API) PullPrices(arg *PullPricesArg, resp *PullPricesResp) error {
 		if arg.FilterAssetPair != "" && arg.FilterAssetPair != fp.AssetPair {
 			continue
 		}
-		if arg.FilterFeeder != "" && arg.FilterFeeder != fp.Feeder.String() {
+		if arg.FilterFeeder != "" && !strings.EqualFold(arg.FilterFeeder, fp.Feeder.String()) {
 			continue
 		}
 		prices = append(prices, p)

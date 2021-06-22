@@ -46,11 +46,11 @@ var ErrFailedToReadPassphraseFile = errors.New("failed to read the ethereum pass
 var ErrFailedToParsePrivKeySeed = errors.New("failed to parse the privKeySeed field")
 
 type Config struct {
-	Ethereum Ethereum        `json:"ethereum"`
-	P2P      P2P             `json:"p2p"`
-	Options  Options         `json:"options"`
-	Feeds    []string        `json:"feeds"`
-	Pairs    map[string]Pair `json:"pairs"`
+	Ethereum Ethereum `json:"ethereum"`
+	P2P      P2P      `json:"p2p"`
+	Options  Options  `json:"options"`
+	Feeds    []string `json:"feeds"`
+	Pairs    []string `json:"pairs"`
 }
 
 type Ethereum struct {
@@ -70,10 +70,6 @@ type P2P struct {
 
 type Options struct {
 	Interval int `json:"interval"`
-}
-
-type Pair struct {
-	MsgExpiration int `json:"msgExpiration"`
 }
 
 type Dependencies struct {
@@ -197,10 +193,9 @@ func (c *Config) configureGhost(
 		Pairs:     nil,
 	}
 
-	for name, pair := range c.Pairs {
+	for _, name := range c.Pairs {
 		cfg.Pairs = append(cfg.Pairs, &ghost.Pair{
-			AssetPair:        name,
-			OracleExpiration: time.Second * time.Duration(pair.MsgExpiration),
+			AssetPair: name,
 		})
 	}
 

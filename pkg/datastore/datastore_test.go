@@ -45,6 +45,7 @@ func TestDatastore_Prices(t *testing.T) {
 		Logger: null.New(),
 	})
 
+	assert.NoError(t, ds.transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil)))
 	assert.NoError(t, ds.Start())
 	defer ds.Stop()
 
