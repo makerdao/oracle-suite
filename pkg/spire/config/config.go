@@ -68,7 +68,6 @@ type P2P struct {
 }
 
 type RPC struct {
-	Disable bool   `json:"disable"`
 	Address string `json:"address"`
 }
 
@@ -104,7 +103,6 @@ func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 		Network:   "tcp",
 		Address:   c.RPC.Address,
 		Logger:    deps.Logger,
-		SkipRPC:   c.RPC.Disable,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
@@ -167,7 +165,6 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		BootstrapAddrs:   c.P2P.BootstrapAddrs,
 		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
 		BlockedAddrs:     c.P2P.BlockedAddrs,
-		AssetPairs:       c.Pairs,
 		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           s,
 		Logger:           l,

@@ -44,7 +44,6 @@ type AgentConfig struct {
 	Network   string
 	Address   string
 	Logger    log.Logger
-	SkipRPC   bool
 }
 
 func NewAgent(cfg AgentConfig) (*Agent, error) {
@@ -59,14 +58,12 @@ func NewAgent(cfg AgentConfig) (*Agent, error) {
 		address: cfg.Address,
 		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
-	if !cfg.SkipRPC {
-		s.rpc = rpc.NewServer()
-		err := s.rpc.Register(s.api)
-		if err != nil {
-			return nil, err
-		}
-		s.rpc.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
+	s.rpc = rpc.NewServer()
+	err := s.rpc.Register(s.api)
+	if err != nil {
+		return nil, err
 	}
+	s.rpc.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 
 	return s, nil
 }
@@ -80,21 +77,20 @@ func (s *Agent) Start() error {
 		return err
 	}
 
-	if s.rpc != nil {
-		s.log.Debugln("Starting Spire RPC server")
+	s.log.Debugln("Starting Spire RPC server")
 
-		s.listener, err = net.Listen(s.network, s.address)
-		if err != nil {
-			return err
-		}
-
-		go func() {
-			err := http.Serve(s.listener, nil)
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				s.log.WithError(err).Error("RPC server crashed")
-			}
-		}()
+	s.listener, err = net.Listen(s.network, s.address)
+	if err != nil {
+		return err
 	}
+
+	go func() {
+		err := http.Serve(s.listener, nil)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.log.WithError(err).Error("RPC server crashed")
+		}
+	}()
+
 	return nil
 }
 
@@ -107,10 +103,8 @@ func (s *Agent) Stop() {
 		s.log.WithError(err).Error("Unable to stop Datastore")
 	}
 
-	if s.rpc != nil {
-		err = s.listener.Close()
-		if err != nil {
-			s.log.WithError(err).Error("Unable to close RPC listener")
-		}
+	err = s.listener.Close()
+	if err != nil {
+		s.log.WithError(err).Error("Unable to close RPC listener")
 	}
 }

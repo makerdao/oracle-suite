@@ -175,9 +175,6 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 	for _, feed := range c.Feeds {
 		cfg.FeedersAddrs = append(cfg.FeedersAddrs, ethereum.HexToAddress(feed))
 	}
-	for pair := range c.Medianizers {
-		cfg.AssetPairs = append(cfg.AssetPairs, pair)
-	}
 
 	p, err := p2p.New(cfg)
 	if err != nil {

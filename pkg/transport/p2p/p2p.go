@@ -37,13 +37,15 @@ import (
 
 const LoggerTag = "P2P"
 
-// Values for the connection limiter:
-var lowPeers = 24
-var highPeers = 36
+// Values for a connection limiter:
+var lowPeers = 100
+var highPeers = 150
 
-// Values used to calculate limits for the rate limiter:
-const maxMessageSize = 128 * 1024 // maximum expected message size in bytes
-const priceUpdateInterval = 60    // expected price update interval in seconds
+// Values for a peer scoring and rate limiter:
+const maxBytesPerSecond float64 = 10 * 1024 * 1024 // 10MB/s
+const maxInvalidMessageCountPerHour float64 = 60
+const maxMessageSizeInBytes float64 = 64 * 1024
+const priceUpdateIntervalInSeconds float64 = 60
 
 // defaultListenAddrs is a list of default multiaddresses on which node will
 // be listening on.
@@ -84,9 +86,6 @@ type Config struct {
 	// FeedersAddrs is a list of price feeders. Only feeders can create new
 	// messages in the network.
 	FeedersAddrs []ethereum.Address
-	// AssetPairs is a list of allowed asset pairs. Assets outside that list
-	// will not be propagated through the network.
-	AssetPairs []string
 	// Discovery indicates whenever peer discovery should be enabled.
 	// If discovery is disabled, then DirectPeersAddrs must be used
 	// to connect to the network.
@@ -135,30 +134,24 @@ func New(cfg Config) (*P2P, error) {
 		p2p.ListenAddrs(listenAddrs),
 		p2p.DirectPeers(directPeersAddrs),
 		p2p.Denylist(blockedAddrs),
-		p2p.RateLimiter(func() p2p.RateLimiterConfig {
-			assetPairsNum := len(cfg.AssetPairs)
-			feedersNum := len(cfg.FeedersAddrs)
-			bytesPerSecond := float64(maxMessageSize*assetPairsNum) / priceUpdateInterval
-			burstSize := maxMessageSize * assetPairsNum
-			return p2p.RateLimiterConfig{
-				BytesPerSecond:      bytesPerSecond,
-				BurstSize:           burstSize,
-				RelayBytesPerSecond: bytesPerSecond * float64(feedersNum),
-				RelayBurstSize:      burstSize * feedersNum,
-			}
-		}()),
 		p2p.ConnectionLimit(
 			lowPeers,
 			highPeers,
 			5*time.Minute,
 		),
+		p2p.RateLimiter(rateLimiter(cfg)),
 		p2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
 			if topic == messages.PriceMessageName {
-				return priceTopicScoreParams(cfg)
+				sp := priceTopicScoreParams(cfg)
+				logger.
+					WithField("topic", topic).
+					WithField("params", fmt.Sprintf("%+v", sp)).
+					Debug("Topic score params")
+				return sp
 			}
 			return nil
 		}),
-		oracle(cfg.FeedersAddrs, cfg.AssetPairs, cfg.Signer, logger),
+		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 	}
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
@@ -241,73 +234,98 @@ func strsToMaddrs(addrs []string) ([]core.Multiaddr, error) {
 
 // Peer scoring:
 // https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/gossipsub-v1.1.md#peer-scoring
-const decayIntervalSec = 60
-const decayToZero = 0.01
+const decayIntervalInSeconds float64 = 60
+const decayToZero float64 = 0.01
+const maxP1Points float64 = 500
+const maxP2Points float64 = 1000
+const maxP3Points float64 = -1000
+const p1LengthInSeconds float64 = 3600
+const p2LengthInSeconds float64 = 3600
+const p3LengthInSeconds float64 = 5 * 60
+const maxPoints = maxP1Points + maxP2Points
+
+//nolint:gomnd
+var thresholds = &pubsub.PeerScoreThresholds{
+	GossipThreshold:   -250,
+	PublishThreshold:  -500,
+	GraylistThreshold: -750,
+	AcceptPXThreshold: 0,
+}
 
 //nolint:gomnd
 var peerScoreParams = &pubsub.PeerScoreParams{
 	AppSpecificScore:            func(id peer.ID) float64 { return 0 },
 	AppSpecificWeight:           1,
 	IPColocationFactorWeight:    -1,
-	IPColocationFactorThreshold: 4,
-	BehaviourPenaltyWeight:      -1,
+	IPColocationFactorThreshold: 1,
+	BehaviourPenaltyWeight:      -10,
 	BehaviourPenaltyThreshold:   1,
-	BehaviourPenaltyDecay:       decay(1500, 3600/decayIntervalSec),
-	DecayInterval:               decayIntervalSec * time.Second,
+	BehaviourPenaltyDecay:       decay(maxPoints, 3600),
+	DecayInterval:               time.Duration(decayIntervalInSeconds) * time.Second,
 	DecayToZero:                 decayToZero,
 	RetainScore:                 5 * time.Minute,
 	Topics:                      make(map[string]*pubsub.TopicScoreParams),
 }
 
-//nolint:gomnd
-var thresholds = &pubsub.PeerScoreThresholds{
-	GossipThreshold:   -500,
-	PublishThreshold:  -1000,
-	GraylistThreshold: -1000,
-	AcceptPXThreshold: 0,
-}
-
 func priceTopicScoreParams(cfg Config) *pubsub.TopicScoreParams {
-	var minMsgsPerMin = float64(len(cfg.FeedersAddrs) * len(cfg.AssetPairs) / pubsub.GossipSubDhi)
-	var maxMsgsPerMin = float64(len(cfg.FeedersAddrs) * len(cfg.AssetPairs))
+	var maxPeers = float64(pubsub.GossipSubDhi)
+	var minFeederCount = float64(len(cfg.FeedersAddrs)) / 2 // assume that 50% of feeders are offline
+	var maxFeederCount = float64(len(cfg.FeedersAddrs))
+	var minAssetPairCount = float64(1)
+	var maxAssetPairCount = maxBytesPerSecond / maxMessageSizeInBytes * priceUpdateIntervalInSeconds / maxFeederCount
+	var minMsgsPerSecond = (minFeederCount * minAssetPairCount) / maxPeers / priceUpdateIntervalInSeconds
+	var maxMsgsPerSecond = (maxFeederCount * maxAssetPairCount) / priceUpdateIntervalInSeconds
 
 	//nolint:gomnd
 	return &pubsub.TopicScoreParams{
 		TopicWeight: 1,
 
-		// P₁: Add up to 500 points after being in mesh for 1 hour.
-		TimeInMeshWeight:  float64(500) / 3600,
+		// P₁
+		TimeInMeshWeight:  maxP1Points / p1LengthInSeconds,
 		TimeInMeshQuantum: time.Second,
-		TimeInMeshCap:     3600,
+		TimeInMeshCap:     p1LengthInSeconds,
 
-		// P₂: Add up to 1000 points for a message delivery.
-		FirstMessageDeliveriesWeight: float64(1000) / (minMsgsPerMin * 60),
-		FirstMessageDeliveriesDecay:  decay(minMsgsPerMin*60, 3600/decayIntervalSec),
-		FirstMessageDeliveriesCap:    minMsgsPerMin * 60,
+		// P₂
+		FirstMessageDeliveriesWeight: maxP2Points / (minMsgsPerSecond * p2LengthInSeconds),
+		FirstMessageDeliveriesDecay:  decay(minMsgsPerSecond*p2LengthInSeconds, p2LengthInSeconds),
+		FirstMessageDeliveriesCap:    minMsgsPerSecond * p2LengthInSeconds,
 
-		// P₃: Remove up to 1000 points if the delivery rate is too low.
-		// Activation window and decay are set to 5 min.
-		MeshMessageDeliveriesWeight:     float64(-1000) / math.Pow(5*minMsgsPerMin, 2),
-		MeshMessageDeliveriesDecay:      decay(5*minMsgsPerMin, 5*60/decayIntervalSec),
-		MeshMessageDeliveriesCap:        5 * maxMsgsPerMin,
-		MeshMessageDeliveriesThreshold:  5 * minMsgsPerMin,
-		MeshMessageDeliveriesActivation: 5 * time.Minute,
+		// P₃
+		// Note that because of the difference between the cap value and the threshold value, the decay time may be
+		// longer than p3LengthInSeconds. The p3LengthInSeconds parameter describes the decay time for the minimum
+		// number of messages.
+		MeshMessageDeliveriesWeight:     maxP3Points / math.Pow(minMsgsPerSecond*p3LengthInSeconds, 2),
+		MeshMessageDeliveriesDecay:      decay(minMsgsPerSecond*p3LengthInSeconds, p3LengthInSeconds),
+		MeshMessageDeliveriesCap:        maxMsgsPerSecond * p3LengthInSeconds,
+		MeshMessageDeliveriesThreshold:  minMsgsPerSecond * p3LengthInSeconds,
+		MeshMessageDeliveriesActivation: time.Duration(p3LengthInSeconds) * time.Second,
 		MeshMessageDeliveriesWindow:     10 * time.Millisecond,
-		MeshFailurePenaltyWeight:        float64(-1000) / math.Pow(5*minMsgsPerMin, 2),
-		MeshFailurePenaltyDecay:         decay(5*minMsgsPerMin, 5*60/decayIntervalSec),
+		MeshFailurePenaltyWeight:        maxP3Points / math.Pow(minMsgsPerSecond*p3LengthInSeconds, 2),
+		MeshFailurePenaltyDecay:         decay(minMsgsPerSecond*p3LengthInSeconds, p3LengthInSeconds),
 
-		// P₄: Remove 100 points for every invalid message. It allows to send up to
-		// ~15 invalid messages per hour. The cap argument for the decay method
-		// is equal to the maximum possible score.
-		InvalidMessageDeliveriesWeight: -100,
-		InvalidMessageDeliveriesDecay:  decay(1500, 3600/decayIntervalSec),
+		// P₄
+		InvalidMessageDeliveriesWeight: maxPoints / maxInvalidMessageCountPerHour * -1,
+		InvalidMessageDeliveriesDecay:  decay(maxPoints, 3600),
 	}
 }
 
 // decay calculates a decay parameter for a peer scoring. It finds a number X
-// that satisfies the equation: cap*X^intervals=target. In other words, it
+// that satisfies the equation: from*X^intervals=target. In other words, it
 // finds a decay value for which a scoring will drop to the target value after
-// the given number of intervals.
-func decay(cap float64, intervals int) float64 {
-	return math.Pow(decayToZero/cap, 1/float64(intervals))
+// the given number of seconds.
+func decay(from float64, seconds float64) float64 {
+	return math.Pow(decayToZero/from, 1/(seconds/decayIntervalInSeconds))
+}
+
+// Rate limiter:
+
+func rateLimiter(cfg Config) p2p.RateLimiterConfig {
+	bytesPerSecond := maxBytesPerSecond
+	burstSize := maxBytesPerSecond * priceUpdateIntervalInSeconds
+	return p2p.RateLimiterConfig{
+		BytesPerSecond:      maxBytesPerSecond / float64(len(cfg.FeedersAddrs)),
+		BurstSize:           int(burstSize / float64(len(cfg.FeedersAddrs))),
+		RelayBytesPerSecond: bytesPerSecond,
+		RelayBurstSize:      int(burstSize),
+	}
 }
