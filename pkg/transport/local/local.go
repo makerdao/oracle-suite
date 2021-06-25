@@ -58,6 +58,21 @@ func (l *Local) Subscribe(topic string, typ transport.Message) error {
 		status: make(chan transport.ReceivedMessage),
 		doneCh: make(chan struct{}),
 	}
+	sub := l.subs[topic]
+	go func() {
+		for {
+			select {
+			case <-sub.doneCh:
+				return
+			case msg := <-sub.msgs:
+				message := reflect.New(sub.typ).Interface().(transport.Message)
+				sub.status <- transport.ReceivedMessage{
+					Message: message,
+					Error:   message.Unmarshall(msg),
+				}
+			}
+		}
+	}()
 	return nil
 }
 
@@ -88,18 +103,6 @@ func (l *Local) Broadcast(topic string, message transport.Message) error {
 // WaitFor implements the transport.Transport interface.
 func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
 	if sub, ok := l.subs[topic]; ok {
-		go func() {
-			select {
-			case <-sub.doneCh:
-				return
-			case msg := <-sub.msgs:
-				message := reflect.New(sub.typ).Interface().(transport.Message)
-				sub.status <- transport.ReceivedMessage{
-					Message: message,
-					Error:   message.Unmarshall(msg),
-				}
-			}
-		}()
 		return sub.status
 	}
 	return nil
