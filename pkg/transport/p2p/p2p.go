@@ -142,12 +142,7 @@ func New(cfg Config) (*P2P, error) {
 		p2p.RateLimiter(rateLimiter(cfg)),
 		p2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
 			if topic == messages.PriceMessageName {
-				sp := priceTopicScoreParams(cfg)
-				logger.
-					WithField("topic", topic).
-					WithField("params", fmt.Sprintf("%+v", sp)).
-					Debug("Topic score params")
-				return sp
+				return priceTopicScoreParams(cfg)
 			}
 			return nil
 		}),
