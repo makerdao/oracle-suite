@@ -55,8 +55,9 @@ func init() {
 	swarm.DialTimeoutLocal = timeout
 }
 
-// Node is a single node in the P2P mesh. It wraps the libp2p library to provide
-// an easier to use and use-case agnostic interface for the pubsub system.
+// Node is a single node in the P2P network. It wraps the libp2p library to
+// provide an easier to use and use-case agnostic interface for the pubsub
+// system.
 type Node struct {
 	mu sync.Mutex
 

@@ -36,77 +36,13 @@ import (
 
 const defaultTimeout = 10 * time.Second
 
-func TestNode_AddrNotLeaking(t *testing.T) {
-	// This test checks that the addresses of nodes that do not use discovery
-	// are not revealed to other nodes in the network.
-	//
-	// Topology:
-	//   n0 <--[discovery]--> n1 <--[direct]--> n2
-	//
-	// - n0 node should only be connected to n1 node (through discovery)
-	// - n1 node should only be connected to n0 node (through discovery) and n1 (through direct connection)
-	// - n2 node should only be connected to n1 node (through direct connection)
-	// - the n0 node's address must not be exposed to n2 node
-
-	peers, err := getPeerInfo(3)
-	require.NoError(t, err)
-
-	n0, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[0].PrivKey),
-		ListenAddrs(peers[0].ListenAddrs),
-		Discovery(nil),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n0.Start())
-	defer n0.Stop()
-
-	n1, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[1].PrivKey),
-		ListenAddrs(peers[1].ListenAddrs),
-		DirectPeers(peers[2].PeerAddrs),
-		Discovery(peers[0].PeerAddrs),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n1.Start())
-	defer n1.Stop()
-
-	n2, err := NewNode(
-		context.Background(),
-		PeerPrivKey(peers[2].PrivKey),
-		ListenAddrs(peers[2].ListenAddrs),
-		DirectPeers(peers[1].PeerAddrs),
-	)
-	require.NoError(t, err)
-	require.NoError(t, n2.Start())
-	defer n2.Stop()
-
-	require.NoError(t, n0.Subscribe("test", (*message)(nil)))
-	require.NoError(t, n1.Subscribe("test", (*message)(nil)))
-	require.NoError(t, n2.Subscribe("test", (*message)(nil)))
-
-	waitFor(t, func() bool {
-		lp := n0.PubSub().ListPeers("test")
-		return len(lp) == 1 && containsPeerID(lp, peers[1].ID)
-	})
-	waitFor(t, func() bool {
-		lp := n1.PubSub().ListPeers("test")
-		return len(lp) == 2 && containsPeerID(lp, peers[0].ID) && containsPeerID(lp, peers[2].ID)
-	})
-	waitFor(t, func() bool {
-		lp := n2.PubSub().ListPeers("test")
-		return len(lp) == 1 && containsPeerID(lp, peers[1].ID)
-	})
-}
-
 func TestNode_MessagePropagation(t *testing.T) {
 	// This test checks if messages are propagated between peers correctly.
 	//
 	// Topology:
 	//   n0 <--[direct connection]--> n1 <--[direct connection]--> n2
 
-	peers, err := getPeerInfo(3)
+	peers, err := getNodeInfo(3)
 	require.NoError(t, err)
 
 	n0, err := NewNode(
@@ -195,21 +131,21 @@ func (m *message) Unmarshall(bytes []byte) error {
 	return nil
 }
 
-type peerInfo struct {
+type nodeInfo struct {
 	ID          peer.ID
 	PrivKey     crypto.PrivKey
 	ListenAddrs []multiaddr.Multiaddr
 	PeerAddrs   []multiaddr.Multiaddr
 }
 
-// getPeerInfo returns n peerInfo structs which can be used to generate
+// getNodeInfo returns n nodeInfo structs which can be used to generate
 // random test nodes.
-func getPeerInfo(n int) ([]peerInfo, error) {
+func getNodeInfo(n int) ([]nodeInfo, error) {
 	ps, err := getFreePorts(n)
 	if err != nil {
 		return nil, err
 	}
-	var pi []peerInfo
+	var pi []nodeInfo
 	for i := 0; i < n; i++ {
 		rr := rand.Reader
 		sk, _, err := crypto.GenerateEd25519Key(rr)
@@ -220,7 +156,7 @@ func getPeerInfo(n int) ([]peerInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		pi = append(pi, peerInfo{
+		pi = append(pi, nodeInfo{
 			ListenAddrs: []multiaddr.Multiaddr{multiaddr.StringCast(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", ps[i]))},
 			PeerAddrs:   []multiaddr.Multiaddr{multiaddr.StringCast(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/p2p/%s", ps[i], id.Pretty()))},
 			PrivKey:     sk,
@@ -260,7 +196,7 @@ func waitFor(t *testing.T, cond func() bool) {
 	}
 }
 
-// waitForMessage waits for expected message.
+// waitForMessage waits for the expected message.
 func waitForMessage(t *testing.T, stat chan transport.ReceivedMessage, expected *message) {
 	to := time.After(defaultTimeout)
 	select {

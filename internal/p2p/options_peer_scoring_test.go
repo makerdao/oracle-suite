@@ -41,6 +41,9 @@ func (s *scoringEventTracer) Trace(evt *pubsub_pb.TraceEvent) {
 }
 
 func TestNode_PeerScoring(t *testing.T) {
+	// This test verifies that the integration with peer scoring is working
+	// correctly.
+
 	var peerScoreParams = &pubsub.PeerScoreParams{
 		AppSpecificScore:            func(id peer.ID) float64 { return 0 },
 		AppSpecificWeight:           1,
@@ -70,7 +73,7 @@ func TestNode_PeerScoring(t *testing.T) {
 		AcceptPXThreshold: 0,
 	}
 
-	peers, err := getPeerInfo(2)
+	peers, err := getNodeInfo(2)
 	require.NoError(t, err)
 
 	et := &scoringEventTracer{}

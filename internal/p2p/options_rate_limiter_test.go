@@ -32,7 +32,7 @@ func TestNode_RateLimiter_PeerLimit(t *testing.T) {
 	// limit. Then we wait one second and try to send another 128 byte message.
 	// This time the message should be accepted.
 
-	peers, err := getPeerInfo(2)
+	peers, err := getNodeInfo(2)
 	require.NoError(t, err)
 
 	n0, err := NewNode(
@@ -92,7 +92,7 @@ func TestNode_RateLimiter_PeerBurst(t *testing.T) {
 	// burst limit. The second one should be rejected because it exceeds the
 	// burst limit.
 
-	peers, err := getPeerInfo(2)
+	peers, err := getNodeInfo(2)
 	require.NoError(t, err)
 
 	n0, err := NewNode(
