@@ -244,8 +244,8 @@ func Monitor() Options {
 				}
 			}
 		}
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event == sets.NodeStarted {
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
+			if _, ok := event.(sets.NodeStartedEvent); ok {
 				go ticker()
 			}
 		}))
