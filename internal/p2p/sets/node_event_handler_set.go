@@ -15,23 +15,21 @@
 
 package sets
 
-type NodeEventType int
-
-const (
-	NodeConfigured NodeEventType = iota
-	NodeStarting
-	NodeHostStarted
-	NodePubSubStarted
-	NodeStarted
-	NodeStopping
-	NodeStopped
-)
+type NodeConfiguredEvent struct{}
+type NodeStartingEvent struct{}
+type NodeHostStartedEvent struct{}
+type NodePubSubStartedEvent struct{}
+type NodeStartedEvent struct{}
+type NodeTopicSubscribedEvent struct{ Topic string }
+type NodeTopicUnsubscribedEvent struct{ Topic string }
+type NodeStoppingEvent struct{}
+type NodeStoppedEvent struct{}
 
 // NodeEventHandlerFunc is a adapter for the NodeEventHandler interface.
-type NodeEventHandlerFunc func(event NodeEventType)
+type NodeEventHandlerFunc func(event interface{})
 
 // Handle calls f(topic, event).
-func (f NodeEventHandlerFunc) Handle(event NodeEventType) {
+func (f NodeEventHandlerFunc) Handle(event interface{}) {
 	f(event)
 }
 
@@ -39,7 +37,7 @@ func (f NodeEventHandlerFunc) Handle(event NodeEventType) {
 // system events.
 type NodeEventHandler interface {
 	// Handle is called on a new event.
-	Handle(event NodeEventType)
+	Handle(event interface{})
 }
 
 // NodeEventHandlerSet stores multiple instances of the NodeEventHandler interface.
@@ -58,7 +56,7 @@ func (n *NodeEventHandlerSet) Add(eventHandler ...NodeEventHandler) {
 }
 
 // Handle invokes all registered handlers for given topic.
-func (n *NodeEventHandlerSet) Handle(event NodeEventType) {
+func (n *NodeEventHandlerSet) Handle(event interface{}) {
 	for _, eventHandler := range n.eventHandler {
 		eventHandler.Handle(event)
 	}

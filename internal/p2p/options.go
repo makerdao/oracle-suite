@@ -152,11 +152,19 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 				}
 			}
 		}
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event == sets.NodeStarted {
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
+			if _, ok := event.(sets.NodeStartedEvent); ok {
 				go connectRoutine()
 			}
 		}))
+		return nil
+	}
+}
+
+// PubsubEventTracer provides a tracer for the pubsub system.
+func PubsubEventTracer(tracer pubsub.EventTracer) Options {
+	return func(n *Node) error {
+		n.pubsubOpts = append(n.pubsubOpts, pubsub.WithEventTracer(tracer))
 		return nil
 	}
 }
@@ -172,9 +180,9 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 			return err
 		}
 
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			switch event {
-			case sets.NodeHostStarted:
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
+			switch event.(type) {
+			case sets.NodeHostStartedEvent:
 				n.log.
 					WithField("bootstrapAddrs", bootstrapAddrs).
 					Info("Starting KAD-DHT discovery")
@@ -198,7 +206,7 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 					return
 				}
 				n.pubsubOpts = append(n.pubsubOpts, pubsub.WithDiscovery(discovery.NewRoutingDiscovery(kadDHT)))
-			case sets.NodeStopping:
+			case sets.NodeStoppingEvent:
 				if kadDHT == nil {
 					return
 				}
@@ -236,8 +244,8 @@ func Monitor() Options {
 				}
 			}
 		}
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
-			if event == sets.NodeStarted {
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
+			if _, ok := event.(sets.NodeStartedEvent); ok {
 				go ticker()
 			}
 		}))

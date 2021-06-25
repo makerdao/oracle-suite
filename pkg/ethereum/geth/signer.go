@@ -39,7 +39,7 @@ func NewSigner(account *Account) *Signer {
 	}
 }
 
-// Account implements the ethereum.Signer interface.
+// Address implements the ethereum.Signer interface.
 func (s *Signer) Address() ethereum.Address {
 	if s.account == nil {
 		return ethereum.Address{}

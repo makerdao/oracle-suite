@@ -219,6 +219,9 @@ func (c *Config) generatePrivKey() (crypto.PrivKey, error) {
 }
 
 func (c *Config) readAccountPassphrase(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
 	passphraseFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("%v: %v", ErrFailedToReadPassphraseFile, err)

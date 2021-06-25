@@ -55,20 +55,20 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 					Info("The price message was rejected, the message author and price signature don't match")
 				return pubsub.ValidationReject
 			}
-			// Check is the author is allowed to send price messages:
-			allowed := false
+			// Check if an author is allowed to send price messages:
+			feedAllowed := false
 			for _, addr := range feeders {
 				if addr == *priceFrom {
-					allowed = true
+					feedAllowed = true
 					break
 				}
 			}
-			if !allowed {
+			if !feedAllowed {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
 					WithField("feed", priceFrom.String()).
-					Info("The price message was rejected, the feeder is not allowed to send price messages")
-				return pubsub.ValidationReject
+					Info("The price message was ignored, the feeder is not allowed to send price messages")
+				return pubsub.ValidationIgnore
 			}
 			// Check when message was created, ignore if older than 5 min, reject if older than 10 min:
 			if time.Since(priceMsg.Price.Age) > 5*time.Minute {

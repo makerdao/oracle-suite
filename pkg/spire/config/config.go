@@ -68,7 +68,6 @@ type P2P struct {
 }
 
 type RPC struct {
-	Disable bool   `json:"disable"`
 	Address string `json:"address"`
 }
 
@@ -104,7 +103,6 @@ func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 		Network:   "tcp",
 		Address:   c.RPC.Address,
 		Logger:    deps.Logger,
-		SkipRPC:   c.RPC.Disable,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
@@ -232,6 +230,9 @@ func (c *Config) generatePrivKey() (crypto.PrivKey, error) {
 }
 
 func (c *Config) readAccountPassphrase(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
 	passphraseFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("%v: %v", ErrFailedToReadPassphraseFile, err)
