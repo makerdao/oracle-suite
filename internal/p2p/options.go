@@ -16,6 +16,7 @@
 package p2p
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -207,6 +208,37 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 						WithError(err).
 						Error("Unable to close KAD-DHT")
 				}
+			}
+		}))
+		return nil
+	}
+}
+
+func Monitor() Options {
+	return func(n *Node) error {
+		output := func() {
+			fmt.Printf(
+				`{"id":"%s","key":"connectedPeerCount","val":%d,"ts":%d}`+"\n",
+				n.host.ID().String(),
+				len(n.host.Network().Peers()),
+				time.Now().Unix(),
+			)
+		}
+		ticker := func() {
+			t := time.NewTicker(time.Minute)
+			for {
+				output()
+				select {
+				case <-n.ctx.Done():
+					t.Stop()
+					return
+				case <-t.C:
+				}
+			}
+		}
+		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event sets.NodeEventType) {
+			if event == sets.NodeStarted {
+				go ticker()
 			}
 		}))
 		return nil
