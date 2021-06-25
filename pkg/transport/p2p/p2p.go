@@ -147,6 +147,7 @@ func New(cfg Config) (*P2P, error) {
 			return nil
 		}),
 		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
+		p2p.Monitor(),
 	}
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
