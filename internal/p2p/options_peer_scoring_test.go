@@ -35,6 +35,8 @@ type scoringEventTracer struct {
 }
 
 func (s *scoringEventTracer) Trace(evt *pubsub_pb.TraceEvent) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if evt.GetType() == pubsub_pb.TraceEvent_PRUNE {
 		s.prunes++
 	}

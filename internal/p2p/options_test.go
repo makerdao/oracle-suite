@@ -200,7 +200,6 @@ func TestNode_Discovery_AddrNotLeaking(t *testing.T) {
 	})
 }
 
-
 func TestNode_ConnectionLimit(t *testing.T) {
 	// This test checks whether the connection number is properly limited when
 	// the ConnectionLimit option is used.
