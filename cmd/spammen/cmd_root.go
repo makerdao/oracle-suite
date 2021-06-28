@@ -17,6 +17,7 @@ package main
 
 import (
 	configCobra "github.com/makerdao/oracle-suite/pkg/spire/config/cobra"
+
 	"github.com/spf13/cobra"
 )
 

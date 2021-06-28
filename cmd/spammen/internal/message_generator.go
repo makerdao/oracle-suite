@@ -35,7 +35,7 @@ func NewMessageGenerator(pairs []string) *MessageGenerator {
 }
 
 func (m *MessageGenerator) pair() string {
-	idx := rand.Intn(len(m.pairs))
+	idx := rand.Intn(len(m.pairs)) //nolint:gosec
 	return m.pairs[idx]
 }
 
@@ -43,7 +43,7 @@ func (m *MessageGenerator) ValidPriceMessage() *messages.Price {
 	return &messages.Price{
 		Price: &oracle.Price{
 			Wat: m.pair(),
-			Val: big.NewInt(int64(10 + rand.Intn(100))),
+			Val: big.NewInt(int64(10 + rand.Intn(100))), //nolint:gosec
 			Age: time.Now(),
 		},
 		Trace: nil,

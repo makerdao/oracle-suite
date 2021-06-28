@@ -77,7 +77,7 @@ func (s *Spamman) Run(ctx context.Context) error {
 
 func (s *Spamman) process(ctx context.Context) {
 	// message rate per minute in ms
-	delay := int(60_000 / s.MessageRate)
+	delay := 60_000 / s.MessageRate //nolint:gomnd
 
 	s.instance.Logger.
 		WithField("delay", delay).

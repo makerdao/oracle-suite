@@ -31,7 +31,6 @@ func NewRunCmd(opts *options) *cobra.Command {
 		Short: "",
 		Long:  ``,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-
 			var err error
 			logger, err = newLogger(opts)
 			if err != nil {
@@ -46,12 +45,10 @@ func NewRunCmd(opts *options) *cobra.Command {
 			return client.Start()
 		},
 		PersistentPostRunE: func(_ *cobra.Command, args []string) error {
-
 			client.Stop()
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-
 			ctx, done := context.WithCancel(context.Background())
 			_ = client.Run(ctx)
 
