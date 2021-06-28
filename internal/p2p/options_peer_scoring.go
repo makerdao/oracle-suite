@@ -16,13 +16,13 @@
 package p2p
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 // PeerScoring configures peer scoring parameters used in a pubsub system.
@@ -39,7 +39,7 @@ func PeerScoring(
 				for id, ps := range m {
 					n.log.
 						WithField("peerID", id).
-						WithField("score", fmt.Sprintf("%+v", ps)).
+						WithField("score", log.Format(ps)).
 						Debug("Peer score")
 				}
 			}, time.Minute),
@@ -63,7 +63,7 @@ func PeerScoring(
 				if sp := topicScoreParams(e.Topic); sp != nil {
 					n.log.
 						WithField("topic", e.Topic).
-						WithField("params", fmt.Sprintf("%+v", sp)).
+						WithField("params", log.Format(sp)).
 						Info("Topic score params")
 					err = sub.topic.SetScoreParams(sp)
 					if err != nil {
