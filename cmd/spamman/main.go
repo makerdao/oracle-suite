@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/makerdao/oracle-suite/cmd/spammen/internal"
+	"github.com/makerdao/oracle-suite/cmd/spamman/internal"
 
 	"github.com/makerdao/oracle-suite/pkg/spire/config"
 
