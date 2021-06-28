@@ -58,14 +58,14 @@ spire agent
 cat <<"EOF" | spire push price
 {
     "wat": "BTCUSD",
-		// price is 32 bytes (no 0x prefix) `seth --to-wei "$_price" eth`
-		// i.e. 1.32 * 10e18 => "13200000000000000000"
+    // price is 32 bytes (no 0x prefix) `seth --to-wei "$_price" eth`
+    // i.e. 1.32 * 10e18 => "13200000000000000000"
     "val": "13200000000000000000",
-		// unix epoch (seconds only)
-		"age": 123456789,
-		"r": <string>, // 64 chars long, hex encoded 32 byte value
-		"s": <string>, // 64 chars long, hex encoded 32 byte value
-		"v": <string>,  // 2 chars long, hex encoded 1 byte value
+    // unix epoch (seconds only)
+    "age": 123456789,
+    "r": <string>, // 64 chars long, hex encoded 32 byte value
+    "s": <string>, // 64 chars long, hex encoded 32 byte value
+    "v": <string>,  // 2 chars long, hex encoded 1 byte value
     "trace": <string> // (optional) human readable price calculation description
 }
 EOF

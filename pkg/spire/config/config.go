@@ -76,6 +76,40 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
+type Instances struct {
+	Datastore *datastore.Datastore
+	Transport transport.Transport
+	Signer    ethereum.Signer
+	Logger    log.Logger
+}
+
+func (c *Config) Configure(deps Dependencies) (*Instances, error) {
+	// Ethereum account:
+	acc, err := c.configureAccount()
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+	}
+
+	// Signer:
+	sig := c.configureSigner(acc)
+
+	// Transport:
+	tra, err := c.configureTransport(deps.Context, sig, deps.Logger)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+	}
+
+	// Datastore:
+	dat := c.configureDatastore(sig, tra, deps.Logger)
+
+	return &Instances{
+		Datastore: dat,
+		Transport: tra,
+		Signer:    sig,
+		Logger:    deps.Logger,
+	}, nil
+}
+
 func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 	// Ethereum account:
 	acc, err := c.configureAccount()
