@@ -226,7 +226,6 @@ func strsToMaddrs(addrs []string) ([]core.Multiaddr, error) {
 	return maddrs, nil
 }
 
-
 func rateLimiterConfig(cfg Config) p2p.RateLimiterConfig {
 	bytesPerSecond := maxBytesPerSecond
 	burstSize := maxBytesPerSecond * priceUpdateInterval.Seconds()
