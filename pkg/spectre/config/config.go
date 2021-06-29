@@ -169,7 +169,7 @@ func (c *Config) configureTransport(ctx context.Context, s ethereum.Signer, l lo
 		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           s,
 		Logger:           l,
-		AppName:          "spectre",
+		AppName:          "spire",
 		AppVersion:       suite.Version,
 	}
 	for _, feed := range c.Feeds {
