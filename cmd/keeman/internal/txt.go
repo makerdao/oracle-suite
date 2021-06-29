@@ -56,7 +56,6 @@ func readLines(filename string, limit int) ([]string, error) {
 	}
 	return lines, nil
 }
-
 func openFile(filename string) (*os.File, func(), error) {
 	file, err := os.Open(filename)
 	return file, func() {
@@ -65,7 +64,6 @@ func openFile(filename string) (*os.File, func(), error) {
 		}
 	}, err
 }
-
 func stripCommentString(s string) string {
 	if cut := strings.IndexAny(s, "#;"); cut >= 0 {
 		return strings.TrimRightFunc(s[:cut], unicode.IsSpace)
