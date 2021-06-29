@@ -15,7 +15,7 @@ in buildGoModule {
   #  version = "dev-${ver}";
   version = pkgs.lib.fileContents ./version;
   src = ./.;
-  vendorSha256 = "15hlsx81kpwly7wdvaz2kcqksvkys041v3fg3jrp20ya5xyxg83g";
+  vendorSha256 = "0ix8ipdjx5656rjl0bbd27kdhia4mynl7jikqsnlddb554wvndpd";
   subPackages = [ "cmd/..." ];
   postConfigure = "export CGO_ENABLED=0";
   postInstall = "cp ./config.json $out";
