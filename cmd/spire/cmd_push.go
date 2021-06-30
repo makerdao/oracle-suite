@@ -36,7 +36,7 @@ func NewPushCmd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			client, err = newSpire(opts, logger)
+			client, err = newSpire(opts)
 			if err != nil {
 				return err
 			}

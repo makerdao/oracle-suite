@@ -83,7 +83,7 @@ func newServer(opts *options, log log.Logger) (*spire.Agent, error) {
 	return s, nil
 }
 
-func newSpire(opts *options, log log.Logger) (*spire.Spire, error) {
+func newSpire(opts *options) (*spire.Spire, error) {
 	if opts.ConfigPath != "" {
 		absPath, err := filepath.Abs(opts.ConfigPath)
 		if err != nil {
@@ -95,16 +95,7 @@ func newSpire(opts *options, log log.Logger) (*spire.Spire, error) {
 			return nil, err
 		}
 	}
-
-	c, err := opts.Config.ConfigureSpire(config.Dependencies{
-		Context: context.Background(),
-		Logger:  log,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
+	return opts.Config.ConfigureSpire(), nil
 }
 
 func readAll(r io.Reader) ([]byte, error) {

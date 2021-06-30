@@ -18,7 +18,6 @@ package spire
 import (
 	"net/rpc"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
@@ -26,11 +25,9 @@ type Spire struct {
 	rpc     *rpc.Client
 	network string
 	address string
-	signer  ethereum.Signer
 }
 
 type Config struct {
-	Signer  ethereum.Signer
 	Network string
 	Address string
 }
@@ -39,7 +36,6 @@ func NewSpire(cfg Config) *Spire {
 	return &Spire{
 		network: cfg.Network,
 		address: cfg.Address,
-		signer:  cfg.Signer,
 	}
 }
 

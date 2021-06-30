@@ -111,25 +111,17 @@ func (c *Config) ConfigureAgent(deps Dependencies) (*spire.Agent, error) {
 	return srv, nil
 }
 
-func (c *Config) ConfigureSpire(deps Dependencies) (*spire.Spire, error) {
-	// Ethereum account:
-	acc, err := c.configureAccount()
-	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
-	}
-
-	// Signer:
-	sig := c.configureSigner(acc)
-
-	// Spire:
+func (c *Config) ConfigureSpire() *spire.Spire {
 	return spire.NewSpire(spire.Config{
-		Signer:  sig,
 		Network: "tcp",
 		Address: c.RPC.Address,
-	}), nil
+	})
 }
 
 func (c *Config) configureAccount() (*geth.Account, error) {
+	if c.Ethereum.From == "" {
+		return nil, nil
+	}
 	passphrase, err := c.readAccountPassphrase(c.Ethereum.Password)
 	if err != nil {
 		return nil, err
