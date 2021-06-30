@@ -87,7 +87,6 @@ func newTestInstances() (*Agent, *Spire) {
 	}
 
 	cli := NewSpire(Config{
-		Signer:  sig,
 		Network: "tcp",
 		Address: agt.listener.Addr().String(),
 	})
