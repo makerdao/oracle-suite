@@ -57,8 +57,8 @@ func (s *Spamman) Start() error {
 	if s.MessageRate <= 0 {
 		return fmt.Errorf("invalid message rate")
 	}
-	// Have to subscribe to topic before we will ba able to send something to it.
-	return s.instance.Transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
+	// NOTE: Right now we don't need to subscribe due to `pkg/spire/config/config.go#218`
+	return nil
 }
 
 func (s *Spamman) Stop() {
