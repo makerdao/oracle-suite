@@ -46,10 +46,10 @@ var (
 		Trace: nil,
 	}
 	agent *Agent
-	spire *Spire
+	spire *Client
 )
 
-func newTestInstances() (*Agent, *Spire) {
+func newTestInstances() (*Agent, *Client) {
 	log := null.New()
 	sig := &mocks.Signer{}
 	tra := local.New(0)
@@ -86,7 +86,7 @@ func newTestInstances() (*Agent, *Spire) {
 		panic(err)
 	}
 
-	cli := NewSpire(Config{
+	cli := NewClient(Config{
 		Signer:  sig,
 		Network: "tcp",
 		Address: agt.listener.Addr().String(),

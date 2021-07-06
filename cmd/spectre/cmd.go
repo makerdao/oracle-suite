@@ -18,23 +18,21 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	suite "github.com/makerdao/oracle-suite"
 	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
-	"github.com/makerdao/oracle-suite/pkg/spire/config"
-	configCobra "github.com/makerdao/oracle-suite/pkg/spire/config/cobra"
 )
 
 type options struct {
-	LogVerbosity string
-	LogFormat    logrusFlag.FormatTypeValue
-	ConfigPath   string
-	Config       config.Config
-	Version      string
+	LogVerbosity   string
+	LogFormat      logrusFlag.FormatTypeValue
+	ConfigFilePath string
+	Config         Config
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:           "spire",
-		Version:       opts.Version,
+		Use:           "spectre",
+		Version:       suite.Version,
 		Short:         "",
 		Long:          ``,
 		SilenceErrors: false,
@@ -53,19 +51,11 @@ func NewRootCommand(opts *options) *cobra.Command {
 		"log format",
 	)
 	rootCmd.PersistentFlags().StringVarP(
-		&opts.ConfigPath,
+		&opts.ConfigFilePath,
 		"config",
 		"c",
 		"./config.json",
-		"spire config file",
-	)
-
-	configCobra.RegisterFlags(&opts.Config, rootCmd.PersistentFlags())
-
-	rootCmd.AddCommand(
-		NewAgentCmd(opts),
-		NewPullCmd(opts),
-		NewPushCmd(opts),
+		"spectre config file",
 	)
 
 	return rootCmd

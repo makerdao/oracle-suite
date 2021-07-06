@@ -79,10 +79,6 @@ func NewDatastore(config Config) *Datastore {
 
 func (c *Datastore) Start() error {
 	c.log.Info("Starting")
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.collectorLoop()
 }
 

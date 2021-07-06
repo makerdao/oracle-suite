@@ -20,19 +20,18 @@ import (
 
 	suite "github.com/makerdao/oracle-suite"
 	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
-	"github.com/makerdao/oracle-suite/pkg/spectre/config"
 )
 
 type options struct {
 	LogVerbosity   string
 	LogFormat      logrusFlag.FormatTypeValue
 	ConfigFilePath string
-	Config         config.Config
+	Config         Config
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:           "spectre",
+		Use:           "ghost",
 		Version:       suite.Version,
 		Short:         "",
 		Long:          ``,
@@ -53,10 +52,9 @@ func NewRootCommand(opts *options) *cobra.Command {
 	)
 	rootCmd.PersistentFlags().StringVarP(
 		&opts.ConfigFilePath,
-		"config",
-		"c",
+		"config", "c",
 		"./config.json",
-		"spectre config file",
+		"ghost config file",
 	)
 
 	return rootCmd

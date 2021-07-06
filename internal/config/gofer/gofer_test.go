@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package config
+package gofer
 
 import (
 	"testing"
@@ -26,7 +26,7 @@ import (
 )
 
 func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"B/C": {
@@ -101,7 +101,7 @@ func TestConfig_buildGraphs_ValidConfig(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_CyclicConfig(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {
@@ -148,7 +148,7 @@ func TestConfig_buildGraphs_CyclicConfig(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_NoSources(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {
@@ -163,7 +163,7 @@ func TestConfig_buildGraphs_NoSources(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_InvalidPairName(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A_B": { // the "A_B" name is incorrect
@@ -178,7 +178,7 @@ func TestConfig_buildGraphs_InvalidPairName(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_ReferenceToMissingPair(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {
@@ -197,7 +197,7 @@ func TestConfig_buildGraphs_ReferenceToMissingPair(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_ReferenceToSelf(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {
@@ -216,7 +216,7 @@ func TestConfig_buildGraphs_ReferenceToSelf(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_DefaultTTL(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {
@@ -238,7 +238,7 @@ func TestConfig_buildGraphs_DefaultTTL(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {
@@ -261,7 +261,7 @@ func TestConfig_buildGraphs_OriginTTL(t *testing.T) {
 }
 
 func TestConfig_buildGraphs_MedianTTL(t *testing.T) {
-	config := Config{
+	config := Gofer{
 		Origins: nil,
 		PriceModels: map[string]PriceModel{
 			"A/B": {

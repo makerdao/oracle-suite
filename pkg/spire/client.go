@@ -22,7 +22,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
-type Spire struct {
+type Client struct {
 	rpc     *rpc.Client
 	network string
 	address string
@@ -35,15 +35,15 @@ type Config struct {
 	Address string
 }
 
-func NewSpire(cfg Config) *Spire {
-	return &Spire{
+func NewClient(cfg Config) *Client {
+	return &Client{
 		network: cfg.Network,
 		address: cfg.Address,
 		signer:  cfg.Signer,
 	}
 }
 
-func (s *Spire) Start() error {
+func (s *Client) Start() error {
 	client, err := rpc.DialHTTP(s.network, s.address)
 	if err != nil {
 		return err
@@ -52,11 +52,11 @@ func (s *Spire) Start() error {
 	return nil
 }
 
-func (s *Spire) Stop() error {
+func (s *Client) Stop() error {
 	return s.rpc.Close()
 }
 
-func (s *Spire) PublishPrice(price *messages.Price) error {
+func (s *Client) PublishPrice(price *messages.Price) error {
 	err := s.rpc.Call("API.PublishPrice", PublishPriceArg{Price: price}, &Nothing{})
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (s *Spire) PublishPrice(price *messages.Price) error {
 	return nil
 }
 
-func (s *Spire) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
+func (s *Client) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
 	resp := &PullPricesResp{}
 	err := s.rpc.Call("API.PullPrices", PullPricesArg{FilterAssetPair: assetPair, FilterFeeder: feeder}, resp)
 	if err != nil {
@@ -73,7 +73,7 @@ func (s *Spire) PullPrices(assetPair string, feeder string) ([]*messages.Price, 
 	return resp.Prices, nil
 }
 
-func (s *Spire) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
+func (s *Client) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
 	resp := &PullPriceResp{}
 	err := s.rpc.Call("API.PullPrice", PullPriceArg{AssetPair: assetPair, Feeder: feeder}, resp)
 	if err != nil {

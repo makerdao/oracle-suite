@@ -31,16 +31,10 @@ func NewPushCmd(opts *options) *cobra.Command {
 		Long:  ``,
 		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
 			var err error
-
-			logger, err = newLogger(opts)
+			client, err = newClient(opts)
 			if err != nil {
 				return err
 			}
-			client, err = newSpire(opts, logger)
-			if err != nil {
-				return err
-			}
-
 			return client.Start()
 		},
 		PersistentPostRunE: func(_ *cobra.Command, args []string) error {

@@ -18,14 +18,11 @@ package main
 import (
 	"context"
 	"os"
-	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 
-	ghostConfig "github.com/makerdao/oracle-suite/pkg/ghost/config"
-	ghostJSON "github.com/makerdao/oracle-suite/pkg/ghost/config/json"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	goferJSON "github.com/makerdao/oracle-suite/pkg/gofer/config/json"
+	"github.com/makerdao/oracle-suite/internal/config"
+	"github.com/makerdao/oracle-suite/pkg/ghost"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 )
@@ -56,44 +53,13 @@ func newLogger(opts *options) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newGofer(opts *options, path string, log log.Logger) (gofer.Gofer, error) {
-	absPath, err := filepath.Abs(path)
+func newGhost(opts *options, logger log.Logger) (*ghost.Ghost, error) {
+	err := config.ParseFile(&opts.Config, opts.ConfigFilePath)
 	if err != nil {
 		return nil, err
 	}
-
-	err = goferJSON.ParseJSONFile(&opts.GoferConfig, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	gof, err := opts.GoferConfig.ConfigureGofer(log)
-	if err != nil {
-		return nil, err
-	}
-
-	return gof, nil
-}
-
-func newGhost(opts *options, path string, gof gofer.Gofer, log log.Logger) (*ghostConfig.Instances, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ghostJSON.ParseJSONFile(&opts.GhostConfig, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	i, err := opts.GhostConfig.Configure(ghostConfig.Dependencies{
+	return opts.Config.Configure(Dependencies{
 		Context: context.Background(),
-		Gofer:   gof,
-		Logger:  log,
+		Logger:  logger,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return i, nil
 }

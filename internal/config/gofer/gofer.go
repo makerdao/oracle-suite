@@ -1,19 +1,4 @@
-//  Copyright (C) 2020 Maker Ecosystem Growth Holdings, INC.
-//
-//  This program is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU Affero General Public License as
-//  published by the Free Software Foundation, either version 3 of the
-//  License, or (at your option) any later version.
-//
-//  This program is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Affero General Public License for more details.
-//
-//  You should have received a copy of the GNU Affero General Public License
-//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-package config
+package gofer
 
 import (
 	"encoding/json"
@@ -24,7 +9,6 @@ import (
 	"time"
 
 	"github.com/makerdao/oracle-suite/internal/query"
-
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
@@ -60,7 +44,7 @@ func (e ErrCyclicReference) Error() string {
 	return s.String()
 }
 
-type Config struct {
+type Gofer struct {
 	RPC         RPC                   `json:"rpc"`
 	Origins     map[string]Origin     `json:"origins"`
 	PriceModels map[string]PriceModel `json:"priceModels"`
@@ -93,29 +77,25 @@ type Source struct {
 	TTL    int    `json:"ttl"`
 }
 
-type Instances struct {
-	Gofer  gofer.Gofer
-	Feeder *feeder.Feeder
-}
-
-// ConfigureGofer returns a new Gofer instance.
-func (c *Config) ConfigureGofer(logger log.Logger) (gofer.Gofer, error) {
-	gra, err := c.buildGraphs()
-	if err != nil {
-		return nil, fmt.Errorf("unable to load price models: %w", err)
+func (c *Gofer) ConfigureGofer(logger log.Logger, noRPC bool) (gofer.Gofer, error) {
+	var err error
+	var gof gofer.Gofer
+	if c.RPC.Address == "" || noRPC {
+		gof, err = c.configureGofer(logger)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		gof, err = c.configureRPCClient()
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	originSet, err := c.buildOrigins()
-	if err != nil {
-		return nil, err
-	}
-	fed := feeder.NewFeeder(originSet, logger)
-	gof := graph.NewGofer(gra, fed)
 	return gof, nil
 }
 
 // ConfigureRPCAgent returns a new rpc.Agent instance.
-func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
+func (c *Gofer) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
@@ -139,12 +119,28 @@ func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	return srv, nil
 }
 
+// ConfigureGofer returns a new Gofer instance.
+func (c *Gofer) configureGofer(logger log.Logger) (gofer.Gofer, error) {
+	gra, err := c.buildGraphs()
+	if err != nil {
+		return nil, fmt.Errorf("unable to load price models: %w", err)
+	}
+
+	originSet, err := c.buildOrigins()
+	if err != nil {
+		return nil, err
+	}
+	fed := feeder.NewFeeder(originSet, logger)
+	gof := graph.NewGofer(gra, fed)
+	return gof, nil
+}
+
 // ConfigureRPCClient returns a new rpc.RPC instance.
-func (c *Config) ConfigureRPCClient(l log.Logger) (*rpc.Gofer, error) {
+func (c *Gofer) configureRPCClient() (*rpc.Gofer, error) {
 	return rpc.NewGofer("tcp", c.RPC.Address), nil
 }
 
-func (c *Config) buildOrigins() (*origins.Set, error) {
+func (c *Gofer) buildOrigins() (*origins.Set, error) {
 	const defaultWorkerCount = 5
 	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
@@ -161,7 +157,7 @@ func (c *Config) buildOrigins() (*origins.Set, error) {
 	return defaultOrigins, nil
 }
 
-func (c *Config) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {
+func (c *Gofer) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {
 	var err error
 
 	graphs := map[gofer.Pair]nodes.Aggregator{}
@@ -186,7 +182,7 @@ func (c *Config) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {
 	return graphs, nil
 }
 
-func (c *Config) buildRoots(graphs map[gofer.Pair]nodes.Aggregator) error {
+func (c *Gofer) buildRoots(graphs map[gofer.Pair]nodes.Aggregator) error {
 	for name, model := range c.PriceModels {
 		modelPair, err := gofer.NewPair(name)
 		if err != nil {
@@ -211,7 +207,7 @@ func (c *Config) buildRoots(graphs map[gofer.Pair]nodes.Aggregator) error {
 	return nil
 }
 
-func (c *Config) buildBranches(graphs map[gofer.Pair]nodes.Aggregator) error {
+func (c *Gofer) buildBranches(graphs map[gofer.Pair]nodes.Aggregator) error {
 	for name, model := range c.PriceModels {
 		// We can ignore error here, because it was checked already
 		// in buildRoots method.
@@ -270,7 +266,7 @@ func (c *Config) buildBranches(graphs map[gofer.Pair]nodes.Aggregator) error {
 	return nil
 }
 
-func (c *Config) reference(graphs map[gofer.Pair]nodes.Aggregator, source Source) (nodes.Node, error) {
+func (c *Gofer) reference(graphs map[gofer.Pair]nodes.Aggregator, source Source) (nodes.Node, error) {
 	sourcePair, err := gofer.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
@@ -286,7 +282,7 @@ func (c *Config) reference(graphs map[gofer.Pair]nodes.Aggregator, source Source
 	return graphs[sourcePair].(nodes.Node), nil
 }
 
-func (c *Config) originNode(model PriceModel, source Source) (nodes.Node, error) {
+func (c *Gofer) originNode(model PriceModel, source Source) (nodes.Node, error) {
 	sourcePair, err := gofer.NewPair(source.Pair)
 	if err != nil {
 		return nil, err
@@ -308,7 +304,7 @@ func (c *Config) originNode(model PriceModel, source Source) (nodes.Node, error)
 	return nodes.NewOriginNode(originPair, ttl, ttl+maxTTL), nil
 }
 
-func (c *Config) detectCycle(graphs map[gofer.Pair]nodes.Aggregator) error {
+func (c *Gofer) detectCycle(graphs map[gofer.Pair]nodes.Aggregator) error {
 	for _, pair := range sortGraphs(graphs) {
 		if path := nodes.DetectCycle(graphs[pair]); len(path) > 0 {
 			return ErrCyclicReference{Pair: pair, Path: path}

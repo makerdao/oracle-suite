@@ -35,17 +35,17 @@ func NewAgentCmd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			srv, err := newServer(opts, logger)
+			agent, err := newAgent(opts, logger)
 			if err != nil {
 				return err
 			}
 
 			// Start the RPC server:
-			err = srv.Start()
+			err = agent.Start()
 			if err != nil {
 				return err
 			}
-			defer srv.Stop()
+			defer agent.Stop()
 
 			// Wait for the interrupt signal:
 			c := make(chan os.Signal, 1)

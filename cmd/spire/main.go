@@ -20,7 +20,6 @@ import (
 	_ "embed"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 
@@ -28,13 +27,11 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/spire"
-	"github.com/makerdao/oracle-suite/pkg/spire/config"
-	configJSON "github.com/makerdao/oracle-suite/pkg/spire/config/json"
 )
 
 var (
 	logger log.Logger
-	client *spire.Spire
+	client *spire.Client
 )
 
 func main() {
@@ -59,51 +56,22 @@ func newLogger(opts *options) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newServer(opts *options, log log.Logger) (*spire.Agent, error) {
-	if opts.ConfigPath != "" {
-		absPath, err := filepath.Abs(opts.ConfigPath)
-		if err != nil {
-			return nil, err
-		}
-
-		err = configJSON.ParseJSONFile(&opts.Config, absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	s, err := opts.Config.ConfigureAgent(config.Dependencies{
+func newAgent(opts *options, log log.Logger) (*spire.Agent, error) {
+	a, err := opts.Config.ConfigureAgent(Dependencies{
 		Context: context.Background(),
 		Logger:  log,
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	return s, nil
+	return a, nil
 }
 
-func newSpire(opts *options, log log.Logger) (*spire.Spire, error) {
-	if opts.ConfigPath != "" {
-		absPath, err := filepath.Abs(opts.ConfigPath)
-		if err != nil {
-			return nil, err
-		}
-
-		err = configJSON.ParseJSONFile(&opts.Config, absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	c, err := opts.Config.ConfigureSpire(config.Dependencies{
-		Context: context.Background(),
-		Logger:  log,
-	})
+func newClient(opts *options) (*spire.Client, error) {
+	c, err := opts.Config.ConfigureClient()
 	if err != nil {
 		return nil, err
 	}
-
 	return c, nil
 }
 
