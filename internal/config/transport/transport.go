@@ -37,6 +37,10 @@ import (
 
 var ErrFailedToParsePrivKeySeed = errors.New("failed to parse the privKeySeed field")
 
+type Transport struct {
+	P2P P2P `json:"p2p"`
+}
+
 type P2P struct {
 	PrivKeySeed      string   `json:"privKeySeed"`
 	ListenAddrs      []string `json:"listenAddrs"`
@@ -53,7 +57,7 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (c *P2P) Configure(d Dependencies) (transport.Transport, error) {
+func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 	peerPrivKey, err := c.generatePrivKey()
 	if err != nil {
 		return nil, err
@@ -62,12 +66,12 @@ func (c *P2P) Configure(d Dependencies) (transport.Transport, error) {
 		Context:          d.Context,
 		PeerPrivKey:      peerPrivKey,
 		MessagePrivKey:   ethkey.NewPrivKey(d.Signer),
-		ListenAddrs:      c.ListenAddrs,
-		BootstrapAddrs:   c.BootstrapAddrs,
-		DirectPeersAddrs: c.DirectPeersAddrs,
-		BlockedAddrs:     c.BlockedAddrs,
+		ListenAddrs:      c.P2P.ListenAddrs,
+		BootstrapAddrs:   c.P2P.BootstrapAddrs,
+		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
+		BlockedAddrs:     c.P2P.BlockedAddrs,
 		FeedersAddrs:     d.Feeds,
-		Discovery:        !c.DisableDiscovery,
+		Discovery:        !c.P2P.DisableDiscovery,
 		Signer:           d.Signer,
 		Logger:           d.Logger,
 		AppName:          "spire",
@@ -85,10 +89,10 @@ func (c *P2P) Configure(d Dependencies) (transport.Transport, error) {
 	return p, nil
 }
 
-func (c *P2P) generatePrivKey() (crypto.PrivKey, error) {
+func (c *Transport) generatePrivKey() (crypto.PrivKey, error) {
 	seedReader := rand.Reader
-	if len(c.PrivKeySeed) != 0 {
-		seed, err := hex.DecodeString(c.PrivKeySeed)
+	if len(c.P2P.PrivKeySeed) != 0 {
+		seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
 		if err != nil {
 			return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
 		}

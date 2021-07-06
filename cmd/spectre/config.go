@@ -27,10 +27,10 @@ import (
 )
 
 type Config struct {
-	P2P      transportConfig.P2P     `json:"p2p"`
-	Ethereum ethereumConfig.Ethereum `json:"ethereum"`
-	Spectre  spectreConfig.Spectre   `json:"spectre"`
-	Feeds    feedsConfig.Feeds       `json:"feeds"`
+	Transport transportConfig.Transport `json:"transport"`
+	Ethereum  ethereumConfig.Ethereum   `json:"ethereum"`
+	Spectre   spectreConfig.Spectre     `json:"spectre"`
+	Feeds     feedsConfig.Feeds         `json:"feeds"`
 }
 
 type Dependencies struct {
@@ -47,7 +47,7 @@ func (c *Config) Configure(d Dependencies) (*spectre.Spectre, error) {
 	if err != nil {
 		return nil, err
 	}
-	tra, err := c.P2P.Configure(transportConfig.Dependencies{
+	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
 		Signer:  sig,
 		Feeds:   c.Feeds.Addresses(),
