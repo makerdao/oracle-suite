@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	suite "github.com/makerdao/oracle-suite"
+	"github.com/makerdao/oracle-suite/internal/config"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/spire"
@@ -57,6 +58,10 @@ func newLogger(opts *options) (log.Logger, error) {
 }
 
 func newAgent(opts *options, log log.Logger) (*spire.Agent, error) {
+	err := config.ParseFile(&opts.Config, opts.ConfigFilePath)
+	if err != nil {
+		return nil, err
+	}
 	a, err := opts.Config.ConfigureAgent(Dependencies{
 		Context: context.Background(),
 		Logger:  log,
@@ -68,6 +73,10 @@ func newAgent(opts *options, log log.Logger) (*spire.Agent, error) {
 }
 
 func newClient(opts *options) (*spire.Client, error) {
+	err := config.ParseFile(&opts.Config, opts.ConfigFilePath)
+	if err != nil {
+		return nil, err
+	}
 	c, err := opts.Config.ConfigureClient()
 	if err != nil {
 		return nil, err

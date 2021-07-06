@@ -22,11 +22,11 @@ import (
 )
 
 type options struct {
-	LogVerbosity string
-	LogFormat    logrusFlag.FormatTypeValue
-	ConfigPath   string
-	Config       Config
-	Version      string
+	LogVerbosity   string
+	LogFormat      logrusFlag.FormatTypeValue
+	ConfigFilePath string
+	Config         Config
+	Version        string
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
@@ -51,7 +51,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 		"log format",
 	)
 	rootCmd.PersistentFlags().StringVarP(
-		&opts.ConfigPath,
+		&opts.ConfigFilePath,
 		"config",
 		"c",
 		"./config.json",
