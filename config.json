@@ -13,10 +13,197 @@
     }
   },
   "ethereum": {
-    "from": "0x2d800d93b065ce011af83f316cef9f0d005b0aa4",
-    "keystore": "./keys",
-    "password": "./keys/pass",
-    "rpc": "https://mainnet.infura.io/v3/bfe01745653c4443a6eff182a543be21"
+    "from": "",
+    "keystore": "",
+    "password": "",
+    "rpc": ""
+  },
+  "feeds": [
+    "0xDA1d2961Da837891f43235FddF66BAD26f41368b",
+    "0x4b0E327C08e23dD08cb87Ec994915a5375619aa2",
+    "0x75ef8432566A79C86BBF207A47df3963B8Cf0753",
+    "0x83e23C207a67a9f9cB680ce84869B91473403e7d",
+    "0xFbaF3a7eB4Ec2962bd1847687E56aAEE855F5D00",
+    "0xfeEd00AA3F0845AFE52Df9ECFE372549B74C69D2",
+    "0x71eCFF5261bAA115dcB1D9335c88678324b8A987",
+    "0x8ff6a38A1CD6a42cAac45F08eB0c802253f68dfD",
+    "0x16655369Eb59F3e1cAFBCfAC6D3Dd4001328f747",
+    "0xD09506dAC64aaA718b45346a032F934602e29cca",
+    "0xc00584B271F378A0169dd9e5b165c0945B4fE498",
+    "0x60da93D9903cb7d3eD450D4F81D402f7C4F71dd9",
+    "0xa580BBCB1Cee2BCec4De2Ea870D20a12A964819e",
+    "0xD27Fa2361bC2CfB9A591fb289244C538E190684B",
+    "0x8de9c5F1AC1D4d02bbfC25fD178f5DAA4D5B26dC",
+    "0xE6367a7Da2b20ecB94A25Ef06F3b551baB2682e6",
+    "0xA8EB82456ed9bAE55841529888cDE9152468635A",
+    "0x130431b4560Cd1d74A990AE86C337a33171FF3c6",
+    "0x8aFBD9c3D794eD8DF903b3468f4c4Ea85be953FB",
+    "0xd94BBe83b4a68940839cD151478852d16B3eF891",
+    "0xC9508E9E3Ccf319F5333A5B8c825418ABeC688BA",
+    "0x77EB6CF8d732fe4D92c427fCdd83142DB3B742f7",
+    "0x3CB645a8f10Fb7B0721eaBaE958F77a878441Cb9",
+    "0x4f95d9B4D842B2E2B1d1AC3f2Cf548B93Fd77c67",
+    "0xaC8519b3495d8A3E3E44c041521cF7aC3f8F63B3",
+    "0xd72BA9402E9f3Ff01959D6c841DDD13615FFff42"
+  ],
+  "ghost": {
+    "interval": 60,
+    "pairs": [
+      "AAVEUSD",
+      "AVAXUSD",
+      "BALUSD",
+      "BATUSD",
+      "BTCUSD",
+      "COMPUSD",
+      "CRVUSD",
+      "DOTUSD",
+      "ETHBTC",
+      "ETHUSD",
+      "FILUSD",
+      "KNCUSD",
+      "LINKUSD",
+      "LRCUSD",
+      "MANAUSD",
+      "PAXGUSD",
+      "SNXUSD",
+      "SOLUSD",
+      "UNIUSD",
+      "USDTUSD",
+      "WNXMUSD",
+      "XRPUSD",
+      "XTZUSD",
+      "YFIUSD",
+      "ZECUSD",
+      "ZRXUSD"
+    ]
+  },
+  "spectre": {
+    "interval": 60,
+    "medianizers": {
+      "AAVEUSD": {
+        "oracle": "0xe62872DFEbd323b03D27946f8e2491B454a69811",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "BALUSD": {
+        "oracle": "0x1D36d59e5a22cB51B30Bb6fA73b62D73f4A11745",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "BATUSD": {
+        "oracle": "0x18B4633D6E39870f398597f3c1bA8c4A41294966",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "BTCUSD": {
+        "oracle": "0xe0F30cb149fAADC7247E953746Be9BbBB6B5751f",
+        "oracleSpread": 1.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "COMPUSD": {
+        "oracle": "0xA3421Be733125405Ea20aA853839D34b364eB524",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "ETHBTC": {
+        "oracle": "0x81A679f98b63B3dDf2F17CB5619f4d6775b3c5ED",
+        "oracleSpread": 1.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "ETHUSD": {
+        "oracle": "0x64DE91F5A373Cd4c28de3600cB34C7C6cE410C85",
+        "oracleSpread": 1.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "KNCUSD": {
+        "oracle": "0x83076a2F42dc1925537165045c9FDe9A4B71AD97",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "LINKUSD": {
+        "oracle": "0xbAd4212d73561B240f10C56F27e6D9608963f17b",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "LRCUSD": {
+        "oracle": "0xcCe92282d9fe310F4c232b0DA9926d5F24611C7B",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "MANAUSD": {
+        "oracle": "0x681c4F8f69cF68852BAd092086ffEaB31F5B812c",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "UNIUSD": {
+        "oracle": "0x52f761908cc27b4d77ad7a329463cf08baf62153",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "USDTUSD": {
+        "oracle": "0x56D4bBF358D7790579b55eA6Af3f605BcA2c0C3A",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "YFIUSD": {
+        "oracle": "0x89AC26C0aFCB28EC55B6CD2F6b7DAD867Fa24639",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      },
+      "ZRXUSD": {
+        "oracle": "0x956ecD6a9A9A0d84e8eB4e6BaaC09329E202E55e",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
+      }
+    }
+  },
+  "spire": {
+    "rpc": {
+      "address": "127.0.0.1:0"
+    },
+    "pairs": [
+      "AAVEUSD",
+      "AVAXUSD",
+      "BALUSD",
+      "BATUSD",
+      "BTCUSD",
+      "COMPUSD",
+      "CRVUSD",
+      "DOTUSD",
+      "ETHBTC",
+      "ETHUSD",
+      "FILUSD",
+      "KNCUSD",
+      "LINKUSD",
+      "LRCUSD",
+      "MANAUSD",
+      "PAXGUSD",
+      "SNXUSD",
+      "SOLUSD",
+      "UNIUSD",
+      "USDTUSD",
+      "WNXMUSD",
+      "XRPUSD",
+      "XTZUSD",
+      "YFIUSD",
+      "ZECUSD",
+      "ZRXUSD"
+    ]
   },
   "gofer": {
     "rpc": {
@@ -399,165 +586,5 @@
         }
       }
     }
-  },
-  "ghost": {
-    "interval": 60,
-    "pairs": [
-      "AAVEUSD",
-      "AVAXUSD",
-      "BALUSD",
-      "BATUSD",
-      "BTCUSD",
-      "COMPUSD",
-      "CRVUSD",
-      "DOTUSD",
-      "ETHBTC",
-      "ETHUSD",
-      "FILUSD",
-      "KNCUSD",
-      "LINKUSD",
-      "LRCUSD",
-      "MANAUSD",
-      "PAXGUSD",
-      "SNXUSD",
-      "SOLUSD",
-      "UNIUSD",
-      "USDTUSD",
-      "WNXMUSD",
-      "XRPUSD",
-      "XTZUSD",
-      "YFIUSD",
-      "ZECUSD",
-      "ZRXUSD"
-    ]
-  },
-  "spectre": {
-    "interval": 60,
-    "medianizers": {
-      "AAVEUSD": {
-        "oracle": "0xe62872DFEbd323b03D27946f8e2491B454a69811",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "BALUSD": {
-        "oracle": "0x1D36d59e5a22cB51B30Bb6fA73b62D73f4A11745",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "BATUSD": {
-        "oracle": "0x18B4633D6E39870f398597f3c1bA8c4A41294966",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "BTCUSD": {
-        "oracle": "0xe0F30cb149fAADC7247E953746Be9BbBB6B5751f",
-        "oracleSpread": 1.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "COMPUSD": {
-        "oracle": "0xA3421Be733125405Ea20aA853839D34b364eB524",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "ETHBTC": {
-        "oracle": "0x81A679f98b63B3dDf2F17CB5619f4d6775b3c5ED",
-        "oracleSpread": 1.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "ETHUSD": {
-        "oracle": "0x64DE91F5A373Cd4c28de3600cB34C7C6cE410C85",
-        "oracleSpread": 1.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "KNCUSD": {
-        "oracle": "0x83076a2F42dc1925537165045c9FDe9A4B71AD97",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "LINKUSD": {
-        "oracle": "0xbAd4212d73561B240f10C56F27e6D9608963f17b",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "LRCUSD": {
-        "oracle": "0xcCe92282d9fe310F4c232b0DA9926d5F24611C7B",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "MANAUSD": {
-        "oracle": "0x681c4F8f69cF68852BAd092086ffEaB31F5B812c",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "UNIUSD": {
-        "oracle": "0x52f761908cc27b4d77ad7a329463cf08baf62153",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "USDTUSD": {
-        "oracle": "0x56D4bBF358D7790579b55eA6Af3f605BcA2c0C3A",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "YFIUSD": {
-        "oracle": "0x89AC26C0aFCB28EC55B6CD2F6b7DAD867Fa24639",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      },
-      "ZRXUSD": {
-        "oracle": "0x956ecD6a9A9A0d84e8eB4e6BaaC09329E202E55e",
-        "oracleSpread": 4.0,
-        "oracleExpiration": 15500,
-        "msgExpiration": 1800
-      }
-    }
-  },
-  "spire": {
-    "rpc": {
-      "address": "127.0.0.1:0"
-    },
-    "pairs": [
-      "AAVEUSD",
-      "AVAXUSD",
-      "BALUSD",
-      "BATUSD",
-      "BTCUSD",
-      "COMPUSD",
-      "CRVUSD",
-      "DOTUSD",
-      "ETHBTC",
-      "ETHUSD",
-      "FILUSD",
-      "KNCUSD",
-      "LINKUSD",
-      "LRCUSD",
-      "MANAUSD",
-      "PAXGUSD",
-      "SNXUSD",
-      "SOLUSD",
-      "UNIUSD",
-      "USDTUSD",
-      "WNXMUSD",
-      "XRPUSD",
-      "XTZUSD",
-      "YFIUSD",
-      "ZECUSD",
-      "ZRXUSD"
-    ]
-  },
-  "feeds": []
+  }
 }
