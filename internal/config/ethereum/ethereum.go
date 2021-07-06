@@ -25,7 +25,6 @@ import (
 
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
-	ethereumGeth "github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 )
 
 var ErrFailedToReadPassphraseFile = errors.New("failed to read the ethereum password file")
@@ -45,12 +44,12 @@ func (c *Ethereum) ConfigureSigner() (ethereum.Signer, error) {
 	return geth.NewSigner(account), nil
 }
 
-func (c *Ethereum) ConfigureEthereumClient(signer ethereum.Signer) (*ethereumGeth.Client, error) {
+func (c *Ethereum) ConfigureEthereumClient(signer ethereum.Signer) (*geth.Client, error) {
 	client, err := ethclient.Dial(c.RPC)
 	if err != nil {
 		return nil, err
 	}
-	return ethereumGeth.NewClient(client, signer), nil
+	return geth.NewClient(client, signer), nil
 }
 
 func (c *Ethereum) configureAccount() (*geth.Account, error) {

@@ -101,10 +101,7 @@ func (c *Gofer) ConfigureGofer(logger log.Logger, noRPC bool) (gofer.Gofer, erro
 			return nil, err
 		}
 	} else {
-		gof, err = c.configureRPCClient()
-		if err != nil {
-			return nil, err
-		}
+		gof = c.configureRPCClient()
 	}
 	return gof, nil
 }
@@ -150,9 +147,9 @@ func (c *Gofer) configureGofer(logger log.Logger) (gofer.Gofer, error) {
 	return gof, nil
 }
 
-// ConfigureRPCClient returns a new rpc.RPC instance.
-func (c *Gofer) configureRPCClient() (*rpc.Gofer, error) {
-	return rpc.NewGofer("tcp", c.RPC.Address), nil
+// configureRPCClient returns a new rpc.RPC instance.
+func (c *Gofer) configureRPCClient() *rpc.Gofer {
+	return rpc.NewGofer("tcp", c.RPC.Address)
 }
 
 func (c *Gofer) buildOrigins() (*origins.Set, error) {
