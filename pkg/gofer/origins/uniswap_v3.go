@@ -27,10 +27,6 @@ import (
 
 const uniswapV3URL = "https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-alt"
 
-//{"data":{"pools":[
-//{"token0":{"symbol":"YFI"},"token0Price":"0.06624583662031174276461684468775496","token1":{"symbol":"WETH"},"token1Price":"15.09528826289120164642035869260895","volumeToken0":"31.001552898956395468","volumeToken1":"-402.068307058139831158"}
-//]}}
-
 type uniswapV3Response struct {
 	Data struct {
 		Pools []uniswapV3PairResponse
@@ -72,7 +68,7 @@ func (u *UniswapV3) pairsToContractAddress(pair Pair) string {
 
 	p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
 
-	switch {
+	switch { // nolint:gocritic
 	case match(p, Pair{Base: "YFI", Quote: "WETH"}):
 		return "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
 	}
@@ -96,6 +92,7 @@ func (u *UniswapV3) Fetch(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(u, pairs)
 }
 
+//nolint:dupl
 func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 	var err error
 

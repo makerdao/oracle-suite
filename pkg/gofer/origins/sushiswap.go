@@ -79,6 +79,7 @@ func (s *Sushiswap) pairsToContractAddress(pair Pair) string {
 }
 
 // TODO: We should find better solution for this.
+//nolint:goconst
 func (s *Sushiswap) renameSymbol(symbol string) string {
 	switch symbol {
 	case "ETH":
@@ -95,6 +96,7 @@ func (s *Sushiswap) Fetch(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(s, pairs)
 }
 
+//nolint:dupl
 func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 	var err error
 
