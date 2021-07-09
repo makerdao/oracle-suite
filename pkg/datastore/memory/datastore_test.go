@@ -41,7 +41,7 @@ func TestDatastore_Prices(t *testing.T) {
 	sig := &mocks.Signer{}
 	tra := local.New(ctx, 0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
 
-	ds, err:= NewDatastore(Config{
+	ds, err := NewDatastore(Config{
 		Context:   ctx,
 		Signer:    sig,
 		Transport: tra,
