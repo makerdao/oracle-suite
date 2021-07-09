@@ -66,11 +66,18 @@ func (c *Config) Configure(d Dependencies) (*ghost.Ghost, error) {
 	if err = tra.Start(); err != nil {
 		return nil, err
 	}
-	return c.Ghost.Configure(ghostConfig.Dependencies{
+	gho, err := c.Ghost.Configure(ghostConfig.Dependencies{
 		Context:   d.Context,
 		Gofer:     gof,
 		Signer:    sig,
 		Transport: tra,
 		Logger:    d.Logger,
 	})
+	if err != nil {
+		return nil, err
+	}
+	if err = gho.Start(); err != nil {
+		return nil, err
+	}
+	return gho, nil
 }

@@ -63,10 +63,14 @@ func (c *Config) Configure(d Dependencies) (*spectre.Spectre, error) {
 	if err = tra.Start(); err != nil {
 		return nil, err
 	}
-	return c.Spectre.Configure(spectreConfig.Dependencies{
+	spe := c.Spectre.Configure(spectreConfig.Dependencies{
 		Signer:         sig,
 		Transport:      tra,
 		EthereumClient: cli,
 		Logger:         d.Logger,
-	}), nil
+	})
+	if err = spe.Start(); err != nil {
+		return nil, err
+	}
+	return spe, nil
 }
