@@ -31,11 +31,9 @@ type Message interface {
 	Unmarshall([]byte) error
 }
 
-// Transport is the interface for different implementation of a
+// Transport is the interface for different implementations of a
 // publish–subscribe messaging solutions for the Oracle network.
 type Transport interface {
-	Start() error
-	Stop() error
 	Broadcast(topic string, message Message) error
 	// WaitFor returns a channel which will be blocked until message for given
 	// topic arrives. Note, that only messages for subscribed topics will
@@ -43,4 +41,8 @@ type Transport interface {
 	// returned. In case of an error, error will be returned in a Status
 	// structure.
 	WaitFor(topic string) chan ReceivedMessage
+	// Start starts listening for messages.
+	Start() error
+	// Stop stops listening for messages.
+	Stop() error
 }
