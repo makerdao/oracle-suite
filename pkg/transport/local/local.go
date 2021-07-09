@@ -22,7 +22,6 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
-var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
 
 // Local is a simple implementation of the transport.Transport interface
@@ -40,36 +39,35 @@ type subscription struct {
 }
 
 // New returns a new instance of the Local structure.
-func New(buffer int) *Local {
-	return &Local{
+func New(buffer int, subs map[string]transport.Message) *Local {
+	l := &Local{
 		buffer: buffer,
 		subs:   make(map[string]subscription),
 	}
+	for topic, typ := range subs {
+		l.subs[topic] = subscription{
+			typ:    reflect.TypeOf(typ).Elem(),
+			msgs:   make(chan []byte, l.buffer),
+			status: make(chan transport.ReceivedMessage),
+			doneCh: make(chan struct{}),
+		}
+	}
+	return l
 }
 
-// Subscribe implements the transport.Transport interface.
-func (l *Local) Subscribe(topic string, typ transport.Message) error {
-	if _, ok := l.subs[topic]; ok {
-		return ErrAlreadySubscribed
-	}
-	l.subs[topic] = subscription{
-		typ:    reflect.TypeOf(typ).Elem(),
-		msgs:   make(chan []byte, l.buffer),
-		status: make(chan transport.ReceivedMessage),
-		doneCh: make(chan struct{}),
-	}
+// Start implements the transport.Transport interface.
+func (l *Local) Start() error {
 	return nil
 }
 
-// Unsubscribe implements the transport.Transport interface.
-func (l *Local) Unsubscribe(topic string) error {
-	if sub, ok := l.subs[topic]; ok {
+// Stop implements the transport.Transport interface.
+func (l *Local) Stop() error {
+	for _, sub := range l.subs {
 		close(sub.doneCh)
 		close(sub.status)
-		delete(l.subs, topic)
-		return nil
 	}
-	return ErrNotSubscribed
+	l.subs = make(map[string]subscription)
+	return nil
 }
 
 // Broadcast implements the transport.Transport interface.
@@ -102,15 +100,5 @@ func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
 		}()
 		return sub.status
 	}
-	return nil
-}
-
-// Close implements the transport.Transport interface.
-func (l *Local) Close() error {
-	for _, sub := range l.subs {
-		close(sub.doneCh)
-		close(sub.status)
-	}
-	l.subs = make(map[string]subscription)
 	return nil
 }

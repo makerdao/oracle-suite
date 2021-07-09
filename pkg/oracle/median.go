@@ -31,6 +31,8 @@ import (
 // Contract documentation:
 // https://docs.makerdao.com/smart-contract-modules/oracle-module/median-detailed-documentation
 type Median interface {
+	// Address returns medianizer contract address.
+	Address() common.Address
 	// Age returns the value from contract's age method. The age is the block
 	// timestamp of last price val update.
 	Age(ctx context.Context) (time.Time, error)
@@ -39,7 +41,7 @@ type Median interface {
 	Bar(ctx context.Context) (int64, error)
 	// Val returns current asset price form the contract's storage.
 	Val(ctx context.Context) (*big.Int, error)
-	// Val returns asset name.
+	// Wat returns asset name.
 	Wat(ctx context.Context) (string, error)
 	// Feeds returns a list of all Ethereum addresses that are authorized to update
 	// Oracle prices (orcls).

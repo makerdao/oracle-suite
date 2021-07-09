@@ -54,13 +54,17 @@ var ErrP2P = errors.New("P2P transport error")
 // P2P is a little wrapper for the Node that implements the transport.Transport
 // interface.
 type P2P struct {
-	node *p2p.Node
+	node   *p2p.Node
+	topics map[string]transport.Message
 }
 
 type Config struct {
 	Context context.Context
 	Logger  log.Logger
 
+	// Topics is a list of subscribed topics. A value of the map a type of
+	// a message given as a nil pointer, e.g.: (*Message)(nil).
+	Topics map[string]transport.Message
 	// PeerPrivKey is a key used for peer identity. If empty, then random key
 	// is used.
 	PeerPrivKey crypto.PrivKey
@@ -162,31 +166,30 @@ func New(cfg Config) (*P2P, error) {
 		return nil, fmt.Errorf("%v: unable to initialize node: %v", ErrP2P, err)
 	}
 
-	p := &P2P{node: n}
-	err = p.node.Start()
-	if err != nil {
-		return nil, fmt.Errorf("%v: unable to start node: %v", ErrP2P, err)
-	}
-
-	return p, nil
+	return &P2P{node: n, topics: cfg.Topics}, nil
 }
 
-// Subscribe implements the transport.Transport interface.
-func (p *P2P) Subscribe(topic string, typ transport.Message) error {
-	err := p.node.Subscribe(topic, typ)
+// Start implements the transport.Transport interface.
+func (p *P2P) Start() error {
+	err := p.node.Start()
 	if err != nil {
-		return fmt.Errorf("%v: unable to subscribe to topic %s: %v", ErrP2P, topic, err)
+		return fmt.Errorf("%v: unable to start node: %v", ErrP2P, err)
+	}
+	for topic, typ := range p.topics {
+		err := p.subscribe(topic, typ)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// Unsubscribe implements the transport.Transport interface.
-func (p *P2P) Unsubscribe(topic string) error {
-	err := p.node.Unsubscribe(topic)
-	if err != nil {
-		return fmt.Errorf("%v: unable to unsubscribe from topic %s: %v", ErrP2P, topic, err)
+// Stop implements the transport.Transport interface.
+func (p *P2P) Stop() error {
+	for topic, _ := range p.topics {
+		_ = p.unsubscribe(topic)
 	}
-	return nil
+	return p.node.Stop()
 }
 
 // Broadcast implements the transport.Transport interface.
@@ -207,9 +210,20 @@ func (p *P2P) WaitFor(topic string) chan transport.ReceivedMessage {
 	return sub.Next()
 }
 
-// Close implements the transport.Transport interface.
-func (p *P2P) Close() error {
-	return p.node.Stop()
+func (p *P2P) subscribe(topic string, typ transport.Message) error {
+	err := p.node.Subscribe(topic, typ)
+	if err != nil {
+		return fmt.Errorf("%v: unable to subscribe to topic %s: %v", ErrP2P, topic, err)
+	}
+	return nil
+}
+
+func (p *P2P) unsubscribe(topic string) error {
+	err := p.node.Unsubscribe(topic)
+	if err != nil {
+		return fmt.Errorf("%v: unable to unsubscribe from topic %s: %v", ErrP2P, topic, err)
+	}
+	return nil
 }
 
 // strsToMaddrs converts multiaddresses given as strings to a

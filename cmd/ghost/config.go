@@ -50,10 +50,14 @@ func (c *Config) Configure(d Dependencies) (*ghost.Ghost, error) {
 	if err != nil {
 		return nil, err
 	}
+	fed, err := c.Feeds.Addresses()
+	if err != nil {
+		return nil, err
+	}
 	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
 		Signer:  sig,
-		Feeds:   c.Feeds.Addresses(),
+		Feeds:   fed,
 		Logger:  d.Logger,
 	})
 	if err != nil {

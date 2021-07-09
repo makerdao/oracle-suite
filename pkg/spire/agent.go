@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/rpc"
 
+	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport"
@@ -38,7 +39,7 @@ type Agent struct {
 }
 
 type AgentConfig struct {
-	Datastore Datastore
+	Datastore datastore.Datastore
 	Transport transport.Transport
 	Signer    ethereum.Signer
 	Network   string

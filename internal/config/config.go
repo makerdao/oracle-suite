@@ -30,12 +30,12 @@ func ParseFile(out interface{}, path string) error {
 	}
 	f, err := os.Open(p)
 	if err != nil {
-		return fmt.Errorf("failed to load YAML config file: %w", err)
+		return fmt.Errorf("failed to load JSON config file: %w", err)
 	}
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
-		return fmt.Errorf("failed to load YAML config file: %w", err)
+		return fmt.Errorf("failed to load JSON config file: %w", err)
 	}
 	return Parse(out, b)
 }

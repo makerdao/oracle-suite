@@ -49,6 +49,11 @@ func NewMedian(ethereum ethereum.Client, address ethereum.Address) *Median {
 	}
 }
 
+// Address implements the oracle.Median interface.
+func (m *Median) Address() common.Address {
+	return m.address
+}
+
 // Age implements the oracle.Median interface.
 func (m *Median) Age(ctx context.Context) (time.Time, error) {
 	r, err := m.read(ctx, "age")

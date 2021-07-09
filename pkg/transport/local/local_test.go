@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 type testMsg struct {
@@ -34,39 +36,18 @@ func (t *testMsg) Unmarshall(bytes []byte) error {
 	return nil
 }
 
-func TestLocal_Subscribe(t *testing.T) {
-	l := New(0)
-
-	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
-	assert.IsType(t, ErrAlreadySubscribed, l.Subscribe("foo", (*testMsg)(nil)))
-}
-
-func TestLocal_Unsubscribe(t *testing.T) {
-	l := New(0)
-
-	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
-	assert.NoError(t, l.Unsubscribe("foo"))
-	assert.IsType(t, ErrNotSubscribed, l.Unsubscribe("foo"))
-}
-
 func TestLocal_Broadcast(t *testing.T) {
-	l := New(1)
+	l := New(1, map[string]transport.Message{"foo": (*testMsg)(nil)})
 
 	// Valid message:
 	vm := &testMsg{Val: "bar"}
-	assert.IsType(t, ErrNotSubscribed, l.Broadcast("foo", vm))
-	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
 	assert.NoError(t, l.Broadcast("foo", vm))
 }
 
 func TestLocal_WaitFor(t *testing.T) {
-	l := New(1)
-
-	// Should return nil for unsubscribed topic:
-	assert.Nil(t, l.WaitFor("foo"))
+	l := New(1, map[string]transport.Message{"foo": (*testMsg)(nil)})
 
 	// Valid message:
-	assert.NoError(t, l.Subscribe("foo", (*testMsg)(nil)))
 	assert.NoError(t, l.Broadcast("foo", &testMsg{Val: "bar"}))
 	assert.Equal(t, &testMsg{Val: "bar"}, (<-l.WaitFor("foo")).Message)
 }

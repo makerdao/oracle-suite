@@ -45,7 +45,7 @@ type Ghost struct {
 	signer    ethereum.Signer
 	transport transport.Transport
 	interval  time.Duration
-	pairs     map[gofer.Pair]*Pair
+	pairs     map[gofer.Pair]string
 	log       log.Logger
 	doneCh    chan struct{}
 }
@@ -65,13 +65,8 @@ type Config struct {
 	// Logger is a current logger interface used by the Ghost. The Logger
 	// helps to monitor asynchronous processes.
 	Logger log.Logger
-	// Pairs is the list supported pairs by Ghost with their configuration.
-	Pairs []*Pair
-}
-
-type Pair struct {
-	// AssetPair is the name of asset pair, e.g. ETHUSD.
-	AssetPair string
+	// Pairs is a list supported pairs.
+	Pairs []string
 }
 
 func NewGhost(config Config) (*Ghost, error) {
@@ -80,7 +75,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		signer:    config.Signer,
 		transport: config.Transport,
 		interval:  config.Interval,
-		pairs:     make(map[gofer.Pair]*Pair),
+		pairs:     make(map[gofer.Pair]string),
 		log:       config.Logger.WithField("tag", LoggerTag),
 		doneCh:    make(chan struct{}),
 	}
@@ -96,7 +91,7 @@ func NewGhost(config Config) (*Ghost, error) {
 
 		found := false
 		for _, goferPair := range goferPairs {
-			if goferPair.Base+goferPair.Quote == pair.AssetPair {
+			if goferPair.Base+goferPair.Quote == pair {
 				g.pairs[goferPair] = pair
 				found = true
 				break
@@ -104,7 +99,7 @@ func NewGhost(config Config) (*Ghost, error) {
 		}
 
 		if !found {
-			return nil, ErrUnableToFindAsset{AssetName: pair.AssetPair}
+			return nil, ErrUnableToFindAsset{AssetName: pair}
 		}
 	}
 
@@ -126,11 +121,6 @@ func (g *Ghost) Stop() error {
 	defer g.log.Infof("Stopped")
 
 	close(g.doneCh)
-	err := g.transport.Unsubscribe(messages.PriceMessageName)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -149,7 +139,7 @@ func (g *Ghost) broadcast(goferPair gofer.Pair) error {
 	}
 
 	// Create price:
-	price := &oracle.Price{Wat: pair.AssetPair, Age: tick.Time}
+	price := &oracle.Price{Wat: pair, Age: tick.Time}
 	price.SetFloat64Price(tick.Price)
 
 	// Sign price:

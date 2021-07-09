@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package datastore
+package memory
 
 import (
 	"testing"
@@ -22,18 +22,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore/testutil"
+	"github.com/makerdao/oracle-suite/pkg/datastore/memory/testutil"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 	"github.com/makerdao/oracle-suite/pkg/log/null"
 	"github.com/makerdao/oracle-suite/pkg/oracle"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 	"github.com/makerdao/oracle-suite/pkg/transport/local"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 func TestDatastore_Prices(t *testing.T) {
 	sig := &mocks.Signer{}
-	tra := local.New(0)
+	tra := local.New(0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
 
 	ds := NewDatastore(Config{
 		Signer:    sig,
@@ -45,7 +46,6 @@ func TestDatastore_Prices(t *testing.T) {
 		Logger: null.New(),
 	})
 
-	assert.NoError(t, ds.transport.Subscribe(messages.PriceMessageName, (*messages.Price)(nil)))
 	assert.NoError(t, ds.Start())
 	defer ds.Stop()
 

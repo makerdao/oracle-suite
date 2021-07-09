@@ -35,7 +35,11 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
-var ErrFailedToParsePrivKeySeed = errors.New("failed to parse the privKeySeed field")
+var ErrInvalidPrivKeySeed = errors.New("invalid privKeySeed value")
+
+var p2pTransportFactory = func(cfg p2p.Config) (transport.Transport, error) {
+	return p2p.New(cfg)
+}
 
 type Transport struct {
 	P2P P2P `json:"p2p"`
@@ -65,6 +69,7 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 	cfg := p2p.Config{
 		Context:          d.Context,
 		PeerPrivKey:      peerPrivKey,
+		Topics:           map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
 		MessagePrivKey:   ethkey.NewPrivKey(d.Signer),
 		ListenAddrs:      c.P2P.ListenAddrs,
 		BootstrapAddrs:   c.P2P.BootstrapAddrs,
@@ -77,13 +82,8 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 		AppName:          "spire",
 		AppVersion:       suite.Version,
 	}
-	p, err := p2p.New(cfg)
+	p, err := p2pTransportFactory(cfg)
 	if err != nil {
-		return nil, err
-	}
-	err = p.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
-	if err != nil {
-		_ = p.Close()
 		return nil, err
 	}
 	return p, nil
@@ -94,16 +94,16 @@ func (c *Transport) generatePrivKey() (crypto.PrivKey, error) {
 	if len(c.P2P.PrivKeySeed) != 0 {
 		seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
 		if err != nil {
-			return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
+			return nil, fmt.Errorf("%w: failed to decode the privKeySeed field: %v", ErrInvalidPrivKeySeed, err)
 		}
 		if len(seed) != ed25519.SeedSize {
-			return nil, fmt.Errorf("%v: seed must be 32 bytes", ErrFailedToParsePrivKeySeed)
+			return nil, fmt.Errorf("%w: 32 bytes expected", ErrInvalidPrivKeySeed)
 		}
 		seedReader = bytes.NewReader(seed)
 	}
 	privKey, _, err := crypto.GenerateEd25519Key(seedReader)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToParsePrivKeySeed, err)
+		return nil, fmt.Errorf("%w: failed to generate key: %v", ErrInvalidPrivKeySeed, err)
 	}
 	return privKey, nil
 }

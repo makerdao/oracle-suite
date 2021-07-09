@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
+	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/spire"
@@ -28,6 +29,18 @@ import (
 )
 
 var ErrFailedToLoadConfiguration = errors.New("failed to load Spire's configuration")
+
+var spireAgentFactory = func(cfg spire.AgentConfig) (*spire.Agent, error) {
+	return spire.NewAgent(cfg)
+}
+
+var spireClientFactory = func(cfg spire.ClientConfig) *spire.Client {
+	return spire.NewClient(cfg)
+}
+
+var datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
+	return datastoreMemory.NewDatastore(cfg)
+}
 
 type Spire struct {
 	RPC   RPC      `json:"rpc"`
@@ -51,7 +64,7 @@ type ClientDependencies struct {
 }
 
 func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
-	agent, err := spire.NewAgent(spire.AgentConfig{
+	agent, err := spireAgentFactory(spire.AgentConfig{
 		Datastore: c.configureDatastore(d),
 		Transport: d.Transport,
 		Signer:    d.Signer,
@@ -65,23 +78,23 @@ func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
 	return agent, nil
 }
 
-func (c *Spire) ConfigureClient(d ClientDependencies) (*spire.Client, error) {
-	return spire.NewClient(spire.Config{
+func (c *Spire) ConfigureClient(d ClientDependencies) *spire.Client {
+	return spireClientFactory(spire.ClientConfig{
 		Signer:  d.Signer,
 		Network: "tcp",
 		Address: c.RPC.Address,
-	}), nil
+	})
 }
 
-func (c *Spire) configureDatastore(d AgentDependencies) *datastore.Datastore {
-	cfg := datastore.Config{
+func (c *Spire) configureDatastore(d AgentDependencies) datastore.Datastore {
+	cfg := datastoreMemory.Config{
 		Signer:    d.Signer,
 		Transport: d.Transport,
-		Pairs:     make(map[string]*datastore.Pair),
+		Pairs:     make(map[string]*datastoreMemory.Pair),
 		Logger:    d.Logger,
 	}
 	for _, name := range c.Pairs {
-		cfg.Pairs[name] = &datastore.Pair{Feeds: d.Feeds}
+		cfg.Pairs[name] = &datastoreMemory.Pair{Feeds: d.Feeds}
 	}
-	return datastore.NewDatastore(cfg)
+	return datastoreFactory(cfg)
 }

@@ -34,14 +34,8 @@ type Message interface {
 // Transport is the interface for different implementation of a
 // publish–subscribe messaging solutions for the Oracle network.
 type Transport interface {
-	// Subscribe starts subscribing for messages with the given topic.
-	// The second argument is a type of a message given as a nil pointer,
-	// e.g.: (*Message)(nil).
-	Subscribe(topic string, typ Message) error
-	// Unsubscribe stops subscribing for messages with the given topic.
-	Unsubscribe(topic string) error
-	// Broadcast sends a message with the given topic to the network. To send
-	// a message, you must first subscribe to appropriate topic.
+	Start() error
+	Stop() error
 	Broadcast(topic string, message Message) error
 	// WaitFor returns a channel which will be blocked until message for given
 	// topic arrives. Note, that only messages for subscribed topics will
@@ -49,6 +43,4 @@ type Transport interface {
 	// returned. In case of an error, error will be returned in a Status
 	// structure.
 	WaitFor(topic string) chan ReceivedMessage
-	// Close closes connection.
-	Close() error
 }

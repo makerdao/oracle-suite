@@ -45,7 +45,7 @@ func (c *Config) ConfigureClient() (*spire.Client, error) {
 	}
 	return c.Spire.ConfigureClient(spireConfig.ClientDependencies{
 		Signer: sig,
-	})
+	}), nil
 }
 
 func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
@@ -53,10 +53,14 @@ func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+	fed, err := c.Feeds.Addresses()
+	if err != nil {
+		return nil, err
+	}
 	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
 		Signer:  sig,
-		Feeds:   c.Feeds.Addresses(),
+		Feeds:   fed,
 		Logger:  d.Logger,
 	})
 	if err != nil {
@@ -66,7 +70,7 @@ func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
 		Context:   d.Context,
 		Signer:    sig,
 		Transport: tra,
-		Feeds:     c.Feeds.Addresses(),
+		Feeds:     fed,
 		Logger:    d.Logger,
 	})
 }

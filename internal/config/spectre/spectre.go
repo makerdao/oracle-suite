@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
+	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	oracleGeth "github.com/makerdao/oracle-suite/pkg/oracle/geth"
@@ -26,8 +27,16 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
+var spectreFactory = func(cfg spectre.Config) *spectre.Spectre {
+	return spectre.NewSpectre(cfg)
+}
+
+var datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
+	return datastoreMemory.NewDatastore(cfg)
+}
+
 type Spectre struct {
-	Interval    int                   `json:"interval"`
+	Interval    int64                 `json:"interval"`
 	Medianizers map[string]Medianizer `json:"medianizers"`
 }
 
@@ -62,18 +71,18 @@ func (c *Spectre) Configure(d Dependencies) *spectre.Spectre {
 			Median:           oracleGeth.NewMedian(d.EthereumClient, ethereum.HexToAddress(pair.Contract)),
 		})
 	}
-	return spectre.NewSpectre(cfg)
+	return spectreFactory(cfg)
 }
 
-func (c *Spectre) configureDatastore(d Dependencies) *datastore.Datastore {
-	cfg := datastore.Config{
+func (c *Spectre) configureDatastore(d Dependencies) datastore.Datastore {
+	cfg := datastoreMemory.Config{
 		Signer:    d.Signer,
 		Transport: d.Transport,
-		Pairs:     make(map[string]*datastore.Pair),
+		Pairs:     make(map[string]*datastoreMemory.Pair),
 		Logger:    d.Logger,
 	}
 	for name := range c.Medianizers {
-		cfg.Pairs[name] = &datastore.Pair{Feeds: d.Feeds}
+		cfg.Pairs[name] = &datastoreMemory.Pair{Feeds: d.Feeds}
 	}
-	return datastore.NewDatastore(cfg)
+	return datastoreFactory(cfg)
 }

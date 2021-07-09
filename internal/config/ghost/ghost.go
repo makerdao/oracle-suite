@@ -26,6 +26,10 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
+var ghostFactory = func(cfg ghost.Config) (*ghost.Ghost, error) {
+	return ghost.NewGhost(cfg)
+}
+
 type Ghost struct {
 	Interval int      `json:"interval"`
 	Pairs    []string `json:"pairs"`
@@ -46,12 +50,7 @@ func (c *Ghost) Configure(d Dependencies) (*ghost.Ghost, error) {
 		Transport: d.Transport,
 		Logger:    d.Logger,
 		Interval:  time.Second * time.Duration(c.Interval),
-		Pairs:     nil,
+		Pairs:     c.Pairs,
 	}
-	for _, name := range c.Pairs {
-		cfg.Pairs = append(cfg.Pairs, &ghost.Pair{
-			AssetPair: name,
-		})
-	}
-	return ghost.NewGhost(cfg)
+	return ghostFactory(cfg)
 }

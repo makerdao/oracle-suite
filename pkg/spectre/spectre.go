@@ -56,18 +56,12 @@ func (e errNoPrices) Error() string {
 	return fmt.Sprintf("there is no prices in the datastore for %s pair", e.AssetPair)
 }
 
-type Datastore interface {
-	Prices() *datastore.PriceStore
-	Start() error
-	Stop() error
-}
-
 type Spectre struct {
 	mu  sync.Mutex
 	ctx context.Context
 
 	signer    ethereum.Signer
-	datastore Datastore
+	datastore datastore.Datastore
 	interval  time.Duration
 	log       log.Logger
 	pairs     map[string]*Pair
@@ -77,7 +71,7 @@ type Spectre struct {
 type Config struct {
 	Signer ethereum.Signer
 	// Datastore provides prices for Spectre.
-	Datastore Datastore
+	Datastore datastore.Datastore
 	// Interval describes how often we should try to update Oracles.
 	Interval time.Duration
 	// Pairs is the list supported pairs by Spectre with their configuration.

@@ -13,14 +13,14 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package datastore
+package memory
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore/testutil"
+	"github.com/makerdao/oracle-suite/pkg/datastore/memory/testutil"
 )
 
 func TestPriceStore_Add(t *testing.T) {

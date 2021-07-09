@@ -27,15 +27,9 @@ import (
 
 type Nothing = struct{}
 
-type Datastore interface {
-	Prices() *datastore.PriceStore
-	Start() error
-	Stop() error
-}
-
 type API struct {
 	transport transport.Transport
-	datastore Datastore
+	datastore datastore.Datastore
 	signer    ethereum.Signer
 	log       log.Logger
 }

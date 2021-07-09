@@ -25,11 +25,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore"
+	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 	"github.com/makerdao/oracle-suite/pkg/log/null"
 	"github.com/makerdao/oracle-suite/pkg/oracle"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 	"github.com/makerdao/oracle-suite/pkg/transport/local"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
@@ -52,16 +53,12 @@ var (
 func newTestInstances() (*Agent, *Client) {
 	log := null.New()
 	sig := &mocks.Signer{}
-	tra := local.New(0)
-	err := tra.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
-	if err != nil {
-		panic(err)
-	}
+	tra := local.New(0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
 
-	dat := datastore.NewDatastore(datastore.Config{
+	dat := datastoreMemory.NewDatastore(datastoreMemory.Config{
 		Signer:    sig,
 		Transport: tra,
-		Pairs: map[string]*datastore.Pair{
+		Pairs: map[string]*datastoreMemory.Pair{
 			"AAABBB": {Feeds: []ethereum.Address{testAddress}},
 			"XXXYYY": {Feeds: []ethereum.Address{testAddress}},
 		},
@@ -86,7 +83,7 @@ func newTestInstances() (*Agent, *Client) {
 		panic(err)
 	}
 
-	cli := NewClient(Config{
+	cli := NewClient(ClientConfig{
 		Signer:  sig,
 		Network: "tcp",
 		Address: agt.listener.Addr().String(),

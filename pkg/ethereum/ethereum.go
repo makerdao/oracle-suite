@@ -34,6 +34,9 @@ type (
 // HexToAddress returns Address from hex representation.
 var HexToAddress = common.HexToAddress
 
+// IsHexAddress verifies if given string is a valid Ethereum address.
+var IsHexAddress = common.IsHexAddress
+
 // SHA3Hash calculates SHA3 hash.
 func SHA3Hash(b []byte) []byte {
 	return crypto.Keccak256Hash(b).Bytes()

@@ -29,13 +29,13 @@ type Client struct {
 	signer  ethereum.Signer
 }
 
-type Config struct {
+type ClientConfig struct {
 	Signer  ethereum.Signer
 	Network string
 	Address string
 }
 
-func NewClient(cfg Config) *Client {
+func NewClient(cfg ClientConfig) *Client {
 	return &Client{
 		network: cfg.Network,
 		address: cfg.Address,
