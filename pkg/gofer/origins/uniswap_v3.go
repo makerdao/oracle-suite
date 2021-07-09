@@ -68,7 +68,21 @@ func (u *UniswapV3) pairsToContractAddress(pair Pair) string {
 
 	p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
 
-	switch { // nolint:gocritic
+	switch {
+	case match(p, Pair{Base: "COMP", Quote: "WETH"}):
+		return "0xea4ba4ce14fdd287f380b55419b1c5b6c3f22ab6"
+	case match(p, Pair{Base: "CRV", Quote: "WETH"}):
+		return "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
+	case match(p, Pair{Base: "WETH", Quote: "USDC"}):
+		return "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+	case match(p, Pair{Base: "WETH", Quote: "KNC"}):
+		return "0x76838fd2f22bdc1d3e96069971e65653173edb2a"
+	case match(p, Pair{Base: "LRC", Quote: "WETH"}):
+		return "0xe1d92f1de49caec73514f696fea2a7d5441498e5"
+	case match(p, Pair{Base: "UNI", Quote: "WETH"}):
+		return "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801"
+	case match(p, Pair{Base: "WNXM", Quote: "WETH"}):
+		return "0x058d79a4c6eb5b11d0248993ffa1faa168ddd3c0"
 	case match(p, Pair{Base: "YFI", Quote: "WETH"}):
 		return "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
 	}
