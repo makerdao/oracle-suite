@@ -91,13 +91,7 @@ func NewDatastore(cfg Config) (*Datastore, error) {
 func (c *Datastore) Start() error {
 	c.log.Info("Starting")
 
-	// Handle context cancellation:
-	go func() {
-		defer func() { c.doneCh <- struct{}{} }()
-		defer c.log.Info("Stopped")
-		<-c.ctx.Done()
-	}()
-
+	go c.contextCancelHandler()
 	return c.collectorLoop()
 }
 
@@ -182,4 +176,10 @@ func (c *Datastore) isFeedAllowed(assetPair string, address ethereum.Address) bo
 		}
 	}
 	return false
+}
+
+func (c *Datastore) contextCancelHandler() {
+	defer func() { c.doneCh <- struct{}{} }()
+	defer c.log.Info("Stopped")
+	<-c.ctx.Done()
 }

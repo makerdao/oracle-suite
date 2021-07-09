@@ -55,47 +55,49 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	}, nil
 }
 
-func (s *Client) Start() error {
-	client, err := rpc.DialHTTP(s.network, s.address)
+func (c *Client) Start() error {
+	client, err := rpc.DialHTTP(c.network, c.address)
 	if err != nil {
 		return err
 	}
-	s.rpc = client
-	// Handle context cancellation:
-	go func() {
-		defer func() { s.doneCh <- struct{}{} }()
-		<-s.ctx.Done()
-		_ = s.rpc.Close()
-	}()
+	c.rpc = client
+	go c.contextCancelHandler()
 	return nil
 }
 
-func (s *Client) Wait() {
-	<-s.doneCh
+func (c *Client) Wait() {
+	<-c.doneCh
 }
 
-func (s *Client) PublishPrice(price *messages.Price) error {
-	err := s.rpc.Call("API.PublishPrice", PublishPriceArg{Price: price}, &Nothing{})
+func (c *Client) PublishPrice(price *messages.Price) error {
+	err := c.rpc.Call("API.PublishPrice", PublishPriceArg{Price: price}, &Nothing{})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Client) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
+func (c *Client) PullPrices(assetPair string, feeder string) ([]*messages.Price, error) {
 	resp := &PullPricesResp{}
-	err := s.rpc.Call("API.PullPrices", PullPricesArg{FilterAssetPair: assetPair, FilterFeeder: feeder}, resp)
+	err := c.rpc.Call("API.PullPrices", PullPricesArg{FilterAssetPair: assetPair, FilterFeeder: feeder}, resp)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Prices, nil
 }
 
-func (s *Client) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
+func (c *Client) PullPrice(assetPair string, feeder string) (*messages.Price, error) {
 	resp := &PullPriceResp{}
-	err := s.rpc.Call("API.PullPrice", PullPriceArg{AssetPair: assetPair, Feeder: feeder}, resp)
+	err := c.rpc.Call("API.PullPrice", PullPriceArg{AssetPair: assetPair, Feeder: feeder}, resp)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Price, nil
+}
+
+func (c *Client) contextCancelHandler() {
+	defer func() { c.doneCh <- struct{}{} }()
+	<-c.ctx.Done()
+
+	c.rpc.Close()
 }

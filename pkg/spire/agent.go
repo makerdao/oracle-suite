@@ -97,21 +97,22 @@ func (s *Agent) Start() error {
 		}
 	}()
 
-	// Handle context cancellation:
-	go func() {
-		defer func() { s.doneCh <- struct{}{} }()
-		defer s.log.Info("Stopped")
-		<-s.ctx.Done()
-		err := s.listener.Close()
-		if err != nil {
-			s.log.WithError(err).Error("Unable to close RPC listener")
-		}
-	}()
-
+	go s.contextCancelHandler()
 	return nil
 }
 
 // Wait waits until agent's context is cancelled.
 func (s *Agent) Wait() {
 	<-s.doneCh
+}
+
+func (s *Agent) contextCancelHandler() {
+	defer func() { s.doneCh <- struct{}{} }()
+	defer s.log.Info("Stopped")
+	<-s.ctx.Done()
+
+	err := s.listener.Close()
+	if err != nil {
+		s.log.WithError(err).Error("Unable to close RPC listener")
+	}
 }

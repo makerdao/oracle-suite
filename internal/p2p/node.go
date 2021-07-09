@@ -120,6 +120,8 @@ func (n *Node) Start() error {
 
 	n.nodeEventHandler.Handle(sets.NodeStartingEvent{})
 
+	go n.contextCancelHandler()
+
 	n.host, err = libp2p.New(n.ctx, append([]libp2p.Option{
 		libp2p.EnableNATService(),
 		libp2p.DisableRelay(),
@@ -145,29 +147,6 @@ func (n *Node) Start() error {
 
 	n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
 	n.nodeEventHandler.Handle(sets.NodeStartedEvent{})
-
-	// Handle context cancellation:
-	go func() {
-		defer func() { n.doneCh <- struct{}{} }()
-		defer n.log.Info("Stopped")
-		defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
-		<-n.ctx.Done()
-
-		n.nodeEventHandler.Handle(sets.NodeStoppingEvent{})
-
-		n.mu.Lock()
-		defer n.mu.Unlock()
-
-		var err error
-		n.subs = nil
-		n.closed = true
-		err = n.host.Close()
-		if err != nil {
-			n.log.
-				WithError(err).
-				Error("Error during closing host")
-		}
-	}()
 
 	return nil
 }
@@ -299,6 +278,25 @@ func (n *Node) Subscription(topic string) (*Subscription, error) {
 	}
 
 	return nil, fmt.Errorf("%v: %v", ErrNode, ErrNotSubscribed)
+}
+
+func (n *Node) contextCancelHandler() {
+	defer func() { n.doneCh <- struct{}{} }()
+	defer n.log.Info("Stopped")
+	defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
+	<-n.ctx.Done()
+
+	n.nodeEventHandler.Handle(sets.NodeStoppingEvent{})
+
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.subs = nil
+	n.closed = true
+	err := n.host.Close()
+	if err != nil {
+		n.log.WithError(err).Error("Error during closing host")
+	}
 }
 
 // ListenAddrs returns all node's listen multiaddresses as a string list.

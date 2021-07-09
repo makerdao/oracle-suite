@@ -124,19 +124,20 @@ func (f *Feeder) Start(ns ...nodes.Node) error {
 		}
 	}()
 
-	// Handle context cancellation:
-	go func() {
-		defer func() { f.doneCh <- struct{}{} }()
-		defer f.log.Info("Stopped")
-		<-f.ctx.Done()
-	}()
-
+	go f.contextCancelHandler()
 	return nil
 }
 
 // Wait waits until feeder's context is cancelled.
 func (f *Feeder) Wait() {
 	<-f.doneCh
+}
+
+func (f *Feeder) contextCancelHandler() {
+	defer func() { f.doneCh <- struct{}{} }()
+	defer f.log.Info("Stopped")
+
+	<-f.ctx.Done()
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes

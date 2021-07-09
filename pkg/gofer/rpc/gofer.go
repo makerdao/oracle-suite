@@ -56,13 +56,7 @@ func (g *Gofer) Start() error {
 	}
 	g.rpc = client
 
-	// Handle context cancellation:
-	go func() {
-		defer func() { g.doneCh <- struct{}{} }()
-		<-g.ctx.Done()
-		_ = g.rpc.Close()
-	}()
-
+	go g.contextCancelHandler()
 	return nil
 }
 
@@ -108,4 +102,11 @@ func (g *Gofer) Pairs() ([]gofer.Pair, error) {
 		return nil, err
 	}
 	return resp.Pairs, nil
+}
+
+func (g *Gofer) contextCancelHandler() {
+	defer func() { g.doneCh <- struct{}{} }()
+	<-g.ctx.Done()
+
+	g.rpc.Close()
 }

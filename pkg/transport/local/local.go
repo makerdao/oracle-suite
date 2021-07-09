@@ -61,15 +61,7 @@ func New(ctx context.Context, buffer int, subs map[string]transport.Message) *Lo
 
 // Start implements the transport.Transport interface.
 func (l *Local) Start() error {
-	// Handle context cancellation:
-	go func() {
-		defer func() { l.doneCh <- struct{}{} }()
-		<-l.ctx.Done()
-		for _, sub := range l.subs {
-			close(sub.status)
-		}
-		l.subs = make(map[string]subscription)
-	}()
+	go l.contextCancelHandler()
 	return nil
 }
 
@@ -109,4 +101,14 @@ func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
 		return sub.status
 	}
 	return nil
+}
+
+func (l *Local) contextCancelHandler() {
+	defer func() { l.doneCh <- struct{}{} }()
+	<-l.ctx.Done()
+
+	for _, sub := range l.subs {
+		close(sub.status)
+	}
+	l.subs = make(map[string]subscription)
 }

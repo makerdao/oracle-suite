@@ -121,50 +121,44 @@ func NewSpectre(cfg Config) (*Spectre, error) {
 	return r, nil
 }
 
-func (r *Spectre) Start() error {
-	r.log.Info("Starting")
+func (s *Spectre) Start() error {
+	s.log.Info("Starting")
 
-	// Handle context cancellation:
-	go func() {
-		defer func() { r.doneCh <- struct{}{} }()
-		defer r.log.Info("Stopped")
-		<-r.ctx.Done()
-	}()
-
-	r.relayerLoop()
+	go s.contextCancelHandler()
+	s.relayerLoop()
 
 	return nil
 }
 
-func (r *Spectre) Wait() {
-	<-r.doneCh
+func (s *Spectre) Wait() {
+	<-s.doneCh
 }
 
 // relay tries to update an Oracle contract for given pair. It'll return
 // transaction hash or nil if there is no need to update Oracle.
-func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (s *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	pair, ok := r.pairs[assetPair]
+	pair, ok := s.pairs[assetPair]
 	if !ok {
 		return nil, errUnknownAsset{AssetPair: assetPair}
 	}
 
-	prices := newPrices(r.datastore.Prices().AssetPair(assetPair))
+	prices := newPrices(s.datastore.Prices().AssetPair(assetPair))
 	if prices == nil || prices.len() == 0 {
 		return nil, errNoPrices{AssetPair: assetPair}
 	}
 
-	oracleQuorum, err := pair.Median.Bar(r.ctx)
+	oracleQuorum, err := pair.Median.Bar(s.ctx)
 	if err != nil {
 		return nil, err
 	}
-	oracleTime, err := pair.Median.Age(r.ctx)
+	oracleTime, err := pair.Median.Age(s.ctx)
 	if err != nil {
 		return nil, err
 	}
-	oraclePrice, err := pair.Median.Val(r.ctx)
+	oraclePrice, err := pair.Median.Val(s.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +175,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 	isStale := spread >= pair.OracleSpread
 
 	// Print logs:
-	r.log.
+	s.log.
 		WithFields(log.Fields{
 			"assetPair":        assetPair,
 			"bar":              oracleQuorum,
@@ -196,8 +190,8 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 		}).
 		Debug("Trying to update Oracle")
 	for _, price := range prices.oraclePrices() {
-		r.log.
-			WithFields(price.Fields(r.signer)).
+		s.log.
+			WithFields(price.Fields(s.signer)).
 			Debug("Feed")
 	}
 
@@ -208,7 +202,7 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 		}
 
 		// Send *actual* transaction to the Ethereum network:
-		tx, err := pair.Median.Poke(r.ctx, prices.oraclePrices(), true)
+		tx, err := pair.Median.Poke(s.ctx, prices.oraclePrices(), true)
 		return tx, err
 	}
 
@@ -218,38 +212,38 @@ func (r *Spectre) relay(assetPair string) (*ethereum.Hash, error) {
 
 // relayerLoop creates a asynchronous loop which tries to send an update
 // to an Oracle contract at a specified interval.
-func (r *Spectre) relayerLoop() {
-	if r.interval == 0 {
+func (s *Spectre) relayerLoop() {
+	if s.interval == 0 {
 		return
 	}
 
-	ticker := time.NewTicker(r.interval)
+	ticker := time.NewTicker(s.interval)
 	go func() {
 		for {
 			select {
-			case <-r.doneCh:
+			case <-s.doneCh:
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				for assetPair := range r.pairs {
-					tx, err := r.relay(assetPair)
+				for assetPair := range s.pairs {
+					tx, err := s.relay(assetPair)
 
 					// Print log in case of an error:
 					if err != nil {
-						r.log.
+						s.log.
 							WithFields(log.Fields{"assetPair": assetPair}).
 							WithError(err).
 							Warn("Unable to update Oracle")
 					}
 					// Print log if there was no need to update prices:
 					if err == nil && tx == nil {
-						r.log.
+						s.log.
 							WithFields(log.Fields{"assetPair": assetPair}).
 							Info("Oracle price is still valid")
 					}
 					// Print log if Oracle update transaction was sent:
 					if tx != nil {
-						r.log.
+						s.log.
 							WithFields(log.Fields{"assetPair": assetPair, "tx": tx.String()}).
 							Info("Oracle updated")
 					}
@@ -257,4 +251,10 @@ func (r *Spectre) relayerLoop() {
 			}
 		}
 	}()
+}
+
+func (s *Spectre) contextCancelHandler() {
+	defer func() { s.doneCh <- struct{}{} }()
+	defer s.log.Info("Stopped")
+	<-s.ctx.Done()
 }

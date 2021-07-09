@@ -49,12 +49,7 @@ func NewAsyncGofer(ctx context.Context, g map[gofer.Pair]nodes.Aggregator, f *fe
 
 // Start starts asynchronous price updater.
 func (a *AsyncGofer) Start() error {
-	// Handle context cancellation:
-	go func() {
-		defer func() { a.doneCh <- struct{}{} }()
-		<-a.ctx.Done()
-		a.feeder.Wait()
-	}()
+	go a.contextCancelHandler()
 	ns, _ := a.findNodes()
 	return a.feeder.Start(ns...)
 }
@@ -62,4 +57,11 @@ func (a *AsyncGofer) Start() error {
 // Wait waits until feeder's context is cancelled.
 func (a *AsyncGofer) Wait() {
 	<-a.doneCh
+}
+
+func (a *AsyncGofer) contextCancelHandler() {
+	defer func() { a.doneCh <- struct{}{} }()
+	<-a.ctx.Done()
+
+	a.feeder.Wait()
 }

@@ -124,13 +124,7 @@ func (g *Ghost) Start() error {
 		return err
 	}
 
-	// Handle context cancellation:
-	go func() {
-		defer func() { g.doneCh <- struct{}{} }()
-		defer g.log.Info("Stopped")
-		<-g.ctx.Done()
-	}()
-
+	go g.contextCancelHandler()
 	return nil
 }
 
@@ -220,6 +214,12 @@ func (g *Ghost) broadcasterLoop() error {
 	}()
 
 	return nil
+}
+
+func (g *Ghost) contextCancelHandler() {
+	defer func() { g.doneCh <- struct{}{} }()
+	defer g.log.Info("Stopped")
+	<-g.ctx.Done()
 }
 
 func createPriceMessage(price *oracle.Price, tick *gofer.Price) (*messages.Price, error) {
