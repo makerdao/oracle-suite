@@ -156,7 +156,7 @@ func (c *Gofer) buildOrigins() (*origins.Set, error) {
 	const defaultWorkerCount = 5
 	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
-	defaultOrigins := DefaultOriginSet(httpWorkerPool)
+	defaultOrigins := origins.DefaultOriginSet(httpWorkerPool)
 
 	for name, origin := range c.Origins {
 		handler, err := NewHandler(origin.Type, httpWorkerPool, origin.Params)

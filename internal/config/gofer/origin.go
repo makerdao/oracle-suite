@@ -115,34 +115,3 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 
 	return nil, origins.ErrUnknownOrigin
 }
-
-func DefaultOriginSet(pool query.WorkerPool) *origins.Set {
-	return origins.NewSet(map[string]origins.Handler{
-		"balancer":      &origins.Balancer{Pool: pool},
-		"binance":       &origins.Binance{Pool: pool},
-		"bitfinex":      &origins.Bitfinex{Pool: pool},
-		"bitstamp":      &origins.Bitstamp{Pool: pool},
-		"bitthumb":      &origins.BitThump{Pool: pool},
-		"bithumb":       &origins.BitThump{Pool: pool},
-		"bittrex":       &origins.Bittrex{Pool: pool},
-		"coinbase":      &origins.CoinbasePro{Pool: pool},
-		"coinbasepro":   &origins.CoinbasePro{Pool: pool},
-		"cryptocompare": &origins.CryptoCompare{Pool: pool},
-		"ddex":          &origins.Ddex{Pool: pool},
-		"folgory":       &origins.Folgory{Pool: pool},
-		"ftx":           &origins.Ftx{Pool: pool},
-		"gateio":        &origins.Gateio{Pool: pool},
-		"gemini":        &origins.Gemini{Pool: pool},
-		"hitbtc":        &origins.Hitbtc{Pool: pool},
-		"huobi":         &origins.Huobi{Pool: pool},
-		"kraken":        &origins.Kraken{Pool: pool},
-		"kucoin":        &origins.Kucoin{Pool: pool},
-		"kyber":         &origins.Kyber{Pool: pool},
-		"loopring":      &origins.Loopring{Pool: pool},
-		"okex":          &origins.Okex{Pool: pool},
-		"poloniex":      &origins.Poloniex{Pool: pool},
-		"sushiswap":     &origins.Sushiswap{Pool: pool},
-		"uniswap":       &origins.Uniswap{Pool: pool},
-		"upbit":         &origins.Upbit{Pool: pool},
-	})
-}

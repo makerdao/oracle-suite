@@ -144,6 +144,37 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	return frs
 }
 
+func DefaultOriginSet(pool query.WorkerPool) *Set {
+	return NewSet(map[string]Handler{
+		"balancer":      &Balancer{Pool: pool},
+		"binance":       &Binance{Pool: pool},
+		"bitfinex":      &Bitfinex{Pool: pool},
+		"bitstamp":      &Bitstamp{Pool: pool},
+		"bitthumb":      &BitThump{Pool: pool},
+		"bithumb":       &BitThump{Pool: pool},
+		"bittrex":       &Bittrex{Pool: pool},
+		"coinbase":      &CoinbasePro{Pool: pool},
+		"coinbasepro":   &CoinbasePro{Pool: pool},
+		"cryptocompare": &CryptoCompare{Pool: pool},
+		"ddex":          &Ddex{Pool: pool},
+		"folgory":       &Folgory{Pool: pool},
+		"ftx":           &Ftx{Pool: pool},
+		"gateio":        &Gateio{Pool: pool},
+		"gemini":        &Gemini{Pool: pool},
+		"hitbtc":        &Hitbtc{Pool: pool},
+		"huobi":         &Huobi{Pool: pool},
+		"kraken":        &Kraken{Pool: pool},
+		"kucoin":        &Kucoin{Pool: pool},
+		"kyber":         &Kyber{Pool: pool},
+		"loopring":      &Loopring{Pool: pool},
+		"okex":          &Okex{Pool: pool},
+		"poloniex":      &Poloniex{Pool: pool},
+		"sushiswap":     &Sushiswap{Pool: pool},
+		"uniswap":       &Uniswap{Pool: pool},
+		"upbit":         &Upbit{Pool: pool},
+	})
+}
+
 type singlePairOrigin interface {
 	callOne(pair Pair) (*Price, error)
 }
