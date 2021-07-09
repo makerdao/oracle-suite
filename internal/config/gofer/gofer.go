@@ -96,9 +96,8 @@ type Source struct {
 func (c *Gofer) ConfigureGofer(ctx context.Context, logger log.Logger, noRPC bool) (gofer.Gofer, error) {
 	if c.RPC.Address == "" || noRPC {
 		return c.configureGofer(ctx, logger)
-	} else {
-		return c.configureRPCClient(ctx)
 	}
+	return c.configureRPCClient(ctx)
 }
 
 // ConfigureRPCAgent returns a new rpc.Agent instance.
