@@ -66,6 +66,9 @@ func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err = tra.Start(); err != nil {
+		return nil, err
+	}
 	return c.Spire.ConfigureAgent(spireConfig.AgentDependencies{
 		Context:   d.Context,
 		Signer:    sig,

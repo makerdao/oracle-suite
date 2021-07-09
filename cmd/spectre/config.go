@@ -60,6 +60,9 @@ func (c *Config) Configure(d Dependencies) (*spectre.Spectre, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err = tra.Start(); err != nil {
+		return nil, err
+	}
 	return c.Spectre.Configure(spectreConfig.Dependencies{
 		Signer:         sig,
 		Transport:      tra,

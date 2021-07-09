@@ -63,6 +63,9 @@ func (c *Config) Configure(d Dependencies) (*ghost.Ghost, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err = tra.Start(); err != nil {
+		return nil, err
+	}
 	return c.Ghost.Configure(ghostConfig.Dependencies{
 		Context:   d.Context,
 		Gofer:     gof,
