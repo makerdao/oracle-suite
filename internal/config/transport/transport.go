@@ -62,6 +62,11 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
+type BootstrapDependencies struct {
+	Context context.Context
+	Logger  log.Logger
+}
+
 func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 	peerPrivKey, err := c.generatePrivKey()
 	if err != nil {
@@ -81,6 +86,30 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 		Signer:           d.Signer,
 		Logger:           d.Logger,
 		AppName:          "spire",
+		AppVersion:       suite.Version,
+	}
+	p, err := p2pTransportFactory(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (c *Transport) ConfigureP2PBoostrap(d BootstrapDependencies) (transport.Transport, error) {
+	peerPrivKey, err := c.generatePrivKey()
+	if err != nil {
+		return nil, err
+	}
+	cfg := p2p.Config{
+		Context:          d.Context,
+		Mode:             p2p.Bootstrap,
+		PeerPrivKey:      peerPrivKey,
+		ListenAddrs:      c.P2P.ListenAddrs,
+		BootstrapAddrs:   c.P2P.BootstrapAddrs,
+		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
+		BlockedAddrs:     c.P2P.BlockedAddrs,
+		Logger:           d.Logger,
+		AppName:          "bootstrap",
 		AppVersion:       suite.Version,
 	}
 	p, err := p2pTransportFactory(cfg)
