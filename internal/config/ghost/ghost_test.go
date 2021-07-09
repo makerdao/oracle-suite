@@ -47,7 +47,7 @@ func TestGhost_Configure(t *testing.T) {
 	}
 
 	ghostFactory = func(cfg ghost.Config) (*ghost.Ghost, error) {
-		assert.Equal(t, time.Duration(interval) * time.Second, cfg.Interval)
+		assert.Equal(t, time.Duration(interval)*time.Second, cfg.Interval)
 		assert.Equal(t, pairs, cfg.Pairs)
 		assert.Equal(t, signer, cfg.Signer)
 		assert.Equal(t, transport, cfg.Transport)

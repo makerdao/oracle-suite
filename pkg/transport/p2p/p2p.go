@@ -186,7 +186,7 @@ func (p *P2P) Start() error {
 
 // Stop implements the transport.Transport interface.
 func (p *P2P) Stop() error {
-	for topic, _ := range p.topics {
+	for topic := range p.topics {
 		_ = p.unsubscribe(topic)
 	}
 	return p.node.Stop()
