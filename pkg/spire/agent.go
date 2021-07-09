@@ -16,6 +16,7 @@
 package spire
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -30,6 +31,9 @@ import (
 const AgentLoggerTag = "SPIRE_AGENT"
 
 type Agent struct {
+	ctx    context.Context
+	doneCh chan struct{}
+
 	api      *API
 	rpc      *rpc.Server
 	listener net.Listener
@@ -39,6 +43,7 @@ type Agent struct {
 }
 
 type AgentConfig struct {
+	Context   context.Context
 	Datastore datastore.Datastore
 	Transport transport.Transport
 	Signer    ethereum.Signer
@@ -48,18 +53,25 @@ type AgentConfig struct {
 }
 
 func NewAgent(cfg AgentConfig) (*Agent, error) {
+	if cfg.Context == nil {
+		return nil, errors.New("context must not be nil")
+	}
+
 	s := &Agent{
+		ctx:    cfg.Context,
+		doneCh: make(chan struct{}),
 		api: &API{
 			datastore: cfg.Datastore,
 			transport: cfg.Transport,
 			signer:    cfg.Signer,
 			log:       cfg.Logger.WithField("tag", AgentLoggerTag),
 		},
+		rpc:     rpc.NewServer(),
 		network: cfg.Network,
 		address: cfg.Address,
 		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
-	s.rpc = rpc.NewServer()
+
 	err := s.rpc.Register(s.api)
 	if err != nil {
 		return nil, err
@@ -73,18 +85,11 @@ func (s *Agent) Start() error {
 	s.log.Infof("Starting")
 	var err error
 
-	err = s.api.datastore.Start()
-	if err != nil {
-		return err
-	}
-
-	s.log.Debugln("Starting Spire RPC server")
-
+	// Start RPC server:
 	s.listener, err = net.Listen(s.network, s.address)
 	if err != nil {
 		return err
 	}
-
 	go func() {
 		err := http.Serve(s.listener, nil)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -92,20 +97,21 @@ func (s *Agent) Start() error {
 		}
 	}()
 
+	// Handle context cancellation:
+	go func() {
+		defer func() { s.doneCh <- struct{}{} }()
+		defer s.log.Info("Stopped")
+		<-s.ctx.Done()
+		err := s.listener.Close()
+		if err != nil {
+			s.log.WithError(err).Error("Unable to close RPC listener")
+		}
+	}()
+
 	return nil
 }
 
-func (s *Agent) Stop() {
-	defer s.log.Infof("Stopped")
-	var err error
-
-	err = s.api.datastore.Stop()
-	if err != nil {
-		s.log.WithError(err).Error("Unable to stop Datastore")
-	}
-
-	err = s.listener.Close()
-	if err != nil {
-		s.log.WithError(err).Error("Unable to close RPC listener")
-	}
+// Wait waits until agent's context is cancelled.
+func (s *Agent) Wait() {
+	<-s.doneCh
 }

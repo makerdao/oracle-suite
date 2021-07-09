@@ -16,19 +16,18 @@
 package spectre
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore"
 	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	ethereumMocks "github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 	"github.com/makerdao/oracle-suite/pkg/log/null"
 	"github.com/makerdao/oracle-suite/pkg/spectre"
-	"github.com/makerdao/oracle-suite/pkg/transport/local"
 )
 
 func TestSpectre_Configure(t *testing.T) {
@@ -41,7 +40,6 @@ func TestSpectre_Configure(t *testing.T) {
 
 	interval := int64(10)
 	signer := &ethereumMocks.Signer{}
-	transport := local.New(0, nil)
 	ethClient := &ethereumMocks.Client{}
 	feeds := []ethereum.Address{ethereum.HexToAddress("0x07a35a1d4b751a818d93aa38e615c0df23064881")}
 	ds := &datastoreMemory.Datastore{}
@@ -59,14 +57,7 @@ func TestSpectre_Configure(t *testing.T) {
 		},
 	}
 
-	datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
-		assert.Equal(t, signer, cfg.Signer)
-		assert.Equal(t, transport, cfg.Transport)
-		assert.Equal(t, logger, cfg.Logger)
-		assert.Equal(t, feeds, cfg.Pairs["AAABBB"].Feeds)
-		return ds
-	}
-	spectreFactory = func(cfg spectre.Config) *spectre.Spectre {
+	spectreFactory = func(cfg spectre.Config) (*spectre.Spectre, error) {
 		assert.Equal(t, signer, cfg.Signer)
 		assert.Equal(t, ds, cfg.Datastore)
 		assert.Equal(t, secToDuration(interval), cfg.Interval)
@@ -76,16 +67,18 @@ func TestSpectre_Configure(t *testing.T) {
 		assert.Equal(t, secToDuration(config.Medianizers["AAABBB"].MsgExpiration), cfg.Pairs[0].PriceExpiration)
 		assert.Equal(t, config.Medianizers["AAABBB"].OracleSpread, cfg.Pairs[0].OracleSpread)
 		assert.Equal(t, ethereum.HexToAddress(config.Medianizers["AAABBB"].Contract), cfg.Pairs[0].Median.Address())
-		return &spectre.Spectre{}
+		return &spectre.Spectre{}, nil
 	}
 
-	s := config.Configure(Dependencies{
+	s, err := config.ConfigureSpectre(Dependencies{
+		Context:        context.Background(),
 		Signer:         signer,
-		Transport:      transport,
+		Datastore:      ds,
 		EthereumClient: ethClient,
 		Feeds:          feeds,
 		Logger:         logger,
 	})
+	require.NoError(t, err)
 	require.NotNil(t, s)
 }
 

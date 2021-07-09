@@ -36,12 +36,12 @@ var spireAgentFactory = func(cfg spire.AgentConfig) (*spire.Agent, error) {
 }
 
 //nolint:unlambda
-var spireClientFactory = func(cfg spire.ClientConfig) *spire.Client {
+var spireClientFactory = func(cfg spire.ClientConfig) (*spire.Client, error) {
 	return spire.NewClient(cfg)
 }
 
 //nolint:unlambda
-var datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
+var datastoreFactory = func(cfg datastoreMemory.Config) (datastore.Datastore, error) {
 	return datastoreMemory.NewDatastore(cfg)
 }
 
@@ -58,17 +58,28 @@ type AgentDependencies struct {
 	Context   context.Context
 	Signer    ethereum.Signer
 	Transport transport.Transport
+	Datastore datastore.Datastore
 	Feeds     []ethereum.Address
 	Logger    log.Logger
 }
 
 type ClientDependencies struct {
-	Signer ethereum.Signer
+	Context context.Context
+	Signer  ethereum.Signer
+}
+
+type DatastoreDependencies struct {
+	Context   context.Context
+	Signer    ethereum.Signer
+	Transport transport.Transport
+	Feeds     []ethereum.Address
+	Logger    log.Logger
 }
 
 func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
 	agent, err := spireAgentFactory(spire.AgentConfig{
-		Datastore: c.configureDatastore(d),
+		Context:   d.Context,
+		Datastore: d.Datastore,
 		Transport: d.Transport,
 		Signer:    d.Signer,
 		Network:   "tcp",
@@ -81,16 +92,18 @@ func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
 	return agent, nil
 }
 
-func (c *Spire) ConfigureClient(d ClientDependencies) *spire.Client {
+func (c *Spire) ConfigureClient(d ClientDependencies) (*spire.Client, error) {
 	return spireClientFactory(spire.ClientConfig{
+		Context: d.Context,
 		Signer:  d.Signer,
 		Network: "tcp",
 		Address: c.RPC.Address,
 	})
 }
 
-func (c *Spire) configureDatastore(d AgentDependencies) datastore.Datastore {
+func (c *Spire) ConfigureDatastore(d DatastoreDependencies) (datastore.Datastore, error) {
 	cfg := datastoreMemory.Config{
+		Context:   d.Context,
 		Signer:    d.Signer,
 		Transport: d.Transport,
 		Pairs:     make(map[string]*datastoreMemory.Pair),

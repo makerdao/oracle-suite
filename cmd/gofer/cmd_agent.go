@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,11 +31,12 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Short: "Start an RPC server",
 		Long:  `Start an RPC server.`,
 		RunE: func(_ *cobra.Command, args []string) error {
+			ctx := context.Background()
 			log, err := newLogger(opts)
 			if err != nil {
 				return err
 			}
-			srv, err := newAgent(opts, opts.ConfigFilePath, log)
+			srv, err := newAgent(ctx, opts, opts.ConfigFilePath, log)
 			if err != nil {
 				return err
 			}
@@ -44,7 +46,6 @@ func NewAgentCmd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer srv.Stop()
 
 			// Wait for the interrupt signal:
 			c := make(chan os.Signal, 1)

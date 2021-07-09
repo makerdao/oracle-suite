@@ -16,6 +16,8 @@
 package spire
 
 import (
+	"context"
+	"errors"
 	"net/rpc"
 
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
@@ -23,6 +25,9 @@ import (
 )
 
 type Client struct {
+	ctx    context.Context
+	doneCh chan struct{}
+
 	rpc     *rpc.Client
 	network string
 	address string
@@ -30,17 +35,24 @@ type Client struct {
 }
 
 type ClientConfig struct {
+	Context context.Context
 	Signer  ethereum.Signer
 	Network string
 	Address string
 }
 
-func NewClient(cfg ClientConfig) *Client {
+func NewClient(cfg ClientConfig) (*Client, error) {
+	if cfg.Context == nil {
+		return nil, errors.New("context must not be nil")
+	}
+
 	return &Client{
+		ctx:     cfg.Context,
+		doneCh:  make(chan struct{}),
 		network: cfg.Network,
 		address: cfg.Address,
 		signer:  cfg.Signer,
-	}
+	}, nil
 }
 
 func (s *Client) Start() error {
@@ -49,11 +61,17 @@ func (s *Client) Start() error {
 		return err
 	}
 	s.rpc = client
+	// Handle context cancellation:
+	go func() {
+		defer func() { s.doneCh <- struct{}{} }()
+		<-s.ctx.Done()
+		_ = s.rpc.Close()
+	}()
 	return nil
 }
 
-func (s *Client) Stop() error {
-	return s.rpc.Close()
+func (s *Client) Wait() {
+	<-s.doneCh
 }
 
 func (s *Client) PublishPrice(price *messages.Price) error {

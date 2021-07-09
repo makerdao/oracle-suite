@@ -16,6 +16,7 @@
 package spectre
 
 import (
+	"context"
 	"time"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
@@ -28,12 +29,12 @@ import (
 )
 
 //nolint:unlambda
-var spectreFactory = func(cfg spectre.Config) *spectre.Spectre {
+var spectreFactory = func(cfg spectre.Config) (*spectre.Spectre, error) {
 	return spectre.NewSpectre(cfg)
 }
 
 //nolint:unlambda
-var datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
+var datastoreFactory = func(cfg datastoreMemory.Config) (datastore.Datastore, error) {
 	return datastoreMemory.NewDatastore(cfg)
 }
 
@@ -50,18 +51,28 @@ type Medianizer struct {
 }
 
 type Dependencies struct {
+	Context        context.Context
 	Signer         ethereum.Signer
-	Transport      transport.Transport
+	Datastore      datastore.Datastore
 	EthereumClient ethereum.Client
 	Feeds          []ethereum.Address
 	Logger         log.Logger
 }
 
-func (c *Spectre) Configure(d Dependencies) *spectre.Spectre {
+type DatastoreDependencies struct {
+	Context   context.Context
+	Signer    ethereum.Signer
+	Transport transport.Transport
+	Feeds     []ethereum.Address
+	Logger    log.Logger
+}
+
+func (c *Spectre) ConfigureSpectre(d Dependencies) (*spectre.Spectre, error) {
 	cfg := spectre.Config{
+		Context:   d.Context,
 		Signer:    d.Signer,
 		Interval:  time.Second * time.Duration(c.Interval),
-		Datastore: c.configureDatastore(d),
+		Datastore: d.Datastore,
 		Logger:    d.Logger,
 	}
 	for name, pair := range c.Medianizers {
@@ -76,8 +87,9 @@ func (c *Spectre) Configure(d Dependencies) *spectre.Spectre {
 	return spectreFactory(cfg)
 }
 
-func (c *Spectre) configureDatastore(d Dependencies) datastore.Datastore {
+func (c *Spectre) ConfigureDatastore(d DatastoreDependencies) (datastore.Datastore, error) {
 	cfg := datastoreMemory.Config{
+		Context:   d.Context,
 		Signer:    d.Signer,
 		Transport: d.Transport,
 		Pairs:     make(map[string]*datastoreMemory.Pair),

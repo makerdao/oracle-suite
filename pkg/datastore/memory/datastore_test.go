@@ -16,11 +16,13 @@
 package memory
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore/memory/testutil"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
@@ -33,10 +35,14 @@ import (
 )
 
 func TestDatastore_Prices(t *testing.T) {
-	sig := &mocks.Signer{}
-	tra := local.New(0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 
-	ds := NewDatastore(Config{
+	sig := &mocks.Signer{}
+	tra := local.New(ctx, 0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
+
+	ds, err:= NewDatastore(Config{
+		Context:   ctx,
 		Signer:    sig,
 		Transport: tra,
 		Pairs: map[string]*Pair{
@@ -45,9 +51,8 @@ func TestDatastore_Prices(t *testing.T) {
 		},
 		Logger: null.New(),
 	})
-
-	assert.NoError(t, ds.Start())
-	defer ds.Stop()
+	require.NoError(t, err)
+	require.NoError(t, ds.Start())
 
 	sig.On("Recover", testutil.PriceAAABBB1.Price.Signature(), mock.Anything).Return(&testutil.Address1, nil)
 	sig.On("Recover", testutil.PriceAAABBB2.Price.Signature(), mock.Anything).Return(&testutil.Address2, nil)

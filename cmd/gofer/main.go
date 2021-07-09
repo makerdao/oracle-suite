@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -68,18 +69,18 @@ func newLogger(opts *options) (log.Logger, error) {
 	return logLogrus.New(lr), nil
 }
 
-func newGofer(opts *options, path string, logger log.Logger) (gofer.Gofer, error) {
+func newGofer(ctx context.Context, opts *options, path string, logger log.Logger) (gofer.Gofer, error) {
 	err := config.ParseFile(&opts.Config, path)
 	if err != nil {
 		return nil, err
 	}
-	return opts.Config.Configure(logger, opts.NoRPC)
+	return opts.Config.Configure(ctx, logger, opts.NoRPC)
 }
 
-func newAgent(opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
+func newAgent(ctx context.Context, opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
 	err := config.ParseFile(&opts.Config, path)
 	if err != nil {
 		return nil, err
 	}
-	return opts.Config.ConfigureRPCAgent(logger)
+	return opts.Config.ConfigureRPCAgent(ctx, logger)
 }

@@ -16,6 +16,8 @@
 package main
 
 import (
+	"context"
+
 	goferConfig "github.com/makerdao/oracle-suite/internal/config/gofer"
 	pkgGofer "github.com/makerdao/oracle-suite/pkg/gofer"
 	"github.com/makerdao/oracle-suite/pkg/gofer/rpc"
@@ -26,10 +28,10 @@ type Config struct {
 	Gofer goferConfig.Gofer `json:"gofer"`
 }
 
-func (c *Config) Configure(logger log.Logger, noRPC bool) (pkgGofer.Gofer, error) {
-	return c.Gofer.ConfigureGofer(logger, noRPC)
+func (c *Config) Configure(ctx context.Context, logger log.Logger, noRPC bool) (pkgGofer.Gofer, error) {
+	return c.Gofer.ConfigureGofer(ctx, logger, noRPC)
 }
 
-func (c *Config) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
-	return c.Gofer.ConfigureRPCAgent(logger)
+func (c *Config) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.Agent, error) {
+	return c.Gofer.ConfigureRPCAgent(ctx, logger)
 }

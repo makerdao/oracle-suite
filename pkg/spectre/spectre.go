@@ -17,6 +17,7 @@ package spectre
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -57,18 +58,20 @@ func (e errNoPrices) Error() string {
 }
 
 type Spectre struct {
-	mu  sync.Mutex
-	ctx context.Context
+	ctx    context.Context
+	mu     sync.Mutex
+	doneCh chan struct{}
 
 	signer    ethereum.Signer
 	datastore datastore.Datastore
 	interval  time.Duration
 	log       log.Logger
 	pairs     map[string]*Pair
-	doneCh    chan struct{}
 }
 
 type Config struct {
+	Context context.Context
+
 	Signer ethereum.Signer
 	// Datastore provides prices for Spectre.
 	Datastore datastore.Datastore
@@ -98,44 +101,43 @@ type Pair struct {
 	Median oracle.Median
 }
 
-func NewSpectre(cfg Config) *Spectre {
+func NewSpectre(cfg Config) (*Spectre, error) {
+	if cfg.Context == nil {
+		return nil, errors.New("context must not be nil")
+	}
+
 	r := &Spectre{
-		ctx:       context.Background(),
+		ctx:       cfg.Context,
+		doneCh:    make(chan struct{}),
 		signer:    cfg.Signer,
 		datastore: cfg.Datastore,
 		interval:  cfg.Interval,
 		pairs:     make(map[string]*Pair),
 		log:       cfg.Logger.WithField("tag", LoggerTag),
-		doneCh:    make(chan struct{}),
 	}
-
 	for _, p := range cfg.Pairs {
 		r.pairs[p.AssetPair] = p
 	}
-
-	return r
+	return r, nil
 }
 
 func (r *Spectre) Start() error {
 	r.log.Info("Starting")
-	err := r.datastore.Start()
-	if err != nil {
-		return err
-	}
+
+	// Handle context cancellation:
+	go func() {
+		defer func() { r.doneCh <- struct{}{} }()
+		defer r.log.Info("Stopped")
+		<-r.ctx.Done()
+	}()
 
 	r.relayerLoop()
+
 	return nil
 }
 
-func (r *Spectre) Stop() error {
-	defer r.log.Info("Stopped")
-	err := r.datastore.Stop()
-	if err != nil {
-		return err
-	}
-
-	close(r.doneCh)
-	return nil
+func (r *Spectre) Wait() {
+	<-r.doneCh
 }
 
 // relay tries to update an Oracle contract for given pair. It'll return

@@ -16,6 +16,7 @@
 package spire
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/makerdao/oracle-suite/pkg/datastore"
 	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
@@ -46,16 +48,22 @@ var (
 		},
 		Trace: nil,
 	}
-	agent *Agent
-	spire *Client
+	agent     *Agent
+	spire     *Client
+	dat       datastore.Datastore
+	ctxCancel context.CancelFunc
 )
 
 func newTestInstances() (*Agent, *Client) {
+	var err error
+	var ctx context.Context
+	ctx, ctxCancel = context.WithCancel(context.Background())
+
 	log := null.New()
 	sig := &mocks.Signer{}
-	tra := local.New(0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
-
-	dat := datastoreMemory.NewDatastore(datastoreMemory.Config{
+	tra := local.New(ctx, 0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
+	dat, err = datastoreMemory.NewDatastore(datastoreMemory.Config{
+		Context:   ctx,
 		Signer:    sig,
 		Transport: tra,
 		Pairs: map[string]*datastoreMemory.Pair{
@@ -64,10 +72,14 @@ func newTestInstances() (*Agent, *Client) {
 		},
 		Logger: null.New(),
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	sig.On("Recover", mock.Anything, mock.Anything).Return(&testAddress, nil)
 
 	agt, err := NewAgent(AgentConfig{
+		Context:   ctx,
 		Datastore: dat,
 		Transport: tra,
 		Signer:    sig,
@@ -78,16 +90,24 @@ func newTestInstances() (*Agent, *Client) {
 	if err != nil {
 		panic(err)
 	}
+	err = dat.Start()
+	if err != nil {
+		panic(err)
+	}
 	err = agt.Start()
 	if err != nil {
 		panic(err)
 	}
 
-	cli := NewClient(ClientConfig{
+	cli, err := NewClient(ClientConfig{
+		Context: ctx,
 		Signer:  sig,
 		Network: "tcp",
 		Address: agt.listener.Addr().String(),
 	})
+	if err != nil {
+		panic(err)
+	}
 	err = cli.Start()
 	if err != nil {
 		panic(err)
@@ -97,16 +117,13 @@ func newTestInstances() (*Agent, *Client) {
 }
 
 func TestMain(m *testing.M) {
-	var err error
-
 	agent, spire = newTestInstances()
 	retCode := m.Run()
 
-	agent.Stop()
-	err = spire.Stop()
-	if err != nil {
-		panic(err)
-	}
+	ctxCancel()
+	agent.Wait()
+	spire.Wait()
+	dat.Wait()
 
 	os.Exit(retCode)
 }

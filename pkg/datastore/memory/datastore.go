@@ -16,6 +16,7 @@
 package memory
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"sync"
@@ -36,17 +37,20 @@ var errUnknownFeeder = errors.New("feeder is not allowed to send prices")
 
 // Datastore reads and stores prices from the P2P network.
 type Datastore struct {
-	mu sync.Mutex
+	ctx    context.Context
+	mu     sync.Mutex
+	doneCh chan struct{}
 
 	signer     ethereum.Signer
 	transport  transport.Transport
 	pairs      map[string]*Pair
 	priceStore *PriceStore
 	log        log.Logger
-	doneCh     chan struct{}
 }
 
 type Config struct {
+	Context context.Context
+
 	// Signer is an instance of the ethereum.Signer which will be used to
 	// verify price signatures.
 	Signer ethereum.Signer
@@ -67,29 +71,39 @@ type Pair struct {
 	Feeds []ethereum.Address
 }
 
-func NewDatastore(config Config) *Datastore {
-	return &Datastore{
-		signer:     config.Signer,
-		transport:  config.Transport,
-		pairs:      config.Pairs,
-		priceStore: NewPriceStore(),
-		log:        config.Logger.WithField("tag", LoggerTag),
-		doneCh:     make(chan struct{}),
+func NewDatastore(cfg Config) (*Datastore, error) {
+	if cfg.Context == nil {
+		return nil, errors.New("context must not be nil")
 	}
+
+	return &Datastore{
+		ctx:        cfg.Context,
+		doneCh:     make(chan struct{}),
+		signer:     cfg.Signer,
+		transport:  cfg.Transport,
+		pairs:      cfg.Pairs,
+		priceStore: NewPriceStore(),
+		log:        cfg.Logger.WithField("tag", LoggerTag),
+	}, nil
 }
 
 // Start implements the datastore.Datastore interface.
 func (c *Datastore) Start() error {
 	c.log.Info("Starting")
+
+	// Handle context cancellation:
+	go func() {
+		defer func() { c.doneCh <- struct{}{} }()
+		defer c.log.Info("Stopped")
+		<-c.ctx.Done()
+	}()
+
 	return c.collectorLoop()
 }
 
-// Stop implements the datastore.Datastore interface.
-func (c *Datastore) Stop() error {
-	defer c.log.Info("Stopped")
-
-	close(c.doneCh)
-	return nil
+// Wait implements the datastore.Datastore interface.
+func (c *Datastore) Wait() {
+	<-c.doneCh
 }
 
 // Prices implements the datastore.Datastore interface.
@@ -128,7 +142,7 @@ func (c *Datastore) collectorLoop() error {
 
 		for {
 			select {
-			case <-c.doneCh:
+			case <-c.ctx.Done():
 				return
 			case status := <-c.transport.WaitFor(messages.PriceMessageName):
 				// If there was a problem while reading prices from the transport:

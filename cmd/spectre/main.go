@@ -22,9 +22,10 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/makerdao/oracle-suite/internal/config"
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/makerdao/oracle-suite/pkg/datastore"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/spectre"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 func main() {
@@ -40,26 +41,72 @@ func main() {
 	}
 }
 
-func newLogger(opts *options) (log.Logger, error) {
+type services struct {
+	ctxCancel context.CancelFunc
+	transport transport.Transport
+	datastore datastore.Datastore
+	spectre   *spectre.Spectre
+}
+
+func newServices(ctx context.Context, opts *options) (*services, error) {
+	var err error
+	ctx, ctxCancel := context.WithCancel(ctx)
+	defer func() {
+		if err != nil {
+			ctxCancel()
+		}
+	}()
+
+	// Load config file:
+	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Logger:
 	ll, err := logrus.ParseLevel(opts.LogVerbosity)
 	if err != nil {
 		return nil, err
 	}
-
 	lr := logrus.New()
 	lr.SetLevel(ll)
 	lr.SetFormatter(opts.LogFormat.Formatter())
+	logger := logLogrus.New(lr)
 
-	return logLogrus.New(lr), nil
-}
-
-func newSpectre(opts *options, logger log.Logger) (*spectre.Spectre, error) {
-	err := config.ParseFile(&opts.Config, opts.ConfigFilePath)
+	// Services:
+	tra, dat, spe, err := opts.Config.Configure(Dependencies{
+		Context: ctx,
+		Logger:  logger,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return opts.Config.Configure(Dependencies{
-		Context: context.Background(),
-		Logger:  logger,
-	})
+
+	return &services{
+		ctxCancel: ctxCancel,
+		transport: tra,
+		datastore: dat,
+		spectre:   spe,
+	}, nil
+}
+
+func (s *services) start() error {
+	var err error
+	if err = s.transport.Start(); err != nil {
+		return err
+	}
+	if err = s.datastore.Start(); err != nil {
+		return err
+	}
+	if err = s.spectre.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *services) cancelAndWait() {
+	s.ctxCancel()
+	s.transport.Wait()
+	s.datastore.Wait()
+	s.spectre.Wait()
 }

@@ -22,8 +22,10 @@ import (
 	feedsConfig "github.com/makerdao/oracle-suite/internal/config/feeds"
 	spireConfig "github.com/makerdao/oracle-suite/internal/config/spire"
 	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
+	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/spire"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 type Config struct {
@@ -33,33 +35,38 @@ type Config struct {
 	Feeds     feedsConfig.Feeds         `json:"feeds"`
 }
 
-type Dependencies struct {
+type ClientDependencies struct {
+	Context context.Context
+}
+
+type AgentDependencies struct {
 	Context context.Context
 	Logger  log.Logger
 }
 
-func (c *Config) ConfigureClient() (*spire.Client, error) {
+func (c *Config) ConfigureClient(d ClientDependencies) (*spire.Client, error) {
 	sig, err := c.Ethereum.ConfigureSigner()
 	if err != nil {
 		return nil, err
 	}
-	cli := c.Spire.ConfigureClient(spireConfig.ClientDependencies{
-		Signer: sig,
+	cli, err := c.Spire.ConfigureClient(spireConfig.ClientDependencies{
+		Context: d.Context,
+		Signer:  sig,
 	})
-	if err = cli.Start(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return cli, nil
 }
 
-func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
+func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datastore.Datastore, *spire.Agent, error) {
 	sig, err := c.Ethereum.ConfigureSigner()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	fed, err := c.Feeds.Addresses()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
@@ -68,12 +75,9 @@ func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
 		Logger:  d.Logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	if err = tra.Start(); err != nil {
-		return nil, err
-	}
-	age, err := c.Spire.ConfigureAgent(spireConfig.AgentDependencies{
+	dat, err := c.Spire.ConfigureDatastore(spireConfig.DatastoreDependencies{
 		Context:   d.Context,
 		Signer:    sig,
 		Transport: tra,
@@ -81,10 +85,18 @@ func (c *Config) ConfigureAgent(d Dependencies) (*spire.Agent, error) {
 		Logger:    d.Logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	if err = age.Start(); err != nil {
-		return nil, err
+	age, err := c.Spire.ConfigureAgent(spireConfig.AgentDependencies{
+		Context:   d.Context,
+		Signer:    sig,
+		Transport: tra,
+		Datastore: dat,
+		Feeds:     fed,
+		Logger:    d.Logger,
+	})
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	return age, nil
+	return tra, dat, age, nil
 }

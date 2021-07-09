@@ -43,6 +43,6 @@ type Transport interface {
 	WaitFor(topic string) chan ReceivedMessage
 	// Start starts listening for messages.
 	Start() error
-	// Stop stops listening for messages.
-	Stop() error
+	// Wait waits until transport's context is cancelled.
+	Wait()
 }

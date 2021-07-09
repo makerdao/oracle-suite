@@ -16,6 +16,7 @@
 package local
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,10 @@ func (t *testMsg) Unmarshall(bytes []byte) error {
 }
 
 func TestLocal_Broadcast(t *testing.T) {
-	l := New(1, map[string]transport.Message{"foo": (*testMsg)(nil)})
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	l := New(ctx, 1, map[string]transport.Message{"foo": (*testMsg)(nil)})
 
 	// Valid message:
 	vm := &testMsg{Val: "bar"}
@@ -45,7 +49,10 @@ func TestLocal_Broadcast(t *testing.T) {
 }
 
 func TestLocal_WaitFor(t *testing.T) {
-	l := New(1, map[string]transport.Message{"foo": (*testMsg)(nil)})
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	l := New(ctx, 1, map[string]transport.Message{"foo": (*testMsg)(nil)})
 
 	// Valid message:
 	assert.NoError(t, l.Broadcast("foo", &testMsg{Val: "bar"}))

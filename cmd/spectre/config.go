@@ -22,8 +22,10 @@ import (
 	feedsConfig "github.com/makerdao/oracle-suite/internal/config/feeds"
 	spectreConfig "github.com/makerdao/oracle-suite/internal/config/spectre"
 	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
+	"github.com/makerdao/oracle-suite/pkg/datastore"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/spectre"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
 type Config struct {
@@ -38,18 +40,18 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (c *Config) Configure(d Dependencies) (*spectre.Spectre, error) {
+func (c *Config) Configure(d Dependencies) (transport.Transport, datastore.Datastore, *spectre.Spectre, error) {
 	sig, err := c.Ethereum.ConfigureSigner()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	cli, err := c.Ethereum.ConfigureEthereumClient(sig)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	fed, err := c.Feeds.Addresses()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
@@ -58,19 +60,25 @@ func (c *Config) Configure(d Dependencies) (*spectre.Spectre, error) {
 		Logger:  d.Logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	if err = tra.Start(); err != nil {
-		return nil, err
+	dat, err := c.Spectre.ConfigureDatastore(spectreConfig.DatastoreDependencies{
+		Signer:    sig,
+		Transport: tra,
+		Feeds:     fed,
+		Logger:    d.Logger,
+	})
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	spe := c.Spectre.Configure(spectreConfig.Dependencies{
+	spe, err := c.Spectre.ConfigureSpectre(spectreConfig.Dependencies{
 		Signer:         sig,
-		Transport:      tra,
+		Datastore:      dat,
 		EthereumClient: cli,
 		Logger:         d.Logger,
 	})
-	if err = spe.Start(); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	return spe, nil
+	return tra, dat, spe, nil
 }

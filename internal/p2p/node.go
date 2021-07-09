@@ -59,10 +59,10 @@ func init() {
 // provide an easier to use and use-case agnostic interface for the pubsub
 // system.
 type Node struct {
-	mu sync.Mutex
+	ctx    context.Context
+	mu     sync.Mutex
+	doneCh chan struct{}
 
-	ctx                   context.Context
-	ctxCancel             context.CancelFunc
 	host                  host.Host
 	pubSub                *pubsub.PubSub
 	peerstore             peerstore.Peerstore
@@ -82,10 +82,9 @@ type Node struct {
 }
 
 func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
-	ctx, ctxCancel := context.WithCancel(ctx)
 	n := &Node{
 		ctx:                   ctx,
-		ctxCancel:             ctxCancel,
+		doneCh:                make(chan struct{}),
 		peerstore:             pstoremem.NewPeerstore(),
 		nodeEventHandler:      sets.NewNodeEventHandlerSet(),
 		pubSubEventHandlerSet: sets.NewPubSubEventHandlerSet(),
@@ -147,41 +146,34 @@ func (n *Node) Start() error {
 	n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
 	n.nodeEventHandler.Handle(sets.NodeStartedEvent{})
 
-	return nil
-}
+	// Handle context cancellation:
+	go func() {
+		defer func() { n.doneCh <- struct{}{} }()
+		defer n.log.Info("Stopped")
+		defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
+		<-n.ctx.Done()
 
-func (n *Node) Stop() error {
-	if n.closed {
-		return ErrConnectionClosed
-	}
+		n.nodeEventHandler.Handle(sets.NodeStoppingEvent{})
 
-	n.nodeEventHandler.Handle(sets.NodeStoppingEvent{})
-	defer n.log.Info("Stopped")
-	defer n.ctxCancel()
-	defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
+		n.mu.Lock()
+		defer n.mu.Unlock()
 
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	var err error
-
-	// Close subscriptions:
-	for t, s := range n.subs {
-		err = s.close()
+		var err error
+		n.subs = nil
+		n.closed = true
+		err = n.host.Close()
 		if err != nil {
 			n.log.
 				WithError(err).
-				WithField("topic", t).
-				Error("Unable to close subscription")
+				Error("Error during closing host")
 		}
-	}
+	}()
 
-	n.subs = nil
-	n.closed = true
-	err = n.host.Close()
-	if err != nil {
-		return fmt.Errorf("%v: unable to close host: %v", ErrNode, err)
-	}
 	return nil
+}
+
+func (n *Node) Wait() {
+	<-n.doneCh
 }
 
 func (n *Node) Addrs() []multiaddr.Multiaddr {

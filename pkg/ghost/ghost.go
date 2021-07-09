@@ -16,6 +16,7 @@
 package ghost
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -41,16 +42,20 @@ func (e ErrUnableToFindAsset) Error() string {
 }
 
 type Ghost struct {
+	ctx    context.Context
+	doneCh chan struct{}
+
 	gofer     gofer.Gofer
 	signer    ethereum.Signer
 	transport transport.Transport
 	interval  time.Duration
 	pairs     map[gofer.Pair]string
 	log       log.Logger
-	doneCh    chan struct{}
 }
 
 type Config struct {
+	Context context.Context
+
 	// Gofer is an instance of the gofer.Gofer which will be used to fetch
 	// prices.
 	Gofer gofer.Gofer
@@ -69,21 +74,26 @@ type Config struct {
 	Pairs []string
 }
 
-func NewGhost(config Config) (*Ghost, error) {
+func NewGhost(cfg Config) (*Ghost, error) {
+	if cfg.Context == nil {
+		return nil, errors.New("context must not be nil")
+	}
+
 	g := &Ghost{
-		gofer:     config.Gofer,
-		signer:    config.Signer,
-		transport: config.Transport,
-		interval:  config.Interval,
-		pairs:     make(map[gofer.Pair]string),
-		log:       config.Logger.WithField("tag", LoggerTag),
+		ctx:       cfg.Context,
 		doneCh:    make(chan struct{}),
+		gofer:     cfg.Gofer,
+		signer:    cfg.Signer,
+		transport: cfg.Transport,
+		interval:  cfg.Interval,
+		pairs:     make(map[gofer.Pair]string),
+		log:       cfg.Logger.WithField("tag", LoggerTag),
 	}
 
 	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
 	// (and oracle contract) stores them in AAABBB format. Because of this we
 	// need to make this wired mapping:
-	for _, pair := range config.Pairs {
+	for _, pair := range cfg.Pairs {
 		goferPairs, err := g.gofer.Pairs()
 		if err != nil {
 			return nil, err
@@ -114,14 +124,18 @@ func (g *Ghost) Start() error {
 		return err
 	}
 
+	// Handle context cancellation:
+	go func() {
+		defer func() { g.doneCh <- struct{}{} }()
+		defer g.log.Info("Stopped")
+		<-g.ctx.Done()
+	}()
+
 	return nil
 }
 
-func (g *Ghost) Stop() error {
-	defer g.log.Infof("Stopped")
-
-	close(g.doneCh)
-	return nil
+func (g *Ghost) Wait() {
+	<-g.doneCh
 }
 
 // broadcast sends price for single pair to the network. This method uses

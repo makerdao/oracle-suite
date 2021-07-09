@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -32,6 +33,7 @@ func NewPairsCmd(opts *options) *cobra.Command {
 		Short:   "List all supported asset pairs",
 		Long:    `List all supported asset pairs.`,
 		RunE: func(_ *cobra.Command, args []string) (err error) {
+			ctx := context.Background()
 			mar, err := marshal.NewMarshal(opts.Format.format)
 			if err != nil {
 				return err
@@ -51,7 +53,7 @@ func NewPairsCmd(opts *options) *cobra.Command {
 				return err
 			}
 
-			gof, err := newGofer(opts, opts.ConfigFilePath, log)
+			gof, err := newGofer(ctx, opts, opts.ConfigFilePath, log)
 			if err != nil {
 				return err
 			}
@@ -61,11 +63,6 @@ func NewPairsCmd(opts *options) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				defer func() {
-					if err := sg.Stop(); err != nil {
-						_ = mar.Write(os.Stderr, err)
-					}
-				}()
 			}
 
 			pairs, err := gofer.NewPairs(args...)

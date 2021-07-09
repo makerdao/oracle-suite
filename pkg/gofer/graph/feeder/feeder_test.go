@@ -16,6 +16,7 @@
 package feeder
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -71,7 +72,10 @@ func originsSetMock(prices map[string][]origins.Price, delay time.Duration, upda
 }
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil, 0, false), null.New())
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	f := NewFeeder(ctx, originsSetMock(nil, 0, false), null.New())
 
 	// Feed method shouldn't panic
 	warns := f.Feed()
@@ -80,7 +84,10 @@ func TestFeeder_Feed_EmptyGraph(t *testing.T) {
 }
 
 func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
-	f := NewFeeder(originsSetMock(nil, 0, false), null.New())
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	f := NewFeeder(ctx, originsSetMock(nil, 0, false), null.New())
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 
 	// Feed method shouldn't panic
@@ -90,6 +97,9 @@ func TestFeeder_Feed_NoFeedableNodes(t *testing.T) {
 }
 
 func TestFeeder_Feed_OneOriginNode(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
 			origins.Price{
@@ -103,7 +113,7 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 		},
 	}, 0, false)
 
-	f := NewFeeder(s, null.New())
+	f := NewFeeder(ctx, s, null.New())
 
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := nodes.NewOriginNode(nodes.OriginPair{
@@ -124,6 +134,9 @@ func TestFeeder_Feed_OneOriginNode(t *testing.T) {
 }
 
 func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
 			origins.Price{
@@ -155,7 +168,7 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 		},
 	}, 0, false)
 
-	f := NewFeeder(s, null.New())
+	f := NewFeeder(ctx, s, null.New())
 
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o1 := nodes.NewOriginNode(nodes.OriginPair{
@@ -225,6 +238,9 @@ func TestFeeder_Feed_ManyOriginNodes(t *testing.T) {
 }
 
 func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
 			origins.Price{
@@ -238,7 +254,7 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 		},
 	}, 0, false)
 
-	f := NewFeeder(s, null.New())
+	f := NewFeeder(ctx, s, null.New())
 
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	i := nodes.NewIndirectAggregatorNode(gofer.Pair{Base: "A", Quote: "B"})
@@ -261,6 +277,9 @@ func TestFeeder_Feed_NestedOriginNode(t *testing.T) {
 }
 
 func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
 			origins.Price{
@@ -274,7 +293,7 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 		},
 	}, 0, false)
 
-	f := NewFeeder(s, null.New())
+	f := NewFeeder(ctx, s, null.New())
 
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := nodes.NewOriginNode(nodes.OriginPair{
@@ -308,6 +327,9 @@ func TestFeeder_Feed_BelowMinTTL(t *testing.T) {
 }
 
 func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
 			origins.Price{
@@ -321,7 +343,7 @@ func TestFeeder_Feed_BetweenTTLs(t *testing.T) {
 		},
 	}, 0, false)
 
-	f := NewFeeder(s, null.New())
+	f := NewFeeder(ctx, s, null.New())
 
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := nodes.NewOriginNode(nodes.OriginPair{
@@ -375,6 +397,9 @@ func Test_getGCDTTL(t *testing.T) {
 // the value returned by the getGCDTTL. Because of this, some nodes were only
 // updated every second tick.
 func TestFeeder_ch11427(t *testing.T) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	s := originsSetMock(map[string][]origins.Price{
 		"test": {
 			origins.Price{
@@ -388,7 +413,7 @@ func TestFeeder_ch11427(t *testing.T) {
 		},
 	}, 750*time.Millisecond, true)
 
-	f := NewFeeder(s, null.New())
+	f := NewFeeder(ctx, s, null.New())
 
 	g := nodes.NewMedianAggregatorNode(gofer.Pair{Base: "A", Quote: "B"}, 1)
 	o := nodes.NewOriginNode(nodes.OriginPair{
@@ -398,7 +423,6 @@ func TestFeeder_ch11427(t *testing.T) {
 	g.AddChild(o)
 
 	f.Start(o)
-	defer f.Stop()
 	time.Sleep(2500 * time.Millisecond)
 	assert.False(t, o.Expired())
 }

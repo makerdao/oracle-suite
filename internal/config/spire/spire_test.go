@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore"
 	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	ethereumMocks "github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
@@ -33,14 +32,12 @@ import (
 
 func TestSpire_ConfigureAgent(t *testing.T) {
 	prevSpireAgentFactory := spireAgentFactory
-	prevDatastoreFactory := datastoreFactory
 	defer func() {
 		spireAgentFactory = prevSpireAgentFactory
-		datastoreFactory = prevDatastoreFactory
 	}()
 
 	signer := &ethereumMocks.Signer{}
-	transport := local.New(0, nil)
+	transport := local.New(context.Background(), 0, nil)
 	feeds := []ethereum.Address{ethereum.HexToAddress("0x07a35a1d4b751a818d93aa38e615c0df23064881")}
 	logger := null.New()
 	ds := &datastoreMemory.Datastore{}
@@ -50,13 +47,6 @@ func TestSpire_ConfigureAgent(t *testing.T) {
 		Pairs: []string{"AAABBB"},
 	}
 
-	datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
-		assert.Equal(t, signer, cfg.Signer)
-		assert.Equal(t, transport, cfg.Transport)
-		assert.Equal(t, logger, cfg.Logger)
-		assert.Equal(t, feeds, cfg.Pairs["AAABBB"].Feeds)
-		return ds
-	}
 	spireAgentFactory = func(cfg spire.AgentConfig) (*spire.Agent, error) {
 		assert.Equal(t, ds, cfg.Datastore)
 		assert.Equal(t, transport, cfg.Transport)
@@ -71,6 +61,7 @@ func TestSpire_ConfigureAgent(t *testing.T) {
 		Context:   context.Background(),
 		Signer:    signer,
 		Transport: transport,
+		Datastore: ds,
 		Feeds:     feeds,
 		Logger:    logger,
 	})
@@ -89,13 +80,14 @@ func TestSpire_ConfigureClient(t *testing.T) {
 		Pairs: []string{"AAABBB"},
 	}
 
-	spireClientFactory = func(cfg spire.ClientConfig) *spire.Client {
+	spireClientFactory = func(cfg spire.ClientConfig) (*spire.Client, error) {
 		assert.Equal(t, signer, cfg.Signer)
 		assert.Equal(t, "tcp", cfg.Network)
 		assert.Equal(t, "1.2.3.4:1234", cfg.Address)
-		return &spire.Client{}
+		return &spire.Client{}, nil
 	}
 
-	c := config.ConfigureClient(ClientDependencies{Signer: signer})
+	c, err := config.ConfigureClient(ClientDependencies{Signer: signer})
+	require.NoError(t, err)
 	require.NotNil(t, c)
 }

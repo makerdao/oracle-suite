@@ -16,6 +16,7 @@
 package gofer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -92,22 +93,16 @@ type Source struct {
 	TTL    int    `json:"ttl"`
 }
 
-func (c *Gofer) ConfigureGofer(logger log.Logger, noRPC bool) (gofer.Gofer, error) {
-	var err error
-	var gof gofer.Gofer
+func (c *Gofer) ConfigureGofer(ctx context.Context, logger log.Logger, noRPC bool) (gofer.Gofer, error) {
 	if c.RPC.Address == "" || noRPC {
-		gof, err = c.configureGofer(logger)
-		if err != nil {
-			return nil, err
-		}
+		return c.configureGofer(ctx, logger)
 	} else {
-		gof = c.configureRPCClient()
+		return c.configureRPCClient(ctx)
 	}
-	return gof, nil
 }
 
 // ConfigureRPCAgent returns a new rpc.Agent instance.
-func (c *Gofer) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
+func (c *Gofer) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.Agent, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
@@ -117,8 +112,11 @@ func (c *Gofer) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	fed := feeder.NewFeeder(originSet, logger)
-	gof := graph.NewAsyncGofer(gra, fed)
+	fed := feeder.NewFeeder(ctx, originSet, logger)
+	gof, err := graph.NewAsyncGofer(ctx, gra, fed)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize rpc agent: %w", err)
+	}
 	srv, err := rpc.NewAgent(rpc.AgentConfig{
 		Gofer:   gof,
 		Network: "tcp",
@@ -132,7 +130,7 @@ func (c *Gofer) ConfigureRPCAgent(logger log.Logger) (*rpc.Agent, error) {
 }
 
 // ConfigureGofer returns a new Gofer instance.
-func (c *Gofer) configureGofer(logger log.Logger) (gofer.Gofer, error) {
+func (c *Gofer) configureGofer(ctx context.Context, logger log.Logger) (gofer.Gofer, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
@@ -142,14 +140,14 @@ func (c *Gofer) configureGofer(logger log.Logger) (gofer.Gofer, error) {
 	if err != nil {
 		return nil, err
 	}
-	fed := feeder.NewFeeder(originSet, logger)
+	fed := feeder.NewFeeder(ctx, originSet, logger)
 	gof := graph.NewGofer(gra, fed)
 	return gof, nil
 }
 
 // configureRPCClient returns a new rpc.RPC instance.
-func (c *Gofer) configureRPCClient() *rpc.Gofer {
-	return rpc.NewGofer("tcp", c.RPC.Address)
+func (c *Gofer) configureRPCClient(ctx context.Context) (*rpc.Gofer, error) {
+	return rpc.NewGofer(ctx, "tcp", c.RPC.Address)
 }
 
 func (c *Gofer) buildOrigins() (*origins.Set, error) {

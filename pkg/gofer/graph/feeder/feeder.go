@@ -16,6 +16,7 @@
 package feeder
 
 import (
+	"context"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -66,17 +67,20 @@ type Feedable interface {
 
 // Feeder sets prices from origins to the Feedable nodes.
 type Feeder struct {
+	ctx context.Context
+
 	set    *origins.Set
 	log    log.Logger
-	doneCh chan bool
+	doneCh chan struct{}
 }
 
 // NewFeeder creates new Feeder instance.
-func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
+func NewFeeder(ctx context.Context, set *origins.Set, log log.Logger) *Feeder {
 	return &Feeder{
+		ctx:    ctx,
 		set:    set,
 		log:    log.WithField("tag", LoggerTag),
-		doneCh: make(chan bool),
+		doneCh: make(chan struct{}),
 	}
 }
 
@@ -111,7 +115,7 @@ func (f *Feeder) Start(ns ...nodes.Node) error {
 		feed()
 		for {
 			select {
-			case <-f.doneCh:
+			case <-f.ctx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
@@ -120,14 +124,19 @@ func (f *Feeder) Start(ns ...nodes.Node) error {
 		}
 	}()
 
+	// Handle context cancellation:
+	go func() {
+		defer func() { f.doneCh <- struct{}{} }()
+		defer f.log.Info("Stopped")
+		<-f.ctx.Done()
+	}()
+
 	return nil
 }
 
-// Stop stops a goroutine created by the Start method.
-func (f *Feeder) Stop() {
-	defer f.log.Infof("Stopped")
-
-	f.doneCh <- true
+// Wait waits until feeder's context is cancelled.
+func (f *Feeder) Wait() {
+	<-f.doneCh
 }
 
 // findFeedableNodes returns a list of children nodes from given root nodes

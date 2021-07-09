@@ -16,6 +16,7 @@
 package local
 
 import (
+	"context"
 	"errors"
 	"reflect"
 
@@ -27,6 +28,9 @@ var ErrNotSubscribed = errors.New("topic is not subscribed")
 // Local is a simple implementation of the transport.Transport interface
 // using local channels.
 type Local struct {
+	ctx    context.Context
+	doneCh chan struct{}
+
 	buffer int
 	subs   map[string]subscription
 }
@@ -35,12 +39,13 @@ type subscription struct {
 	typ    reflect.Type
 	msgs   chan []byte
 	status chan transport.ReceivedMessage
-	doneCh chan struct{}
 }
 
 // New returns a new instance of the Local structure.
-func New(buffer int, subs map[string]transport.Message) *Local {
+func New(ctx context.Context, buffer int, subs map[string]transport.Message) *Local {
 	l := &Local{
+		ctx:    ctx,
+		doneCh: make(chan struct{}),
 		buffer: buffer,
 		subs:   make(map[string]subscription),
 	}
@@ -49,7 +54,6 @@ func New(buffer int, subs map[string]transport.Message) *Local {
 			typ:    reflect.TypeOf(typ).Elem(),
 			msgs:   make(chan []byte, l.buffer),
 			status: make(chan transport.ReceivedMessage),
-			doneCh: make(chan struct{}),
 		}
 	}
 	return l
@@ -57,17 +61,21 @@ func New(buffer int, subs map[string]transport.Message) *Local {
 
 // Start implements the transport.Transport interface.
 func (l *Local) Start() error {
+	// Handle context cancellation:
+	go func() {
+		defer func() { l.doneCh <- struct{}{} }()
+		<-l.ctx.Done()
+		for _, sub := range l.subs {
+			close(sub.status)
+		}
+		l.subs = make(map[string]subscription)
+	}()
 	return nil
 }
 
-// Stop implements the transport.Transport interface.
-func (l *Local) Stop() error {
-	for _, sub := range l.subs {
-		close(sub.doneCh)
-		close(sub.status)
-	}
-	l.subs = make(map[string]subscription)
-	return nil
+// Wait implements the transport.Transport interface.
+func (l *Local) Wait() {
+	<-l.doneCh
 }
 
 // Broadcast implements the transport.Transport interface.
@@ -88,7 +96,7 @@ func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
 	if sub, ok := l.subs[topic]; ok {
 		go func() {
 			select {
-			case <-sub.doneCh:
+			case <-l.ctx.Done():
 				return
 			case msg := <-sub.msgs:
 				message := reflect.New(sub.typ).Interface().(transport.Message)

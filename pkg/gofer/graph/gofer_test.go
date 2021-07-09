@@ -16,6 +16,7 @@
 package graph
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -244,7 +245,10 @@ func init() {
 		xy: xyGraph,
 	}
 
-	testFeeder = feeder.NewFeeder(origins.NewSet(map[string]origins.Handler{
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	testFeeder = feeder.NewFeeder(ctx, origins.NewSet(map[string]origins.Handler{
 		"a": &testExchange{},
 		"b": &testExchange{},
 		"x": &testExchange{},

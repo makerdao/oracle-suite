@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -31,30 +32,18 @@ func NewRunCmd(opts *options) *cobra.Command {
 		Short:   "",
 		Long:    ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			l, err := newLogger(opts)
+			srv, err := newServices(context.Background(), opts)
 			if err != nil {
 				return err
 			}
-
-			gho, err := newGhost(opts, l)
-			if err != nil {
+			if err = srv.start(); err != nil {
 				return err
 			}
-
-			err = gho.Start()
-			if err != nil {
-				return err
-			}
-			defer func() {
-				err := gho.Stop()
-				if err != nil {
-					l.Errorf("Unable to stop Ghost: %s", err)
-				}
-			}()
 
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
+			srv.cancelAndWait()
 
 			return nil
 		},

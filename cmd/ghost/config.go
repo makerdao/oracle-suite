@@ -24,6 +24,7 @@ import (
 	goferConfig "github.com/makerdao/oracle-suite/internal/config/gofer"
 	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
 	"github.com/makerdao/oracle-suite/pkg/ghost"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
 )
@@ -41,18 +42,18 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (c *Config) Configure(d Dependencies) (*ghost.Ghost, error) {
-	gof, err := c.Gofer.ConfigureGofer(d.Logger, true)
+func (c *Config) Configure(d Dependencies) (transport.Transport, *ghost.Ghost, error) {
+	gof, err := c.Gofer.ConfigureGofer(d.Context, d.Logger, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	sig, err := c.Ethereum.ConfigureSigner()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fed, err := c.Feeds.Addresses()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
@@ -61,10 +62,7 @@ func (c *Config) Configure(d Dependencies) (*ghost.Ghost, error) {
 		Logger:  d.Logger,
 	})
 	if err != nil {
-		return nil, err
-	}
-	if err = tra.Start(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	gho, err := c.Ghost.Configure(ghostConfig.Dependencies{
 		Context:   d.Context,
@@ -74,10 +72,7 @@ func (c *Config) Configure(d Dependencies) (*ghost.Ghost, error) {
 		Logger:    d.Logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if err = gho.Start(); err != nil {
-		return nil, err
-	}
-	return gho, nil
+	return tra, gho, nil
 }

@@ -105,10 +105,12 @@ type Config struct {
 func New(cfg Config) (*P2P, error) {
 	var err error
 
+	if cfg.Context == nil {
+		return nil, errors.New("context must not be nil")
+	}
 	if len(cfg.ListenAddrs) == 0 {
 		cfg.ListenAddrs = defaultListenAddrs
 	}
-
 	listenAddrs, err := strsToMaddrs(cfg.ListenAddrs)
 	if err != nil {
 		return nil, fmt.Errorf("%v: unable to parse listenAddrs: %v", ErrP2P, err)
@@ -184,12 +186,9 @@ func (p *P2P) Start() error {
 	return nil
 }
 
-// Stop implements the transport.Transport interface.
-func (p *P2P) Stop() error {
-	for topic := range p.topics {
-		_ = p.unsubscribe(topic)
-	}
-	return p.node.Stop()
+// Wait implements the transport.Transport interface.
+func (p *P2P) Wait() {
+	p.node.Wait()
 }
 
 // Broadcast implements the transport.Transport interface.
@@ -214,14 +213,6 @@ func (p *P2P) subscribe(topic string, typ transport.Message) error {
 	err := p.node.Subscribe(topic, typ)
 	if err != nil {
 		return fmt.Errorf("%v: unable to subscribe to topic %s: %v", ErrP2P, topic, err)
-	}
-	return nil
-}
-
-func (p *P2P) unsubscribe(topic string) error {
-	err := p.node.Unsubscribe(topic)
-	if err != nil {
-		return fmt.Errorf("%v: unable to unsubscribe from topic %s: %v", ErrP2P, topic, err)
 	}
 	return nil
 }

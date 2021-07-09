@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,39 +30,33 @@ func NewPullCmd(opts *options) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Short: "",
 		Long:  ``,
-		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
-			var err error
-			client, err = newClient(opts)
-			if err != nil {
-				return err
-			}
-			return client.Start()
-		},
-		PersistentPostRunE: func(_ *cobra.Command, args []string) error {
-			err := client.Stop()
-			if err != nil {
-				logger.WithError(err).Error("Unable to stop RPC Client")
-			}
-			return nil
-		},
 	}
 
 	cmd.AddCommand(
-		NewPullPricesCmd(),
-		NewPullPriceCmd(),
+		NewPullPriceCmd(opts),
+		NewPullPricesCmd(opts),
 	)
 
 	return cmd
 }
 
-func NewPullPriceCmd() *cobra.Command {
+func NewPullPriceCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "price",
 		Args:  cobra.ExactArgs(2),
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			p, err := client.PullPrice(args[0], args[1])
+			ctx := context.Background()
+			srv, err := newClientServices(ctx, opts)
+			if err != nil {
+				return err
+			}
+			if err = srv.start(); err != nil {
+				return err
+			}
+
+			p, err := srv.client.PullPrice(args[0], args[1])
 			if err != nil {
 				return err
 			}
@@ -75,6 +70,7 @@ func NewPullPriceCmd() *cobra.Command {
 			}
 
 			fmt.Printf("%s\n", string(bts))
+			srv.cancelAndWait()
 
 			return nil
 		},
@@ -86,7 +82,7 @@ type pullPricesOptions struct {
 	FilterFrom string
 }
 
-func NewPullPricesCmd() *cobra.Command {
+func NewPullPricesCmd(opts *options) *cobra.Command {
 	var pullPricesOpts pullPricesOptions
 
 	cmd := &cobra.Command{
@@ -95,7 +91,16 @@ func NewPullPricesCmd() *cobra.Command {
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			p, err := client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
+			ctx := context.Background()
+			srv, err := newClientServices(ctx, opts)
+			if err != nil {
+				return err
+			}
+			if err = srv.start(); err != nil {
+				return err
+			}
+
+			p, err := srv.client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
 			if err != nil {
 				return err
 			}
@@ -106,6 +111,7 @@ func NewPullPricesCmd() *cobra.Command {
 			}
 
 			fmt.Printf("%s\n", string(bts))
+			srv.cancelAndWait()
 
 			return nil
 		},
