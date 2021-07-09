@@ -27,10 +27,12 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
+//nolint:unlambda
 var spectreFactory = func(cfg spectre.Config) *spectre.Spectre {
 	return spectre.NewSpectre(cfg)
 }
 
+//nolint:unlambda
 var datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
 	return datastoreMemory.NewDatastore(cfg)
 }

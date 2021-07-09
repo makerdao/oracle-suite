@@ -26,6 +26,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
+//nolint:unlambda
 var ghostFactory = func(cfg ghost.Config) (*ghost.Ghost, error) {
 	return ghost.NewGhost(cfg)
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 )
 
+//nolint:unlambda
 var ethClientFactory = func(rpc string) (geth.EthClient, error) {
 	return ethclient.Dial(rpc)
 }

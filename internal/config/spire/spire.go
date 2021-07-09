@@ -30,14 +30,17 @@ import (
 
 var ErrFailedToLoadConfiguration = errors.New("failed to load Spire's configuration")
 
+//nolint:unlambda
 var spireAgentFactory = func(cfg spire.AgentConfig) (*spire.Agent, error) {
 	return spire.NewAgent(cfg)
 }
 
+//nolint:unlambda
 var spireClientFactory = func(cfg spire.ClientConfig) *spire.Client {
 	return spire.NewClient(cfg)
 }
 
+//nolint:unlambda
 var datastoreFactory = func(cfg datastoreMemory.Config) datastore.Datastore {
 	return datastoreMemory.NewDatastore(cfg)
 }

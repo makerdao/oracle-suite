@@ -37,6 +37,7 @@ import (
 
 var ErrInvalidPrivKeySeed = errors.New("invalid privKeySeed value")
 
+//nolint:unlambda
 var p2pTransportFactory = func(cfg p2p.Config) (transport.Transport, error) {
 	return p2p.New(cfg)
 }
