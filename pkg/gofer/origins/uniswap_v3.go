@@ -25,7 +25,7 @@ import (
 	"github.com/makerdao/oracle-suite/internal/query"
 )
 
-const uniswapV3URL = "https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-alt"
+const uniswapV3URL = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3"
 
 type uniswapV3Response struct {
 	Data struct {
@@ -71,14 +71,10 @@ func (u *UniswapV3) pairsToContractAddress(pair Pair) string {
 	switch {
 	case match(p, Pair{Base: "COMP", Quote: "WETH"}):
 		return "0xea4ba4ce14fdd287f380b55419b1c5b6c3f22ab6"
-	case match(p, Pair{Base: "CRV", Quote: "WETH"}):
-		return "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
-	case match(p, Pair{Base: "WETH", Quote: "USDC"}):
-		return "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
-	case match(p, Pair{Base: "WETH", Quote: "KNC"}):
-		return "0x76838fd2f22bdc1d3e96069971e65653173edb2a"
-	case match(p, Pair{Base: "LRC", Quote: "WETH"}):
-		return "0xe1d92f1de49caec73514f696fea2a7d5441498e5"
+	case match(p, Pair{Base: "WETH", Quote: "CRV"}):
+		return "0x4c83a7f819a5c37d64b4c5a2f8238ea082fa1f4e"
+	case match(p, Pair{Base: "USDC", Quote: "WETH"}):
+		return "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
 	case match(p, Pair{Base: "UNI", Quote: "WETH"}):
 		return "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801"
 	case match(p, Pair{Base: "WNXM", Quote: "WETH"}):
