@@ -54,8 +54,6 @@ type Ghost struct {
 }
 
 type Config struct {
-	Context context.Context
-
 	// Gofer is an instance of the gofer.Gofer which will be used to fetch
 	// prices.
 	Gofer gofer.Gofer
@@ -74,13 +72,12 @@ type Config struct {
 	Pairs []string
 }
 
-func NewGhost(cfg Config) (*Ghost, error) {
-	if cfg.Context == nil {
+func NewGhost(ctx context.Context, cfg Config) (*Ghost, error) {
+	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	g := &Ghost{
-		ctx:       cfg.Context,
+		ctx:       ctx,
 		doneCh:    make(chan struct{}),
 		gofer:     cfg.Gofer,
 		signer:    cfg.Signer,
@@ -89,7 +86,6 @@ func NewGhost(cfg Config) (*Ghost, error) {
 		pairs:     make(map[gofer.Pair]string),
 		log:       cfg.Logger.WithField("tag", LoggerTag),
 	}
-
 	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
 	// (and oracle contract) stores them in AAABBB format. Because of this we
 	// need to make this wired mapping:
@@ -98,7 +94,6 @@ func NewGhost(cfg Config) (*Ghost, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		found := false
 		for _, goferPair := range goferPairs {
 			if goferPair.Base+goferPair.Quote == pair {
@@ -107,12 +102,10 @@ func NewGhost(cfg Config) (*Ghost, error) {
 				break
 			}
 		}
-
 		if !found {
 			return nil, ErrUnableToFindAsset{AssetName: pair}
 		}
 	}
-
 	return g, nil
 }
 

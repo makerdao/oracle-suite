@@ -48,7 +48,7 @@ func TestLocal_Broadcast(t *testing.T) {
 	assert.NoError(t, l.Broadcast("foo", vm))
 }
 
-func TestLocal_WaitFor(t *testing.T) {
+func TestLocal_Messages(t *testing.T) {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 
@@ -56,5 +56,5 @@ func TestLocal_WaitFor(t *testing.T) {
 
 	// Valid message:
 	assert.NoError(t, l.Broadcast("foo", &testMsg{Val: "bar"}))
-	assert.Equal(t, &testMsg{Val: "bar"}, (<-l.WaitFor("foo")).Message)
+	assert.Equal(t, &testMsg{Val: "bar"}, (<-l.Messages("foo")).Message)
 }

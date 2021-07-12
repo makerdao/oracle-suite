@@ -29,8 +29,6 @@ import (
 const AgentLoggerTag = "GOFER_AGENT"
 
 type AgentConfig struct {
-	Context context.Context
-
 	// Gofer instance which will be used by the agent. If this instance
 	// implements the gofer.StartableGofer interface, the Start and Stop
 	// methods are called whenever corresponding Agent's Start and
@@ -58,13 +56,12 @@ type Agent struct {
 }
 
 // NewAgent returns a new Agent instance.
-func NewAgent(cfg AgentConfig) (*Agent, error) {
-	if cfg.Context == nil {
+func NewAgent(ctx context.Context, cfg AgentConfig) (*Agent, error) {
+	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	server := &Agent{
-		ctx:    cfg.Context,
+		ctx:   ctx,
 		doneCh: make(chan struct{}),
 		api: &API{
 			gofer: cfg.Gofer,

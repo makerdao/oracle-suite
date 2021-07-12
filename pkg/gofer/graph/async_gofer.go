@@ -38,7 +38,6 @@ func NewAsyncGofer(ctx context.Context, g map[gofer.Pair]nodes.Aggregator, f *fe
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	return &AsyncGofer{
 		Gofer:  NewGofer(g, nil),
 		ctx:    ctx,

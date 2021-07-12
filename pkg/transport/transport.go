@@ -15,6 +15,8 @@
 
 package transport
 
+// ReceivedMessage contains a Message received from a Transport with
+// an additional data.
 type ReceivedMessage struct {
 	// Message contains the message content. It is nil when the Error field
 	// is not nil.
@@ -35,12 +37,11 @@ type Message interface {
 // publish–subscribe messaging solutions for the Oracle network.
 type Transport interface {
 	Broadcast(topic string, message Message) error
-	// WaitFor returns a channel which will be blocked until message for given
-	// topic arrives. Note, that only messages for subscribed topics will
-	// be supported by this method, for unsubscribed topic nil will be
-	// returned. In case of an error, error will be returned in a Status
-	// structure.
-	WaitFor(topic string) chan ReceivedMessage
+	// Messages returns a channel that will deliver incoming messages. Note,
+	// that only messages for subscribed topics will be supported by this
+	// method, for unsubscribed topic nil will be returned. In case of an
+	// error, error will be returned in a ReceivedMessage structure.
+	Messages(topic string) chan ReceivedMessage
 	// Start starts listening for messages.
 	Start() error
 	// Wait waits until transport's context is cancelled.

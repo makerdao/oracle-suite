@@ -27,8 +27,8 @@ import (
 )
 
 //nolint:unlambda
-var ghostFactory = func(cfg ghost.Config) (*ghost.Ghost, error) {
-	return ghost.NewGhost(cfg)
+var ghostFactory = func(ctx context.Context, cfg ghost.Config) (*ghost.Ghost, error) {
+	return ghost.NewGhost(ctx, cfg)
 }
 
 type Ghost struct {
@@ -53,5 +53,5 @@ func (c *Ghost) Configure(d Dependencies) (*ghost.Ghost, error) {
 		Interval:  time.Second * time.Duration(c.Interval),
 		Pairs:     c.Pairs,
 	}
-	return ghostFactory(cfg)
+	return ghostFactory(d.Context, cfg)
 }

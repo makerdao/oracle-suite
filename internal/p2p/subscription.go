@@ -41,7 +41,7 @@ type Subscription struct {
 	messageHandler sets.MessageHandler
 
 	// msgCh is used to send a notification about a new message, it's
-	// returned by the Transport.WaitFor function.
+	// returned by the Transport.Messages function.
 	msgCh chan transport.ReceivedMessage
 }
 

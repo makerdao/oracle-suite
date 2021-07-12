@@ -46,7 +46,8 @@ func TestGhost_Configure(t *testing.T) {
 		Pairs:    pairs,
 	}
 
-	ghostFactory = func(cfg ghost.Config) (*ghost.Ghost, error) {
+	ghostFactory = func(ctx context.Context, cfg ghost.Config) (*ghost.Ghost, error) {
+		assert.NotNil(t, ctx)
 		assert.Equal(t, time.Duration(interval)*time.Second, cfg.Interval)
 		assert.Equal(t, pairs, cfg.Pairs)
 		assert.Equal(t, signer, cfg.Signer)

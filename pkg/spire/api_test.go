@@ -62,8 +62,7 @@ func newTestInstances() (*Agent, *Client) {
 	log := null.New()
 	sig := &mocks.Signer{}
 	tra := local.New(ctx, 0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
-	dat, err = datastoreMemory.NewDatastore(datastoreMemory.Config{
-		Context:   ctx,
+	dat, err = datastoreMemory.NewDatastore(ctx, datastoreMemory.Config{
 		Signer:    sig,
 		Transport: tra,
 		Pairs: map[string]*datastoreMemory.Pair{
@@ -78,8 +77,7 @@ func newTestInstances() (*Agent, *Client) {
 
 	sig.On("Recover", mock.Anything, mock.Anything).Return(&testAddress, nil)
 
-	agt, err := NewAgent(AgentConfig{
-		Context:   ctx,
+	agt, err := NewAgent(ctx, AgentConfig{
 		Datastore: dat,
 		Transport: tra,
 		Signer:    sig,
@@ -99,8 +97,7 @@ func newTestInstances() (*Agent, *Client) {
 		panic(err)
 	}
 
-	cli, err := NewClient(ClientConfig{
-		Context: ctx,
+	cli, err := NewClient(ctx, ClientConfig{
 		Signer:  sig,
 		Network: "tcp",
 		Address: agt.listener.Addr().String(),

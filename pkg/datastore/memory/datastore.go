@@ -49,8 +49,6 @@ type Datastore struct {
 }
 
 type Config struct {
-	Context context.Context
-
 	// Signer is an instance of the ethereum.Signer which will be used to
 	// verify price signatures.
 	Signer ethereum.Signer
@@ -71,13 +69,12 @@ type Pair struct {
 	Feeds []ethereum.Address
 }
 
-func NewDatastore(cfg Config) (*Datastore, error) {
-	if cfg.Context == nil {
+func NewDatastore(ctx context.Context, cfg Config) (*Datastore, error) {
+	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	return &Datastore{
-		ctx:        cfg.Context,
+		ctx:        ctx,
 		doneCh:     make(chan struct{}),
 		signer:     cfg.Signer,
 		transport:  cfg.Transport,
@@ -138,7 +135,7 @@ func (c *Datastore) collectorLoop() error {
 			select {
 			case <-c.ctx.Done():
 				return
-			case status := <-c.transport.WaitFor(messages.PriceMessageName):
+			case status := <-c.transport.Messages(messages.PriceMessageName):
 				// If there was a problem while reading prices from the transport:
 				if status.Error != nil {
 					c.log.

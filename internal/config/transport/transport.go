@@ -38,8 +38,8 @@ import (
 var ErrInvalidPrivKeySeed = errors.New("invalid privKeySeed value")
 
 //nolint:unlambda
-var p2pTransportFactory = func(cfg p2p.Config) (transport.Transport, error) {
-	return p2p.New(cfg)
+var p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+	return p2p.New(ctx, cfg)
 }
 
 type Transport struct {
@@ -68,7 +68,6 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 		return nil, err
 	}
 	cfg := p2p.Config{
-		Context:          d.Context,
 		PeerPrivKey:      peerPrivKey,
 		Topics:           map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
 		MessagePrivKey:   ethkey.NewPrivKey(d.Signer),
@@ -83,7 +82,7 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 		AppName:          "spire",
 		AppVersion:       suite.Version,
 	}
-	p, err := p2pTransportFactory(cfg)
+	p, err := p2pTransportFactory(d.Context, cfg)
 	if err != nil {
 		return nil, err
 	}

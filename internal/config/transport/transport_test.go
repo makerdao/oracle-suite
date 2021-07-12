@@ -50,7 +50,8 @@ func TestTransport_P2P_EmptyConfig(t *testing.T) {
 		},
 	}
 
-	p2pTransportFactory = func(cfg p2p.Config) (transport.Transport, error) {
+	p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+		assert.NotNil(t, ctx)
 		assert.NotNil(t, cfg.PeerPrivKey)
 		assert.Len(t, cfg.ListenAddrs, 0)
 		assert.Len(t, cfg.BootstrapAddrs, 0)
@@ -100,7 +101,8 @@ func TestTransport_P2P_CustomValues(t *testing.T) {
 		},
 	}
 
-	p2pTransportFactory = func(cfg p2p.Config) (transport.Transport, error) {
+	p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+		assert.NotNil(t, ctx)
 		assert.NotNil(t, cfg.PeerPrivKey)
 		assert.Equal(t, listenAddrs, cfg.ListenAddrs)
 		assert.Equal(t, bootstrapAddrs, cfg.BootstrapAddrs)
@@ -145,7 +147,8 @@ func TestTransport_P2P_InvalidSeed(t *testing.T) {
 	signer := &mocks.Signer{}
 	logger := null.New()
 
-	p2pTransportFactory = func(cfg p2p.Config) (transport.Transport, error) {
+	p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+		assert.NotNil(t, ctx)
 		return local.New(context.Background(), 0, nil), nil
 	}
 

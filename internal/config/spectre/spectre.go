@@ -29,13 +29,13 @@ import (
 )
 
 //nolint:unlambda
-var spectreFactory = func(cfg spectre.Config) (*spectre.Spectre, error) {
-	return spectre.NewSpectre(cfg)
+var spectreFactory = func(ctx context.Context, cfg spectre.Config) (*spectre.Spectre, error) {
+	return spectre.NewSpectre(ctx, cfg)
 }
 
 //nolint:unlambda
-var datastoreFactory = func(cfg datastoreMemory.Config) (datastore.Datastore, error) {
-	return datastoreMemory.NewDatastore(cfg)
+var datastoreFactory = func(ctx context.Context, cfg datastoreMemory.Config) (datastore.Datastore, error) {
+	return datastoreMemory.NewDatastore(ctx, cfg)
 }
 
 type Spectre struct {
@@ -69,7 +69,6 @@ type DatastoreDependencies struct {
 
 func (c *Spectre) ConfigureSpectre(d Dependencies) (*spectre.Spectre, error) {
 	cfg := spectre.Config{
-		Context:   d.Context,
 		Signer:    d.Signer,
 		Interval:  time.Second * time.Duration(c.Interval),
 		Datastore: d.Datastore,
@@ -84,12 +83,11 @@ func (c *Spectre) ConfigureSpectre(d Dependencies) (*spectre.Spectre, error) {
 			Median:           oracleGeth.NewMedian(d.EthereumClient, ethereum.HexToAddress(pair.Contract)),
 		})
 	}
-	return spectreFactory(cfg)
+	return spectreFactory(d.Context, cfg)
 }
 
 func (c *Spectre) ConfigureDatastore(d DatastoreDependencies) (datastore.Datastore, error) {
 	cfg := datastoreMemory.Config{
-		Context:   d.Context,
 		Signer:    d.Signer,
 		Transport: d.Transport,
 		Pairs:     make(map[string]*datastoreMemory.Pair),
@@ -98,5 +96,5 @@ func (c *Spectre) ConfigureDatastore(d DatastoreDependencies) (datastore.Datasto
 	for name := range c.Medianizers {
 		cfg.Pairs[name] = &datastoreMemory.Pair{Feeds: d.Feeds}
 	}
-	return datastoreFactory(cfg)
+	return datastoreFactory(d.Context, cfg)
 }

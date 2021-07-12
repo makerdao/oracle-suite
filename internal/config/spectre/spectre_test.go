@@ -57,7 +57,8 @@ func TestSpectre_Configure(t *testing.T) {
 		},
 	}
 
-	spectreFactory = func(cfg spectre.Config) (*spectre.Spectre, error) {
+	spectreFactory = func(ctx context.Context, cfg spectre.Config) (*spectre.Spectre, error) {
+		assert.NotNil(t, ctx)
 		assert.Equal(t, signer, cfg.Signer)
 		assert.Equal(t, ds, cfg.Datastore)
 		assert.Equal(t, secToDuration(interval), cfg.Interval)

@@ -39,8 +39,7 @@ func TestMain(m *testing.M) {
 	var err error
 
 	mockGofer = &mocks.Gofer{}
-	agent, err = NewAgent(AgentConfig{
-		Context: ctx,
+	agent, err = NewAgent(ctx, AgentConfig{
 		Gofer:   mockGofer,
 		Network: "tcp",
 		Address: "127.0.0.1:0",

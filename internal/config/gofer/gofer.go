@@ -116,7 +116,7 @@ func (c *Gofer) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize rpc agent: %w", err)
 	}
-	srv, err := rpc.NewAgent(rpc.AgentConfig{
+	srv, err := rpc.NewAgent(ctx, rpc.AgentConfig{
 		Gofer:   gof,
 		Network: "tcp",
 		Address: c.RPC.Address,

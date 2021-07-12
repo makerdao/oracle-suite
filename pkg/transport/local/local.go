@@ -29,30 +29,34 @@ var ErrNotSubscribed = errors.New("topic is not subscribed")
 // using local channels.
 type Local struct {
 	ctx    context.Context
-	doneCh chan struct{}
-
-	buffer int
+	doneCh chan struct{} // doneCh is used to unblock the Wait method.
 	subs   map[string]subscription
 }
 
 type subscription struct {
-	typ    reflect.Type
-	msgs   chan []byte
+	// typ is the structure type to which the message must be unmarshalled.
+	typ reflect.Type
+	// msgs is a channel used to broadcast raw message data.
+	msgs chan []byte
+	// status is a channel used to broadcast unmarshalled messages.
 	status chan transport.ReceivedMessage
 }
 
-// New returns a new instance of the Local structure.
-func New(ctx context.Context, buffer int, subs map[string]transport.Message) *Local {
+// New returns a new instance of the Local structure. The created transport
+// can handle up to b unread messages before it is blocked. The list of of
+// supported subscriptions must be given as a map in s argument, where the
+// key is the subscription's topic name, and the map value is the message type
+// messages given as a nil pointer, e.g: (*Message)(nil).
+func New(ctx context.Context, b int, s map[string]transport.Message) *Local {
 	l := &Local{
 		ctx:    ctx,
 		doneCh: make(chan struct{}),
-		buffer: buffer,
 		subs:   make(map[string]subscription),
 	}
-	for topic, typ := range subs {
+	for topic, typ := range s {
 		l.subs[topic] = subscription{
 			typ:    reflect.TypeOf(typ).Elem(),
-			msgs:   make(chan []byte, l.buffer),
+			msgs:   make(chan []byte, b),
 			status: make(chan transport.ReceivedMessage),
 		}
 	}
@@ -83,8 +87,8 @@ func (l *Local) Broadcast(topic string, message transport.Message) error {
 	return ErrNotSubscribed
 }
 
-// WaitFor implements the transport.Transport interface.
-func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
+// Messages implements the transport.Transport interface.
+func (l *Local) Messages(topic string) chan transport.ReceivedMessage {
 	if sub, ok := l.subs[topic]; ok {
 		go func() {
 			select {
@@ -103,6 +107,7 @@ func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
 	return nil
 }
 
+// contextCancelHandler handles context cancellation.
 func (l *Local) contextCancelHandler() {
 	defer func() { l.doneCh <- struct{}{} }()
 	<-l.ctx.Done()

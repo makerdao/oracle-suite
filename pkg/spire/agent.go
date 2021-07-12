@@ -43,7 +43,6 @@ type Agent struct {
 }
 
 type AgentConfig struct {
-	Context   context.Context
 	Datastore datastore.Datastore
 	Transport transport.Transport
 	Signer    ethereum.Signer
@@ -52,13 +51,12 @@ type AgentConfig struct {
 	Logger    log.Logger
 }
 
-func NewAgent(cfg AgentConfig) (*Agent, error) {
-	if cfg.Context == nil {
+func NewAgent(ctx context.Context, cfg AgentConfig) (*Agent, error) {
+	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	s := &Agent{
-		ctx:    cfg.Context,
+		ctx:    ctx,
 		doneCh: make(chan struct{}),
 		api: &API{
 			datastore: cfg.Datastore,
@@ -71,13 +69,11 @@ func NewAgent(cfg AgentConfig) (*Agent, error) {
 		address: cfg.Address,
 		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
-
 	err := s.rpc.Register(s.api)
 	if err != nil {
 		return nil, err
 	}
 	s.rpc.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
-
 	return s, nil
 }
 

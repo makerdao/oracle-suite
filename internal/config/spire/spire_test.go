@@ -47,7 +47,8 @@ func TestSpire_ConfigureAgent(t *testing.T) {
 		Pairs: []string{"AAABBB"},
 	}
 
-	spireAgentFactory = func(cfg spire.AgentConfig) (*spire.Agent, error) {
+	spireAgentFactory = func(ctx context.Context, cfg spire.AgentConfig) (*spire.Agent, error) {
+		assert.NotNil(t, ctx)
 		assert.Equal(t, ds, cfg.Datastore)
 		assert.Equal(t, transport, cfg.Transport)
 		assert.Equal(t, signer, cfg.Signer)
@@ -80,14 +81,18 @@ func TestSpire_ConfigureClient(t *testing.T) {
 		Pairs: []string{"AAABBB"},
 	}
 
-	spireClientFactory = func(cfg spire.ClientConfig) (*spire.Client, error) {
+	spireClientFactory = func(ctx context.Context, cfg spire.ClientConfig) (*spire.Client, error) {
+		assert.NotNil(t, ctx)
 		assert.Equal(t, signer, cfg.Signer)
 		assert.Equal(t, "tcp", cfg.Network)
 		assert.Equal(t, "1.2.3.4:1234", cfg.Address)
 		return &spire.Client{}, nil
 	}
 
-	c, err := config.ConfigureClient(ClientDependencies{Signer: signer})
+	c, err := config.ConfigureClient(ClientDependencies{
+		Context: context.Background(),
+		Signer:  signer,
+	})
 	require.NoError(t, err)
 	require.NotNil(t, c)
 }

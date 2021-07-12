@@ -49,8 +49,6 @@ const priceUpdateInterval = time.Minute
 // be listening on.
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
-var ErrP2P = errors.New("P2P transport error")
-
 // P2P is a little wrapper for the Node that implements the transport.Transport
 // interface.
 type P2P struct {
@@ -58,10 +56,8 @@ type P2P struct {
 	topics map[string]transport.Message
 }
 
+// Config is a configuration for the P2P transport.
 type Config struct {
-	Context context.Context
-	Logger  log.Logger
-
 	// Topics is a list of subscribed topics. A value of the map a type of
 	// a message given as a nil pointer, e.g.: (*Message)(nil).
 	Topics map[string]transport.Message
@@ -94,6 +90,9 @@ type Config struct {
 	Discovery bool
 	// Signer used to verify price messages.
 	Signer ethereum.Signer
+	// Logger is a custom logger instance. If not provided then null
+	// logger is used.
+	Logger log.Logger
 
 	// Application info:
 	AppName    string
@@ -102,30 +101,30 @@ type Config struct {
 
 // New returns a new instance of a transport, implemented with
 // the libp2p library.
-func New(cfg Config) (*P2P, error) {
+func New(ctx context.Context, cfg Config) (*P2P, error) {
 	var err error
 
-	if cfg.Context == nil {
-		return nil, errors.New("context must not be nil")
-	}
 	if len(cfg.ListenAddrs) == 0 {
 		cfg.ListenAddrs = defaultListenAddrs
 	}
+	if ctx == nil {
+		return nil, errors.New("context must not be nil")
+	}
 	listenAddrs, err := strsToMaddrs(cfg.ListenAddrs)
 	if err != nil {
-		return nil, fmt.Errorf("%v: unable to parse listenAddrs: %v", ErrP2P, err)
+		return nil, fmt.Errorf("P2P transport error, unable to parse listenAddrs: %w", err)
 	}
 	bootstrapAddrs, err := strsToMaddrs(cfg.BootstrapAddrs)
 	if err != nil {
-		return nil, fmt.Errorf("%v: unable to parse bootstrapAddrs: %v", ErrP2P, err)
+		return nil, fmt.Errorf("P2P transport error, unable to parse bootstrapAddrs: %w", err)
 	}
 	directPeersAddrs, err := strsToMaddrs(cfg.DirectPeersAddrs)
 	if err != nil {
-		return nil, fmt.Errorf("%v: unable to parse directPeersAddrs: %v", ErrP2P, err)
+		return nil, fmt.Errorf("P2P transport error, unable to parse directPeersAddrs: %w", err)
 	}
 	blockedAddrs, err := strsToMaddrs(cfg.BlockedAddrs)
 	if err != nil {
-		return nil, fmt.Errorf("%v: unable to parse blockedAddrs: %v", ErrP2P, err)
+		return nil, fmt.Errorf("P2P transport error: unable to parse blockedAddrs: %w", err)
 	}
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)
@@ -163,9 +162,9 @@ func New(cfg Config) (*P2P, error) {
 		opts = append(opts, p2p.Discovery(bootstrapAddrs))
 	}
 
-	n, err := p2p.NewNode(cfg.Context, opts...)
+	n, err := p2p.NewNode(ctx, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("%v: unable to initialize node: %v", ErrP2P, err)
+		return nil, fmt.Errorf("P2P transport error, unable to initialize node: %w", err)
 	}
 
 	return &P2P{node: n, topics: cfg.Topics}, nil
@@ -175,7 +174,7 @@ func New(cfg Config) (*P2P, error) {
 func (p *P2P) Start() error {
 	err := p.node.Start()
 	if err != nil {
-		return fmt.Errorf("%v: unable to start node: %v", ErrP2P, err)
+		return fmt.Errorf("P2P transport error, unable to start node: %w", err)
 	}
 	for topic, typ := range p.topics {
 		err := p.subscribe(topic, typ)
@@ -195,13 +194,13 @@ func (p *P2P) Wait() {
 func (p *P2P) Broadcast(topic string, message transport.Message) error {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
-		return fmt.Errorf("%v: unable to get subscription for %s topic: %v", ErrP2P, topic, err)
+		return fmt.Errorf("P2P transport error, unable to get subscription for %s topic: %w", topic, err)
 	}
 	return sub.Publish(message)
 }
 
-// WaitFor implements the transport.Transport interface.
-func (p *P2P) WaitFor(topic string) chan transport.ReceivedMessage {
+// Messages implements the transport.Transport interface.
+func (p *P2P) Messages(topic string) chan transport.ReceivedMessage {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil
@@ -212,7 +211,7 @@ func (p *P2P) WaitFor(topic string) chan transport.ReceivedMessage {
 func (p *P2P) subscribe(topic string, typ transport.Message) error {
 	err := p.node.Subscribe(topic, typ)
 	if err != nil {
-		return fmt.Errorf("%v: unable to subscribe to topic %s: %v", ErrP2P, topic, err)
+		return fmt.Errorf("P2P transport error, unable to subscribe to topic %s: %w", topic, err)
 	}
 	return nil
 }
