@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -59,7 +60,7 @@ func PrepareGoferClientService(ctx context.Context, opts *options) (*GoferClient
 	// Load config file:
 	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse configuration file: %w", err)
 	}
 
 	// Logger:
@@ -75,7 +76,7 @@ func PrepareGoferClientService(ctx context.Context, opts *options) (*GoferClient
 	// Services:
 	gof, err := opts.Config.Configure(ctx, logger, opts.NoRPC)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load Gofer configuration: %w", err)
 	}
 	mar, err := marshal.NewMarshal(opts.Format.format)
 	if err != nil {
@@ -120,7 +121,7 @@ func PrepareGoferAgentService(ctx context.Context, opts *options) (*GoferAgentSe
 	// Load config file:
 	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse configuration file: %w", err)
 	}
 
 	// Logger:
@@ -136,7 +137,7 @@ func PrepareGoferAgentService(ctx context.Context, opts *options) (*GoferAgentSe
 	// Services:
 	age, err := opts.Config.ConfigureRPCAgent(ctx, logger)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load Gofer configuration: %w", err)
 	}
 
 	return &GoferAgentService{

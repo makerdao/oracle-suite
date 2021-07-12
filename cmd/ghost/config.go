@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -104,7 +105,7 @@ func PrepareServices(ctx context.Context, opts *options) (*Services, error) {
 	// Load config file:
 	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse configuration file: %w", err)
 	}
 
 	// Logger:
@@ -123,7 +124,7 @@ func PrepareServices(ctx context.Context, opts *options) (*Services, error) {
 		Logger:  logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load Ghost configuration: %w", err)
 	}
 
 	return &Services{

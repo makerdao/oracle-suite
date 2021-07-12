@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -122,7 +123,7 @@ func PrepareClientServices(ctx context.Context, opts *options) (*ClientServices,
 	// Load config file:
 	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse configuration file: %w", err)
 	}
 
 	// Services:
@@ -130,7 +131,7 @@ func PrepareClientServices(ctx context.Context, opts *options) (*ClientServices,
 		Context: ctx,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load Spire configuration: %w", err)
 	}
 
 	return &ClientServices{
@@ -171,7 +172,7 @@ func PrepareAgentServices(ctx context.Context, opts *options) (*AgentServices, e
 	// Load config file:
 	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse configuration file: %w", err)
 	}
 
 	// Logger:
@@ -190,7 +191,7 @@ func PrepareAgentServices(ctx context.Context, opts *options) (*AgentServices, e
 		Logger:  logger,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load Spire configuration: %w", err)
 	}
 
 	return &AgentServices{

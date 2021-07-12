@@ -17,8 +17,6 @@ package spire
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
 	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
@@ -27,8 +25,6 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/spire"
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
-
-var ErrFailedToLoadConfiguration = errors.New("failed to load Spire's configuration")
 
 //nolint:unlambda
 var spireAgentFactory = func(ctx context.Context, cfg spire.AgentConfig) (*spire.Agent, error) {
@@ -86,7 +82,7 @@ func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
 		Logger:    d.Logger,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+		return nil, err
 	}
 	return agent, nil
 }
