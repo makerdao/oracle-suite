@@ -45,7 +45,6 @@ func NewRunCmd(opts *options) *cobra.Command {
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
 
-
 			return nil
 		},
 	}

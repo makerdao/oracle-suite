@@ -105,7 +105,6 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 	return tra, dat, age, nil
 }
 
-
 type ClientServices struct {
 	ctxCancel context.CancelFunc
 	Client    *spire.Client
