@@ -48,15 +48,15 @@ func NewPullPriceCmd(opts *options) *cobra.Command {
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			ctx := context.Background()
-			srv, err := newClientServices(ctx, opts)
+			srv, err := PrepareClientServices(ctx, opts)
 			if err != nil {
 				return err
 			}
-			if err = srv.start(); err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
 
-			p, err := srv.client.PullPrice(args[0], args[1])
+			p, err := srv.Client.PullPrice(args[0], args[1])
 			if err != nil {
 				return err
 			}
@@ -70,7 +70,7 @@ func NewPullPriceCmd(opts *options) *cobra.Command {
 			}
 
 			fmt.Printf("%s\n", string(bts))
-			srv.cancelAndWait()
+			srv.CancelAndWait()
 
 			return nil
 		},
@@ -92,15 +92,16 @@ func NewPullPricesCmd(opts *options) *cobra.Command {
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			ctx := context.Background()
-			srv, err := newClientServices(ctx, opts)
+			srv, err := PrepareClientServices(ctx, opts)
 			if err != nil {
 				return err
 			}
-			if err = srv.start(); err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
-			p, err := srv.client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
+			p, err := srv.Client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
 			if err != nil {
 				return err
 			}
@@ -111,7 +112,6 @@ func NewPullPricesCmd(opts *options) *cobra.Command {
 			}
 
 			fmt.Printf("%s\n", string(bts))
-			srv.cancelAndWait()
 
 			return nil
 		},

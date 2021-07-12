@@ -33,18 +33,18 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			var err error
 			ctx := context.Background()
-			srv, err := newAgentServices(ctx, opts)
+			srv, err := PrepareAgentServices(ctx, opts)
 			if err != nil {
 				return err
 			}
-			if err = srv.start(); err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
-			srv.cancelAndWait()
 
 			return nil
 		},

@@ -61,7 +61,7 @@ func NewAgent(ctx context.Context, cfg AgentConfig) (*Agent, error) {
 		return nil, errors.New("context must not be nil")
 	}
 	server := &Agent{
-		ctx:   ctx,
+		ctx:    ctx,
 		doneCh: make(chan struct{}),
 		api: &API{
 			gofer: cfg.Gofer,

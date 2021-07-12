@@ -32,18 +32,19 @@ func NewRunCmd(opts *options) *cobra.Command {
 		Short:   "",
 		Long:    ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			srv, err := newServices(context.Background(), opts)
+			srv, err := PrepareServices(context.Background(), opts)
 			if err != nil {
 				return err
 			}
-			if err = srv.start(); err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
-			srv.cancelAndWait()
+
 
 			return nil
 		},

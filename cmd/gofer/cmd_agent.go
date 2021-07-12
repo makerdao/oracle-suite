@@ -31,19 +31,11 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Short: "Start an RPC server",
 		Long:  `Start an RPC server.`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			ctx := context.Background()
-			log, err := newLogger(opts)
+			srv, err := PrepareGoferAgentService(context.Background(), opts)
 			if err != nil {
 				return err
 			}
-			srv, err := newAgent(ctx, opts, opts.ConfigFilePath, log)
-			if err != nil {
-				return err
-			}
-
-			// Start the RPC server:
-			err = srv.Start()
-			if err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
 
@@ -51,6 +43,7 @@ func NewAgentCmd(opts *options) *cobra.Command {
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
+			srv.CancelAndWait()
 
 			return nil
 		},

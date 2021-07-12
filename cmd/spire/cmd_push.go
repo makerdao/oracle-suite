@@ -47,13 +47,14 @@ func NewPushPriceCmd(opts *options) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
 			ctx := context.Background()
-			srv, err := newClientServices(ctx, opts)
+			srv, err := PrepareClientServices(ctx, opts)
 			if err != nil {
 				return err
 			}
-			if err = srv.start(); err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
 			in := os.Stdin
 			if len(args) == 1 {
@@ -76,12 +77,10 @@ func NewPushPriceCmd(opts *options) *cobra.Command {
 			}
 
 			// Send price message to RPC client:
-			err = srv.client.PublishPrice(msg)
+			err = srv.Client.PublishPrice(msg)
 			if err != nil {
 				return err
 			}
-
-			srv.cancelAndWait()
 
 			return nil
 		},
