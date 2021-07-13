@@ -18,7 +18,11 @@ package main
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/makerdao/oracle-suite/internal/config"
 	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
+	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/transport"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -42,4 +46,62 @@ func (c *Config) Configure(d Dependencies) (transport.Transport, error) {
 		return nil, err
 	}
 	return tra, nil
+}
+
+type Service struct {
+	ctxCancel context.CancelFunc
+	Transport transport.Transport
+}
+
+func PrepareService(ctx context.Context, opts *options) (*Service, error) {
+	var err error
+	ctx, ctxCancel := context.WithCancel(ctx)
+	defer func() {
+		if err != nil {
+			ctxCancel()
+		}
+	}()
+
+	// Load config file:
+	err = config.ParseFile(&opts.Config, opts.ConfigFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Logger:
+	ll, err := logrus.ParseLevel(opts.LogVerbosity)
+	if err != nil {
+		return nil, err
+	}
+	lr := logrus.New()
+	lr.SetLevel(ll)
+	lr.SetFormatter(opts.LogFormat.Formatter())
+	logger := logLogrus.New(lr)
+
+	// Services:
+	tra, err := opts.Config.Configure(Dependencies{
+		Context: ctx,
+		Logger:  logger,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Service{
+		ctxCancel: ctxCancel,
+		Transport: tra,
+	}, nil
+}
+
+func (s *Service) Start() error {
+	var err error
+	if err = s.Transport.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) CancelAndWait() {
+	s.ctxCancel()
+	s.Transport.Wait()
 }

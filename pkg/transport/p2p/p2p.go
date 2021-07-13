@@ -43,12 +43,12 @@ const maxConnections = 150
 type Mode int
 
 const (
-	// Client operates the node as client. Client can publish and read messages
+	// ClientMode operates the node as client. ClientMode can publish and read messages
 	// and provides peer discovery service for other nodes.
-	Client Mode = iota
-	// Bootstrap operates the node as a bootstrap node. Bootstrap node provide
+	ClientMode Mode = iota
+	// BootstrapMode operates the node as a bootstrap node. BootstrapMode node provide
 	// only peer discovery service for other nodes.
-	Bootstrap
+	BootstrapMode
 )
 
 // Values for a peer scoring and rate limiter:
@@ -160,7 +160,7 @@ func New(ctx context.Context, cfg Config) (*P2P, error) {
 	}
 
 	switch cfg.Mode {
-	case Client:
+	case ClientMode:
 		opts = append(opts,
 			p2p.MessageLogger(),
 			p2p.RateLimiter(rateLimiterConfig(cfg)),
@@ -181,7 +181,7 @@ func New(ctx context.Context, cfg Config) (*P2P, error) {
 		if cfg.Discovery {
 			opts = append(opts, p2p.Discovery(bootstrapAddrs))
 		}
-	case Bootstrap:
+	case BootstrapMode:
 		cfg.Topics = nil
 		opts = append(opts,
 			p2p.DisablePubSub(),

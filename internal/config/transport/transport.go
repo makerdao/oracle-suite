@@ -73,6 +73,7 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 		return nil, err
 	}
 	cfg := p2p.Config{
+		Mode:             p2p.ClientMode,
 		PeerPrivKey:      peerPrivKey,
 		Topics:           map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
 		MessagePrivKey:   ethkey.NewPrivKey(d.Signer),
@@ -100,8 +101,7 @@ func (c *Transport) ConfigureP2PBoostrap(d BootstrapDependencies) (transport.Tra
 		return nil, err
 	}
 	cfg := p2p.Config{
-		Context:          d.Context,
-		Mode:             p2p.Bootstrap,
+		Mode:             p2p.BootstrapMode,
 		PeerPrivKey:      peerPrivKey,
 		ListenAddrs:      c.P2P.ListenAddrs,
 		BootstrapAddrs:   c.P2P.BootstrapAddrs,
@@ -111,7 +111,7 @@ func (c *Transport) ConfigureP2PBoostrap(d BootstrapDependencies) (transport.Tra
 		AppName:          "bootstrap",
 		AppVersion:       suite.Version,
 	}
-	p, err := p2pTransportFactory(cfg)
+	p, err := p2pTransportFactory(d.Context, cfg)
 	if err != nil {
 		return nil, err
 	}
