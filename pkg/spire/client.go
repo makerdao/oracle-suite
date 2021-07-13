@@ -94,7 +94,7 @@ func (c *Client) PullPrice(assetPair string, feeder string) (*messages.Price, er
 }
 
 func (c *Client) contextCancelHandler() {
-	defer func() { c.doneCh <- struct{}{} }()
+	defer func() { close(c.doneCh) }()
 	<-c.ctx.Done()
 
 	c.rpc.Close()

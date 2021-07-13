@@ -114,7 +114,7 @@ func (c *Gofer) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.
 	fed := feeder.NewFeeder(ctx, originSet, logger)
 	gof, err := graph.NewAsyncGofer(ctx, gra, fed)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize rpc agent: %w", err)
+		return nil, fmt.Errorf("unable to initialize RPC agent: %w", err)
 	}
 	srv, err := rpc.NewAgent(ctx, rpc.AgentConfig{
 		Gofer:   gof,
@@ -123,7 +123,7 @@ func (c *Gofer) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.
 		Logger:  logger,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize rpc agent: %w", err)
+		return nil, fmt.Errorf("unable to initialize RPC agent: %w", err)
 	}
 	return srv, nil
 }

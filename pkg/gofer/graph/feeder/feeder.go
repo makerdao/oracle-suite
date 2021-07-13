@@ -134,7 +134,7 @@ func (f *Feeder) Wait() {
 }
 
 func (f *Feeder) contextCancelHandler() {
-	defer func() { f.doneCh <- struct{}{} }()
+	defer func() { close(f.doneCh) }()
 	defer f.log.Info("Stopped")
 
 	<-f.ctx.Done()

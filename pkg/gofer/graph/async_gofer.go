@@ -59,7 +59,7 @@ func (a *AsyncGofer) Wait() {
 }
 
 func (a *AsyncGofer) contextCancelHandler() {
-	defer func() { a.doneCh <- struct{}{} }()
+	defer func() { close(a.doneCh) }()
 	<-a.ctx.Done()
 
 	a.feeder.Wait()

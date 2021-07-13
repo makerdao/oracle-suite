@@ -251,7 +251,7 @@ func (s *Spectre) relayerLoop() {
 }
 
 func (s *Spectre) contextCancelHandler() {
-	defer func() { s.doneCh <- struct{}{} }()
+	defer func() { close(s.doneCh) }()
 	defer s.log.Info("Stopped")
 	<-s.ctx.Done()
 }

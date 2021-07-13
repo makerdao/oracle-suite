@@ -103,7 +103,7 @@ func (s *Agent) Wait() {
 }
 
 func (s *Agent) contextCancelHandler() {
-	defer func() { s.doneCh <- struct{}{} }()
+	defer func() { close(s.doneCh) }()
 	defer s.log.Info("Stopped")
 	<-s.ctx.Done()
 

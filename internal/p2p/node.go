@@ -281,7 +281,7 @@ func (n *Node) Subscription(topic string) (*Subscription, error) {
 
 // contextCancelHandler handles context cancellation.
 func (n *Node) contextCancelHandler() {
-	defer func() { n.doneCh <- struct{}{} }()
+	defer func() { close(n.doneCh) }()
 	defer n.log.Info("Stopped")
 	defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
 	<-n.ctx.Done()

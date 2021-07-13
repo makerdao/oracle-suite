@@ -109,7 +109,7 @@ func (l *Local) Messages(topic string) chan transport.ReceivedMessage {
 
 // contextCancelHandler handles context cancellation.
 func (l *Local) contextCancelHandler() {
-	defer func() { l.doneCh <- struct{}{} }()
+	defer func() { close(l.doneCh) }()
 	<-l.ctx.Done()
 
 	for _, sub := range l.subs {

@@ -27,6 +27,7 @@ type options struct {
 	LogFormat      logrusFlag.FormatTypeValue
 	ConfigFilePath string
 	Config         Config
+	GoferNoRPC     bool
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
@@ -55,6 +56,12 @@ func NewRootCommand(opts *options) *cobra.Command {
 		"config", "c",
 		"./config.json",
 		"ghost config file",
+	)
+	rootCmd.PersistentFlags().BoolVar(
+		&opts.GoferNoRPC,
+		"gofer.norpc",
+		false,
+		"disable the use of Gofer RPC agent",
 	)
 
 	return rootCmd

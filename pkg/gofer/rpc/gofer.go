@@ -23,6 +23,8 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
+var ErrNotStarted = errors.New("gofer RPC client is not started")
+
 // Gofer implements the gofer.Gofer interface. It uses a remote RPC server
 // to fetch prices and models.
 type Gofer struct {
@@ -66,6 +68,9 @@ func (g *Gofer) Wait() {
 
 // Models implements the gofer.Gofer interface.
 func (g *Gofer) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error) {
+	if g.rpc == nil {
+		return nil, ErrNotStarted
+	}
 	resp := &NodesResp{}
 	err := g.rpc.Call("API.Models", NodesArg{Pairs: pairs}, resp)
 	if err != nil {
@@ -76,6 +81,9 @@ func (g *Gofer) Models(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Model, error)
 
 // Price implements the gofer.Gofer interface.
 func (g *Gofer) Price(pair gofer.Pair) (*gofer.Price, error) {
+	if g.rpc == nil {
+		return nil, ErrNotStarted
+	}
 	resp, err := g.Prices(pair)
 	if err != nil {
 		return nil, err
@@ -85,6 +93,9 @@ func (g *Gofer) Price(pair gofer.Pair) (*gofer.Price, error) {
 
 // Prices implements the gofer.Gofer interface.
 func (g *Gofer) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error) {
+	if g.rpc == nil {
+		return nil, ErrNotStarted
+	}
 	resp := &PricesResp{}
 	err := g.rpc.Call("API.Prices", PricesArg{Pairs: pairs}, resp)
 	if err != nil {
@@ -95,6 +106,9 @@ func (g *Gofer) Prices(pairs ...gofer.Pair) (map[gofer.Pair]*gofer.Price, error)
 
 // Pairs implements the gofer.Gofer interface.
 func (g *Gofer) Pairs() ([]gofer.Pair, error) {
+	if g.rpc == nil {
+		return nil, ErrNotStarted
+	}
 	resp := &PairsResp{}
 	err := g.rpc.Call("API.Pairs", &Nothing{}, resp)
 	if err != nil {
@@ -104,7 +118,7 @@ func (g *Gofer) Pairs() ([]gofer.Pair, error) {
 }
 
 func (g *Gofer) contextCancelHandler() {
-	defer func() { g.doneCh <- struct{}{} }()
+	defer func() { close(g.doneCh) }()
 	<-g.ctx.Done()
 
 	g.rpc.Close()

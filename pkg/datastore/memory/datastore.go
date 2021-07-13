@@ -176,7 +176,7 @@ func (c *Datastore) isFeedAllowed(assetPair string, address ethereum.Address) bo
 }
 
 func (c *Datastore) contextCancelHandler() {
-	defer func() { c.doneCh <- struct{}{} }()
+	defer func() { close(c.doneCh) }()
 	defer c.log.Info("Stopped")
 	<-c.ctx.Done()
 }

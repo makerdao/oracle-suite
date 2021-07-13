@@ -30,6 +30,7 @@ import (
 	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ghost"
+	"github.com/makerdao/oracle-suite/pkg/gofer"
 	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 	"github.com/makerdao/oracle-suite/pkg/transport"
 
@@ -49,21 +50,21 @@ type Dependencies struct {
 	Logger  log.Logger
 }
 
-func (c *Config) Configure(d Dependencies) (transport.Transport, *ghost.Ghost, error) {
-	gof, err := c.Gofer.ConfigureGofer(d.Context, d.Logger, true)
+func (c *Config) Configure(d Dependencies, noGoferRPC bool) (transport.Transport, gofer.Gofer, *ghost.Ghost, error) {
+	gof, err := c.Gofer.ConfigureGofer(d.Context, d.Logger, noGoferRPC)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	sig, err := c.Ethereum.ConfigureSigner()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if sig.Address() == ethereum.EmptyAddress {
-		return nil, nil, errors.New("ethereum account must be configured")
+		return nil, nil, nil, errors.New("ethereum account must be configured")
 	}
 	fed, err := c.Feeds.Addresses()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tra, err := c.Transport.Configure(transportConfig.Dependencies{
 		Context: d.Context,
@@ -72,7 +73,7 @@ func (c *Config) Configure(d Dependencies) (transport.Transport, *ghost.Ghost, e
 		Logger:  d.Logger,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	gho, err := c.Ghost.Configure(ghostConfig.Dependencies{
 		Context:   d.Context,
@@ -82,14 +83,15 @@ func (c *Config) Configure(d Dependencies) (transport.Transport, *ghost.Ghost, e
 		Logger:    d.Logger,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return tra, gho, nil
+	return tra, gof, gho, nil
 }
 
 type Services struct {
 	ctxCancel context.CancelFunc
 	Transport transport.Transport
+	Gofer     gofer.Gofer
 	Ghost     *ghost.Ghost
 }
 
@@ -119,10 +121,10 @@ func PrepareServices(ctx context.Context, opts *options) (*Services, error) {
 	logger := logLogrus.New(lr)
 
 	// Services:
-	tra, gho, err := opts.Config.Configure(Dependencies{
+	tra, gof, gho, err := opts.Config.Configure(Dependencies{
 		Context: ctx,
 		Logger:  logger,
-	})
+	}, opts.GoferNoRPC)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Ghost configuration: %w", err)
 	}
@@ -130,12 +132,18 @@ func PrepareServices(ctx context.Context, opts *options) (*Services, error) {
 	return &Services{
 		ctxCancel: ctxCancel,
 		Transport: tra,
+		Gofer:     gof,
 		Ghost:     gho,
 	}, nil
 }
 
 func (s *Services) Start() error {
 	var err error
+	if g, ok := s.Gofer.(gofer.StartableGofer); ok {
+		if err = g.Start(); err != nil {
+			return err
+		}
+	}
 	if err = s.Transport.Start(); err != nil {
 		return err
 	}
@@ -149,4 +157,7 @@ func (s *Services) CancelAndWait() {
 	s.ctxCancel()
 	s.Transport.Wait()
 	s.Ghost.Wait()
+	if g, ok := s.Gofer.(gofer.StartableGofer); ok {
+		g.Wait()
+	}
 }

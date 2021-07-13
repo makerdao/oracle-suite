@@ -45,12 +45,13 @@ type Ghost struct {
 	ctx    context.Context
 	doneCh chan struct{}
 
-	gofer     gofer.Gofer
-	signer    ethereum.Signer
-	transport transport.Transport
-	interval  time.Duration
-	pairs     map[gofer.Pair]string
-	log       log.Logger
+	gofer      gofer.Gofer
+	signer     ethereum.Signer
+	transport  transport.Transport
+	interval   time.Duration
+	pairs      []string
+	goferPairs map[gofer.Pair]string
+	log        log.Logger
 }
 
 type Config struct {
@@ -77,40 +78,42 @@ func NewGhost(ctx context.Context, cfg Config) (*Ghost, error) {
 		return nil, errors.New("context must not be nil")
 	}
 	g := &Ghost{
-		ctx:       ctx,
-		doneCh:    make(chan struct{}),
-		gofer:     cfg.Gofer,
-		signer:    cfg.Signer,
-		transport: cfg.Transport,
-		interval:  cfg.Interval,
-		pairs:     make(map[gofer.Pair]string),
-		log:       cfg.Logger.WithField("tag", LoggerTag),
-	}
-	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
-	// (and oracle contract) stores them in AAABBB format. Because of this we
-	// need to make this wired mapping:
-	for _, pair := range cfg.Pairs {
-		goferPairs, err := g.gofer.Pairs()
-		if err != nil {
-			return nil, err
-		}
-		found := false
-		for _, goferPair := range goferPairs {
-			if goferPair.Base+goferPair.Quote == pair {
-				g.pairs[goferPair] = pair
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, ErrUnableToFindAsset{AssetName: pair}
-		}
+		ctx:        ctx,
+		doneCh:     make(chan struct{}),
+		gofer:      cfg.Gofer,
+		signer:     cfg.Signer,
+		transport:  cfg.Transport,
+		interval:   cfg.Interval,
+		pairs:      cfg.Pairs,
+		goferPairs: make(map[gofer.Pair]string),
+		log:        cfg.Logger.WithField("tag", LoggerTag),
 	}
 	return g, nil
 }
 
 func (g *Ghost) Start() error {
 	g.log.Infof("Starting")
+
+	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
+	// (and oracle contract) stores them in AAABBB format. Because of this we
+	// need to make this wired mapping:
+	for _, pair := range g.pairs {
+		goferPairs, err := g.gofer.Pairs()
+		if err != nil {
+			return err
+		}
+		found := false
+		for _, goferPair := range goferPairs {
+			if goferPair.Base+goferPair.Quote == pair {
+				g.goferPairs[goferPair] = pair
+				found = true
+				break
+			}
+		}
+		if !found {
+			return ErrUnableToFindAsset{AssetName: pair}
+		}
+	}
 
 	err := g.broadcasterLoop()
 	if err != nil {
@@ -130,7 +133,7 @@ func (g *Ghost) Wait() {
 func (g *Ghost) broadcast(goferPair gofer.Pair) error {
 	var err error
 
-	pair := g.pairs[goferPair]
+	pair := g.goferPairs[goferPair]
 	tick, err := g.gofer.Price(goferPair)
 	if err != nil {
 		return err
@@ -186,7 +189,7 @@ func (g *Ghost) broadcasterLoop() error {
 				// we're using goroutines here.
 				wg.Add(1)
 				go func() {
-					for assetPair := range g.pairs {
+					for assetPair := range g.goferPairs {
 						err := g.broadcast(assetPair)
 						if err != nil {
 							g.log.
@@ -210,7 +213,7 @@ func (g *Ghost) broadcasterLoop() error {
 }
 
 func (g *Ghost) contextCancelHandler() {
-	defer func() { g.doneCh <- struct{}{} }()
+	defer func() { close(g.doneCh) }()
 	defer g.log.Info("Stopped")
 	<-g.ctx.Done()
 }
