@@ -42,13 +42,13 @@ func (c *Config) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc
 	return c.Gofer.ConfigureRPCAgent(ctx, logger)
 }
 
-type GoferClientService struct {
+type GoferClientServices struct {
 	ctxCancel  context.CancelFunc
 	Gofer      pkgGofer.Gofer
 	Marshaller marshal.Marshaller
 }
 
-func PrepareGoferClientService(ctx context.Context, opts *options) (*GoferClientService, error) {
+func PrepareGoferClientServices(ctx context.Context, opts *options) (*GoferClientServices, error) {
 	var err error
 	ctx, ctxCancel := context.WithCancel(ctx)
 	defer func() {
@@ -83,21 +83,21 @@ func PrepareGoferClientService(ctx context.Context, opts *options) (*GoferClient
 		return nil, err
 	}
 
-	return &GoferClientService{
+	return &GoferClientServices{
 		ctxCancel:  ctxCancel,
 		Gofer:      gof,
 		Marshaller: mar,
 	}, nil
 }
 
-func (s *GoferClientService) Start() error {
+func (s *GoferClientServices) Start() error {
 	if g, ok := s.Gofer.(pkgGofer.StartableGofer); ok {
 		return g.Start()
 	}
 	return nil
 }
 
-func (s *GoferClientService) CancelAndWait() {
+func (s *GoferClientServices) CancelAndWait() {
 	s.ctxCancel()
 	if g, ok := s.Gofer.(pkgGofer.StartableGofer); ok {
 		g.Wait()

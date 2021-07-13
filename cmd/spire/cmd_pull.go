@@ -55,6 +55,7 @@ func NewPullPriceCmd(opts *options) *cobra.Command {
 			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
 			p, err := srv.Client.PullPrice(args[0], args[1])
 			if err != nil {
@@ -70,7 +71,6 @@ func NewPullPriceCmd(opts *options) *cobra.Command {
 			}
 
 			fmt.Printf("%s\n", string(bts))
-			srv.CancelAndWait()
 
 			return nil
 		},

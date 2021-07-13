@@ -47,23 +47,23 @@ type Median interface {
 	// Oracle prices (orcls).
 	Feeds(ctx context.Context) ([]ethereum.Address, error)
 	// Poke sends transaction to the smart contract which invokes contract's
-	// poke method, which updates asset price (val). If you set simulateBeforeRun
-	// to true, then transaction will be simulated on the EVM before actual
+	// poke method, which updates asset price (val).  If simulateBeforeRun is
+	// set to true, then transaction will be simulated on the EVM before actual
 	// transaction will be send.
 	Poke(ctx context.Context, prices []*Price, simulateBeforeRun bool) (*ethereum.Hash, error)
 	// Lift sends transaction to the smart contract which invokes contract's
 	// lift method, which sends  adds given addresses to the feeders list (orcls).
-	// If you set simulateBeforeRun to true, then transaction will be simulated
+	// If simulateBeforeRun is set to true, then transaction will be simulated
 	// on the EVM before actual transaction will be send.
 	Lift(ctx context.Context, addresses []common.Address, simulateBeforeRun bool) (*ethereum.Hash, error)
 	// Drop sends transaction to the smart contract which invokes contract's
 	// drop method, which removes given addresses from the feeders list (orcls).
-	// If you set simulateBeforeRun to true, then transaction will be simulated
+	// If simulateBeforeRun is set to true, then transaction will be simulated
 	// on the EVM before actual transaction will be send.
 	Drop(ctx context.Context, addresses []common.Address, simulateBeforeRun bool) (*ethereum.Hash, error)
 	// SetBar sends transaction to the smart contract which invokes contract's
-	// setBar method, which sets bar variable (quorum). If you set simulateBeforeRun
-	// to true, then transaction will be simulated on the EVM before actual
+	// setBar method, which sets bar variable (quorum).  If simulateBeforeRun is
+	// set to true, then transaction will be simulated on the EVM before actual
 	// transaction will be send.
 	SetBar(ctx context.Context, bar *big.Int, simulateBeforeRun bool) (*ethereum.Hash, error)
 }

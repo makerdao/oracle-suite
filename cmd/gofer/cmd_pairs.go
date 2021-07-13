@@ -32,7 +32,7 @@ func NewPairsCmd(opts *options) *cobra.Command {
 		Short:   "List all supported asset pairs",
 		Long:    `List all supported asset pairs.`,
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-			srv, err := PrepareGoferClientService(context.Background(), opts)
+			srv, err := PrepareGoferClientServices(context.Background(), opts)
 			if err != nil {
 				return err
 			}

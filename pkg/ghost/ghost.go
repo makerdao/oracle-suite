@@ -218,14 +218,14 @@ func (g *Ghost) contextCancelHandler() {
 	<-g.ctx.Done()
 }
 
-func createPriceMessage(price *oracle.Price, tick *gofer.Price) (*messages.Price, error) {
-	trace, err := marshal.Marshall(marshal.JSON, tick)
+func createPriceMessage(op *oracle.Price, gp *gofer.Price) (*messages.Price, error) {
+	trace, err := marshal.Marshall(marshal.JSON, gp)
 	if err != nil {
 		return nil, err
 	}
 
 	return &messages.Price{
-		Price: price,
+		Price: op,
 		Trace: trace,
 	}, nil
 }

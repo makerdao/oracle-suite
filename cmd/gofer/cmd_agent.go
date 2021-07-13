@@ -38,12 +38,12 @@ func NewAgentCmd(opts *options) *cobra.Command {
 			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
 			// Wait for the interrupt signal:
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
-			srv.CancelAndWait()
 
 			return nil
 		},

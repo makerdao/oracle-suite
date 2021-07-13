@@ -21,7 +21,6 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -34,8 +33,6 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
-
-var ErrInvalidPrivKeySeed = errors.New("invalid privKeySeed value")
 
 //nolint:unlambda
 var p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
@@ -94,16 +91,16 @@ func (c *Transport) generatePrivKey() (crypto.PrivKey, error) {
 	if len(c.P2P.PrivKeySeed) != 0 {
 		seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
 		if err != nil {
-			return nil, fmt.Errorf("%w: failed to decode the privKeySeed field: %v", ErrInvalidPrivKeySeed, err)
+			return nil, fmt.Errorf("invalid privKeySeed value, failed to decode hex data: %w", err)
 		}
 		if len(seed) != ed25519.SeedSize {
-			return nil, fmt.Errorf("%w: 32 bytes expected", ErrInvalidPrivKeySeed)
+			return nil, fmt.Errorf("invalid privKeySeed value, 32 bytes expected")
 		}
 		seedReader = bytes.NewReader(seed)
 	}
 	privKey, _, err := crypto.GenerateEd25519Key(seedReader)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to generate key: %v", ErrInvalidPrivKeySeed, err)
+		return nil, fmt.Errorf("invalid privKeySeed value, failed to generate key: %w", err)
 	}
 	return privKey, nil
 }

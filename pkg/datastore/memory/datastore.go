@@ -135,15 +135,15 @@ func (c *Datastore) collectorLoop() error {
 			select {
 			case <-c.ctx.Done():
 				return
-			case status := <-c.transport.Messages(messages.PriceMessageName):
+			case m := <-c.transport.Messages(messages.PriceMessageName):
 				// If there was a problem while reading prices from the transport:
-				if status.Error != nil {
+				if m.Error != nil {
 					c.log.
-						WithError(status.Error).
+						WithError(m.Error).
 						Warn("Unable to read prices from the transport")
 					continue
 				}
-				price := status.Message.(*messages.Price)
+				price := m.Message.(*messages.Price)
 
 				// Try to collect received price:
 				err := c.collectPrice(price)

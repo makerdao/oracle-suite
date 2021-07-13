@@ -32,7 +32,7 @@ func NewPricesCmd(opts *options) *cobra.Command {
 		Short:   "Return prices for given PAIRs",
 		Long:    `Return prices for given PAIRs.`,
 		RunE: func(c *cobra.Command, args []string) (err error) {
-			srv, err := PrepareGoferClientService(context.Background(), opts)
+			srv, err := PrepareGoferClientServices(context.Background(), opts)
 			if err != nil {
 				return err
 			}
