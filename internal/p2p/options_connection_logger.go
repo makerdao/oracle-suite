@@ -47,8 +47,9 @@ func (n *connectionLoggerNotifee) ListenClose(network.Network, multiaddr.Multiad
 func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn) {
 	n.log.
 		WithFields(log.Fields{
-			"peerID": conn.RemotePeer().String(),
-			"addr":   conn.RemoteMultiaddr().String(),
+			"peerID":    conn.RemotePeer().String(),
+			"addr":      conn.RemoteMultiaddr().String(),
+			"peerCount": len(n.ps.Peers()),
 		}).
 		Info("Connected to a host")
 }
@@ -57,8 +58,9 @@ func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn
 func (n *connectionLoggerNotifee) Disconnected(_ network.Network, conn network.Conn) {
 	n.log.
 		WithFields(log.Fields{
-			"peerID": conn.RemotePeer().String(),
-			"addr":   conn.RemoteMultiaddr().String(),
+			"peerID":    conn.RemotePeer().String(),
+			"addr":      conn.RemoteMultiaddr().String(),
+			"peerCount": len(n.ps.Peers()),
 		}).
 		Info("Disconnected from a host")
 }

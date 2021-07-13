@@ -29,8 +29,17 @@ var FormattersMap = map[string]func() logrus.Formatter{
 		return &logrus.TextFormatter{}
 	},
 	"json": func() logrus.Formatter {
-		return &logrus.JSONFormatter{}
+		return ZuluFormatter{&logrus.JSONFormatter{}}
 	},
+}
+
+type ZuluFormatter struct {
+	logrus.Formatter
+}
+
+func (u ZuluFormatter) Format(e *logrus.Entry) ([]byte, error) {
+	e.Time = e.Time.UTC()
+	return u.Formatter.Format(e)
 }
 
 // DefaultFormatter is a name of a default formatter. This formatter *must* be

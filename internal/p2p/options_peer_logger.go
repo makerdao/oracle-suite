@@ -43,6 +43,7 @@ func PeerLogger() Options {
 						"userAgent":       ua,
 						"protocolVersion": pv,
 						"protocols":       log.Format(pp),
+						"peerCount":       len(n.host.Network().Peers()),
 					}).
 					Info("Connected to a peer")
 			case pubsub.PeerLeave:
@@ -51,6 +52,7 @@ func PeerLogger() Options {
 						"peerID":      event.Peer.String(),
 						"topic":       topic,
 						"listenAddrs": log.Format(addrs),
+						"peerCount":   len(n.host.Network().Peers()),
 					}).
 					Info("Disconnected from a peer")
 			}
