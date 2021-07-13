@@ -16,6 +16,8 @@
 package main
 
 import (
+	"context"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -29,35 +31,14 @@ func NewPushCmd(opts *options) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Short: "",
 		Long:  ``,
-		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
-			var err error
-
-			logger, err = newLogger(opts)
-			if err != nil {
-				return err
-			}
-			client, err = newSpire(opts, logger)
-			if err != nil {
-				return err
-			}
-
-			return client.Start()
-		},
-		PersistentPostRunE: func(_ *cobra.Command, args []string) error {
-			err := client.Stop()
-			if err != nil {
-				logger.WithError(err).Error("Unable to stop RPC Client")
-			}
-			return nil
-		},
 	}
 
-	cmd.AddCommand(NewPushPriceCmd())
+	cmd.AddCommand(NewPushPriceCmd(opts))
 
 	return cmd
 }
 
-func NewPushPriceCmd() *cobra.Command {
+func NewPushPriceCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "price",
 		Args:  cobra.MaximumNArgs(1),
@@ -65,6 +46,15 @@ func NewPushPriceCmd() *cobra.Command {
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
 			var err error
+			ctx := context.Background()
+			srv, err := PrepareClientServices(ctx, opts)
+			if err != nil {
+				return err
+			}
+			if err = srv.Start(); err != nil {
+				return err
+			}
+			defer srv.CancelAndWait()
 
 			in := os.Stdin
 			if len(args) == 1 {
@@ -75,7 +65,7 @@ func NewPushPriceCmd() *cobra.Command {
 			}
 
 			// Read JSON and parse it:
-			input, err := readAll(in)
+			input, err := io.ReadAll(in)
 			if err != nil {
 				return err
 			}
@@ -87,7 +77,7 @@ func NewPushPriceCmd() *cobra.Command {
 			}
 
 			// Send price message to RPC client:
-			err = client.PublishPrice(msg)
+			err = srv.Client.PublishPrice(msg)
 			if err != nil {
 				return err
 			}

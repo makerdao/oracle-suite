@@ -114,5 +114,5 @@ type Gofer interface {
 type StartableGofer interface {
 	Gofer
 	Start() error
-	Stop() error
+	Wait()
 }

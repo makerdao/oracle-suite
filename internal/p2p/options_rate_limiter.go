@@ -146,7 +146,7 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 			return pubsub.ValidationAccept
 		})
 		go func() {
-			t := time.NewTimer(time.Minute)
+			t := time.NewTicker(time.Minute)
 			defer t.Stop()
 			for {
 				select {

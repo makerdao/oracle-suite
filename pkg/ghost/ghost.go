@@ -16,6 +16,7 @@
 package ghost
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -41,13 +42,16 @@ func (e ErrUnableToFindAsset) Error() string {
 }
 
 type Ghost struct {
-	gofer     gofer.Gofer
-	signer    ethereum.Signer
-	transport transport.Transport
-	interval  time.Duration
-	pairs     map[gofer.Pair]*Pair
-	log       log.Logger
-	doneCh    chan struct{}
+	ctx    context.Context
+	doneCh chan struct{}
+
+	gofer      gofer.Gofer
+	signer     ethereum.Signer
+	transport  transport.Transport
+	interval   time.Duration
+	pairs      []string
+	goferPairs map[gofer.Pair]string
+	log        log.Logger
 }
 
 type Config struct {
@@ -65,73 +69,63 @@ type Config struct {
 	// Logger is a current logger interface used by the Ghost. The Logger
 	// helps to monitor asynchronous processes.
 	Logger log.Logger
-	// Pairs is the list supported pairs by Ghost with their configuration.
-	Pairs []*Pair
+	// Pairs is a list supported pairs.
+	Pairs []string
 }
 
-type Pair struct {
-	// AssetPair is the name of asset pair, e.g. ETHUSD.
-	AssetPair string
-}
-
-func NewGhost(config Config) (*Ghost, error) {
+func NewGhost(ctx context.Context, cfg Config) (*Ghost, error) {
+	if ctx == nil {
+		return nil, errors.New("context must not be nil")
+	}
 	g := &Ghost{
-		gofer:     config.Gofer,
-		signer:    config.Signer,
-		transport: config.Transport,
-		interval:  config.Interval,
-		pairs:     make(map[gofer.Pair]*Pair),
-		log:       config.Logger.WithField("tag", LoggerTag),
-		doneCh:    make(chan struct{}),
+		ctx:        ctx,
+		doneCh:     make(chan struct{}),
+		gofer:      cfg.Gofer,
+		signer:     cfg.Signer,
+		transport:  cfg.Transport,
+		interval:   cfg.Interval,
+		pairs:      cfg.Pairs,
+		goferPairs: make(map[gofer.Pair]string),
+		log:        cfg.Logger.WithField("tag", LoggerTag),
 	}
-
-	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
-	// (and oracle contract) stores them in AAABBB format. Because of this we
-	// need to make this wired mapping:
-	for _, pair := range config.Pairs {
-		goferPairs, err := g.gofer.Pairs()
-		if err != nil {
-			return nil, err
-		}
-
-		found := false
-		for _, goferPair := range goferPairs {
-			if goferPair.Base+goferPair.Quote == pair.AssetPair {
-				g.pairs[goferPair] = pair
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return nil, ErrUnableToFindAsset{AssetName: pair.AssetPair}
-		}
-	}
-
 	return g, nil
 }
 
 func (g *Ghost) Start() error {
 	g.log.Infof("Starting")
 
+	// Unfortunately, the Gofer stores pairs in the AAA/BBB format but Ghost
+	// (and oracle contract) stores them in AAABBB format. Because of this we
+	// need to make this wired mapping:
+	for _, pair := range g.pairs {
+		goferPairs, err := g.gofer.Pairs()
+		if err != nil {
+			return err
+		}
+		found := false
+		for _, goferPair := range goferPairs {
+			if goferPair.Base+goferPair.Quote == pair {
+				g.goferPairs[goferPair] = pair
+				found = true
+				break
+			}
+		}
+		if !found {
+			return ErrUnableToFindAsset{AssetName: pair}
+		}
+	}
+
 	err := g.broadcasterLoop()
 	if err != nil {
 		return err
 	}
 
+	go g.contextCancelHandler()
 	return nil
 }
 
-func (g *Ghost) Stop() error {
-	defer g.log.Infof("Stopped")
-
-	close(g.doneCh)
-	err := g.transport.Unsubscribe(messages.PriceMessageName)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (g *Ghost) Wait() {
+	<-g.doneCh
 }
 
 // broadcast sends price for single pair to the network. This method uses
@@ -139,7 +133,7 @@ func (g *Ghost) Stop() error {
 func (g *Ghost) broadcast(goferPair gofer.Pair) error {
 	var err error
 
-	pair := g.pairs[goferPair]
+	pair := g.goferPairs[goferPair]
 	tick, err := g.gofer.Price(goferPair)
 	if err != nil {
 		return err
@@ -149,7 +143,7 @@ func (g *Ghost) broadcast(goferPair gofer.Pair) error {
 	}
 
 	// Create price:
-	price := &oracle.Price{Wat: pair.AssetPair, Age: tick.Time}
+	price := &oracle.Price{Wat: pair, Age: tick.Time}
 	price.SetFloat64Price(tick.Price)
 
 	// Sign price:
@@ -195,7 +189,7 @@ func (g *Ghost) broadcasterLoop() error {
 				// we're using goroutines here.
 				wg.Add(1)
 				go func() {
-					for assetPair := range g.pairs {
+					for assetPair := range g.goferPairs {
 						err := g.broadcast(assetPair)
 						if err != nil {
 							g.log.
@@ -218,14 +212,20 @@ func (g *Ghost) broadcasterLoop() error {
 	return nil
 }
 
-func createPriceMessage(price *oracle.Price, tick *gofer.Price) (*messages.Price, error) {
-	trace, err := marshal.Marshall(marshal.JSON, tick)
+func (g *Ghost) contextCancelHandler() {
+	defer func() { close(g.doneCh) }()
+	defer g.log.Info("Stopped")
+	<-g.ctx.Done()
+}
+
+func createPriceMessage(op *oracle.Price, gp *gofer.Price) (*messages.Price, error) {
+	trace, err := marshal.Marshall(marshal.JSON, gp)
 	if err != nil {
 		return nil, err
 	}
 
 	return &messages.Price{
-		Price: price,
+		Price: op,
 		Trace: trace,
 	}, nil
 }

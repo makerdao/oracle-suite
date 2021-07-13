@@ -16,6 +16,9 @@
 package graph
 
 import (
+	"context"
+	"errors"
+
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
@@ -25,25 +28,39 @@ import (
 // but allows to update prices asynchronously.
 type AsyncGofer struct {
 	*Gofer
+	ctx    context.Context
 	feeder *feeder.Feeder
+	doneCh chan struct{}
 }
 
 // NewAsyncGofer returns a new AsyncGofer instance.
-func NewAsyncGofer(g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) *AsyncGofer {
+func NewAsyncGofer(ctx context.Context, g map[gofer.Pair]nodes.Aggregator, f *feeder.Feeder) (*AsyncGofer, error) {
+	if ctx == nil {
+		return nil, errors.New("context must not be nil")
+	}
 	return &AsyncGofer{
 		Gofer:  NewGofer(g, nil),
+		ctx:    ctx,
 		feeder: f,
-	}
+		doneCh: make(chan struct{}),
+	}, nil
 }
 
 // Start starts asynchronous price updater.
 func (a *AsyncGofer) Start() error {
+	go a.contextCancelHandler()
 	ns, _ := a.findNodes()
 	return a.feeder.Start(ns...)
 }
 
-// Stop stops asynchronous price updater.
-func (a *AsyncGofer) Stop() error {
-	a.feeder.Stop()
-	return nil
+// Wait waits until feeder's context is cancelled.
+func (a *AsyncGofer) Wait() {
+	<-a.doneCh
+}
+
+func (a *AsyncGofer) contextCancelHandler() {
+	defer func() { close(a.doneCh) }()
+	<-a.ctx.Done()
+
+	a.feeder.Wait()
 }

@@ -16,6 +16,7 @@
 package rpc
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -33,10 +34,12 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 	var err error
 
 	mockGofer = &mocks.Gofer{}
-	agent, err = NewAgent(AgentConfig{
+	agent, err = NewAgent(ctx, AgentConfig{
 		Gofer:   mockGofer,
 		Network: "tcp",
 		Address: "127.0.0.1:0",
@@ -48,19 +51,16 @@ func TestMain(m *testing.M) {
 	if err = agent.Start(); err != nil {
 		panic(err)
 	}
-	rpcGofer = NewGofer("tcp", agent.listener.Addr().String())
+	rpcGofer, err = NewGofer(ctx, "tcp", agent.listener.Addr().String())
+	if err != nil {
+		panic(err)
+	}
 	err = rpcGofer.Start()
 	if err != nil {
 		panic(err)
 	}
 
 	retCode := m.Run()
-
-	agent.Stop()
-	if err = rpcGofer.Stop(); err != nil {
-		panic(err)
-	}
-
 	os.Exit(retCode)
 }
 

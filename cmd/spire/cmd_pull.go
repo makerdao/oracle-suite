@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,45 +30,34 @@ func NewPullCmd(opts *options) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Short: "",
 		Long:  ``,
-		PersistentPreRunE: func(_ *cobra.Command, args []string) error {
-			var err error
-
-			logger, err = newLogger(opts)
-			if err != nil {
-				return err
-			}
-			client, err = newSpire(opts, logger)
-			if err != nil {
-				return err
-			}
-
-			return client.Start()
-		},
-		PersistentPostRunE: func(_ *cobra.Command, args []string) error {
-			err := client.Stop()
-			if err != nil {
-				logger.WithError(err).Error("Unable to stop RPC Client")
-			}
-			return nil
-		},
 	}
 
 	cmd.AddCommand(
-		NewPullPricesCmd(),
-		NewPullPriceCmd(),
+		NewPullPriceCmd(opts),
+		NewPullPricesCmd(opts),
 	)
 
 	return cmd
 }
 
-func NewPullPriceCmd() *cobra.Command {
+func NewPullPriceCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "price",
 		Args:  cobra.ExactArgs(2),
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			p, err := client.PullPrice(args[0], args[1])
+			ctx := context.Background()
+			srv, err := PrepareClientServices(ctx, opts)
+			if err != nil {
+				return err
+			}
+			if err = srv.Start(); err != nil {
+				return err
+			}
+			defer srv.CancelAndWait()
+
+			p, err := srv.Client.PullPrice(args[0], args[1])
 			if err != nil {
 				return err
 			}
@@ -92,7 +82,7 @@ type pullPricesOptions struct {
 	FilterFrom string
 }
 
-func NewPullPricesCmd() *cobra.Command {
+func NewPullPricesCmd(opts *options) *cobra.Command {
 	var pullPricesOpts pullPricesOptions
 
 	cmd := &cobra.Command{
@@ -101,7 +91,17 @@ func NewPullPricesCmd() *cobra.Command {
 		Short: "",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			p, err := client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
+			ctx := context.Background()
+			srv, err := PrepareClientServices(ctx, opts)
+			if err != nil {
+				return err
+			}
+			if err = srv.Start(); err != nil {
+				return err
+			}
+			defer srv.CancelAndWait()
+
+			p, err := srv.Client.PullPrices(pullPricesOpts.FilterPair, pullPricesOpts.FilterFrom)
 			if err != nil {
 				return err
 			}

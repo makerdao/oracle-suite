@@ -18,17 +18,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-
-	"github.com/sirupsen/logrus"
 
 	suite "github.com/makerdao/oracle-suite"
 	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	configJSON "github.com/makerdao/oracle-suite/pkg/gofer/config/json"
-	"github.com/makerdao/oracle-suite/pkg/gofer/rpc"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 )
 
 // exitCode to be returned by the application.
@@ -54,58 +46,4 @@ func main() {
 		}
 	}
 	os.Exit(exitCode)
-}
-
-func newLogger(opts *options) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(opts.LogVerbosity)
-	if err != nil {
-		return nil, err
-	}
-
-	lr := logrus.New()
-	lr.SetLevel(ll)
-	lr.SetFormatter(opts.LogFormat.Formatter())
-
-	return logLogrus.New(lr), nil
-}
-
-func newGofer(opts *options, path string, logger log.Logger) (gofer.Gofer, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	err = configJSON.ParseJSONFile(&opts.Config, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var gof gofer.Gofer
-	if opts.Config.RPC.Address == "" || opts.NoRPC {
-		gof, err = opts.Config.ConfigureGofer(logger)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		gof, err = opts.Config.ConfigureRPCClient(logger)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return gof, nil
-}
-
-func newAgent(opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	err = configJSON.ParseJSONFile(&opts.Config, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return opts.Config.ConfigureRPCAgent(logger)
 }

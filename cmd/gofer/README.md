@@ -14,9 +14,9 @@ exactly, from how many sources you want to pull prices and what conditions they 
 * [Price models](#price-models)
 * [Origins configuration](#origins-configuration)
 * [Commands](#commands)
-  * [gofer price](#gofer-price)
-  * [gofer pairs](#gofer-pairs)
-  * [gofer agent](#gofer-agent)
+    * [gofer price](#gofer-price)
+    * [gofer pairs](#gofer-pairs)
+    * [gofer agent](#gofer-agent)
 * [Gofer library](#gofer-library)
 * [License](#license)
 
@@ -44,20 +44,22 @@ Simple price model for the `BTC/USD` asset pair may look like this:
 
 ```json
 {
-  "priceModels": {
-    "BTC/USD": {
-      "method": "median",
-      "sources": [
-        [
-          {
-            "origin": "bitstamp",
-            "pair": "BTC/USD",
-            "ttl": 60
-          }
-        ]
-      ],
-      "params": {
-        "minimumSuccessfulSources": 1
+  "gofer": {
+    "priceModels": {
+      "BTC/USD": {
+        "method": "median",
+        "sources": [
+          [
+            {
+              "origin": "bitstamp",
+              "pair": "BTC/USD",
+              "ttl": 60
+            }
+          ]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
       }
     }
   }
@@ -128,24 +130,27 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
 
 ## Origins configuration
 
-Some origins might require additional configuration parameters like an `API Key`.
-In the current implementation, we have `openexchangerates` and `coinmarketcap`. Both of these origins require an `API Key`.
-To configure these origins we have to provide `origins` field in the configuration file.
+Some origins might require additional configuration parameters like an `API Key`. In the current implementation, we
+have `openexchangerates` and `coinmarketcap`. Both of these origins require an `API Key`. To configure these origins we
+have to provide `origins` field in the configuration file.
 
-Example: 
+Example:
 
 ```json
 {
-  "origins": {
-    "openexchangerates": {
-      "type": "openexchangerates",
-      "params": {
-        "apiKey": "API_KEY"
+  "gofer": {
+    "origins": {
+      "openexchangerates": {
+        "type": "openexchangerates",
+        "params": {
+          "apiKey": "API_KEY"
+        }
       }
     }
   }
 }
 ```
+
 - `type` - this key corresponds to the built-in origin set
 - `params` - this object will map the params to the specific origin configuration (apiKey is one example)
 
@@ -327,8 +332,10 @@ At first, the agent mode has to be enabled in the configuration file by adding t
 
 ```json
 {
-  "rpc": {
-    "address": "127.0.0.1:8080"
+  "gofer": {
+    "rpc": {
+      "address": "127.0.0.1:8080"
+    }
   }
 }
 ```
@@ -351,9 +358,8 @@ import (
 	"time"
 
 	"github.com/makerdao/oracle-suite/internal/query"
-	
+
 	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/gofer/config"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
@@ -375,7 +381,7 @@ func main() {
 	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
 	// Feeder is used to fetch prices:
-	f := feeder.NewFeeder(config.DefaultOriginSet(httpWorkerPool), null.New())
+	f := feeder.NewFeeder(origins.DefaultOriginSet(httpWorkerPool), null.New())
 
 	// Initialize gofer and ask for BTC/USD price:
 	g := graph.NewGofer(m, f)
@@ -387,7 +393,9 @@ func main() {
 }
 ```
 
-The full documentation for Gofer library can be found here: https://pkg.go.dev/github.com/makerdao/oracle-suite/pkg/gofer
+The full documentation for Gofer library can be found
+here: https://pkg.go.dev/github.com/makerdao/oracle-suite/pkg/gofer
+
 ## License
 
 [The GNU Affero General Public License](https://www.notion.so/LICENSE)

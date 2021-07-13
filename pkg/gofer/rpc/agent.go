@@ -16,6 +16,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -42,6 +43,9 @@ type AgentConfig struct {
 
 // Agent creates and manages an RPC server for remote Gofer calls.
 type Agent struct {
+	ctx    context.Context
+	doneCh chan struct{}
+
 	api      *API
 	rpc      *rpc.Server
 	listener net.Listener
@@ -52,8 +56,13 @@ type Agent struct {
 }
 
 // NewAgent returns a new Agent instance.
-func NewAgent(cfg AgentConfig) (*Agent, error) {
+func NewAgent(ctx context.Context, cfg AgentConfig) (*Agent, error) {
+	if ctx == nil {
+		return nil, errors.New("context must not be nil")
+	}
 	server := &Agent{
+		ctx:    ctx,
+		doneCh: make(chan struct{}),
 		api: &API{
 			gofer: cfg.Gofer,
 			log:   cfg.Logger.WithField("tag", AgentLoggerTag),
@@ -64,11 +73,13 @@ func NewAgent(cfg AgentConfig) (*Agent, error) {
 		address: cfg.Address,
 		log:     cfg.Logger.WithField("tag", AgentLoggerTag),
 	}
+
 	err := server.rpc.Register(server.api)
 	if err != nil {
 		return nil, err
 	}
 	server.rpc.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
+
 	return server, nil
 }
 
@@ -77,6 +88,7 @@ func (s *Agent) Start() error {
 	s.log.Infof("Starting")
 	var err error
 
+	// Start Gofer if necessary:
 	if sg, ok := s.gofer.(gofer.StartableGofer); ok {
 		err = sg.Start()
 		if err != nil {
@@ -84,11 +96,11 @@ func (s *Agent) Start() error {
 		}
 	}
 
+	// Start RPC server:
 	s.listener, err = net.Listen(s.network, s.address)
 	if err != nil {
 		return err
 	}
-
 	go func() {
 		err := http.Serve(s.listener, nil)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -96,22 +108,21 @@ func (s *Agent) Start() error {
 		}
 	}()
 
+	go s.contextCancelHandler()
 	return nil
 }
 
-// Stop stops the RPC server.
-func (s *Agent) Stop() {
-	defer s.log.Infof("Stopped")
-	var err error
+// Wait waits until agent's context is cancelled.
+func (s *Agent) Wait() {
+	<-s.doneCh
+}
 
-	if sg, ok := s.gofer.(gofer.StartableGofer); ok {
-		err = sg.Stop()
-		if err != nil {
-			s.log.WithError(err).Error("Unable to stop Gofer")
-		}
-	}
+func (s *Agent) contextCancelHandler() {
+	defer func() { close(s.doneCh) }()
+	defer s.log.Info("Stopped")
+	<-s.ctx.Done()
 
-	err = s.listener.Close()
+	err := s.listener.Close()
 	if err != nil {
 		s.log.WithError(err).Error("Unable to close RPC listener")
 	}

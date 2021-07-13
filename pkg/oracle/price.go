@@ -228,6 +228,7 @@ func (p *Price) hash() []byte {
 	// Time:
 	age := make([]byte, 32)
 	binary.BigEndian.PutUint64(age[24:], uint64(p.Age.Unix()))
+
 	// Asset name:
 	wat := make([]byte, 32)
 	copy(wat, p.Wat)

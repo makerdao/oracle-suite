@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -31,23 +32,16 @@ func NewAgentCmd(opts *options) *cobra.Command {
 		Long:  ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			var err error
-			logger, err = newLogger(opts)
+			ctx := context.Background()
+			srv, err := PrepareAgentServices(ctx, opts)
 			if err != nil {
 				return err
 			}
-			srv, err := newServer(opts, logger)
-			if err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
+			defer srv.CancelAndWait()
 
-			// Start the RPC server:
-			err = srv.Start()
-			if err != nil {
-				return err
-			}
-			defer srv.Stop()
-
-			// Wait for the interrupt signal:
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c

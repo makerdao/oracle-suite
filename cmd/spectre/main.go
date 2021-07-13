@@ -16,16 +16,7 @@
 package main
 
 import (
-	"context"
 	"os"
-	"path/filepath"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
-	"github.com/makerdao/oracle-suite/pkg/spectre/config"
-	configJSON "github.com/makerdao/oracle-suite/pkg/spectre/config/json"
 )
 
 func main() {
@@ -39,39 +30,4 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-func newLogger(opts *options) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(opts.LogVerbosity)
-	if err != nil {
-		return nil, err
-	}
-
-	lr := logrus.New()
-	lr.SetLevel(ll)
-	lr.SetFormatter(opts.LogFormat.Formatter())
-
-	return logLogrus.New(lr), nil
-}
-
-func newSpectre(opts *options, path string, log log.Logger) (*config.Instances, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	err = configJSON.ParseJSONFile(&opts.Config, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	i, err := opts.Config.Configure(config.Dependencies{
-		Context: context.Background(),
-		Logger:  log,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return i, nil
 }

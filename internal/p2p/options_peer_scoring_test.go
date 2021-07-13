@@ -42,6 +42,12 @@ func (s *scoringEventTracer) Trace(evt *pubsub_pb.TraceEvent) {
 	}
 }
 
+func (s *scoringEventTracer) Prunes() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.prunes
+}
+
 func TestNode_PeerScoring(t *testing.T) {
 	// This test verifies that the integration with peer scoring is working
 	// correctly.
@@ -78,9 +84,12 @@ func TestNode_PeerScoring(t *testing.T) {
 	peers, err := getNodeInfo(2)
 	require.NoError(t, err)
 
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
 	et := &scoringEventTracer{}
 	n0, err := NewNode(
-		context.Background(),
+		ctx,
 		PeerPrivKey(peers[0].PrivKey),
 		ListenAddrs(peers[0].ListenAddrs),
 		PubsubEventTracer(et),
@@ -90,16 +99,14 @@ func TestNode_PeerScoring(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NoError(t, n0.Start())
-	defer n0.Stop()
 
 	n1, err := NewNode(
-		context.Background(),
+		ctx,
 		PeerPrivKey(peers[1].PrivKey),
 		ListenAddrs(peers[1].ListenAddrs),
 	)
 	require.NoError(t, err)
 	require.NoError(t, n1.Start())
-	defer n1.Stop()
 
 	// Add validator to the n0 node which will reject all received messages
 	// from the second node:
@@ -150,5 +157,5 @@ func TestNode_PeerScoring(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// The n1 node should be pruned:
-	assert.Equal(t, 1, et.prunes)
+	assert.Equal(t, 1, et.Prunes())
 }

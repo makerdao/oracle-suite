@@ -65,7 +65,7 @@ func (e ErrPriceTTLExpired) Error() string {
 
 // OriginNode contains a Price fetched directly from an origin.
 type OriginNode struct {
-	mu sync.Mutex
+	mu sync.RWMutex
 
 	originPair OriginPair
 	price      OriginPrice
@@ -75,8 +75,6 @@ type OriginNode struct {
 
 func NewOriginNode(originPair OriginPair, minTTL time.Duration, maxTTL time.Duration) *OriginNode {
 	return &OriginNode{
-		mu: sync.Mutex{},
-
 		originPair: originPair,
 		minTTL:     minTTL,
 		maxTTL:     maxTTL,
@@ -127,7 +125,9 @@ func (n *OriginNode) MaxTTL() time.Duration {
 
 // Expired implements the Feedable interface.
 func (n *OriginNode) Expired() bool {
-	return n.price.Time.Before(time.Now().Add(-1 * n.MaxTTL()))
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.expired()
 }
 
 // Price implements the Feedable interface.
@@ -136,7 +136,7 @@ func (n *OriginNode) Price() OriginPrice {
 	defer n.mu.Unlock()
 
 	if n.price.Error == nil {
-		if n.Expired() {
+		if n.expired() {
 			n.price.Error = ErrPriceTTLExpired{
 				Price: n.price,
 				TTL:   n.maxTTL,
@@ -150,4 +150,8 @@ func (n *OriginNode) Price() OriginPrice {
 // Children implements the Node interface.
 func (n *OriginNode) Children() []Node {
 	return []Node{}
+}
+
+func (n *OriginNode) expired() bool {
+	return n.price.Time.Before(time.Now().Add(-1 * n.MaxTTL()))
 }

@@ -16,6 +16,7 @@
 package spire
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"os"
@@ -26,10 +27,12 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
+	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 	"github.com/makerdao/oracle-suite/pkg/log/null"
 	"github.com/makerdao/oracle-suite/pkg/oracle"
+	"github.com/makerdao/oracle-suite/pkg/transport"
 	"github.com/makerdao/oracle-suite/pkg/transport/local"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
@@ -45,32 +48,36 @@ var (
 		},
 		Trace: nil,
 	}
-	agent *Agent
-	spire *Spire
+	agent     *Agent
+	spire     *Client
+	dat       datastore.Datastore
+	ctxCancel context.CancelFunc
 )
 
-func newTestInstances() (*Agent, *Spire) {
+func newTestInstances() (*Agent, *Client) {
+	var err error
+	var ctx context.Context
+	ctx, ctxCancel = context.WithCancel(context.Background())
+
 	log := null.New()
 	sig := &mocks.Signer{}
-	tra := local.New(0)
-	err := tra.Subscribe(messages.PriceMessageName, (*messages.Price)(nil))
-	if err != nil {
-		panic(err)
-	}
-
-	dat := datastore.NewDatastore(datastore.Config{
+	tra := local.New(ctx, 0, map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)})
+	dat, err = datastoreMemory.NewDatastore(ctx, datastoreMemory.Config{
 		Signer:    sig,
 		Transport: tra,
-		Pairs: map[string]*datastore.Pair{
+		Pairs: map[string]*datastoreMemory.Pair{
 			"AAABBB": {Feeds: []ethereum.Address{testAddress}},
 			"XXXYYY": {Feeds: []ethereum.Address{testAddress}},
 		},
 		Logger: null.New(),
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	sig.On("Recover", mock.Anything, mock.Anything).Return(&testAddress, nil)
 
-	agt, err := NewAgent(AgentConfig{
+	agt, err := NewAgent(ctx, AgentConfig{
 		Datastore: dat,
 		Transport: tra,
 		Signer:    sig,
@@ -81,16 +88,23 @@ func newTestInstances() (*Agent, *Spire) {
 	if err != nil {
 		panic(err)
 	}
+	err = dat.Start()
+	if err != nil {
+		panic(err)
+	}
 	err = agt.Start()
 	if err != nil {
 		panic(err)
 	}
 
-	cli := NewSpire(Config{
+	cli, err := NewClient(ctx, ClientConfig{
 		Signer:  sig,
 		Network: "tcp",
 		Address: agt.listener.Addr().String(),
 	})
+	if err != nil {
+		panic(err)
+	}
 	err = cli.Start()
 	if err != nil {
 		panic(err)
@@ -100,16 +114,13 @@ func newTestInstances() (*Agent, *Spire) {
 }
 
 func TestMain(m *testing.M) {
-	var err error
-
 	agent, spire = newTestInstances()
 	retCode := m.Run()
 
-	agent.Stop()
-	err = spire.Stop()
-	if err != nil {
-		panic(err)
-	}
+	ctxCancel()
+	agent.Wait()
+	spire.Wait()
+	dat.Wait()
 
 	os.Exit(retCode)
 }

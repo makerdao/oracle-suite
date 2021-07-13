@@ -16,9 +16,9 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -32,31 +32,14 @@ func NewRunCmd(opts *options) *cobra.Command {
 		Short:   "",
 		Long:    ``,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			absPath, err := filepath.Abs(opts.ConfigFilePath)
+			srv, err := PrepareServices(context.Background(), opts)
 			if err != nil {
 				return err
 			}
-
-			l, err := newLogger(opts)
-			if err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
-
-			ins, err := newSpectre(opts, absPath, l)
-			if err != nil {
-				return err
-			}
-
-			err = ins.Spectre.Start()
-			if err != nil {
-				return err
-			}
-			defer func() {
-				err := ins.Spectre.Stop()
-				if err != nil {
-					l.Errorf("Unable to stop Spectre: %s", err)
-				}
-			}()
+			defer srv.CancelAndWait()
 
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)

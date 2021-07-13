@@ -16,25 +16,10 @@
 package main
 
 import (
-	"context"
 	_ "embed"
-	"io"
 	"os"
-	"path/filepath"
-
-	"github.com/sirupsen/logrus"
 
 	suite "github.com/makerdao/oracle-suite"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
-	"github.com/makerdao/oracle-suite/pkg/spire"
-	"github.com/makerdao/oracle-suite/pkg/spire/config"
-	configJSON "github.com/makerdao/oracle-suite/pkg/spire/config/json"
-)
-
-var (
-	logger log.Logger
-	client *spire.Spire
 )
 
 func main() {
@@ -43,84 +28,5 @@ func main() {
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
-	}
-}
-
-func newLogger(opts *options) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(opts.LogVerbosity)
-	if err != nil {
-		return nil, err
-	}
-
-	lr := logrus.New()
-	lr.SetLevel(ll)
-	lr.SetFormatter(opts.LogFormat.Formatter())
-
-	return logLogrus.New(lr), nil
-}
-
-func newServer(opts *options, log log.Logger) (*spire.Agent, error) {
-	if opts.ConfigPath != "" {
-		absPath, err := filepath.Abs(opts.ConfigPath)
-		if err != nil {
-			return nil, err
-		}
-
-		err = configJSON.ParseJSONFile(&opts.Config, absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	s, err := opts.Config.ConfigureAgent(config.Dependencies{
-		Context: context.Background(),
-		Logger:  log,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
-}
-
-func newSpire(opts *options, log log.Logger) (*spire.Spire, error) {
-	if opts.ConfigPath != "" {
-		absPath, err := filepath.Abs(opts.ConfigPath)
-		if err != nil {
-			return nil, err
-		}
-
-		err = configJSON.ParseJSONFile(&opts.Config, absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	c, err := opts.Config.ConfigureSpire(config.Dependencies{
-		Context: context.Background(),
-		Logger:  log,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
-}
-
-func readAll(r io.Reader) ([]byte, error) {
-	b := make([]byte, 0, 512)
-	for {
-		if len(b) == cap(b) {
-			// Add more capacity (let append pick how much).
-			b = append(b, 0)[:len(b)]
-		}
-		n, err := r.Read(b[len(b):cap(b)])
-		b = b[:len(b)+n]
-		if err != nil {
-			if err == io.EOF {
-				err = nil
-			}
-			return b, err
-		}
 	}
 }

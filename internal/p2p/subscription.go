@@ -30,8 +30,8 @@ import (
 var ErrNilMessage = errors.New("message is nil")
 
 type Subscription struct {
-	ctx      context.Context
-	ctxCanel context.CancelFunc
+	ctx       context.Context
+	ctxCancel context.CancelFunc
 
 	topic          *pubsub.Topic
 	sub            *pubsub.Subscription
@@ -41,7 +41,7 @@ type Subscription struct {
 	messageHandler sets.MessageHandler
 
 	// msgCh is used to send a notification about a new message, it's
-	// returned by the Transport.WaitFor function.
+	// returned by the Transport.Messages function.
 	msgCh chan transport.ReceivedMessage
 }
 
@@ -50,7 +50,7 @@ func newSubscription(node *Node, topic string, typ transport.Message) (*Subscrip
 	ctx, ctxCancel := context.WithCancel(node.ctx)
 	s := &Subscription{
 		ctx:            ctx,
-		ctxCanel:       ctxCancel,
+		ctxCancel:      ctxCancel,
 		validatorSet:   node.validatorSet,
 		eventHandler:   node.pubSubEventHandlerSet,
 		messageHandler: node.messageHandlerSet,
@@ -151,7 +151,7 @@ func (s *Subscription) eventLoop() {
 }
 
 func (s *Subscription) close() error {
-	s.ctxCanel()
+	s.ctxCancel()
 	s.teh.Cancel()
 	s.sub.Cancel()
 	return s.topic.Close()

@@ -16,60 +16,62 @@
 package local
 
 import (
+	"context"
 	"errors"
 	"reflect"
 
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
-var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
 
 // Local is a simple implementation of the transport.Transport interface
 // using local channels.
 type Local struct {
-	buffer int
+	ctx    context.Context
+	doneCh chan struct{} // doneCh is used to unblock the Wait method.
 	subs   map[string]subscription
 }
 
 type subscription struct {
-	typ    reflect.Type
-	msgs   chan []byte
+	// typ is the structure type to which the message must be unmarshalled.
+	typ reflect.Type
+	// msgs is a channel used to broadcast raw message data.
+	msgs chan []byte
+	// status is a channel used to broadcast unmarshalled messages.
 	status chan transport.ReceivedMessage
-	doneCh chan struct{}
 }
 
-// New returns a new instance of the Local structure.
-func New(buffer int) *Local {
-	return &Local{
-		buffer: buffer,
+// New returns a new instance of the Local structure. The created transport
+// can handle up to b unread messages before it is blocked. The list of of
+// supported subscriptions must be given as a map in s argument, where the
+// key is the subscription's topic name, and the map value is the message type
+// messages given as a nil pointer, e.g: (*Message)(nil).
+func New(ctx context.Context, b int, s map[string]transport.Message) *Local {
+	l := &Local{
+		ctx:    ctx,
+		doneCh: make(chan struct{}),
 		subs:   make(map[string]subscription),
 	}
+	for topic, typ := range s {
+		l.subs[topic] = subscription{
+			typ:    reflect.TypeOf(typ).Elem(),
+			msgs:   make(chan []byte, b),
+			status: make(chan transport.ReceivedMessage),
+		}
+	}
+	return l
 }
 
-// Subscribe implements the transport.Transport interface.
-func (l *Local) Subscribe(topic string, typ transport.Message) error {
-	if _, ok := l.subs[topic]; ok {
-		return ErrAlreadySubscribed
-	}
-	l.subs[topic] = subscription{
-		typ:    reflect.TypeOf(typ).Elem(),
-		msgs:   make(chan []byte, l.buffer),
-		status: make(chan transport.ReceivedMessage),
-		doneCh: make(chan struct{}),
-	}
+// Start implements the transport.Transport interface.
+func (l *Local) Start() error {
+	go l.contextCancelHandler()
 	return nil
 }
 
-// Unsubscribe implements the transport.Transport interface.
-func (l *Local) Unsubscribe(topic string) error {
-	if sub, ok := l.subs[topic]; ok {
-		close(sub.doneCh)
-		close(sub.status)
-		delete(l.subs, topic)
-		return nil
-	}
-	return ErrNotSubscribed
+// Wait implements the transport.Transport interface.
+func (l *Local) Wait() {
+	<-l.doneCh
 }
 
 // Broadcast implements the transport.Transport interface.
@@ -85,12 +87,12 @@ func (l *Local) Broadcast(topic string, message transport.Message) error {
 	return ErrNotSubscribed
 }
 
-// WaitFor implements the transport.Transport interface.
-func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
+// Messages implements the transport.Transport interface.
+func (l *Local) Messages(topic string) chan transport.ReceivedMessage {
 	if sub, ok := l.subs[topic]; ok {
 		go func() {
 			select {
-			case <-sub.doneCh:
+			case <-l.ctx.Done():
 				return
 			case msg := <-sub.msgs:
 				message := reflect.New(sub.typ).Interface().(transport.Message)
@@ -105,12 +107,13 @@ func (l *Local) WaitFor(topic string) chan transport.ReceivedMessage {
 	return nil
 }
 
-// Close implements the transport.Transport interface.
-func (l *Local) Close() error {
+// contextCancelHandler handles context cancellation.
+func (l *Local) contextCancelHandler() {
+	defer func() { close(l.doneCh) }()
+	<-l.ctx.Done()
+
 	for _, sub := range l.subs {
-		close(sub.doneCh)
 		close(sub.status)
 	}
 	l.subs = make(map[string]subscription)
-	return nil
 }
