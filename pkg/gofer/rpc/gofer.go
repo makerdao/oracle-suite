@@ -39,7 +39,6 @@ func NewGofer(ctx context.Context, network, address string) (*Gofer, error) {
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	return &Gofer{
 		ctx:     ctx,
 		doneCh:  make(chan struct{}),

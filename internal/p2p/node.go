@@ -42,7 +42,6 @@ import (
 	pkgTransport "github.com/makerdao/oracle-suite/pkg/transport"
 )
 
-var ErrNode = errors.New("libp2p node error")
 var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
@@ -62,7 +61,7 @@ func init() {
 type Node struct {
 	ctx    context.Context
 	mu     sync.Mutex
-	doneCh chan struct{}
+	doneCh chan struct{} // doneCh is used to unblock the Wait method.
 
 	host                  host.Host
 	pubSub                *pubsub.PubSub
@@ -103,7 +102,7 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 	for _, opt := range opts {
 		err := opt(n)
 		if err != nil {
-			return nil, fmt.Errorf("%v: unable to apply option: %v", ErrNode, err)
+			return nil, fmt.Errorf("libp2p node error, unable to apply option: %w", err)
 		}
 	}
 
@@ -132,7 +131,7 @@ func (n *Node) Start() error {
 		libp2p.ConnectionManager(n.connmgr),
 	}, n.hostOpts...)...)
 	if err != nil {
-		return fmt.Errorf("%v: unable to initialize libp2p: %v", ErrNode, err)
+		return fmt.Errorf("libp2p node error, unable to initialize libp2p: %v", err)
 	}
 	n.host.Network().Notify(n.notifeeSet)
 
@@ -145,7 +144,7 @@ func (n *Node) Start() error {
 	if !n.disablePubSub {
 		n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
 		if err != nil {
-			return fmt.Errorf("%v: unable to initialize gosspib pubsub: %v", ErrNode, err)
+			return fmt.Errorf("libp2p node error, unable to initialize gosspib pubsub: %v", err)
 		}
 		n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
 	}
@@ -243,10 +242,10 @@ func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
+		return fmt.Errorf("libp2p node error: %v", ErrConnectionClosed)
 	}
 	if _, ok := n.subs[topic]; ok {
-		return fmt.Errorf("%v: %v", ErrNode, ErrAlreadySubscribed)
+		return fmt.Errorf("libp2p node error: %v", ErrAlreadySubscribed)
 	}
 
 	sub, err := newSubscription(n, topic, typ)
@@ -263,7 +262,7 @@ func (n *Node) Unsubscribe(topic string) error {
 		return ErrPubSubDisabled
 	}
 	if n.closed {
-		return fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
+		return fmt.Errorf("libp2p node error: %w", ErrConnectionClosed)
 	}
 
 	defer n.nodeEventHandler.Handle(sets.NodeTopicUnsubscribedEvent{Topic: topic})
@@ -284,15 +283,16 @@ func (n *Node) Subscription(topic string) (*Subscription, error) {
 	defer n.mu.Unlock()
 
 	if n.closed {
-		return nil, fmt.Errorf("%v: %v", ErrNode, ErrConnectionClosed)
+		return nil, fmt.Errorf("libp2p node error: %w", ErrConnectionClosed)
 	}
 	if sub, ok := n.subs[topic]; ok {
 		return sub, nil
 	}
 
-	return nil, fmt.Errorf("%v: %v", ErrNode, ErrNotSubscribed)
+	return nil, fmt.Errorf("libp2p node error: %w", ErrNotSubscribed)
 }
 
+// contextCancelHandler handles context cancellation.
 func (n *Node) contextCancelHandler() {
 	defer func() { n.doneCh <- struct{}{} }()
 	defer n.log.Info("Stopped")

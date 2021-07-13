@@ -17,8 +17,6 @@ package spire
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/makerdao/oracle-suite/pkg/datastore"
 	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
@@ -28,21 +26,19 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
-var ErrFailedToLoadConfiguration = errors.New("failed to load Spire's configuration")
-
 //nolint:unlambda
-var spireAgentFactory = func(cfg spire.AgentConfig) (*spire.Agent, error) {
-	return spire.NewAgent(cfg)
+var spireAgentFactory = func(ctx context.Context, cfg spire.AgentConfig) (*spire.Agent, error) {
+	return spire.NewAgent(ctx, cfg)
 }
 
 //nolint:unlambda
-var spireClientFactory = func(cfg spire.ClientConfig) (*spire.Client, error) {
-	return spire.NewClient(cfg)
+var spireClientFactory = func(ctx context.Context, cfg spire.ClientConfig) (*spire.Client, error) {
+	return spire.NewClient(ctx, cfg)
 }
 
 //nolint:unlambda
-var datastoreFactory = func(cfg datastoreMemory.Config) (datastore.Datastore, error) {
-	return datastoreMemory.NewDatastore(cfg)
+var datastoreFactory = func(ctx context.Context, cfg datastoreMemory.Config) (datastore.Datastore, error) {
+	return datastoreMemory.NewDatastore(ctx, cfg)
 }
 
 type Spire struct {
@@ -77,8 +73,7 @@ type DatastoreDependencies struct {
 }
 
 func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
-	agent, err := spireAgentFactory(spire.AgentConfig{
-		Context:   d.Context,
+	agent, err := spireAgentFactory(d.Context, spire.AgentConfig{
 		Datastore: d.Datastore,
 		Transport: d.Transport,
 		Signer:    d.Signer,
@@ -87,14 +82,13 @@ func (c *Spire) ConfigureAgent(d AgentDependencies) (*spire.Agent, error) {
 		Logger:    d.Logger,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%v: %v", ErrFailedToLoadConfiguration, err)
+		return nil, err
 	}
 	return agent, nil
 }
 
 func (c *Spire) ConfigureClient(d ClientDependencies) (*spire.Client, error) {
-	return spireClientFactory(spire.ClientConfig{
-		Context: d.Context,
+	return spireClientFactory(d.Context, spire.ClientConfig{
 		Signer:  d.Signer,
 		Network: "tcp",
 		Address: c.RPC.Address,
@@ -103,7 +97,6 @@ func (c *Spire) ConfigureClient(d ClientDependencies) (*spire.Client, error) {
 
 func (c *Spire) ConfigureDatastore(d DatastoreDependencies) (datastore.Datastore, error) {
 	cfg := datastoreMemory.Config{
-		Context:   d.Context,
 		Signer:    d.Signer,
 		Transport: d.Transport,
 		Pairs:     make(map[string]*datastoreMemory.Pair),
@@ -112,5 +105,5 @@ func (c *Spire) ConfigureDatastore(d DatastoreDependencies) (datastore.Datastore
 	for _, name := range c.Pairs {
 		cfg.Pairs[name] = &datastoreMemory.Pair{Feeds: d.Feeds}
 	}
-	return datastoreFactory(cfg)
+	return datastoreFactory(d.Context, cfg)
 }

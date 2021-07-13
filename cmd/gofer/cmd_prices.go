@@ -21,7 +21,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 )
 
@@ -33,51 +32,37 @@ func NewPricesCmd(opts *options) *cobra.Command {
 		Short:   "Return prices for given PAIRs",
 		Long:    `Return prices for given PAIRs.`,
 		RunE: func(c *cobra.Command, args []string) (err error) {
-			ctx := context.Background()
-			mar, err := marshal.NewMarshal(opts.Format.format)
+			srv, err := PrepareGoferClientService(context.Background(), opts)
 			if err != nil {
 				return err
 			}
 			defer func() {
 				if err != nil {
 					exitCode = 1
-					_ = mar.Write(os.Stderr, err)
+					_ = srv.Marshaller.Write(os.Stderr, err)
 				}
-				_ = mar.Flush()
+				_ = srv.Marshaller.Flush()
 				// Set err to nil because error was already handled by marshaller.
 				err = nil
 			}()
-
-			log, err := newLogger(opts)
-			if err != nil {
+			if err = srv.Start(); err != nil {
 				return err
 			}
-
-			gof, err := newGofer(ctx, opts, opts.ConfigFilePath, log)
-			if err != nil {
-				return err
-			}
-
-			if sg, ok := gof.(gofer.StartableGofer); ok {
-				err = sg.Start()
-				if err != nil {
-					return err
-				}
-			}
+			defer srv.CancelAndWait()
 
 			pairs, err := gofer.NewPairs(args...)
 			if err != nil {
 				return err
 			}
 
-			prices, err := gof.Prices(pairs...)
+			prices, err := srv.Gofer.Prices(pairs...)
 			if err != nil {
 				return err
 			}
 
 			for _, p := range prices {
-				if err := mar.Write(os.Stdout, p); err != nil {
-					_ = mar.Write(os.Stderr, err)
+				if mErr := srv.Marshaller.Write(os.Stdout, p); mErr != nil {
+					_ = srv.Marshaller.Write(os.Stderr, mErr)
 				}
 			}
 

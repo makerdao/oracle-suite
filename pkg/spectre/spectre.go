@@ -70,8 +70,6 @@ type Spectre struct {
 }
 
 type Config struct {
-	Context context.Context
-
 	Signer ethereum.Signer
 	// Datastore provides prices for Spectre.
 	Datastore datastore.Datastore
@@ -101,13 +99,12 @@ type Pair struct {
 	Median oracle.Median
 }
 
-func NewSpectre(cfg Config) (*Spectre, error) {
-	if cfg.Context == nil {
+func NewSpectre(ctx context.Context, cfg Config) (*Spectre, error) {
+	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	r := &Spectre{
-		ctx:       cfg.Context,
+		ctx:       ctx,
 		doneCh:    make(chan struct{}),
 		signer:    cfg.Signer,
 		datastore: cfg.Datastore,

@@ -35,19 +35,17 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	Context context.Context
 	Signer  ethereum.Signer
 	Network string
 	Address string
 }
 
-func NewClient(cfg ClientConfig) (*Client, error) {
-	if cfg.Context == nil {
+func NewClient(ctx context.Context, cfg ClientConfig) (*Client, error) {
+	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
-
 	return &Client{
-		ctx:     cfg.Context,
+		ctx:     ctx,
 		doneCh:  make(chan struct{}),
 		network: cfg.Network,
 		address: cfg.Address,

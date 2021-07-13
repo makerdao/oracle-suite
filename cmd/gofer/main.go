@@ -16,19 +16,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
-
 	suite "github.com/makerdao/oracle-suite"
-	"github.com/makerdao/oracle-suite/internal/config"
 	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/gofer/rpc"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
 )
 
 // exitCode to be returned by the application.
@@ -54,33 +46,4 @@ func main() {
 		}
 	}
 	os.Exit(exitCode)
-}
-
-func newLogger(opts *options) (log.Logger, error) {
-	ll, err := logrus.ParseLevel(opts.LogVerbosity)
-	if err != nil {
-		return nil, err
-	}
-
-	lr := logrus.New()
-	lr.SetLevel(ll)
-	lr.SetFormatter(opts.LogFormat.Formatter())
-
-	return logLogrus.New(lr), nil
-}
-
-func newGofer(ctx context.Context, opts *options, path string, logger log.Logger) (gofer.Gofer, error) {
-	err := config.ParseFile(&opts.Config, path)
-	if err != nil {
-		return nil, err
-	}
-	return opts.Config.Configure(ctx, logger, opts.NoRPC)
-}
-
-func newAgent(ctx context.Context, opts *options, path string, logger log.Logger) (*rpc.Agent, error) {
-	err := config.ParseFile(&opts.Config, path)
-	if err != nil {
-		return nil, err
-	}
-	return opts.Config.ConfigureRPCAgent(ctx, logger)
 }
