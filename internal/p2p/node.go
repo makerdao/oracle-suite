@@ -45,6 +45,7 @@ import (
 var ErrConnectionClosed = errors.New("connection is closed")
 var ErrAlreadySubscribed = errors.New("topic is already subscribed")
 var ErrNotSubscribed = errors.New("topic is not subscribed")
+var ErrPubSubDisabled = errors.New("pubsub protocol is disabled")
 
 func init() {
 	// It's required to increase timeouts because signing messages using
@@ -74,6 +75,7 @@ type Node struct {
 	messageHandlerSet     *sets.MessageHandlerSet
 	subs                  map[string]*Subscription
 	log                   log.Logger
+	disablePubSub         bool
 	closed                bool
 
 	hostOpts   []libp2p.Option
@@ -131,20 +133,22 @@ func (n *Node) Start() error {
 	if err != nil {
 		return fmt.Errorf("libp2p node error, unable to initialize libp2p: %v", err)
 	}
+	n.host.Network().Notify(n.notifeeSet)
 
 	n.nodeEventHandler.Handle(sets.NodeHostStartedEvent{})
-
-	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
-	if err != nil {
-		return fmt.Errorf("libp2p node error, unable to initialize gosspib pubsub: %v", err)
-	}
-	n.host.Network().Notify(n.notifeeSet)
 
 	n.log.
 		WithField("listenAddrs", n.listenAddrStrs()).
 		Info("Listening")
 
-	n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
+	if !n.disablePubSub {
+		n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
+		if err != nil {
+			return fmt.Errorf("libp2p node error, unable to initialize gosspib pubsub: %v", err)
+		}
+		n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
+	}
+
 	n.nodeEventHandler.Handle(sets.NodeStartedEvent{})
 
 	return nil
@@ -229,6 +233,9 @@ func (n *Node) AddMessageHandler(messageHandlers ...sets.MessageHandler) {
 }
 
 func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
+	if n.pubSub == nil {
+		return ErrPubSubDisabled
+	}
 	defer n.nodeEventHandler.Handle(sets.NodeTopicSubscribedEvent{Topic: topic})
 
 	n.mu.Lock()
@@ -251,6 +258,9 @@ func (n *Node) Subscribe(topic string, typ pkgTransport.Message) error {
 }
 
 func (n *Node) Unsubscribe(topic string) error {
+	if n.pubSub == nil {
+		return ErrPubSubDisabled
+	}
 	if n.closed {
 		return fmt.Errorf("libp2p node error: %w", ErrConnectionClosed)
 	}
@@ -266,6 +276,9 @@ func (n *Node) Unsubscribe(topic string) error {
 }
 
 func (n *Node) Subscription(topic string) (*Subscription, error) {
+	if n.pubSub == nil {
+		return nil, ErrPubSubDisabled
+	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
