@@ -158,5 +158,5 @@ func TestTransport_P2P_InvalidSeed(t *testing.T) {
 		Feeds:   feeds,
 		Logger:  logger,
 	})
-	require.ErrorIs(t, err, ErrInvalidPrivKeySeed)
+	require.Error(t, err)
 }
