@@ -101,7 +101,9 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
         - `openexchangerates` - [OpenExchangeRates](https://openexchangerates.org)
         - `poloniex` - [Poloniex](https://poloniex.com/)
         - `sushiswap` - [Sushiswap](https://sushi.com/)
-        - `uniswap` - [Uniswap](https://uniswap.org/)
+        - `uniswap` - [Uniswap V2](https://uniswap.org/)
+        - `uniswapV2` - [Uniswap V2](https://uniswap.org/)
+        - `uniswapV3` - [Uniswap V3](https://uniswap.org/blog/uniswap-v3/)
         - `upbit` - [Upbit](https://upbit.com/)
         - `.` - a special value (single dot) which refers to another price model in the config.
     - `pair` - a name of a pair to be fetched from given origin.

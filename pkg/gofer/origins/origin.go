@@ -171,6 +171,8 @@ func DefaultOriginSet(pool query.WorkerPool) *Set {
 		"poloniex":      &Poloniex{Pool: pool},
 		"sushiswap":     &Sushiswap{Pool: pool},
 		"uniswap":       &Uniswap{Pool: pool},
+		"uniswapV2":     &Uniswap{Pool: pool},
+		"uniswapV3":     &UniswapV3{Pool: pool},
 		"upbit":         &Upbit{Pool: pool},
 	})
 }

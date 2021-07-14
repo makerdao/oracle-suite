@@ -25,33 +25,33 @@ import (
 	"github.com/makerdao/oracle-suite/internal/query"
 )
 
-const sushiswapURL = "https://api.thegraph.com/subgraphs/name/zippoxer/sushiswap-subgraph-fork"
+const uniswapV3URL = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3"
 
-type sushiswapResponse struct {
+type uniswapV3Response struct {
 	Data struct {
-		Pairs []sushiswapPairResponse
+		Pools []uniswapV3PairResponse
 	}
 }
 
-type sushiswapTokenResponse struct {
+type uniswapV3TokenResponse struct {
 	Symbol string `json:"symbol"`
 }
 
-type sushiswapPairResponse struct {
+type uniswapV3PairResponse struct {
 	ID      string                 `json:"id"`
 	Price0  stringAsFloat64        `json:"token0Price"`
 	Price1  stringAsFloat64        `json:"token1Price"`
 	Volume0 stringAsFloat64        `json:"volumeToken0"`
 	Volume1 stringAsFloat64        `json:"volumeToken1"`
-	Token0  sushiswapTokenResponse `json:"token0"`
-	Token1  sushiswapTokenResponse `json:"token1"`
+	Token0  uniswapV3TokenResponse `json:"token0"`
+	Token1  uniswapV3TokenResponse `json:"token1"`
 }
 
-type Sushiswap struct {
+type UniswapV3 struct {
 	Pool query.WorkerPool
 }
 
-func (s *Sushiswap) pairsToContractAddress(pair Pair) string {
+func (u *UniswapV3) pairsToContractAddress(pair Pair) string {
 	// We're checking for reverse pairs because the same contract is used to
 	// trade in both directions.
 	match := func(a, b Pair) bool {
@@ -66,21 +66,27 @@ func (s *Sushiswap) pairsToContractAddress(pair Pair) string {
 		return false
 	}
 
-	p := Pair{Base: s.renameSymbol(pair.Base), Quote: s.renameSymbol(pair.Quote)}
+	p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
 
 	switch {
-	case match(p, Pair{Base: "SNX", Quote: "WETH"}):
-		return "0xa1d7b2d891e3a1f9ef4bbc5be20630c2feb1c470"
-	case match(p, Pair{Base: "CRV", Quote: "WETH"}):
-		return "0x58dc5a51fe44589beb22e8ce67720b5bc5378009"
+	case match(p, Pair{Base: "COMP", Quote: "WETH"}):
+		return "0xea4ba4ce14fdd287f380b55419b1c5b6c3f22ab6"
+	case match(p, Pair{Base: "WETH", Quote: "CRV"}):
+		return "0x4c83a7f819a5c37d64b4c5a2f8238ea082fa1f4e"
+	case match(p, Pair{Base: "USDC", Quote: "WETH"}):
+		return "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+	case match(p, Pair{Base: "UNI", Quote: "WETH"}):
+		return "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801"
+	case match(p, Pair{Base: "WNXM", Quote: "WETH"}):
+		return "0x058d79a4c6eb5b11d0248993ffa1faa168ddd3c0"
+	case match(p, Pair{Base: "YFI", Quote: "WETH"}):
+		return "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
 	}
-
 	return pair.String()
 }
 
 // TODO: We should find better solution for this.
-//nolint:goconst
-func (s *Sushiswap) renameSymbol(symbol string) string {
+func (u *UniswapV3) renameSymbol(symbol string) string {
 	switch symbol {
 	case "ETH":
 		return "WETH"
@@ -92,18 +98,18 @@ func (s *Sushiswap) renameSymbol(symbol string) string {
 	return symbol
 }
 
-func (s *Sushiswap) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(s, pairs)
+func (u *UniswapV3) Fetch(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(u, pairs)
 }
 
 //nolint:dupl
-func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
+func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 	var err error
 
-	pairsJSON, _ := json.Marshal(s.pairsToContractAddress(pair))
+	pairsJSON, _ := json.Marshal(u.pairsToContractAddress(pair))
 	gql := `
 		query($id:String) {
-			pairs(where:{id: $id}) {
+			pools(where:{id: $id}) {
 				id
 				token0Price
 				token1Price
@@ -121,13 +127,13 @@ func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 	)
 
 	req := &query.HTTPRequest{
-		URL:    sushiswapURL,
+		URL:    uniswapV3URL,
 		Method: "POST",
 		Body:   bytes.NewBuffer([]byte(body)),
 	}
 
 	// make query
-	res := s.Pool.Query(req)
+	res := u.Pool.Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}
@@ -136,20 +142,20 @@ func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 	}
 
 	// parse JSON
-	var resp sushiswapResponse
+	var resp uniswapV3Response
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Sushiswap response: %w", err)
+		return nil, fmt.Errorf("failed to parse UniswapV3 response: %w", err)
 	}
 
 	// convert response from a slice to a map
-	respMap := map[string]sushiswapPairResponse{}
-	for _, pairResp := range resp.Data.Pairs {
+	respMap := map[string]uniswapV3PairResponse{}
+	for _, pairResp := range resp.Data.Pools {
 		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
 
-	b := s.renameSymbol(pair.Base)
-	q := s.renameSymbol(pair.Quote)
+	b := u.renameSymbol(pair.Base)
+	q := u.renameSymbol(pair.Quote)
 
 	pair0 := b + "/" + q
 	pair1 := q + "/" + b
@@ -173,6 +179,5 @@ func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 			Timestamp: time.Now(),
 		}, nil
 	}
-
 	return nil, ErrMissingResponseForPair
 }
