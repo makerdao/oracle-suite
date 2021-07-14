@@ -132,6 +132,7 @@ func (n *Node) Start() error {
 		return fmt.Errorf("libp2p node error, unable to initialize libp2p: %v", err)
 	}
 
+	n.log = n.log.WithField("x-hostId", n.host.ID().String())
 	n.nodeEventHandler.Handle(sets.NodeHostStartedEvent{})
 
 	n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)

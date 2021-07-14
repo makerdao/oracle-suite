@@ -20,16 +20,18 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/makerdao/oracle-suite/pkg/log/logrus/formatter"
 )
 
 // FormattersMap is a map of supported logrus formatters. It is safe to add
 // custom formatters to this map.
 var FormattersMap = map[string]func() logrus.Formatter{
 	"text": func() logrus.Formatter {
-		return &logrus.TextFormatter{}
+		return &formatter.TextFormatter{}
 	},
 	"json": func() logrus.Formatter {
-		return &logrus.JSONFormatter{}
+		return &formatter.JSONFormatter{}
 	},
 }
 
