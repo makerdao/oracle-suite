@@ -135,6 +135,7 @@ func (n *Node) Start() error {
 	}
 	n.host.Network().Notify(n.notifeeSet)
 
+	n.log = n.log.WithField("x-hostId", n.host.ID().String())
 	n.nodeEventHandler.Handle(sets.NodeHostStartedEvent{})
 
 	n.log.

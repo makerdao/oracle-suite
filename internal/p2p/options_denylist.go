@@ -33,7 +33,7 @@ func Denylist(addrs []multiaddr.Multiaddr) Options {
 			return nil
 		}
 
-		cg := &denylistConnGater{log: n.log}
+		cg := &denylistConnGater{n: n}
 		n.AddConnectionGater(cg)
 		for _, maddr := range addrs {
 			multiaddr.ForEach(maddr, func(c multiaddr.Component) bool {
@@ -55,9 +55,9 @@ func Denylist(addrs []multiaddr.Multiaddr) Options {
 }
 
 type denylistConnGater struct {
+	n       *Node
 	filters multiaddr.Filters
 	pids    []peer.ID
-	log     log.Logger
 }
 
 // BlockPID blocks connections from given peer ID.
@@ -83,7 +83,7 @@ func (f *denylistConnGater) InterceptAddrDial(pid peer.ID, addr multiaddr.Multia
 			return false
 		}
 	}
-	f.log.
+	f.n.log.
 		WithFields(log.Fields{
 			"peerID": pid.String(),
 			"addr":   addr.String(),

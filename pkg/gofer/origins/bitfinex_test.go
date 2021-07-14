@@ -58,8 +58,6 @@ func (suite *BitfinexSuite) TestLocalPair() {
 func (suite *BitfinexSuite) TestFailOnWrongInput() {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	cr := suite.origin.Fetch([]Pair{pair})
-	// nil as response
-	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ErrInvalidResponseStatus, cr[0].Error)
 
 	// error in response

@@ -17,7 +17,6 @@ package p2p
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/pkg/log"
@@ -26,15 +25,13 @@ import (
 // ConnectionLogger logs connected and disconnected hosts,
 func ConnectionLogger() Options {
 	return func(n *Node) error {
-		cl := &connectionLoggerNotifee{ps: n.Peerstore(), log: n.log}
-		n.AddNotifee(cl)
+		n.AddNotifee(&connectionLoggerNotifee{n: n})
 		return nil
 	}
 }
 
 type connectionLoggerNotifee struct {
-	ps  peerstore.Peerstore
-	log log.Logger
+	n *Node
 }
 
 // Listen implements the network.Notifiee interface.
@@ -45,7 +42,7 @@ func (n *connectionLoggerNotifee) ListenClose(network.Network, multiaddr.Multiad
 
 // Connected implements the network.Notifiee interface.
 func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn) {
-	n.log.
+	n.n.log.
 		WithFields(log.Fields{
 			"peerID": conn.RemotePeer().String(),
 			"addr":   conn.RemoteMultiaddr().String(),
@@ -55,7 +52,7 @@ func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn
 
 // Disconnected implements the network.Notifiee interface.
 func (n *connectionLoggerNotifee) Disconnected(_ network.Network, conn network.Conn) {
-	n.log.
+	n.n.log.
 		WithFields(log.Fields{
 			"peerID": conn.RemotePeer().String(),
 			"addr":   conn.RemoteMultiaddr().String(),

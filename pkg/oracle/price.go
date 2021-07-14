@@ -118,9 +118,9 @@ func (p *Price) Fields(signer ethereum.Signer) log.Fields {
 	}
 
 	return log.Fields{
-		"form":    from,
+		"from":    from,
 		"wat":     p.Wat,
-		"age":     p.Age.String(),
+		"age":     p.Age.UTC().Format(time.RFC3339),
 		"val":     p.Val.String(),
 		"hash":    hex.EncodeToString(p.hash()),
 		"V":       hex.EncodeToString([]byte{p.V}),

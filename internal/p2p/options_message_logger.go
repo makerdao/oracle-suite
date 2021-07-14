@@ -25,18 +25,18 @@ import (
 // MessageLogger logs published and received messages.
 func MessageLogger() Options {
 	return func(n *Node) error {
-		mlh := &messageLoggerHandler{node: n}
+		mlh := &messageLoggerHandler{n: n}
 		n.AddMessageHandler(mlh)
 		return nil
 	}
 }
 
 type messageLoggerHandler struct {
-	node *Node
+	n *Node
 }
 
 func (m *messageLoggerHandler) Published(topic string, raw []byte, _ transport.Message) {
-	m.node.log.
+	m.n.log.
 		WithFields(log.Fields{
 			"topic":   topic,
 			"message": string(raw),
@@ -45,7 +45,7 @@ func (m *messageLoggerHandler) Published(topic string, raw []byte, _ transport.M
 }
 
 func (m *messageLoggerHandler) Received(topic string, msg *pubsub.Message, _ pubsub.ValidationResult) {
-	m.node.log.
+	m.n.log.
 		WithFields(log.Fields{
 			"topic":              topic,
 			"message":            string(msg.Data),
@@ -56,7 +56,7 @@ func (m *messageLoggerHandler) Received(topic string, msg *pubsub.Message, _ pub
 }
 
 func (m *messageLoggerHandler) Broken(topic string, msg *pubsub.Message, err error) {
-	m.node.log.
+	m.n.log.
 		WithError(err).
 		WithFields(log.Fields{
 			"topic":              topic,
