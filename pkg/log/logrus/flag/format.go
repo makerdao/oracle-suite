@@ -20,26 +20,19 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/makerdao/oracle-suite/pkg/log/logrus/formatter"
 )
 
 // FormattersMap is a map of supported logrus formatters. It is safe to add
 // custom formatters to this map.
 var FormattersMap = map[string]func() logrus.Formatter{
 	"text": func() logrus.Formatter {
-		return &logrus.TextFormatter{}
+		return &formatter.TextFormatter{}
 	},
 	"json": func() logrus.Formatter {
-		return ZuluFormatter{&logrus.JSONFormatter{}}
+		return &formatter.JSONFormatter{}
 	},
-}
-
-type ZuluFormatter struct {
-	logrus.Formatter
-}
-
-func (u ZuluFormatter) Format(e *logrus.Entry) ([]byte, error) {
-	e.Time = e.Time.UTC()
-	return u.Formatter.Format(e)
 }
 
 // DefaultFormatter is a name of a default formatter. This formatter *must* be

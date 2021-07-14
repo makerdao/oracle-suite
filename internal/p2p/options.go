@@ -220,28 +220,3 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 		return nil
 	}
 }
-
-func Monitor() Options {
-	return func(n *Node) error {
-		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
-			if _, ok := event.(sets.NodeStartedEvent); ok {
-				go func() {
-					t := time.NewTicker(time.Minute)
-					for {
-						n.log.
-							WithField("hostId", n.host.ID().String()).
-							WithField("peerCount", len(n.host.Network().Peers())).
-							Info("Connected peers")
-						select {
-						case <-n.ctx.Done():
-							t.Stop()
-							return
-						case <-t.C:
-						}
-					}
-				}()
-			}
-		}))
-		return nil
-	}
-}
