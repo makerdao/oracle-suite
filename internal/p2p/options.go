@@ -71,6 +71,14 @@ func MessagePrivKey(sk crypto.PrivKey) Options {
 	}
 }
 
+// DisablePubSub disables the pubsub system.
+func DisablePubSub() Options {
+	return func(n *Node) error {
+		n.disablePubSub = true
+		return nil
+	}
+}
+
 // Logger configures node to use given logger instance.
 func Logger(logger log.Logger) Options {
 	return func(n *Node) error {
@@ -139,7 +147,7 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 			}
 		}
 		connectRoutine := func() {
-			t := time.NewTimer(2 * time.Minute)
+			t := time.NewTicker(2 * time.Minute)
 			connect()
 			for {
 				select {

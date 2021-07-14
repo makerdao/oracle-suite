@@ -39,6 +39,18 @@ const LoggerTag = "P2P"
 const minConnections = 100
 const maxConnections = 150
 
+// Mode describes operating mode of a node.
+type Mode int
+
+const (
+	// ClientMode operates the node as client. ClientMode can publish and read messages
+	// and provides peer discovery service for other nodes.
+	ClientMode Mode = iota
+	// BootstrapMode operates the node as a bootstrap node. BootstrapMode node provide
+	// only peer discovery service for other nodes.
+	BootstrapMode
+)
+
 // Values for a peer scoring and rate limiter:
 const maxBytesPerSecond float64 = 10 * 1024 * 1024 // 10MB/s
 const maxInvalidMsgsPerHour float64 = 60
@@ -58,14 +70,17 @@ type P2P struct {
 
 // Config is a configuration for the P2P transport.
 type Config struct {
+	// Mode describes in what mode the node should operate.
+	Mode Mode
 	// Topics is a list of subscribed topics. A value of the map a type of
 	// a message given as a nil pointer, e.g.: (*Message)(nil).
 	Topics map[string]transport.Message
 	// PeerPrivKey is a key used for peer identity. If empty, then random key
-	// is used.
+	// is used. Ignored in bootstrap mode.
 	PeerPrivKey crypto.PrivKey
 	// MessagePrivKey is a key used to sign messages. If empty, then message
-	// are signed with the same key which is used for peer identity.
+	// are signed with the same key which is used for peer identity. Ignored
+	// in bootstrap mode.
 	MessagePrivKey crypto.PrivKey
 	// ListenAddrs is a list of multiaddresses on which this node will be
 	// listening on. If empty, the localhost, and a random port will be used.
@@ -86,9 +101,9 @@ type Config struct {
 	FeedersAddrs []ethereum.Address
 	// Discovery indicates whenever peer discovery should be enabled.
 	// If discovery is disabled, then DirectPeersAddrs must be used
-	// to connect to the network.
+	// to connect to the network. Always enabled in bootstrap mode.
 	Discovery bool
-	// Signer used to verify price messages.
+	// Signer used to verify price messages. Ignored in bootstrap mode.
 	Signer ethereum.Signer
 	// Logger is a custom logger instance. If not provided then null
 	// logger is used.
@@ -131,7 +146,6 @@ func New(ctx context.Context, cfg Config) (*P2P, error) {
 	opts := []p2p.Options{
 		p2p.Logger(logger),
 		p2p.ConnectionLogger(),
-		p2p.MessageLogger(),
 		p2p.PeerLogger(),
 		p2p.UserAgent(fmt.Sprintf("%s/%s", cfg.AppName, cfg.AppVersion)),
 		p2p.ListenAddrs(listenAddrs),
@@ -142,24 +156,36 @@ func New(ctx context.Context, cfg Config) (*P2P, error) {
 			maxConnections,
 			5*time.Minute,
 		),
-		p2p.RateLimiter(rateLimiterConfig(cfg)),
-		p2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
-			if topic == messages.PriceMessageName {
-				return priceTopicScoreParams(cfg)
-			}
-			return nil
-		}),
-		oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 		p2p.Monitor(),
 	}
 	if cfg.PeerPrivKey != nil {
 		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
 	}
-	if cfg.MessagePrivKey != nil {
-		opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
-	}
-	if cfg.Discovery {
-		opts = append(opts, p2p.Discovery(bootstrapAddrs))
+	switch cfg.Mode {
+	case ClientMode:
+		opts = append(opts,
+			p2p.MessageLogger(),
+			p2p.RateLimiter(rateLimiterConfig(cfg)),
+			p2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
+				if topic == messages.PriceMessageName {
+					return priceTopicScoreParams(cfg)
+				}
+				return nil
+			}),
+			oracle(cfg.FeedersAddrs, cfg.Signer, logger),
+		)
+		if cfg.MessagePrivKey != nil {
+			opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
+		}
+		if cfg.Discovery {
+			opts = append(opts, p2p.Discovery(bootstrapAddrs))
+		}
+	case BootstrapMode:
+		cfg.Topics = nil
+		opts = append(opts,
+			p2p.DisablePubSub(),
+			p2p.Discovery(bootstrapAddrs),
+		)
 	}
 
 	n, err := p2p.NewNode(ctx, opts...)
