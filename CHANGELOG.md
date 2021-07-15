@@ -8,7 +8,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [0.2.0] - 2021-07-15
 ### Changed
-- Unified config structures for all tools (gofer,spire,ghost,spectre)
+- Unified config structures for all tools (gofer, spire, ghost, spectre)
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/makerdao/oracle-suite/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/makerdao/oracle-suite/compare/v0.1.0...v0.2.0
