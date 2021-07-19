@@ -51,6 +51,7 @@ type Uniswap struct {
 	Pool query.WorkerPool
 }
 
+//nolint:gocyclo
 func (u *Uniswap) pairsToContractAddresses(pairs []Pair) []string {
 	var names []string
 
