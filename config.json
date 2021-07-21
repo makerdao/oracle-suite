@@ -74,7 +74,8 @@
       "XTZUSD",
       "YFIUSD",
       "ZECUSD",
-      "ZRXUSD"
+      "ZRXUSD",
+      "MATICUSD"
     ]
   },
   "spectre": {
@@ -174,7 +175,7 @@
   },
   "spire": {
     "rpc": {
-      "address": "127.0.0.1:0"
+      "address": "127.0.0.1:9100"
     },
     "pairs": [
       "AAVEUSD",
@@ -202,13 +203,14 @@
       "XTZUSD",
       "YFIUSD",
       "ZECUSD",
-      "ZRXUSD"
+      "ZRXUSD",
+      "MATICUSD"
     ]
   },
   "gofer": {
     "rpc": {
       "disable": false,
-      "address": ":9000"
+      "address": "127.0.0.1:9000"
     },
     "origins": {
       "openexchangerates": {
