@@ -170,6 +170,12 @@
         "oracleSpread": 4.0,
         "oracleExpiration": 15500,
         "msgExpiration": 1800
+      },
+      "MATICUSD": {
+        "oracle": "0xfe1e93840D286C83cF7401cB021B94b5bc1763d2",
+        "oracleSpread": 4.0,
+        "oracleExpiration": 15500,
+        "msgExpiration": 1800
       }
     }
   },
