@@ -74,7 +74,8 @@
       "XTZUSD",
       "YFIUSD",
       "ZECUSD",
-      "ZRXUSD"
+      "ZRXUSD",
+      "MATICUSD"
     ]
   },
   "spectre": {
@@ -174,7 +175,7 @@
   },
   "spire": {
     "rpc": {
-      "address": "127.0.0.1:0"
+      "address": "127.0.0.1:9100"
     },
     "pairs": [
       "AAVEUSD",
@@ -202,13 +203,14 @@
       "XTZUSD",
       "YFIUSD",
       "ZECUSD",
-      "ZRXUSD"
+      "ZRXUSD",
+      "MATICUSD"
     ]
   },
   "gofer": {
     "rpc": {
       "disable": false,
-      "address": ":9000"
+      "address": "127.0.0.1:9000"
     },
     "origins": {
       "openexchangerates": {
@@ -419,6 +421,20 @@
           [{ "origin": "coinbasepro", "pair": "MANA/USDC" },{ "origin": ".", "pair": "USDC/USD" }],
           [{ "origin": "huobi", "pair": "MANA/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
           [{ "origin": "upbit", "pair": "MANA/KRW" },{ "origin": "openexchangerates", "pair": "KRW/USD", "ttl": 300 }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 3
+        }
+      },
+      "MATIC/USD": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "binance", "pair": "MATIC/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
+          [{ "origin": "huobi", "pair": "MATIC/USDT" },{ "origin": ".", "pair": "USDT/USD" }],
+          [{ "origin": "coinbasepro", "pair": "MATIC/USD" }],
+          [{ "origin": "ftx", "pair": "MATIC/USD" }],
+          [{ "origin": "gemini", "pair": "MATIC/USD" }],
+          [{ "origin": "kraken", "pair": "MATIC/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 3
