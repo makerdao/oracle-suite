@@ -51,6 +51,7 @@ type Uniswap struct {
 	Pool query.WorkerPool
 }
 
+//nolint:gocyclo
 func (u *Uniswap) pairsToContractAddresses(pairs []Pair) []string {
 	var names []string
 
@@ -72,6 +73,12 @@ func (u *Uniswap) pairsToContractAddresses(pairs []Pair) []string {
 		p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
 
 		switch {
+		case match(p, Pair{Base: "AAVE", Quote: "WETH"}):
+			names = append(names, "0xdfc14d2af169b0d36c4eff567ada9b2e0cae044f")
+		case match(p, Pair{Base: "BAT", Quote: "WETH"}):
+			names = append(names, "0xa70d458a4d9bc0e6571565faee18a48da5c0d593")
+		case match(p, Pair{Base: "SNX", Quote: "WETH"}):
+			names = append(names, "0x43ae24960e5534731fc831386c07755a2dc33d47")
 		case match(p, Pair{Base: "COMP", Quote: "WETH"}):
 			names = append(names, "0xcffdded873554f362ac02f8fb1f02e5ada10516f")
 		case match(p, Pair{Base: "WETH", Quote: "USDC"}):
