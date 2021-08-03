@@ -124,7 +124,7 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 			// "allow" call uses "tokens" and message authors should not
 			// be penalized for misbehaving relays.
 			if !relayRL.allow(id, len(msg.Data)) {
-				n.log.
+				n.tsLog.get().
 					WithFields(log.Fields{
 						"topic":              topic,
 						"peerID":             msg.GetFrom().String(),
@@ -134,7 +134,7 @@ func RateLimiter(cfg RateLimiterConfig) Options {
 				return pubsub.ValidationReject
 			}
 			if !msgRL.allow(msg.GetFrom(), len(msg.Data)) {
-				n.log.
+				n.tsLog.get().
 					WithFields(log.Fields{
 						"topic":              topic,
 						"peerID":             msg.GetFrom().String(),

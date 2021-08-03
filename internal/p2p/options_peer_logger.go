@@ -35,7 +35,7 @@ func PeerLogger() Options {
 
 			switch event.Type {
 			case pubsub.PeerJoin:
-				n.log.
+				n.tsLog.get().
 					WithFields(log.Fields{
 						"peerID":          event.Peer.String(),
 						"topic":           topic,
@@ -46,7 +46,7 @@ func PeerLogger() Options {
 					}).
 					Info("Connected to a peer")
 			case pubsub.PeerLeave:
-				n.log.
+				n.tsLog.get().
 					WithFields(log.Fields{
 						"peerID":      event.Peer.String(),
 						"topic":       topic,

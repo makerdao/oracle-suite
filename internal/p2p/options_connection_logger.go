@@ -42,7 +42,7 @@ func (n *connectionLoggerNotifee) ListenClose(network.Network, multiaddr.Multiad
 
 // Connected implements the network.Notifiee interface.
 func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn) {
-	n.n.log.
+	n.n.tsLog.get().
 		WithFields(log.Fields{
 			"peerID": conn.RemotePeer().String(),
 			"addr":   conn.RemoteMultiaddr().String(),
@@ -52,7 +52,7 @@ func (n *connectionLoggerNotifee) Connected(_ network.Network, conn network.Conn
 
 // Disconnected implements the network.Notifiee interface.
 func (n *connectionLoggerNotifee) Disconnected(_ network.Network, conn network.Conn) {
-	n.n.log.
+	n.n.tsLog.get().
 		WithFields(log.Fields{
 			"peerID": conn.RemotePeer().String(),
 			"addr":   conn.RemoteMultiaddr().String(),

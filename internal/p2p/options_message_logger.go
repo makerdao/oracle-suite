@@ -36,7 +36,7 @@ type messageLoggerHandler struct {
 }
 
 func (m *messageLoggerHandler) Published(topic string, raw []byte, _ transport.Message) {
-	m.n.log.
+	m.n.tsLog.get().
 		WithFields(log.Fields{
 			"topic":   topic,
 			"message": string(raw),
@@ -45,7 +45,7 @@ func (m *messageLoggerHandler) Published(topic string, raw []byte, _ transport.M
 }
 
 func (m *messageLoggerHandler) Received(topic string, msg *pubsub.Message, _ pubsub.ValidationResult) {
-	m.n.log.
+	m.n.tsLog.get().
 		WithFields(log.Fields{
 			"topic":              topic,
 			"message":            string(msg.Data),
@@ -56,7 +56,7 @@ func (m *messageLoggerHandler) Received(topic string, msg *pubsub.Message, _ pub
 }
 
 func (m *messageLoggerHandler) Broken(topic string, msg *pubsub.Message, err error) {
-	m.n.log.
+	m.n.tsLog.get().
 		WithError(err).
 		WithFields(log.Fields{
 			"topic":              topic,

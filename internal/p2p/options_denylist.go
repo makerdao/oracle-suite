@@ -83,7 +83,7 @@ func (f *denylistConnGater) InterceptAddrDial(pid peer.ID, addr multiaddr.Multia
 			return false
 		}
 	}
-	f.n.log.
+	f.n.tsLog.get().
 		WithFields(log.Fields{
 			"peerID": pid.String(),
 			"addr":   addr.String(),

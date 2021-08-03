@@ -143,7 +143,11 @@ func (c *Datastore) collectorLoop() error {
 						Warn("Unable to read prices from the transport")
 					continue
 				}
-				price := m.Message.(*messages.Price)
+				price, ok := m.Message.(*messages.Price)
+				if !ok {
+					c.log.Error("Unexpected value returned from transport layer")
+					continue
+				}
 
 				// Try to collect received price:
 				err := c.collectPrice(price)

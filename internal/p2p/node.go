@@ -37,7 +37,6 @@ import (
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/log/null"
 	pkgTransport "github.com/makerdao/oracle-suite/pkg/transport"
 )
@@ -74,7 +73,7 @@ type Node struct {
 	validatorSet          *sets.ValidatorSet
 	messageHandlerSet     *sets.MessageHandlerSet
 	subs                  map[string]*Subscription
-	log                   log.Logger
+	tsLog                 tsLogger
 	disablePubSub         bool
 	closed                bool
 
@@ -94,7 +93,7 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 		validatorSet:          sets.NewValidatorSet(),
 		messageHandlerSet:     sets.NewMessageHandlerSet(),
 		subs:                  make(map[string]*Subscription),
-		log:                   null.New(),
+		tsLog:                 tsLogger{log: null.New()},
 		closed:                false,
 	}
 
@@ -116,7 +115,7 @@ func NewNode(ctx context.Context, opts ...Options) (*Node, error) {
 }
 
 func (n *Node) Start() error {
-	n.log.Info("Starting")
+	n.tsLog.get().Info("Starting")
 	var err error
 
 	n.nodeEventHandler.Handle(sets.NodeStartingEvent{})
@@ -131,21 +130,21 @@ func (n *Node) Start() error {
 		libp2p.ConnectionManager(n.connmgr),
 	}, n.hostOpts...)...)
 	if err != nil {
-		return fmt.Errorf("libp2p node error, unable to initialize libp2p: %v", err)
+		return fmt.Errorf("libp2p node error, unable to initialize libp2p: %w", err)
 	}
 	n.host.Network().Notify(n.notifeeSet)
+	n.tsLog.set(n.tsLog.get().WithField("x-hostID", n.host.ID().String()))
 
-	n.log = n.log.WithField("x-hostID", n.host.ID().String())
 	n.nodeEventHandler.Handle(sets.NodeHostStartedEvent{})
 
-	n.log.
+	n.tsLog.get().
 		WithField("listenAddrs", n.listenAddrStrs()).
 		Info("Listening")
 
 	if !n.disablePubSub {
 		n.pubSub, err = pubsub.NewGossipSub(n.ctx, n.host, n.pubsubOpts...)
 		if err != nil {
-			return fmt.Errorf("libp2p node error, unable to initialize gosspib pubsub: %v", err)
+			return fmt.Errorf("libp2p node error, unable to initialize gosspib pubsub: %w", err)
 		}
 		n.nodeEventHandler.Handle(sets.NodePubSubStartedEvent{})
 	}
@@ -210,6 +209,13 @@ func (n *Node) AddNotifee(notifees ...network.Notifiee) {
 	defer n.mu.Unlock()
 
 	n.notifeeSet.Add(notifees...)
+}
+
+func (n *Node) RemoveNotifee(notifees ...network.Notifiee) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.notifeeSet.Remove(notifees...)
 }
 
 func (n *Node) AddConnectionGater(connGaters ...coreConnmgr.ConnectionGater) {
@@ -296,7 +302,7 @@ func (n *Node) Subscription(topic string) (*Subscription, error) {
 // contextCancelHandler handles context cancellation.
 func (n *Node) contextCancelHandler() {
 	defer func() { close(n.doneCh) }()
-	defer n.log.Info("Stopped")
+	defer n.tsLog.get().Info("Stopped")
 	defer n.nodeEventHandler.Handle(sets.NodeStoppedEvent{})
 	<-n.ctx.Done()
 
@@ -309,7 +315,7 @@ func (n *Node) contextCancelHandler() {
 	n.closed = true
 	err := n.host.Close()
 	if err != nil {
-		n.log.WithError(err).Error("Error during closing host")
+		n.tsLog.get().WithError(err).Error("Error during closing host")
 	}
 }
 

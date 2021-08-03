@@ -13,28 +13,35 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package formatter
+package p2p
 
 import (
-	"strings"
-
-	"github.com/sirupsen/logrus"
+	"github.com/makerdao/oracle-suite/pkg/log"
+	"sync"
 )
 
-// TextFormatter is a wrapper for the original TextFormatter from the logrus
-// package. It removes all fields with the "x-" prefix. This will allow to add
-// more data fields to logs without making the CLI output to messy.
-type TextFormatter struct {
-	f logrus.TextFormatter
+// tdLogger is thread-safe wrapper for logger field.
+type tsLogger struct {
+	mu  sync.RWMutex
+	log log.Logger
 }
 
-func (f *TextFormatter) Format(e *logrus.Entry) ([]byte, error) {
-	data := logrus.Fields{}
-	for k, v := range e.Data {
-		if !strings.HasPrefix(k, "x-") {
-			data[k] = v
-		}
+func (l *tsLogger) set(logger log.Logger) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.log = logger
+}
+
+func (l *tsLogger) get() log.Logger {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.log
+}
+
+// Logger configures node to use given logger instance.
+func Logger(logger log.Logger) Options {
+	return func(n *Node) error {
+		n.tsLog.set(logger)
+		return nil
 	}
-	e.Data = data
-	return f.f.Format(e)
 }

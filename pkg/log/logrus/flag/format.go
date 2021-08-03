@@ -28,7 +28,7 @@ import (
 // custom formatters to this map.
 var FormattersMap = map[string]func() logrus.Formatter{
 	"text": func() logrus.Formatter {
-		return &formatter.TextFormatter{}
+		return &formatter.XFilterFormatter{Formatter: &logrus.TextFormatter{}}
 	},
 	"json": func() logrus.Formatter {
 		return &formatter.JSONFormatter{}

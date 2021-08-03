@@ -16,6 +16,7 @@
 package p2p
 
 import (
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
@@ -25,6 +26,9 @@ import (
 )
 
 type monitorNotifee struct {
+	mu sync.RWMutex
+
+	stopped   bool
 	notifeeCh chan struct{}
 }
 
@@ -36,12 +40,22 @@ func (n *monitorNotifee) ListenClose(network.Network, multiaddr.Multiaddr) {}
 
 // Connected implements the network.Notifiee interface.
 func (n *monitorNotifee) Connected(_ network.Network, conn network.Conn) {
-	n.notifeeCh <- struct{}{}
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	if !n.stopped {
+		n.notifeeCh <- struct{}{}
+	}
 }
 
 // Disconnected implements the network.Notifiee interface.
 func (n *monitorNotifee) Disconnected(_ network.Network, conn network.Conn) {
-	n.notifeeCh <- struct{}{}
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	if !n.stopped {
+		n.notifeeCh <- struct{}{}
+	}
 }
 
 // OpenedStream implements the network.Notifiee interface.
@@ -50,15 +64,25 @@ func (n *monitorNotifee) OpenedStream(network.Network, network.Stream) {}
 // ClosedStream implements the network.Notifiee interface.
 func (n *monitorNotifee) ClosedStream(network.Network, network.Stream) {}
 
+// Stop stops monitoring notifee.
+func (n *monitorNotifee) Stop() {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.stopped = true
+	close(n.notifeeCh)
+}
+
 func Monitor() Options {
-	log := func(n *Node) {
-		n.log.
-			WithField("peerCount", len(n.host.Network().Peers())).
-			Info("Connected peers")
-	}
 	return func(n *Node) error {
+		log := func() {
+			n.tsLog.get().
+				WithField("peerCount", len(n.host.Network().Peers())).
+				Info("Connected peers")
+		}
 		notifeeCh := make(chan struct{})
-		n.AddNotifee(&monitorNotifee{notifeeCh: notifeeCh})
+		notifee := &monitorNotifee{notifeeCh: notifeeCh}
+		n.AddNotifee(notifee)
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
 			if _, ok := event.(sets.NodeStartedEvent); ok {
 				go func() {
@@ -66,11 +90,13 @@ func Monitor() Options {
 					for {
 						select {
 						case <-notifeeCh:
-							log(n)
+							log()
 						case <-t.C:
-							log(n)
+							log()
 						case <-n.ctx.Done():
+							notifee.Stop()
 							t.Stop()
+							n.RemoveNotifee(notifee)
 							return
 						}
 					}
