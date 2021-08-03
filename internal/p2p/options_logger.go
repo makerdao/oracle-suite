@@ -16,8 +16,9 @@
 package p2p
 
 import (
-	"github.com/makerdao/oracle-suite/pkg/log"
 	"sync"
+
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 // tdLogger is thread-safe wrapper for logger field.

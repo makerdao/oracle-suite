@@ -16,9 +16,10 @@
 package sets
 
 import (
+	"sync"
+
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
-	"sync"
 )
 
 // NotifeeSet implements the network.Notifiee and allow to aggregate
