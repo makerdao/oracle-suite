@@ -42,8 +42,8 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			// Check is a message signature is valid and extract author's address:
 			priceFrom, err := priceMsg.Price.From(signer)
 			wat := priceMsg.Price.Wat
-			age := priceMsg.Price.Age
-			val := priceMsg.Price.Val
+			age := priceMsg.Price.Age.UTC().Format(time.RFC3339)
+			val := priceMsg.Price.Val.String()
 			if err != nil {
 				logger.
 					WithError(err).
