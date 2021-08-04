@@ -58,7 +58,7 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			if ethkey.AddressToPeerID(*priceFrom) != psMsg.GetFrom() {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
-					WithField("feedID", priceFrom.String()).
+					WithField("from", priceFrom.String()).
 					WithField("wat", wat).
 					WithField("age", age).
 					WithField("val", val).
