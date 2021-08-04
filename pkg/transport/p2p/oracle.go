@@ -41,10 +41,16 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			}
 			// Check is a message signature is valid and extract author's address:
 			priceFrom, err := priceMsg.Price.From(signer)
+			wat := priceMsg.Price.Wat
+			age := priceMsg.Price.Age.UTC().Format(time.RFC3339)
+			val := priceMsg.Price.Val.String()
 			if err != nil {
 				logger.
 					WithError(err).
 					WithField("peerID", psMsg.GetFrom().String()).
+					WithField("wat", wat).
+					WithField("age", age).
+					WithField("val", val).
 					Warn("The price message was rejected, invalid signature")
 				return pubsub.ValidationReject
 			}
@@ -52,6 +58,10 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			if ethkey.AddressToPeerID(*priceFrom) != psMsg.GetFrom() {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
+					WithField("from", priceFrom.String()).
+					WithField("wat", wat).
+					WithField("age", age).
+					WithField("val", val).
 					Warn("The price message was rejected, the message author and price signature don't match")
 				return pubsub.ValidationReject
 			}
@@ -66,7 +76,10 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			if !feedAllowed {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
-					WithField("feed", priceFrom.String()).
+					WithField("from", priceFrom.String()).
+					WithField("wat", wat).
+					WithField("age", age).
+					WithField("val", val).
 					Warn("The price message was ignored, the feeder is not allowed to send price messages")
 				return pubsub.ValidationIgnore
 			}
@@ -74,7 +87,10 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 			if time.Since(priceMsg.Price.Age) > 5*time.Minute {
 				logger.
 					WithField("peerID", psMsg.GetFrom().String()).
-					WithField("feed", priceFrom.String()).
+					WithField("from", priceFrom.String()).
+					WithField("wat", wat).
+					WithField("age", age).
+					WithField("val", val).
 					Warn("The price message was rejected, the message is older than 5 min")
 				if time.Since(priceMsg.Price.Age) > 10*time.Minute {
 					return pubsub.ValidationReject
