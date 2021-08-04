@@ -68,6 +68,7 @@ func (c *Config) Configure(d Dependencies) (transport.Transport, datastore.Datas
 		return nil, nil, nil, err
 	}
 	dat, err := c.Spectre.ConfigureDatastore(spectreConfig.DatastoreDependencies{
+		Context:   d.Context,
 		Signer:    sig,
 		Transport: tra,
 		Feeds:     fed,
@@ -77,6 +78,7 @@ func (c *Config) Configure(d Dependencies) (transport.Transport, datastore.Datas
 		return nil, nil, nil, err
 	}
 	spe, err := c.Spectre.ConfigureSpectre(spectreConfig.Dependencies{
+		Context:        d.Context,
 		Signer:         sig,
 		Datastore:      dat,
 		EthereumClient: cli,

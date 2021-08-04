@@ -37,7 +37,7 @@ func PeerScoring(
 			pubsub.WithPeerScore(params, thresholds),
 			pubsub.WithPeerScoreInspect(func(m map[peer.ID]*pubsub.PeerScoreSnapshot) {
 				for id, ps := range m {
-					n.log.
+					n.tsLog.get().
 						WithField("peerID", id).
 						WithField("score", log.Format(ps)).
 						Debug("Peer score")
@@ -50,7 +50,7 @@ func PeerScoring(
 				var err error
 				defer func() {
 					if err != nil {
-						n.log.
+						n.tsLog.get().
 							WithError(err).
 							WithField("topic", e.Topic).
 							Warn("Unable to set topic score parameters")
@@ -61,7 +61,7 @@ func PeerScoring(
 					return
 				}
 				if sp := topicScoreParams(e.Topic); sp != nil {
-					n.log.
+					n.tsLog.get().
 						WithField("topic", e.Topic).
 						WithField("params", log.Format(sp)).
 						Info("Topic score params")

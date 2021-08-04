@@ -12,10 +12,10 @@ let
   ver = "${pkgs.lib.removeSuffix "\n" (builtins.readFile "${rev}")}";
 in buildGoModule {
   pname = "oracle-suite";
-  version = "dev-${ver}";
   #  version = pkgs.lib.fileContents ./version;
+  version = "dev-${ver}";
   src = ./.;
-  vendorSha256 = "07d0gkbkz1qnq8bda2vm48s32gg64bv9zicli71qd67nicr6yq51";
+  vendorSha256 = "05qq6a2nk03m7zfg2ipaqv80yaqly30qkzw67rdfnfpyd69xnkqw";
   subPackages = [ "cmd/..." ];
   postConfigure = "export CGO_ENABLED=0";
   postInstall = "cp ./config.json $out";

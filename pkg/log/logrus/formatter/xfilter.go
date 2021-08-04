@@ -21,14 +21,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TextFormatter is a wrapper for the original TextFormatter from the logrus
-// package. It removes all fields with the "x-" prefix. This will allow to add
-// more data fields to logs without making the CLI output to messy.
-type TextFormatter struct {
-	f logrus.TextFormatter
+// XFilterFormatter removes all fields with the "x-" prefix. This will allow
+// adding more data fields to logs without making the CLI output to messy.
+type XFilterFormatter struct {
+	Formatter logrus.Formatter
 }
 
-func (f *TextFormatter) Format(e *logrus.Entry) ([]byte, error) {
+func (f *XFilterFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	data := logrus.Fields{}
 	for k, v := range e.Data {
 		if !strings.HasPrefix(k, "x-") {
@@ -36,5 +35,5 @@ func (f *TextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		}
 	}
 	e.Data = data
-	return f.f.Format(e)
+	return f.Formatter.Format(e)
 }

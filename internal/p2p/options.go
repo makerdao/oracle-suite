@@ -30,7 +30,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/makerdao/oracle-suite/internal/p2p/sets"
-	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 type Options func(n *Node) error
@@ -79,14 +78,6 @@ func DisablePubSub() Options {
 	}
 }
 
-// Logger configures node to use given logger instance.
-func Logger(logger log.Logger) Options {
-	return func(n *Node) error {
-		n.log = logger
-		return nil
-	}
-}
-
 // UserAgent sets the libp2p user-agent sent along with the identify protocol.
 func UserAgent(userAgent string) Options {
 	return func(n *Node) error {
@@ -112,7 +103,7 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 		if len(addrs) == 0 {
 			return nil
 		}
-		n.log.
+		n.tsLog.get().
 			WithField("addrs", addrs).
 			Info("Adding direct peers")
 		var addrInfos []peer.AddrInfo
@@ -132,13 +123,13 @@ func DirectPeers(addrs []multiaddr.Multiaddr) Options {
 				if n.host.Network().Connectedness(addrInfo.ID) != network.NotConnected {
 					continue
 				}
-				n.log.
+				n.tsLog.get().
 					WithField("peerID", addrInfo.ID.Pretty()).
 					WithField("addrs", addrInfo.Addrs).
 					Info("Connecting to the direct peer")
 				err := n.host.Connect(n.ctx, addrInfo)
 				if err != nil {
-					n.log.
+					n.tsLog.get().
 						WithField("peerID", addrInfo.ID.Pretty()).
 						WithField("addrs", addrInfo.Addrs).
 						WithError(err).
@@ -190,7 +181,7 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 		n.AddNodeEventHandler(sets.NodeEventHandlerFunc(func(event interface{}) {
 			switch event.(type) {
 			case sets.NodeHostStartedEvent:
-				n.log.
+				n.tsLog.get().
 					WithField("bootstrapAddrs", bootstrapAddrs).
 					Info("Starting KAD-DHT discovery")
 				for _, addr := range addrs {
@@ -201,13 +192,13 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 				}
 				kadDHT, err = dht.New(n.ctx, n.host, dht.BootstrapPeers(addrs...), dht.Mode(dht.ModeServer))
 				if err != nil {
-					n.log.
+					n.tsLog.get().
 						WithError(err).
 						Error("Unable to initialize KAD-DHT")
 					return
 				}
 				if err = kadDHT.Bootstrap(n.ctx); err != nil {
-					n.log.
+					n.tsLog.get().
 						WithError(err).
 						Error("Unable to bootstrap KAD-DHT")
 					return
@@ -219,7 +210,7 @@ func Discovery(bootstrapAddrs []multiaddr.Multiaddr) Options {
 				}
 				err = kadDHT.Close()
 				if err != nil {
-					n.log.
+					n.tsLog.get().
 						WithError(err).
 						Error("Unable to close KAD-DHT")
 				}
