@@ -161,7 +161,7 @@ func TestMedian_Poke(t *testing.T) {
 		"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 	assert.Equal(t, a, tx.Address)
-	assert.Equal(t, (*big.Int)(nil), tx.Gas)
+	assert.Equal(t, (*big.Int)(nil), tx.GasFeeCap)
 	assert.Equal(t, big.NewInt(gasLimit), tx.GasLimit)
 	assert.Equal(t, uint64(0), tx.Nonce)
 	assert.Equal(t, cd, hex.EncodeToString(tx.Data))
