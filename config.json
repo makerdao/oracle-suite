@@ -365,6 +365,20 @@
           "minimumSuccessfulSources": 4
         }
       },
+      "MKR/USD": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "binance", "pair": "MKR/BTC" },{ "origin": ".", "pair": "BTC/USD" }],
+          [{ "origin": "bitstamp", "pair": "MKR/USD" }],
+          [{ "origin": "coinbasepro", "pair": "MKR/USD" }],
+          [{ "origin": "ftx", "pair": "MKR/USD" }],
+          [{ "origin": "gemini", "pair": "MKR/USD" }],
+          [{ "origin": "kraken", "pair": "MKR/USD" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 4
+        }
+      },
       "FIL/USD": {
         "method": "median",
         "sources": [
