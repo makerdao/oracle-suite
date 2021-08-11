@@ -225,6 +225,15 @@
         "params": {
           "apiKey": "API_KEY"
         }
+      },
+      "uniswap": {
+        "type": "uniswap",
+        "name": "uniswap",
+        "params": {
+          "contracts": {
+            "AAVE/ETH": "0xdfc14d2af169b0d36c4eff567ada9b2e0cae044f"
+          }
+        }
       }
     },
     "priceModels": {
@@ -236,13 +245,7 @@
           [{ "origin": "gemini", "pair": "AAVE/USD" }],
           [{ "origin": "huobi", "pair": "AAVE/USDT" }, { "origin": ".", "pair": "USDT/USD" }],
           [{ "origin": "okex", "pair": "AAVE/USDT" }, { "origin": ".", "pair": "USDT/USD" }],
-          [
-            {
-              "origin": "uniswap", "pair": "AAVE/ETH",
-              "params": { "contract": "0xdfc14d2af169b0d36c4eff567ada9b2e0cae044f" }
-            },
-            { "origin": ".", "pair": "ETH/USD" }
-          ]
+          [{ "origin": "uniswap", "pair": "AAVE/ETH" }, { "origin": ".", "pair": "ETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 3
