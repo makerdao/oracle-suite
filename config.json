@@ -230,6 +230,9 @@
         "type": "uniswap",
         "name": "uniswap",
         "params": {
+          "symbolAlias": {
+            "ETH": "WETH"
+          },
           "contracts": {
             "AAVE/ETH": "0xdfc14d2af169b0d36c4eff567ada9b2e0cae044f"
           }
