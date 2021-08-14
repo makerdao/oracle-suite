@@ -48,54 +48,9 @@ type uniswapV3PairResponse struct {
 }
 
 type UniswapV3 struct {
-	Pool query.WorkerPool
-}
-
-func (u *UniswapV3) pairsToContractAddress(pair Pair) string {
-	// We're checking for reverse pairs because the same contract is used to
-	// trade in both directions.
-	match := func(a, b Pair) bool {
-		if a.Quote == b.Quote && a.Base == b.Base {
-			return true
-		}
-
-		if a.Quote == b.Base && a.Base == b.Quote {
-			return true
-		}
-
-		return false
-	}
-
-	p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
-
-	switch {
-	case match(p, Pair{Base: "COMP", Quote: "WETH"}):
-		return "0xea4ba4ce14fdd287f380b55419b1c5b6c3f22ab6"
-	case match(p, Pair{Base: "WETH", Quote: "CRV"}):
-		return "0x4c83a7f819a5c37d64b4c5a2f8238ea082fa1f4e"
-	case match(p, Pair{Base: "USDC", Quote: "WETH"}):
-		return "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
-	case match(p, Pair{Base: "UNI", Quote: "WETH"}):
-		return "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801"
-	case match(p, Pair{Base: "WNXM", Quote: "WETH"}):
-		return "0x058d79a4c6eb5b11d0248993ffa1faa168ddd3c0"
-	case match(p, Pair{Base: "YFI", Quote: "WETH"}):
-		return "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
-	}
-	return pair.String()
-}
-
-// TODO: We should find better solution for this.
-func (u *UniswapV3) renameSymbol(symbol string) string {
-	switch symbol {
-	case "ETH":
-		return "WETH"
-	case "BTC":
-		return "WBTC"
-	case "USD":
-		return "USDC"
-	}
-	return symbol
+	Pool              query.WorkerPool
+	SymbolAliases     SymbolAliases
+	ContractAddresses ContractAddresses
 }
 
 func (u *UniswapV3) Fetch(pairs []Pair) []FetchResult {
@@ -106,7 +61,12 @@ func (u *UniswapV3) Fetch(pairs []Pair) []FetchResult {
 func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 	var err error
 
-	pairsJSON, _ := json.Marshal(u.pairsToContractAddress(pair))
+	contract, ok := u.ContractAddresses.ByPair(pair)
+	if !ok {
+		return nil, fmt.Errorf("failed to find contract address for pair: %s", pair.String())
+	}
+
+	pairsJSON, _ := json.Marshal(contract)
 	gql := `
 		query($id:String) {
 			pools(where:{id: $id}) {
@@ -154,8 +114,8 @@ func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
 
-	b := u.renameSymbol(pair.Base)
-	q := u.renameSymbol(pair.Quote)
+	b := u.SymbolAliases.Replace(pair.Base)
+	q := u.SymbolAliases.Replace(pair.Quote)
 
 	pair0 := b + "/" + q
 	pair1 := q + "/" + b

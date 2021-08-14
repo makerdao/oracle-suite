@@ -92,3 +92,40 @@ func (suite *OriginsSuite) TestSuccessBinance() {
 func TestOriginsSuite(t *testing.T) {
 	suite.Run(t, new(OriginsSuite))
 }
+
+func TestGettingContractAddressByBaseAndQuote(t *testing.T) {
+	contract := "0x0000"
+	contracts := ContractAddresses{"BTC/ETH": contract}
+
+	// Not existing pair
+	address, ok := contracts.ByPair(Pair{Base: "BTC", Quote: "USD"})
+	assert.Empty(t, address)
+	assert.False(t, ok)
+
+	// Existing direct pair
+	address, ok = contracts.ByPair(Pair{Base: "BTC", Quote: "ETH"})
+	assert.True(t, ok)
+	assert.Equal(t, contract, address)
+
+	// Existing reversed pair
+	address, ok = contracts.ByPair(Pair{Base: "ETH", Quote: "BTC"})
+	assert.True(t, ok)
+	assert.Equal(t, contract, address)
+}
+
+func TestReplacingSymbolUsingAliases(t *testing.T) {
+	aliases := SymbolAliases{"ETH": "WETH"}
+
+	// Should not be changed
+	symbol := aliases.Replace("BTC")
+	assert.Equal(t, "BTC", symbol)
+
+	// Should be replaced
+	symbol = aliases.Replace("ETH")
+	assert.Equal(t, "WETH", symbol)
+
+	pair := Pair{Base: "BTC", Quote: "ETH"}
+	replaced := aliases.ReplacePair(pair)
+	assert.Equal(t, "BTC", replaced.Base)
+	assert.Equal(t, "WETH", replaced.Quote)
+}
