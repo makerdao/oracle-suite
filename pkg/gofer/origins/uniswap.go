@@ -48,7 +48,9 @@ type uniswapPairResponse struct {
 }
 
 type Uniswap struct {
-	Pool query.WorkerPool
+	Pool              query.WorkerPool
+	SymbolAliases     SymbolAliases
+	ContractAddresses ContractAddresses
 }
 
 //nolint:gocyclo

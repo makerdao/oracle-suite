@@ -23,25 +23,32 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
 )
 
-type apiKeyParams struct {
-	APIKey string `json:"apiKey"`
+type originParams struct {
+	APIKey        string                    `json:"apiKey"`
+	Contracts     origins.ContractAddresses `json:"contracts"`
+	SymbolAliases origins.SymbolAliases     `json:"symbolAliases"`
 }
 
-func parseParamsToAPIKey(params json.RawMessage) (string, error) {
+func parseOriginParams(params json.RawMessage) (*originParams, error) {
 	if params == nil {
-		return "", fmt.Errorf("invalid origin parameters")
+		return nil, fmt.Errorf("invalid origin parameters")
 	}
 
-	var res apiKeyParams
+	var res originParams
 	err := json.Unmarshal(params, &res)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal origin parameters: %w", err)
+		return nil, fmt.Errorf("failed to marshal origin parameters: %w", err)
 	}
-	return res.APIKey, nil
+	return &res, nil
 }
 
 //nolint
 func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage) (origins.Handler, error) {
+	parsedParams, err := parseOriginParams(params)
+	if err != nil {
+		return nil, err
+	}
+
 	switch handlerType {
 	case "balancer":
 		return &origins.Balancer{Pool: pool}, nil
@@ -62,11 +69,7 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 	case "cryptocompare":
 		return &origins.CryptoCompare{Pool: pool}, nil
 	case "coinmarketcap":
-		apiKey, err := parseParamsToAPIKey(params)
-		if err != nil {
-			return nil, err
-		}
-		return &origins.CoinMarketCap{Pool: pool, APIKey: apiKey}, nil
+		return &origins.CoinMarketCap{Pool: pool, APIKey: parsedParams.APIKey}, nil
 	case "ddex":
 		return &origins.Ddex{Pool: pool}, nil
 	case "folgory":
@@ -74,11 +77,7 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 	case "ftx":
 		return &origins.Ftx{Pool: pool}, nil
 	case "fx":
-		apiKey, err := parseParamsToAPIKey(params)
-		if err != nil {
-			return nil, err
-		}
-		return &origins.Fx{Pool: pool, APIKey: apiKey}, nil
+		return &origins.Fx{Pool: pool, APIKey: parsedParams.APIKey}, nil
 	case "gateio":
 		return &origins.Gateio{Pool: pool}, nil
 	case "gemini":
@@ -98,21 +97,23 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 	case "okex":
 		return &origins.Okex{Pool: pool}, nil
 	case "openexchangerates":
-		apiKey, err := parseParamsToAPIKey(params)
-		if err != nil {
-			return nil, err
-		}
-		return &origins.OpenExchangeRates{Pool: pool, APIKey: apiKey}, nil
+		return &origins.OpenExchangeRates{Pool: pool, APIKey: parsedParams.APIKey}, nil
 	case "poloniex":
 		return &origins.Poloniex{Pool: pool}, nil
 	case "sushiswap":
 		return &origins.Sushiswap{Pool: pool}, nil
-	case "uniswap":
-		return &origins.Uniswap{Pool: pool}, nil
-	case "uniswapV2":
-		return &origins.Uniswap{Pool: pool}, nil
+	case "uniswap", "uniswapV2":
+		return &origins.Uniswap{
+			Pool:              pool,
+			ContractAddresses: parsedParams.Contracts,
+			SymbolAliases:     parsedParams.SymbolAliases,
+		}, nil
 	case "uniswapV3":
-		return &origins.UniswapV3{Pool: pool}, nil
+		return &origins.UniswapV3{
+			Pool:              pool,
+			ContractAddresses: parsedParams.Contracts,
+			SymbolAliases:     parsedParams.SymbolAliases,
+		}, nil
 	case "upbit":
 		return &origins.Upbit{Pool: pool}, nil
 	}

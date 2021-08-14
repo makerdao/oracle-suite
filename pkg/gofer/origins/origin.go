@@ -30,6 +30,30 @@ type Handler interface {
 	Fetch(pairs []Pair) []FetchResult
 }
 
+type ContractAddresses map[string]string
+
+func (c ContractAddresses) ByPair(p Pair) (string, bool) {
+	contract, ok := c[fmt.Sprintf("%s/%s", p.Base, p.Quote)]
+	if !ok {
+		contract, ok = c[fmt.Sprintf("%s/%s", p.Quote, p.Base)]
+	}
+	return contract, ok
+}
+
+type SymbolAliases map[string]string
+
+func (a SymbolAliases) Replace(symbol string) string {
+	replacement, ok := a[symbol]
+	if !ok {
+		return symbol
+	}
+	return replacement
+}
+
+func (a SymbolAliases) ReplacePair(pair Pair) Pair {
+	return Pair{Base: a.Replace(pair.Base), Quote: a.Replace(pair.Quote)}
+}
+
 type Pair struct {
 	Quote string
 	Base  string

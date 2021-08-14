@@ -34,11 +34,24 @@ func (suite *UniswapV3Suite) Origin() Handler {
 }
 
 func (suite *UniswapV3Suite) SetupSuite() {
-	suite.origin = &UniswapV3{Pool: query.NewMockWorkerPool()}
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+		"BTC": "WBTC",
+	}
+	addresses := ContractAddresses{
+		"YFI/ETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"YFI/BTC": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"CRV/ETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009",
+	}
+	suite.origin = &UniswapV3{
+		Pool:              query.NewMockWorkerPool(),
+		SymbolAliases:     aliases,
+		ContractAddresses: addresses,
+	}
 }
 
 func (suite *UniswapV3Suite) TestFailOnWrongInput() {
-	pair := Pair{Base: "YFI", Quote: "WETH"}
+	pair := Pair{Base: "YFI", Quote: "ETH"}
 
 	// Wrong pair
 	fr := suite.origin.Fetch([]Pair{{}})
@@ -124,7 +137,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 }
 
 func (suite *UniswapV3Suite) TestSuccessResponse() {
-	pairYFIWETH := Pair{Base: "YFI", Quote: "WETH"}
+	pairYFIWETH := Pair{Base: "YFI", Quote: "ETH"}
 
 	resp := &query.HTTPResponse{
 		Body: []byte(`
@@ -163,7 +176,7 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 	suite.Equal(31.00155, fr[0].Price.Volume24h)
 	suite.Greater(fr[0].Price.Timestamp.Unix(), int64(0))
 
-	pairCRVWETH := Pair{Base: "CRV", Quote: "WETH"}
+	pairCRVWETH := Pair{Base: "CRV", Quote: "ETH"}
 	resp1 := &query.HTTPResponse{
 		Body: []byte(`
 			{
