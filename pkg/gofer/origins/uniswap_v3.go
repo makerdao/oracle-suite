@@ -48,13 +48,30 @@ type uniswapV3PairResponse struct {
 }
 
 type UniswapV3 struct {
-	Pool              query.WorkerPool
-	SymbolAliases     SymbolAliases
+	WorkerPool        query.WorkerPool
 	ContractAddresses ContractAddresses
 }
 
-func (u *UniswapV3) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(u, pairs)
+func NewUniswapV3(
+	pool query.WorkerPool,
+	aliases SymbolAliases,
+	addresses ContractAddresses,
+) *BaseExchangeHandler {
+	return &BaseExchangeHandler{
+		ExchangeHandler: UniswapV3{
+			WorkerPool:        pool,
+			ContractAddresses: addresses,
+		},
+		SymbolAliases: aliases,
+	}
+}
+
+func (u UniswapV3) Pool() query.WorkerPool {
+	return u.WorkerPool
+}
+
+func (u UniswapV3) FetchAliased(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&u, pairs)
 }
 
 //nolint:dupl
@@ -93,7 +110,7 @@ func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := u.Pool.Query(req)
+	res := u.WorkerPool.Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}
@@ -114,8 +131,8 @@ func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
 
-	b := u.SymbolAliases.Replace(pair.Base)
-	q := u.SymbolAliases.Replace(pair.Quote)
+	b := pair.Base
+	q := pair.Quote
 
 	pair0 := b + "/" + q
 	pair1 := q + "/" + b

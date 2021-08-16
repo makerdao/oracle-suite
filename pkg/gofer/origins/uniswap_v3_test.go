@@ -26,7 +26,7 @@ import (
 
 type UniswapV3Suite struct {
 	suite.Suite
-	origin *UniswapV3
+	origin *BaseExchangeHandler
 }
 
 func (suite *UniswapV3Suite) Origin() Handler {
@@ -39,15 +39,11 @@ func (suite *UniswapV3Suite) SetupSuite() {
 		"BTC": "WBTC",
 	}
 	addresses := ContractAddresses{
-		"YFI/ETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
-		"YFI/BTC": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
-		"CRV/ETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009",
+		"YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"YFI/BTC":  "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"CRV/WETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009",
 	}
-	suite.origin = &UniswapV3{
-		Pool:              query.NewMockWorkerPool(),
-		SymbolAliases:     aliases,
-		ContractAddresses: addresses,
-	}
+	suite.origin = NewUniswapV3(query.NewMockWorkerPool(), aliases, addresses)
 }
 
 func (suite *UniswapV3Suite) TestFailOnWrongInput() {
@@ -67,7 +63,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -75,7 +71,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -103,7 +99,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -131,7 +127,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -162,7 +158,7 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairYFIWETH})
 
 	suite.Len(fr, 1)
@@ -200,7 +196,7 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp1)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp1)
 	fr1 := suite.origin.Fetch([]Pair{pairCRVWETH})
 
 	suite.Len(fr1, 1)
@@ -215,15 +211,16 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 	suite.Greater(fr1[0].Price.Timestamp.Unix(), int64(0))
 }
 
-func (suite *UniswapV3Suite) TestRealAPICall() {
-	testRealBatchAPICall(
-		suite,
-		&UniswapV3{Pool: query.NewHTTPWorkerPool(1)},
-		[]Pair{
-			{Base: "YFI", Quote: "WETH"},
-		},
-	)
-}
+// TODO: Uncomment after all handlers will move
+//func (suite *UniswapV3Suite) TestRealAPICall() {
+//	testRealBatchAPICall(
+//		suite,
+//		&UniswapV3{WorkerPool: query.NewHTTPWorkerPool(1)},
+//		[]Pair{
+//			{Base: "YFI", Quote: "WETH"},
+//		},
+//	)
+//}
 
 func TestUniswapV3Suite(t *testing.T) {
 	suite.Run(t, new(UniswapV3Suite))
