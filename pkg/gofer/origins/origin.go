@@ -30,6 +30,32 @@ type Handler interface {
 	Fetch(pairs []Pair) []FetchResult
 }
 
+type ExchangeHandler interface {
+	// FetchAliased is similar to Handler.Fetch
+	// but pairs will be already renamed based on given BaseExchangeHandler.SymbolAliases
+	FetchAliased(pairs []Pair) []FetchResult
+
+	Pool() query.WorkerPool
+}
+
+type BaseExchangeHandler struct {
+	ExchangeHandler
+
+	SymbolAliases SymbolAliases
+}
+
+func (h BaseExchangeHandler) Fetch(pairs []Pair) []FetchResult {
+	var renamedPairs []Pair
+	for _, pair := range pairs {
+		renamedPairs = append(renamedPairs, h.SymbolAliases.ReplacePair(pair))
+	}
+	results := h.ExchangeHandler.FetchAliased(renamedPairs)
+
+	// TODO: revert symbol aliases renaming
+	// otherwise we will get replaced pair that is not matches to initial.
+	return results
+}
+
 type ContractAddresses map[string]string
 
 func (c ContractAddresses) ByPair(p Pair) (string, bool) {
@@ -196,7 +222,6 @@ func DefaultOriginSet(pool query.WorkerPool) *Set {
 		"sushiswap":     &Sushiswap{Pool: pool},
 		"uniswap":       &Uniswap{Pool: pool},
 		"uniswapV2":     &Uniswap{Pool: pool},
-		"uniswapV3":     &UniswapV3{Pool: pool},
 		"upbit":         &Upbit{Pool: pool},
 	})
 }
