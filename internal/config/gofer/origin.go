@@ -109,11 +109,10 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			SymbolAliases:     parsedParams.SymbolAliases,
 		}, nil
 	case "uniswapV3":
-		return &origins.UniswapV3{
-			Pool:              pool,
+		return origins.NewBaseExchangeHandler(origins.UniswapV3{
+			WorkerPool:        pool,
 			ContractAddresses: parsedParams.Contracts,
-			SymbolAliases:     parsedParams.SymbolAliases,
-		}, nil
+		}, parsedParams.SymbolAliases), nil
 	case "upbit":
 		return &origins.Upbit{Pool: pool}, nil
 	}

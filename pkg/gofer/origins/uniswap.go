@@ -48,75 +48,72 @@ type uniswapPairResponse struct {
 }
 
 type Uniswap struct {
-	Pool              query.WorkerPool
-	SymbolAliases     SymbolAliases
+	WorkerPool        query.WorkerPool
 	ContractAddresses ContractAddresses
 }
 
 //nolint:gocyclo
-func (u *Uniswap) pairsToContractAddresses(pairs []Pair) []string {
+func (u *Uniswap) pairsToContractAddresses(pairs []Pair) ([]string, error) {
 	var names []string
 
-	// We're checking for reverse pairs because the same contract is used to
-	// trade in both directions.
-	match := func(a, b Pair) bool {
-		if a.Quote == b.Quote && a.Base == b.Base {
-			return true
-		}
-
-		if a.Quote == b.Base && a.Base == b.Quote {
-			return true
-		}
-
-		return false
-	}
-
 	for _, pair := range pairs {
-		p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
-
-		switch {
-		case match(p, Pair{Base: "AAVE", Quote: "WETH"}):
-			names = append(names, "0xdfc14d2af169b0d36c4eff567ada9b2e0cae044f")
-		case match(p, Pair{Base: "BAT", Quote: "WETH"}):
-			names = append(names, "0xa70d458a4d9bc0e6571565faee18a48da5c0d593")
-		case match(p, Pair{Base: "SNX", Quote: "WETH"}):
-			names = append(names, "0x43ae24960e5534731fc831386c07755a2dc33d47")
-		case match(p, Pair{Base: "COMP", Quote: "WETH"}):
-			names = append(names, "0xcffdded873554f362ac02f8fb1f02e5ada10516f")
-		case match(p, Pair{Base: "WETH", Quote: "USDC"}):
-			names = append(names, "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc")
-		case match(p, Pair{Base: "KNC", Quote: "WETH"}):
-			names = append(names, "0xf49c43ae0faf37217bdcb00df478cf793edd6687")
-		case match(p, Pair{Base: "LEND", Quote: "WETH"}):
-			names = append(names, "0xab3f9bf1d81ddb224a2014e98b238638824bcf20")
-		case match(p, Pair{Base: "LRC", Quote: "WETH"}):
-			names = append(names, "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70")
-		case match(p, Pair{Base: "PAXG", Quote: "WETH"}):
-			names = append(names, "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c")
-		case match(p, Pair{Base: "YFI", Quote: "WETH"}):
-			names = append(names, "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28")
+		address, ok := u.ContractAddresses.ByPair(pair)
+		if !ok {
+			return names, fmt.Errorf("failed to find contract address for pair %s", pair.String())
 		}
+		names = append(names, address)
+		//p := Pair{Base: u.renameSymbol(pair.Base), Quote: u.renameSymbol(pair.Quote)}
+		//
+		//switch {
+		//case match(p, Pair{Base: "AAVE", Quote: "WETH"}):
+		//	names = append(names, "0xdfc14d2af169b0d36c4eff567ada9b2e0cae044f")
+		//case match(p, Pair{Base: "BAT", Quote: "WETH"}):
+		//	names = append(names, "0xa70d458a4d9bc0e6571565faee18a48da5c0d593")
+		//case match(p, Pair{Base: "SNX", Quote: "WETH"}):
+		//	names = append(names, "0x43ae24960e5534731fc831386c07755a2dc33d47")
+		//case match(p, Pair{Base: "COMP", Quote: "WETH"}):
+		//	names = append(names, "0xcffdded873554f362ac02f8fb1f02e5ada10516f")
+		//case match(p, Pair{Base: "WETH", Quote: "USDC"}):
+		//	names = append(names, "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc")
+		//case match(p, Pair{Base: "KNC", Quote: "WETH"}):
+		//	names = append(names, "0xf49c43ae0faf37217bdcb00df478cf793edd6687")
+		//case match(p, Pair{Base: "LEND", Quote: "WETH"}):
+		//	names = append(names, "0xab3f9bf1d81ddb224a2014e98b238638824bcf20")
+		//case match(p, Pair{Base: "LRC", Quote: "WETH"}):
+		//	names = append(names, "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70")
+		//case match(p, Pair{Base: "PAXG", Quote: "WETH"}):
+		//	names = append(names, "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c")
+		//case match(p, Pair{Base: "YFI", Quote: "WETH"}):
+		//	names = append(names, "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28")
+		//}
 	}
-	return names
+	return names, nil
 }
 
-// TODO: We should find better solution for this.
-func (u *Uniswap) renameSymbol(symbol string) string {
-	switch symbol {
-	case "ETH":
-		return "WETH"
-	case "BTC":
-		return "WBTC"
-	case "USD":
-		return "USDC"
-	}
-	return symbol
+//func (u *Uniswap) renameSymbol(symbol string) string {
+//	switch symbol {
+//	case "ETH":
+//		return "WETH"
+//	case "BTC":
+//		return "WBTC"
+//	case "USD":
+//		return "USDC"
+//	}
+//	return symbol
+//}
+
+func (u Uniswap) Pool() query.WorkerPool {
+	return u.WorkerPool
 }
 
-func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
+func (u Uniswap) PullPrices(pairs []Pair) []FetchResult {
 	var err error
 
-	pairsJSON, _ := json.Marshal(u.pairsToContractAddresses(pairs))
+	contracts, err := u.pairsToContractAddresses(pairs)
+	if err != nil {
+		return fetchResultListWithErrors(pairs, err)
+	}
+	pairsJSON, _ := json.Marshal(contracts)
 	gql := `
 		query($ids:[String]) {
 			pairs(where:{id_in:$ids}) {
@@ -143,7 +140,7 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 	}
 
 	// make query
-	res := u.Pool.Query(req)
+	res := u.WorkerPool.Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
@@ -167,8 +164,8 @@ func (u *Uniswap) Fetch(pairs []Pair) []FetchResult {
 	// prepare result
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
-		b := u.renameSymbol(pair.Base)
-		q := u.renameSymbol(pair.Quote)
+		b := pair.Base
+		q := pair.Quote
 
 		pair0 := b + "/" + q
 		pair1 := q + "/" + b

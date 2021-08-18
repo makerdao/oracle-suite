@@ -31,9 +31,9 @@ type Handler interface {
 }
 
 type ExchangeHandler interface {
-	// FetchAliased is similar to Handler.Fetch
+	// PullPrices is similar to Handler.Fetch
 	// but pairs will be already renamed based on given BaseExchangeHandler.SymbolAliases
-	FetchAliased(pairs []Pair) []FetchResult
+	PullPrices(pairs []Pair) []FetchResult
 
 	Pool() query.WorkerPool
 }
@@ -44,15 +44,28 @@ type BaseExchangeHandler struct {
 	SymbolAliases SymbolAliases
 }
 
+func NewBaseExchangeHandler(handler ExchangeHandler, aliases SymbolAliases) *BaseExchangeHandler {
+	return &BaseExchangeHandler{
+		ExchangeHandler: handler,
+		SymbolAliases:   aliases,
+	}
+}
+
 func (h BaseExchangeHandler) Fetch(pairs []Pair) []FetchResult {
+	if h.SymbolAliases == nil {
+		return h.ExchangeHandler.PullPrices(pairs)
+	}
+
 	var renamedPairs []Pair
 	for _, pair := range pairs {
 		renamedPairs = append(renamedPairs, h.SymbolAliases.ReplacePair(pair))
 	}
-	results := h.ExchangeHandler.FetchAliased(renamedPairs)
+	results := h.ExchangeHandler.PullPrices(renamedPairs)
 
-	// TODO: revert symbol aliases renaming
-	// otherwise we will get replaced pair that is not matches to initial.
+	// Reverting our replacement
+	for i, _ := range results {
+		results[i].Price.Pair = h.SymbolAliases.RevertPair(results[i].Price.Pair)
+	}
 	return results
 }
 
@@ -68,21 +81,51 @@ func (c ContractAddresses) ByPair(p Pair) (string, bool) {
 
 type SymbolAliases map[string]string
 
-func (a SymbolAliases) Replace(symbol string) string {
+func (a SymbolAliases) replaceSymbol(symbol string) (string, bool) {
 	replacement, ok := a[symbol]
 	if !ok {
-		return symbol
+		return symbol, false
 	}
-	return replacement
+	return replacement, ok
+}
+
+// Revert reverts symbol replacement.
+func (a SymbolAliases) Revert(symbol string) string {
+	for pre, post := range a {
+		if symbol == post {
+			return pre
+		}
+	}
+
+	return symbol
 }
 
 func (a SymbolAliases) ReplacePair(pair Pair) Pair {
-	return Pair{Base: a.Replace(pair.Base), Quote: a.Replace(pair.Quote)}
+	base, baseOk := a.replaceSymbol(pair.Base)
+	quote, quoteOk := a.replaceSymbol(pair.Quote)
+
+	return Pair{Base: base, Quote: quote, baseReplaced: baseOk, quoteReplaced: quoteOk}
+}
+
+func (a SymbolAliases) RevertPair(pair Pair) Pair {
+	base := pair.Base
+	if pair.baseReplaced {
+		base = a.Revert(pair.Base)
+	}
+
+	quote := pair.Quote
+	if pair.quoteReplaced {
+		quote = a.Revert(pair.Quote)
+	}
+
+	return Pair{Base: base, Quote: quote, baseReplaced: false, quoteReplaced: false}
 }
 
 type Pair struct {
-	Quote string
-	Base  string
+	Quote         string
+	Base          string
+	quoteReplaced bool
+	baseReplaced  bool
 }
 
 func (p Pair) String() string {
@@ -220,8 +263,6 @@ func DefaultOriginSet(pool query.WorkerPool) *Set {
 		"okex":          &Okex{Pool: pool},
 		"poloniex":      &Poloniex{Pool: pool},
 		"sushiswap":     &Sushiswap{Pool: pool},
-		"uniswap":       &Uniswap{Pool: pool},
-		"uniswapV2":     &Uniswap{Pool: pool},
 		"upbit":         &Upbit{Pool: pool},
 	})
 }

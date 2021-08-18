@@ -40,10 +40,13 @@ func (suite *UniswapV3Suite) SetupSuite() {
 	}
 	addresses := ContractAddresses{
 		"YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
-		"YFI/BTC":  "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"YFI/WBTC": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
 		"CRV/WETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009",
 	}
-	suite.origin = NewUniswapV3(query.NewMockWorkerPool(), aliases, addresses)
+	suite.origin = NewBaseExchangeHandler(
+		UniswapV3{query.NewMockWorkerPool(), addresses},
+		aliases,
+	)
 }
 
 func (suite *UniswapV3Suite) TestFailOnWrongInput() {
