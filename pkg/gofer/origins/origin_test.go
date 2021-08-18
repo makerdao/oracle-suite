@@ -18,6 +18,7 @@ package origins
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -93,6 +94,62 @@ func TestOriginsSuite(t *testing.T) {
 	suite.Run(t, new(OriginsSuite))
 }
 
+type mockExchangeHandler struct{}
+
+func (u mockExchangeHandler) Pool() query.WorkerPool {
+	return nil
+}
+
+func (u mockExchangeHandler) PullPrices(pairs []Pair) []FetchResult {
+	var results []FetchResult
+	for _, pair := range pairs {
+		results = append(results, FetchResult{
+			Price: Price{
+				Pair:      pair,
+				Price:     1,
+				Ask:       2,
+				Bid:       3,
+				Volume24h: 4,
+				Timestamp: time.Now(),
+			},
+		})
+	}
+	return results
+}
+
+func TestNewBaseExchangeHandlerWithoutAliases(t *testing.T) {
+	pair := Pair{Base: "BTC", Quote: "ETH"}
+
+	eh := NewBaseExchangeHandler(mockExchangeHandler{}, nil)
+	assert.Nil(t, eh.SymbolAliases)
+
+	results := eh.Fetch([]Pair{pair})
+	assert.Len(t, results, 1)
+
+	result := results[0]
+	assert.NotNil(t, result)
+	assert.Equal(t, pair, result.Price.Pair)
+}
+
+func TestBaseExchangeHandlerReplacement(t *testing.T) {
+	aliases := SymbolAliases{"ETH": "WETH"}
+	pair := Pair{Base: "BTC", Quote: "ETH"}
+
+	mockHandler := mockExchangeHandler{}
+
+	handler := BaseExchangeHandler{
+		ExchangeHandler: mockHandler,
+		SymbolAliases:   aliases,
+	}
+
+	results := handler.Fetch([]Pair{pair})
+	assert.Len(t, results, 1)
+
+	result := results[0]
+	assert.NotNil(t, result)
+	assert.Equal(t, pair, result.Price.Pair)
+}
+
 func TestGettingContractAddressByBaseAndQuote(t *testing.T) {
 	contract := "0x0000"
 	contracts := ContractAddresses{"BTC/ETH": contract}
@@ -113,19 +170,48 @@ func TestGettingContractAddressByBaseAndQuote(t *testing.T) {
 	assert.Equal(t, contract, address)
 }
 
-func TestReplacingSymbolUsingAliases(t *testing.T) {
+func TestReplacingSymbolsUsingAliases(t *testing.T) {
 	aliases := SymbolAliases{"ETH": "WETH"}
 
 	// Should not be changed
-	symbol := aliases.Replace("BTC")
+	symbol, replaced := aliases.replaceSymbol("BTC")
 	assert.Equal(t, "BTC", symbol)
+	assert.False(t, replaced)
 
 	// Should be replaced
-	symbol = aliases.Replace("ETH")
+	symbol, replaced = aliases.replaceSymbol("ETH")
 	assert.Equal(t, "WETH", symbol)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
-	replaced := aliases.ReplacePair(pair)
-	assert.Equal(t, "BTC", replaced.Base)
-	assert.Equal(t, "WETH", replaced.Quote)
+	replacedPair := aliases.ReplacePair(pair)
+	assert.Equal(t, "BTC", replacedPair.Base)
+	assert.Equal(t, "WETH", replacedPair.Quote)
+
+	assert.False(t, replacedPair.baseReplaced)
+	assert.True(t, replacedPair.quoteReplaced)
+}
+
+func TestReplacementAndRevertingUsingAliases(t *testing.T) {
+	aliases := SymbolAliases{"ETH": "WETH"}
+
+	// Symbol should be replaced
+	symbol, replaced := aliases.replaceSymbol("ETH")
+	assert.Equal(t, "WETH", symbol)
+	assert.True(t, replaced)
+	assert.Equal(t, "ETH", aliases.Revert(symbol))
+
+	// Replacing pair
+	pair := Pair{Base: "BTC", Quote: "ETH"}
+	replacedPair := aliases.ReplacePair(pair)
+	assert.Equal(t, "BTC", replacedPair.Base)
+	assert.Equal(t, "WETH", replacedPair.Quote)
+
+	reverted := aliases.RevertPair(replacedPair)
+	assert.Equal(t, "BTC", reverted.Base)
+	assert.Equal(t, "ETH", reverted.Quote)
+
+	// Do not revert newly created pair
+	reverted = aliases.RevertPair(Pair{Base: "BTC", Quote: "WETH"})
+	assert.Equal(t, "BTC", reverted.Base)
+	assert.Equal(t, "WETH", reverted.Quote)
 }

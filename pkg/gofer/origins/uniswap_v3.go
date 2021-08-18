@@ -52,25 +52,11 @@ type UniswapV3 struct {
 	ContractAddresses ContractAddresses
 }
 
-func NewUniswapV3(
-	pool query.WorkerPool,
-	aliases SymbolAliases,
-	addresses ContractAddresses,
-) *BaseExchangeHandler {
-	return &BaseExchangeHandler{
-		ExchangeHandler: UniswapV3{
-			WorkerPool:        pool,
-			ContractAddresses: addresses,
-		},
-		SymbolAliases: aliases,
-	}
-}
-
 func (u UniswapV3) Pool() query.WorkerPool {
 	return u.WorkerPool
 }
 
-func (u UniswapV3) FetchAliased(pairs []Pair) []FetchResult {
+func (u UniswapV3) PullPrices(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(&u, pairs)
 }
 
