@@ -248,6 +248,25 @@
             "YFI/WETH": "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28"
           }
         }
+      },
+      "uniswapV3": {
+        "type": "uniswapV3",
+        "name": "uniswapV3",
+        "params": {
+          "symbolAliases": {
+            "ETH": "WETH",
+            "BTC": "WBTC",
+            "USD": "USDC"
+          },
+          "contracts": {
+            "COMP/WETH": "0xea4ba4ce14fdd287f380b55419b1c5b6c3f22ab6",
+            "WETH/CRV": "0x4c83a7f819a5c37d64b4c5a2f8238ea082fa1f4e",
+            "USDC/WETH": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+            "UNI/WETH": "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801",
+            "WNXM/WETH": "0x058d79a4c6eb5b11d0248993ffa1faa168ddd3c0",
+            "YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
+          }
+        }
       }
     },
     "priceModels": {
