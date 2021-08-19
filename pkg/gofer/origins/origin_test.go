@@ -181,6 +181,7 @@ func TestReplacingSymbolsUsingAliases(t *testing.T) {
 	// Should be replaced
 	symbol, replaced = aliases.replaceSymbol("ETH")
 	assert.Equal(t, "WETH", symbol)
+	assert.True(t, replaced)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 	replacedPair := aliases.ReplacePair(pair)

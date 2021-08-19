@@ -63,7 +63,7 @@ func (h BaseExchangeHandler) Fetch(pairs []Pair) []FetchResult {
 	results := h.ExchangeHandler.PullPrices(renamedPairs)
 
 	// Reverting our replacement
-	for i, _ := range results {
+	for i := range results {
 		results[i].Price.Pair = h.SymbolAliases.RevertPair(results[i].Price.Pair)
 	}
 	return results
