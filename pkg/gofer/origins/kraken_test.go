@@ -121,15 +121,18 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 }
 
 func (suite *KrakenSuite) TestRealAPICall() {
-	//pairs := []Pair{
-	//	{Base: "ETH", Quote: "BTC"},
-	//	{Base: "ETH", Quote: "USD"},
-	//	{Base: "BTC", Quote: "USD"},
-	//	{Base: "LINK", Quote: "ETH"},
-	//	{Base: "REP", Quote: "EUR"},
-	//	{Base: "USDT", Quote: "USD"},
-	//}
-	//testRealBatchAPICall(suite, &Kraken{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	pairs := []Pair{
+		{Base: "ETH", Quote: "BTC"},
+		{Base: "ETH", Quote: "USD"},
+		{Base: "BTC", Quote: "USD"},
+		{Base: "LINK", Quote: "ETH"},
+		{Base: "REP", Quote: "EUR"},
+		{Base: "USDT", Quote: "USD"},
+	}
+	testRealBatchAPICall(suite, NewBaseExchangeHandler(
+		Kraken{WorkerPool: query.NewHTTPWorkerPool(1)},
+		nil,
+	), pairs)
 }
 
 func TestKrakenSuite(t *testing.T) {

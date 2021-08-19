@@ -131,7 +131,12 @@ func (suite *CoinbaseProSuite) TestSuccessResponse() {
 }
 
 func (suite *CoinbaseProSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &CoinbasePro{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(CoinbasePro{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH",
+		"BTC",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

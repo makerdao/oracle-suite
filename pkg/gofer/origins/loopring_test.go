@@ -181,7 +181,12 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 }
 
 func (suite *LoopringSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Loopring{Pool: query.NewHTTPWorkerPool(1)}, "LRC", "ETH")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Loopring{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"LRC",
+		"ETH",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

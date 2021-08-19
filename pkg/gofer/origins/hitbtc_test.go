@@ -147,13 +147,14 @@ func (suite *HitbtcSuite) TestSuccessResponse() {
 }
 
 func (suite *HitbtcSuite) TestRealAPICall() {
-	//hitbtc := &Hitbtc{Pool: query.NewHTTPWorkerPool(1)}
-	//testRealAPICall(suite, hitbtc, "ETH", "BTC")
-	//testRealBatchAPICall(suite, hitbtc, []Pair{
-	//	{Base: "BTC", Quote: "USD"},
-	//	{Base: "DOGE", Quote: "BTC"},
-	//	{Base: "REP", Quote: "USDT"},
-	//})
+	hitbtc := NewBaseExchangeHandler(Hitbtc{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+
+	testRealAPICall(suite, hitbtc, "ETH", "BTC")
+	testRealBatchAPICall(suite, hitbtc, []Pair{
+		{Base: "BTC", Quote: "USD"},
+		{Base: "DOGE", Quote: "BTC"},
+		{Base: "REP", Quote: "USDT"},
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create

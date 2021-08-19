@@ -185,15 +185,15 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 }
 
 func (suite *PoloniexSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Poloniex{Pool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "ETH", Quote: "BTC"},
-	//		{Base: "REP", Quote: "BTC"},
-	//		{Base: "BTC", Quote: "USDT"},
-	//	},
-	//)
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Poloniex{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		[]Pair{
+			{Base: "ETH", Quote: "BTC"},
+			{Base: "REP", Quote: "BTC"},
+			{Base: "BTC", Quote: "USDT"},
+		},
+	)
 }
 
 func TestPoloniexSuite(t *testing.T) {

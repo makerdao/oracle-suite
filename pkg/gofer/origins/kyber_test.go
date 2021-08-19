@@ -178,13 +178,15 @@ func (suite *KyberSuite) TestSuccessResponse() {
 }
 
 func (suite *KyberSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Kyber{Pool: query.NewHTTPWorkerPool(1)}, "WBTC", "ETH")
-	//pairs := []Pair{
-	//	{Base: "WBTC", Quote: "ETH"},
-	//	{Base: "WETH", Quote: "ETH"},
-	//	{Base: "DAI", Quote: "ETH"},
-	//}
-	//testRealBatchAPICall(suite, &Kyber{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	origin := NewBaseExchangeHandler(Kyber{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+
+	testRealAPICall(suite, origin, "WBTC", "ETH")
+	pairs := []Pair{
+		{Base: "WBTC", Quote: "ETH"},
+		{Base: "WETH", Quote: "ETH"},
+		{Base: "DAI", Quote: "ETH"},
+	}
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

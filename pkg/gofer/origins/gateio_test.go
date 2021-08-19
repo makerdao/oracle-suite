@@ -123,13 +123,13 @@ func (suite *GateioSuite) TestSuccessResponse() {
 }
 
 func (suite *GateioSuite) TestRealAPICall() {
-	//gateio := &Gateio{Pool: query.NewHTTPWorkerPool(1)}
-	//testRealAPICall(suite, gateio, "ETH", "BTC")
-	//testRealBatchAPICall(suite, gateio, []Pair{
-	//	{Base: "ZEC", Quote: "USDT"},
-	//	{Base: "WIN", Quote: "USDT"},
-	//	{Base: "BAT", Quote: "BTC"},
-	//})
+	gateio := NewBaseExchangeHandler(Gateio{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+	testRealAPICall(suite, gateio, "ETH", "BTC")
+	testRealBatchAPICall(suite, gateio, []Pair{
+		{Base: "ZEC", Quote: "USDT"},
+		{Base: "WIN", Quote: "USDT"},
+		{Base: "BAT", Quote: "BTC"},
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create

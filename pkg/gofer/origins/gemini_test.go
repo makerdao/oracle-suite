@@ -122,7 +122,12 @@ func (suite *GeminiSuite) TestSuccessResponse() {
 }
 
 func (suite *GeminiSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Gemini{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Gemini{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH",
+		"BTC",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

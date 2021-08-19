@@ -214,16 +214,26 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 	suite.Greater(fr1[0].Price.Timestamp.Unix(), int64(0))
 }
 
-// TODO: Uncomment after all handlers will move
-//func (suite *UniswapV3Suite) TestRealAPICall() {
-//	testRealBatchAPICall(
-//		suite,
-//		&UniswapV3{WorkerPool: query.NewHTTPWorkerPool(1)},
-//		[]Pair{
-//			{Base: "YFI", Quote: "WETH"},
-//		},
-//	)
-//}
+func (suite *UniswapV3Suite) TestRealAPICall() {
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+	}
+	addresses := ContractAddresses{
+		"YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+	}
+	origin := NewBaseExchangeHandler(UniswapV3{
+		WorkerPool:        query.NewHTTPWorkerPool(1),
+		ContractAddresses: addresses,
+	}, aliases)
+
+	testRealBatchAPICall(
+		suite,
+		origin,
+		[]Pair{
+			{Base: "YFI", Quote: "WETH"},
+		},
+	)
+}
 
 func TestUniswapV3Suite(t *testing.T) {
 	suite.Run(t, new(UniswapV3Suite))

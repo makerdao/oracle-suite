@@ -215,14 +215,28 @@ func (suite *UniswapSuite) TestSuccessResponse() {
 }
 
 func (suite *UniswapSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Uniswap{WorkerPool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "LRC", Quote: "WETH"},
-	//		{Base: "WETH", Quote: "KNC"},
-	//	},
-	//)
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+		"BTC": "WBTC",
+	}
+	addresses := ContractAddresses{
+		"LRC/WETH": "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70",
+		"KNC/WETH": "0xf49c43ae0faf37217bdcb00df478cf793edd6687",
+	}
+
+	origin := NewBaseExchangeHandler(
+		Uniswap{WorkerPool: query.NewHTTPWorkerPool(1), ContractAddresses: addresses},
+		aliases,
+	)
+
+	testRealBatchAPICall(
+		suite,
+		origin,
+		[]Pair{
+			{Base: "LRC", Quote: "WETH"},
+			{Base: "WETH", Quote: "KNC"},
+		},
+	)
 }
 
 func TestUniswapSuite(t *testing.T) {

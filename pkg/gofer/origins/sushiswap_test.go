@@ -216,13 +216,27 @@ func (suite *SushiswapSuite) TestSuccessResponse() {
 }
 
 func (suite *SushiswapSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Sushiswap{Pool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "SNX", Quote: "ETH"},
-	//	},
-	//)
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+		"BTC": "WBTC",
+		"USD": "USDC",
+	}
+	addresses := ContractAddresses{
+		"SNX/WETH": "0xa1d7b2d891e3a1f9ef4bbc5be20630c2feb1c470",
+	}
+
+	origin := NewBaseExchangeHandler(Sushiswap{
+		WorkerPool:        query.NewHTTPWorkerPool(1),
+		ContractAddresses: addresses,
+	}, aliases)
+
+	testRealBatchAPICall(
+		suite,
+		origin,
+		[]Pair{
+			{Base: "SNX", Quote: "ETH"},
+		},
+	)
 }
 
 func TestSushiswapSuite(t *testing.T) {

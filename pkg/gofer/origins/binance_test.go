@@ -170,27 +170,27 @@ func (suite *BinanceSuite) TestSuccessResponse() {
 }
 
 func (suite *BinanceSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Binance{Pool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "BAT", Quote: "BTC"},
-	//		{Base: "COMP", Quote: "USDT"},
-	//		{Base: "ETH", Quote: "BTC"},
-	//		{Base: "GNT", Quote: "BTC"},
-	//		{Base: "KNC", Quote: "BTC"},
-	//		{Base: "LEND", Quote: "BTC"},
-	//		{Base: "LINK", Quote: "BTC"},
-	//		{Base: "LRC", Quote: "BTC"},
-	//		{Base: "MANA", Quote: "BTC"},
-	//		{Base: "OMG", Quote: "BTC"},
-	//		{Base: "POLY", Quote: "BTC"},
-	//		{Base: "REP", Quote: "BTC"},
-	//		{Base: "SNT", Quote: "BTC"},
-	//		{Base: "BTC", Quote: "USDT"},
-	//		{Base: "ZRX", Quote: "BTC"},
-	//	},
-	//)
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Binance{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		[]Pair{
+			{Base: "BAT", Quote: "BTC"},
+			{Base: "COMP", Quote: "USDT"},
+			{Base: "ETH", Quote: "BTC"},
+			//{Base: "GNT", Quote: "BTC"},
+			{Base: "KNC", Quote: "BTC"},
+			//{Base: "LEND", Quote: "BTC"},
+			{Base: "LINK", Quote: "BTC"},
+			{Base: "LRC", Quote: "BTC"},
+			{Base: "MANA", Quote: "BTC"},
+			{Base: "OMG", Quote: "BTC"},
+			{Base: "POLY", Quote: "BTC"},
+			{Base: "REP", Quote: "BTC"},
+			{Base: "SNT", Quote: "BTC"},
+			{Base: "BTC", Quote: "USDT"},
+			{Base: "ZRX", Quote: "BTC"},
+		},
+	)
 }
 
 func TestBinanceSuite(t *testing.T) {
