@@ -42,7 +42,7 @@ type bitThumbResponse struct {
 
 // Bithumb origin handler
 type BitThump struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (c *BitThump) localPairName(pair Pair) string {
@@ -53,8 +53,12 @@ func (c *BitThump) getURL(pair Pair) string {
 	return fmt.Sprintf(bitThumpURL, c.localPairName(pair))
 }
 
-func (c *BitThump) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(c, pairs)
+func (c BitThump) Pool() query.WorkerPool {
+	return c.WorkerPool
+}
+
+func (c BitThump) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&c, pairs)
 }
 
 func (c *BitThump) callOne(pair Pair) (*Price, error) {
@@ -64,7 +68,7 @@ func (c *BitThump) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := c.Pool.Query(req)
+	res := c.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

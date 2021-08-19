@@ -41,7 +41,7 @@ func (suite *OriginsSuite) SetupSuite() {
 
 	suite.pool = pool
 	suite.set = NewSet(map[string]Handler{
-		"binance": &Binance{pool},
+		"binance": NewBaseExchangeHandler(Binance{pool}, nil),
 	})
 }
 

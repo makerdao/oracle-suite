@@ -38,7 +38,7 @@ type bitstampResponse struct {
 
 // Bitstamp origin handler
 type Bitstamp struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (b *Bitstamp) renameSymbol(symbol string) string {
@@ -53,8 +53,12 @@ func (b *Bitstamp) getURL(pair Pair) string {
 	return fmt.Sprintf(bitstampURL, b.localPairName(pair))
 }
 
-func (b *Bitstamp) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(b, pairs)
+func (b Bitstamp) Pool() query.WorkerPool {
+	return b.WorkerPool
+}
+
+func (b Bitstamp) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&b, pairs)
 }
 
 func (b *Bitstamp) callOne(pair Pair) (*Price, error) {
@@ -64,7 +68,7 @@ func (b *Bitstamp) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := b.Pool.Query(req)
+	res := b.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

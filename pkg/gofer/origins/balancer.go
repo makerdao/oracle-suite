@@ -40,46 +40,36 @@ type balancerPairResponse struct {
 }
 
 type Balancer struct {
-	Pool query.WorkerPool
+	WorkerPool        query.WorkerPool
+	ContractAddresses ContractAddresses
 }
 
-func (s *Balancer) pairsToContractAddress(pair Pair) string {
+func (s Balancer) Pool() query.WorkerPool {
+	return s.WorkerPool
+}
+
+func (s *Balancer) pairsToContractAddress(pair Pair) (string, error) {
 	// We're checking for reverse pairs because the same contract is used to
 	// trade in both directions.
-	match := func(a, b Pair) bool {
-		if a.Quote == b.Quote && a.Base == b.Base {
-			return true
-		}
-
-		if a.Quote == b.Base && a.Base == b.Quote {
-			return true
-		}
-
-		return false
+	contract, ok := s.ContractAddresses.ByPair(pair)
+	if !ok {
+		return "", fmt.Errorf("failed to find Balancer contract address for pair: %s", pair.String())
 	}
-
-	p := Pair{Base: pair.Base, Quote: pair.Quote}
-
-	switch {
-	case match(p, Pair{Base: "BAL", Quote: "USD"}):
-		return "0xba100000625a3754423978a60c9317c58a424e3d"
-	case match(p, Pair{Base: "AAVE", Quote: "USD"}):
-		return "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"
-	case match(p, Pair{Base: "WNXM", Quote: "USD"}):
-		return "0x0d438f3b5175bebc262bf23753c1e53d03432bde"
-	}
-
-	return pair.String()
+	return contract, nil
 }
 
-func (s *Balancer) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(s, pairs)
+func (s Balancer) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&s, pairs)
 }
 
 func (s *Balancer) callOne(pair Pair) (*Price, error) {
 	var err error
 
-	pairsJSON, _ := json.Marshal(s.pairsToContractAddress(pair))
+	contract, err := s.pairsToContractAddress(pair)
+	if err != nil {
+		return nil, err
+	}
+	pairsJSON, _ := json.Marshal(contract)
 	gql := `
 		query($id:String) {
 			tokenPrices(where: { id: $id }){
@@ -100,7 +90,7 @@ func (s *Balancer) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := s.Pool.Query(req)
+	res := s.WorkerPool.Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

@@ -51,19 +51,22 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 
 	switch handlerType {
 	case "balancer":
-		return &origins.Balancer{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Balancer{
+			WorkerPool:        pool,
+			ContractAddresses: parsedParams.Contracts,
+		}, parsedParams.SymbolAliases), nil
 	case "binance":
-		return &origins.Binance{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Binance{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bitfinex":
-		return &origins.Bitfinex{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Bitfinex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bitstamp":
-		return &origins.Bitstamp{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Bitstamp{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bitthumb":
-		return &origins.BitThump{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.BitThump{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bithumb":
-		return &origins.BitThump{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.BitThump{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bittrex":
-		return &origins.Bittrex{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Bittrex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "coinbase", "coinbasepro":
 		return &origins.CoinbasePro{Pool: pool}, nil
 	case "cryptocompare":

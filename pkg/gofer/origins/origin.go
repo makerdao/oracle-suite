@@ -239,13 +239,11 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 
 func DefaultOriginSet(pool query.WorkerPool) *Set {
 	return NewSet(map[string]Handler{
-		"balancer":      &Balancer{Pool: pool},
-		"binance":       &Binance{Pool: pool},
-		"bitfinex":      &Bitfinex{Pool: pool},
-		"bitstamp":      &Bitstamp{Pool: pool},
-		"bitthumb":      &BitThump{Pool: pool},
-		"bithumb":       &BitThump{Pool: pool},
-		"bittrex":       &Bittrex{Pool: pool},
+		"binance":       NewBaseExchangeHandler(Binance{WorkerPool: pool}, nil),
+		"bitfinex":      NewBaseExchangeHandler(Bitfinex{WorkerPool: pool}, nil),
+		"bitstamp":      NewBaseExchangeHandler(Bitstamp{WorkerPool: pool}, nil),
+		"bitthumb":      NewBaseExchangeHandler(BitThump{WorkerPool: pool}, nil),
+		"bithumb":       NewBaseExchangeHandler(BitThump{WorkerPool: pool}, nil),
 		"coinbase":      &CoinbasePro{Pool: pool},
 		"coinbasepro":   &CoinbasePro{Pool: pool},
 		"cryptocompare": &CryptoCompare{Pool: pool},
