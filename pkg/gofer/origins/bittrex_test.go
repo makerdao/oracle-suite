@@ -142,15 +142,18 @@ func (suite *BittrexSuite) TestSuccessResponse() {
 }
 
 func (suite *BittrexSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Bittrex{Pool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "MANA", Quote: "BTC"},
-	//		{Base: "BAT", Quote: "BTC"},
-	//		{Base: "BTC", Quote: "USD"},
-	//	},
-	//)
+	aliases := SymbolAliases{
+		"REP": "REPV2",
+	}
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Bittrex{WorkerPool: query.NewHTTPWorkerPool(1)}, aliases),
+		[]Pair{
+			{Base: "MANA", Quote: "BTC"},
+			{Base: "BAT", Quote: "BTC"},
+			{Base: "BTC", Quote: "USD"},
+		},
+	)
 }
 
 func TestBittrexSuite(t *testing.T) {

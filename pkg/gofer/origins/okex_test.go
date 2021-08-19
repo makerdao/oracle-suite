@@ -170,18 +170,18 @@ func (suite *OkexSuite) TestSuccessResponse() {
 }
 
 func (suite *OkexSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Okex{Pool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "LRC", Quote: "USDT"},
-	//		{Base: "MKR", Quote: "BTC"},
-	//		{Base: "ZRX", Quote: "BTC"},
-	//		{Base: "COMP", Quote: "USDT"},
-	//		{Base: "SNT", Quote: "USDT"},
-	//		{Base: "BTC", Quote: "USDT"},
-	//	},
-	//)
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Okex{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		[]Pair{
+			{Base: "LRC", Quote: "USDT"},
+			{Base: "MKR", Quote: "BTC"},
+			{Base: "ZRX", Quote: "BTC"},
+			{Base: "COMP", Quote: "USDT"},
+			{Base: "SNT", Quote: "USDT"},
+			{Base: "BTC", Quote: "USDT"},
+		},
+	)
 }
 
 func TestOkexSuite(t *testing.T) {

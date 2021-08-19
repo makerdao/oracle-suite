@@ -90,7 +90,7 @@ func (s *Balancer) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := s.WorkerPool.Query(req)
+	res := s.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

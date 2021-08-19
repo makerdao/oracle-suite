@@ -144,13 +144,21 @@ func (suite *BalancerSuite) TestSuccessResponse() {
 }
 
 func (suite *BalancerSuite) TestRealAPICall() {
-	//testRealBatchAPICall(
-	//	suite,
-	//	&Balancer{WorkerPool: query.NewHTTPWorkerPool(1)},
-	//	[]Pair{
-	//		{Base: "BAL", Quote: "USD"},
-	//	},
-	//)
+	addresses := ContractAddresses{
+		"BAL/USD": "0xba100000625a3754423978a60c9317c58a424e3d",
+	}
+	origin := NewBaseExchangeHandler(
+		Balancer{WorkerPool: query.NewHTTPWorkerPool(1), ContractAddresses: addresses},
+		nil,
+	)
+
+	testRealBatchAPICall(
+		suite,
+		origin,
+		[]Pair{
+			{Base: "BAL", Quote: "USD"},
+		},
+	)
 }
 
 func TestBalancerSuite(t *testing.T) {

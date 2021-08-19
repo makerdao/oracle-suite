@@ -102,17 +102,21 @@ func (suite *FxSuite) TestSuccessResponse() {
 }
 
 func (suite *FxSuite) TestRealAPICall() {
-	//fx := &Fx{Pool: query.NewHTTPWorkerPool(1)}
-	//testRealAPICall(suite, fx, "USD", "EUR")
-	//testRealBatchAPICall(suite, fx, []Pair{
-	//	{Base: "EUR", Quote: "USD"},
-	//	{Base: "EUR", Quote: "PHP"},
-	//	{Base: "EUR", Quote: "CAD"},
-	//	{Base: "EUR", Quote: "SEK"},
-	//	{Base: "USD", Quote: "SEK"},
-	//	{Base: "SEK", Quote: "EUR"},
-	//	{Base: "SEK", Quote: "USD"},
-	//})
+	fx := NewBaseExchangeHandler(Fx{
+		WorkerPool: query.NewHTTPWorkerPool(1),
+		APIKey:     "API_KEY", // TODO: find a way to pass API kEY ?
+	}, nil)
+
+	testRealAPICall(suite, fx, "USD", "EUR")
+	testRealBatchAPICall(suite, fx, []Pair{
+		{Base: "EUR", Quote: "USD"},
+		{Base: "EUR", Quote: "PHP"},
+		{Base: "EUR", Quote: "CAD"},
+		{Base: "EUR", Quote: "SEK"},
+		{Base: "USD", Quote: "SEK"},
+		{Base: "SEK", Quote: "EUR"},
+		{Base: "SEK", Quote: "USD"},
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create

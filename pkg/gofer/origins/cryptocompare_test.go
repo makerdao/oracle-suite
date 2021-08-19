@@ -99,12 +99,14 @@ func (suite *CryptoCompareSuite) TestSuccessResponse() {
 }
 
 func (suite *CryptoCompareSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
-	//var pairs []Pair
-	//for _, s := range []string{"BTC", "ETH", "MKR", "POLY"} {
-	//	pairs = append(pairs, Pair{Base: s, Quote: "USD"})
-	//}
-	//testRealBatchAPICall(suite, &CryptoCompare{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	origin := NewBaseExchangeHandler(CryptoCompare{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+
+	testRealAPICall(suite, origin, "ETH", "BTC")
+	var pairs []Pair
+	for _, s := range []string{"BTC", "ETH", "MKR", "POLY"} {
+		pairs = append(pairs, Pair{Base: s, Quote: "USD"})
+	}
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

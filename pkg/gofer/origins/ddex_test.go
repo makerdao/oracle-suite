@@ -220,14 +220,15 @@ func (suite *DdexSuite) TestSuccessResponse() {
 }
 
 func (suite *DdexSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Ddex{Pool: query.NewHTTPWorkerPool(1)}, "WBTC", "USDT")
-	//pairs := []Pair{
-	//	{Base: "ETH", Quote: "USDT"},
-	//	{Base: "ETH", Quote: "USDC"},
-	//	{Base: "ETH", Quote: "DAI"},
-	//	{Base: "WBTC", Quote: "USDT"},
-	//}
-	//testRealBatchAPICall(suite, &Ddex{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	origin := NewBaseExchangeHandler(Ddex{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+	testRealAPICall(suite, origin, "WBTC", "USDT")
+	pairs := []Pair{
+		{Base: "ETH", Quote: "USDT"},
+		{Base: "ETH", Quote: "USDC"},
+		{Base: "ETH", Quote: "DAI"},
+		{Base: "WBTC", Quote: "USDT"},
+	}
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

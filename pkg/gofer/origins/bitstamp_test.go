@@ -131,7 +131,12 @@ func (suite *BitstampSuite) TestSuccessResponse() {
 }
 
 func (suite *BitstampSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Bitstamp{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Bitstamp{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH",
+		"BTC",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

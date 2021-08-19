@@ -106,16 +106,20 @@ func (suite *BitfinexSuite) TestSuccessResponse() {
 }
 
 func (suite *BitfinexSuite) TestRealAPICall() {
-	//pairs := []Pair{
-	//	{Base: "USDT", Quote: "USD"},
-	//	{Base: "ETH", Quote: "BTC"},
-	//	{Base: "MKR", Quote: "ETH"},
-	//	{Base: "ZRX", Quote: "USD"},
-	//	{Base: "ETH", Quote: "USD"},
-	//	{Base: "DGX", Quote: "USDT"},
-	//	{Base: "OMG", Quote: "USDT"},
-	//}
-	//testRealBatchAPICall(suite, &Bitfinex{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	pairs := []Pair{
+		{Base: "USDT", Quote: "USD"},
+		{Base: "ETH", Quote: "BTC"},
+		//{Base: "MKR", Quote: "ETH"},
+		{Base: "ZRX", Quote: "USD"},
+		{Base: "ETH", Quote: "USD"},
+		//{Base: "DGX", Quote: "USDT"},
+		{Base: "OMG", Quote: "USDT"},
+	}
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Bitfinex{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		pairs,
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

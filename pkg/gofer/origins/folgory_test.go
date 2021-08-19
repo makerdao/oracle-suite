@@ -119,14 +119,15 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 }
 
 func (suite *FolgorySuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
-	//pairs := []Pair{
-	//	{Base: "ETH", Quote: "USDF"},
-	//	{Base: "BTC", Quote: "USDT"},
-	//	{Base: "USDF", Quote: "DAI"},
-	//	{Base: "BTC", Quote: "TUSD"},
-	//}
-	//testRealBatchAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	origin := NewBaseExchangeHandler(Folgory{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+	testRealAPICall(suite, origin, "ETH", "BTC")
+	pairs := []Pair{
+		{Base: "ETH", Quote: "USDF"},
+		{Base: "BTC", Quote: "USDT"},
+		{Base: "USDF", Quote: "DAI"},
+		{Base: "BTC", Quote: "TUSD"},
+	}
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

@@ -131,14 +131,14 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 }
 
 func (suite *HuobiSuite) TestRealAPICall() {
-	//huobi := &Huobi{Pool: query.NewHTTPWorkerPool(1)}
-	//testRealAPICall(suite, huobi, "ETH", "BTC")
-	//testRealBatchAPICall(suite, huobi, []Pair{
-	//	{Base: "SNT", Quote: "USDT"},
-	//	{Base: "SNX", Quote: "USDT"},
-	//	{Base: "YFI", Quote: "USDT"},
-	//	{Base: "ETH", Quote: "BTC"},
-	//})
+	huobi := NewBaseExchangeHandler(Huobi{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+	testRealAPICall(suite, huobi, "ETH", "BTC")
+	testRealBatchAPICall(suite, huobi, []Pair{
+		{Base: "SNT", Quote: "USDT"},
+		{Base: "SNX", Quote: "USDT"},
+		{Base: "YFI", Quote: "USDT"},
+		{Base: "ETH", Quote: "BTC"},
+	})
 }
 
 // In order for 'go test' to run this suite, we need to create

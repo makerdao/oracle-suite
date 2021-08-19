@@ -185,7 +185,13 @@ func (suite *CoinmarketcapSuite) TestSuccessResponse() {
 }
 
 func (suite *CoinmarketcapSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &CoinMarketCap{Pool: query.NewHTTPWorkerPool(1), APIKey: "API_KEY"}, "LRC", "ETH")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(CoinMarketCap{
+			WorkerPool: query.NewHTTPWorkerPool(1),
+			APIKey:     "API_KEY", // TODO: Somehow setup API key ?
+		}, nil),
+		"LRC", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create

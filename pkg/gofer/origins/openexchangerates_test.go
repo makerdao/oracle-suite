@@ -114,11 +114,11 @@ func (suite *OpenExchangeRatesSuite) TestSuccessResponse() {
 }
 
 func (suite *OpenExchangeRatesSuite) TestRealAPICall() {
-	//origin := &OpenExchangeRates{
-	//	Pool:   query.NewHTTPWorkerPool(1),
-	//	APIKey: "KEY_HERE",
-	//}
-	//testRealAPICall(suite, origin, "KRW", "USD")
+	origin := NewBaseExchangeHandler(OpenExchangeRates{
+		WorkerPool: query.NewHTTPWorkerPool(1),
+		APIKey:     "KEY_HERE",
+	}, nil)
+	testRealAPICall(suite, origin, "KRW", "USD")
 }
 
 // In order for 'go test' to run this suite, we need to create

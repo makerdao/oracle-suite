@@ -142,12 +142,14 @@ func (suite *FtxSuite) TestSuccessResponse() {
 }
 
 func (suite *FtxSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
-	//pairs := []Pair{
-	//	{Base: "ETH", Quote: "USDT"},
-	//	{Base: "BTC", Quote: "USDT"},
-	//}
-	//testRealBatchAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	origin := NewBaseExchangeHandler(Ftx{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+
+	testRealAPICall(suite, origin, "ETH", "BTC")
+	pairs := []Pair{
+		{Base: "ETH", Quote: "USDT"},
+		{Base: "BTC", Quote: "USDT"},
+	}
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create
