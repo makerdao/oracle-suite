@@ -23,7 +23,7 @@ type WorkerPool interface {
 	Query(req *HTTPRequest) *HTTPResponse
 }
 
-// HTTPWorkerPool structure that contain Woker Pool HTTP implementation
+// HTTPWorkerPool structure that contain WokerPool HTTP implementation
 // It implements worker pool that will do real HTTP calls to resources using `query.MakeHTTPRequest`
 type HTTPWorkerPool struct {
 	workerCount int

@@ -267,6 +267,26 @@
             "YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287"
           }
         }
+      },
+      "balancer": {
+        "type": "balancer",
+        "name": "balancer",
+        "params": {
+          "contracts": {
+            "BAL/USD": "0xba100000625a3754423978a60c9317c58a424e3d",
+            "AAVE/USD": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+            "WNXM/USD": "0x0d438f3b5175bebc262bf23753c1e53d03432bde"
+          }
+        }
+      },
+      "bittrex": {
+        "type": "bittrex",
+        "name": "bittrex",
+        "params": {
+          "symbolAliases": {
+            "REP": "REPV2"
+          }
+        }
       }
     },
     "priceModels": {

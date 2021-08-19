@@ -35,21 +35,25 @@ type binanceResponse struct {
 
 // Binance origin handler
 type Binance struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (b *Binance) localPairName(pair Pair) string {
 	return pair.Base + pair.Quote
 }
 
-func (b *Binance) Fetch(pairs []Pair) []FetchResult {
+func (b Binance) Pool() query.WorkerPool {
+	return b.WorkerPool
+}
+
+func (b Binance) PullPrices(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
 		URL: binanceURL,
 	}
 
 	// make query
-	res := b.Pool.Query(req)
+	res := b.WorkerPool.Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}

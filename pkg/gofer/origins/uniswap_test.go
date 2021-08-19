@@ -217,7 +217,7 @@ func (suite *UniswapSuite) TestSuccessResponse() {
 func (suite *UniswapSuite) TestRealAPICall() {
 	//testRealBatchAPICall(
 	//	suite,
-	//	&Uniswap{Pool: query.NewHTTPWorkerPool(1)},
+	//	&Uniswap{WorkerPool: query.NewHTTPWorkerPool(1)},
 	//	[]Pair{
 	//		{Base: "LRC", Quote: "WETH"},
 	//		{Base: "WETH", Quote: "KNC"},
