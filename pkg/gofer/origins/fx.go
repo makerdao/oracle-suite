@@ -33,15 +33,19 @@ type fxResponse struct {
 
 // Fx exchange handler
 type Fx struct {
-	Pool   query.WorkerPool
-	APIKey string
+	WorkerPool query.WorkerPool
+	APIKey     string
 }
 
 func (f *Fx) renameSymbol(symbol string) string {
 	return strings.ToUpper(symbol)
 }
 
-func (f *Fx) Fetch(pairs []Pair) []FetchResult {
+func (f Fx) Pool() query.WorkerPool {
+	return f.WorkerPool
+}
+
+func (f Fx) PullPrices(pairs []Pair) []FetchResult {
 	// Group pairs by asset pair base.
 	bases := map[string][]Pair{}
 	for _, pair := range pairs {
@@ -78,7 +82,7 @@ func (f *Fx) callByBase(base string, pairs []Pair) ([]FetchResult, error) {
 	}
 
 	// Make query.
-	res := f.Pool.Query(req)
+	res := f.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

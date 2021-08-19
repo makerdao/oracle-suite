@@ -61,50 +61,60 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 		return origins.NewBaseExchangeHandler(origins.Bitfinex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bitstamp":
 		return origins.NewBaseExchangeHandler(origins.Bitstamp{WorkerPool: pool}, parsedParams.SymbolAliases), nil
-	case "bitthumb":
-		return origins.NewBaseExchangeHandler(origins.BitThump{WorkerPool: pool}, parsedParams.SymbolAliases), nil
-	case "bithumb":
+	case "bitthumb", "bithumb":
 		return origins.NewBaseExchangeHandler(origins.BitThump{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "bittrex":
 		return origins.NewBaseExchangeHandler(origins.Bittrex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "coinbase", "coinbasepro":
-		return &origins.CoinbasePro{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.CoinbasePro{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "cryptocompare":
-		return &origins.CryptoCompare{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.CryptoCompare{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "coinmarketcap":
-		return &origins.CoinMarketCap{Pool: pool, APIKey: parsedParams.APIKey}, nil
+		return origins.NewBaseExchangeHandler(
+			origins.CoinMarketCap{WorkerPool: pool, APIKey: parsedParams.APIKey},
+			parsedParams.SymbolAliases,
+		), nil
 	case "ddex":
-		return &origins.Ddex{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Ddex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "folgory":
-		return &origins.Folgory{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Folgory{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "ftx":
-		return &origins.Ftx{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Ftx{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "fx":
-		return &origins.Fx{Pool: pool, APIKey: parsedParams.APIKey}, nil
+		return origins.NewBaseExchangeHandler(
+			origins.Fx{WorkerPool: pool, APIKey: parsedParams.APIKey},
+			parsedParams.SymbolAliases,
+		), nil
 	case "gateio":
-		return &origins.Gateio{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Gateio{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "gemini":
-		return &origins.Gemini{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Gemini{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "hitbtc":
-		return &origins.Hitbtc{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Hitbtc{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "huobi":
-		return &origins.Huobi{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Huobi{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "kraken":
-		return &origins.Kraken{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Kraken{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "kucoin":
-		return &origins.Kucoin{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Kucoin{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "kyber":
-		return &origins.Kyber{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Kyber{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "loopring":
-		return &origins.Loopring{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Loopring{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "okex":
-		return &origins.Okex{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Okex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "openexchangerates":
-		return &origins.OpenExchangeRates{Pool: pool, APIKey: parsedParams.APIKey}, nil
+		return origins.NewBaseExchangeHandler(
+			origins.OpenExchangeRates{WorkerPool: pool, APIKey: parsedParams.APIKey},
+			parsedParams.SymbolAliases,
+		), nil
 	case "poloniex":
-		return &origins.Poloniex{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Poloniex{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	case "sushiswap":
-		return &origins.Sushiswap{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Sushiswap{
+			WorkerPool:        pool,
+			ContractAddresses: parsedParams.Contracts,
+		}, parsedParams.SymbolAliases), nil
 	case "uniswap", "uniswapV2":
 		return origins.NewBaseExchangeHandler(origins.Uniswap{
 			WorkerPool:        pool,
@@ -116,7 +126,7 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			ContractAddresses: parsedParams.Contracts,
 		}, parsedParams.SymbolAliases), nil
 	case "upbit":
-		return &origins.Upbit{Pool: pool}, nil
+		return origins.NewBaseExchangeHandler(origins.Upbit{WorkerPool: pool}, parsedParams.SymbolAliases), nil
 	}
 
 	return nil, origins.ErrUnknownOrigin

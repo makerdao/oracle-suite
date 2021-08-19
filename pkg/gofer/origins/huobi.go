@@ -36,14 +36,18 @@ type huobiResponse struct {
 
 // Huobi origin handler
 type Huobi struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (h *Huobi) localPairName(pair Pair) string {
 	return strings.ToLower(pair.Base + pair.Quote)
 }
 
-func (h *Huobi) Fetch(pairs []Pair) []FetchResult {
+func (h Huobi) Pool() query.WorkerPool {
+	return h.WorkerPool
+}
+
+func (h Huobi) PullPrices(pairs []Pair) []FetchResult {
 	frs, err := h.fetch(pairs)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, err)
@@ -57,7 +61,7 @@ func (h *Huobi) fetch(pairs []Pair) ([]FetchResult, error) {
 		URL: huobiURL,
 	}
 
-	res := h.Pool.Query(req)
+	res := h.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

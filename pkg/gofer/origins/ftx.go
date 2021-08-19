@@ -24,18 +24,22 @@ import (
 )
 
 type Ftx struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
-func (o *Ftx) Fetch(pairs []Pair) []FetchResult {
+func (f Ftx) Pool() query.WorkerPool {
+	return f.WorkerPool
+}
+
+func (f Ftx) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
 		URL: ftxURL,
 	}
-	res := o.Pool.Query(req)
+	res := f.Pool().Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}
-	return o.parseResponse(pairs, res)
+	return f.parseResponse(pairs, res)
 }
 
 const ftxURL = "https://ftx.com/api/markets"
@@ -68,7 +72,7 @@ type ftxTicker struct {
 	VolumeUsd24H   float64 `json:"volumeUsd24h"`
 }
 
-func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+func (f *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	results := make([]FetchResult, 0)
 	var resp ftxResponse
 	err := json.Unmarshal(res.Body, &resp)
@@ -85,7 +89,7 @@ func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult
 	}
 
 	for _, pair := range pairs {
-		if t, is := tickers[o.localPairName(pair)]; !is {
+		if t, is := tickers[f.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
@@ -106,6 +110,6 @@ func (o *Ftx) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult
 	return results
 }
 
-func (o *Ftx) localPairName(pair Pair) string {
+func (f *Ftx) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s/%s", pair.Base, pair.Quote)
 }

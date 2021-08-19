@@ -25,20 +25,23 @@ import (
 )
 
 type Kraken struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 const krakenURL = "https://api.kraken.com/0/public/Ticker?pair=%s"
 
-func (o *Kraken) Fetch(pairs []Pair) []FetchResult {
+func (k Kraken) Pool() query.WorkerPool {
+	return k.WorkerPool
+}
+func (k Kraken) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(krakenURL, o.localPairName(pairs...)),
+		URL: fmt.Sprintf(krakenURL, k.localPairName(pairs...)),
 	}
-	res := o.Pool.Query(req)
+	res := k.Pool().Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}
-	return o.parseResponse(pairs, res)
+	return k.parseResponse(pairs, res)
 }
 
 type krakenResponse struct {
@@ -53,7 +56,7 @@ type krakenPairResponse struct {
 	Bid    firstStringFromSliceAsFloat64 `json:"b"`
 }
 
-func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+func (k *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	var resp krakenResponse
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
@@ -61,7 +64,7 @@ func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchRes
 	}
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
-		if t, is := resp.Result[o.localPairName(pair)]; !is {
+		if t, is := resp.Result[k.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
@@ -82,7 +85,7 @@ func (o *Kraken) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchRes
 	return results
 }
 
-func (o *Kraken) localPairName(pairs ...Pair) string {
+func (k *Kraken) localPairName(pairs ...Pair) string {
 	var l []string
 	for _, pair := range pairs {
 		l = append(l, pair.String())

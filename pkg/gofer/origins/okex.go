@@ -36,21 +36,24 @@ type okexResponse struct {
 
 // Okex origin handler
 type Okex struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (o *Okex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
-func (o *Okex) Fetch(pairs []Pair) []FetchResult {
+func (o Okex) Pool() query.WorkerPool {
+	return o.WorkerPool
+}
+func (o Okex) PullPrices(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
 		URL: okexURL,
 	}
 
 	// make query
-	res := o.Pool.Query(req)
+	res := o.Pool().Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}

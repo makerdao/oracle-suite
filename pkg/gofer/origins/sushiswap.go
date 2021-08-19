@@ -48,59 +48,35 @@ type sushiswapPairResponse struct {
 }
 
 type Sushiswap struct {
-	Pool query.WorkerPool
+	WorkerPool        query.WorkerPool
+	ContractAddresses ContractAddresses
 }
 
-func (s *Sushiswap) pairsToContractAddress(pair Pair) string {
-	// We're checking for reverse pairs because the same contract is used to
-	// trade in both directions.
-	match := func(a, b Pair) bool {
-		if a.Quote == b.Quote && a.Base == b.Base {
-			return true
-		}
-
-		if a.Quote == b.Base && a.Base == b.Quote {
-			return true
-		}
-
-		return false
+func (s *Sushiswap) pairsToContractAddress(pair Pair) (string, error) {
+	contract, ok := s.ContractAddresses.ByPair(pair)
+	if !ok {
+		return "", fmt.Errorf("failed to get SushiSwap contract address for pair: %s", pair.String())
 	}
-
-	p := Pair{Base: s.renameSymbol(pair.Base), Quote: s.renameSymbol(pair.Quote)}
-
-	switch {
-	case match(p, Pair{Base: "SNX", Quote: "WETH"}):
-		return "0xa1d7b2d891e3a1f9ef4bbc5be20630c2feb1c470"
-	case match(p, Pair{Base: "CRV", Quote: "WETH"}):
-		return "0x58dc5a51fe44589beb22e8ce67720b5bc5378009"
-	}
-
-	return pair.String()
+	return contract, nil
 }
 
-// TODO: We should find better solution for this.
-//nolint:goconst
-func (s *Sushiswap) renameSymbol(symbol string) string {
-	switch symbol {
-	case "ETH":
-		return "WETH"
-	case "BTC":
-		return "WBTC"
-	case "USD":
-		return "USDC"
-	}
-	return symbol
+func (s Sushiswap) Pool() query.WorkerPool {
+	return s.WorkerPool
 }
 
-func (s *Sushiswap) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(s, pairs)
+func (s Sushiswap) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&s, pairs)
 }
 
 //nolint:dupl
 func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 	var err error
 
-	pairsJSON, _ := json.Marshal(s.pairsToContractAddress(pair))
+	contract, err := s.pairsToContractAddress(pair)
+	if err != nil {
+		return nil, err
+	}
+	pairsJSON, _ := json.Marshal(contract)
 	gql := `
 		query($id:String) {
 			pairs(where:{id: $id}) {
@@ -127,7 +103,7 @@ func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := s.Pool.Query(req)
+	res := s.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}
@@ -148,8 +124,8 @@ func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
 
-	b := s.renameSymbol(pair.Base)
-	q := s.renameSymbol(pair.Quote)
+	b := pair.Base
+	q := pair.Quote
 
 	pair0 := b + "/" + q
 	pair1 := q + "/" + b

@@ -39,7 +39,7 @@ type hitbtcResponse struct {
 
 // Hitbtc exchange handler
 type Hitbtc struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (h *Hitbtc) localPairName(pair Pair) string {
@@ -54,7 +54,11 @@ func (h *Hitbtc) getURL(pairs []Pair) string {
 	return fmt.Sprintf(hitbtcURL, strings.Join(pairsStr, ","))
 }
 
-func (h *Hitbtc) Fetch(pairs []Pair) []FetchResult {
+func (h Hitbtc) Pool() query.WorkerPool {
+	return h.WorkerPool
+}
+
+func (h Hitbtc) PullPrices(pairs []Pair) []FetchResult {
 	crs, err := h.fetch(pairs)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, err)
@@ -68,7 +72,7 @@ func (h *Hitbtc) fetch(pairs []Pair) ([]FetchResult, error) {
 	}
 
 	// make query
-	res := h.Pool.Query(req)
+	res := h.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

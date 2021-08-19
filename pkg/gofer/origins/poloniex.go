@@ -35,7 +35,7 @@ type poloniexResponse struct {
 
 // Poloniex origin handler
 type Poloniex struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (p *Poloniex) localPairName(pair Pair) string {
@@ -55,14 +55,18 @@ func (p *Poloniex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", pair.Quote, pair.Base)
 }
 
-func (p *Poloniex) Fetch(pairs []Pair) []FetchResult {
+func (p Poloniex) Pool() query.WorkerPool {
+	return p.WorkerPool
+}
+
+func (p Poloniex) PullPrices(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
 		URL: poloniexURL,
 	}
 
 	// make query
-	res := p.Pool.Query(req)
+	res := p.Pool().Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}

@@ -46,8 +46,8 @@ type coinMarketCapResponse struct {
 
 // Exchange handler
 type CoinMarketCap struct {
-	Pool   query.WorkerPool
-	APIKey string
+	WorkerPool query.WorkerPool
+	APIKey     string
 }
 
 // GetURL implementation
@@ -69,7 +69,11 @@ func (c *CoinMarketCap) localPairName(pair Pair) string {
 	}
 }
 
-func (c *CoinMarketCap) Fetch(pairs []Pair) []FetchResult {
+func (c CoinMarketCap) Pool() query.WorkerPool {
+	return c.WorkerPool
+}
+
+func (c CoinMarketCap) PullPrices(pairs []Pair) []FetchResult {
 	var uriPairs []string
 	for _, pair := range pairs {
 		uriPairs = append(uriPairs, c.localPairName(pair))
@@ -84,7 +88,7 @@ func (c *CoinMarketCap) Fetch(pairs []Pair) []FetchResult {
 		},
 	}
 	// make query
-	res := c.Pool.Query(req)
+	res := c.Pool().Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
