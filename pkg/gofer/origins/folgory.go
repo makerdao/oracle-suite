@@ -24,14 +24,18 @@ import (
 )
 
 type Folgory struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
-func (o *Folgory) Fetch(pairs []Pair) []FetchResult {
+func (o Folgory) Pool() query.WorkerPool {
+	return o.WorkerPool
+}
+
+func (o Folgory) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
 		URL: folgoryURL,
 	}
-	res := o.Pool.Query(req)
+	res := o.Pool().Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}

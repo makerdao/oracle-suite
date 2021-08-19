@@ -287,6 +287,30 @@
             "REP": "REPV2"
           }
         }
+      },
+      "poloniex": {
+        "type": "poloniex",
+        "name": "poloniex",
+        "params": {
+          "symbolAliases": {
+            "REP": "REPV2"
+          }
+        }
+      },
+      "sushiswap": {
+        "type": "sushiswap",
+        "name": "sushiswap",
+        "params": {
+          "symbolAliases": {
+            "ETH": "WETH",
+            "BTC": "WBTC",
+            "USD": "USDC"
+          },
+          "contracts": {
+            "SNX/WETH": "0xa1d7b2d891e3a1f9ef4bbc5be20630c2feb1c470",
+            "CRV/WETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009"
+          }
+        }
       }
     },
     "priceModels": {

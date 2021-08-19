@@ -33,26 +33,29 @@ type openExchangeRatesResponse struct {
 
 // OpenExchangeRates origin handler
 type OpenExchangeRates struct {
-	Pool   query.WorkerPool
-	APIKey string
+	WorkerPool query.WorkerPool
+	APIKey     string
 }
 
-func (c *OpenExchangeRates) getURL(pair Pair) string {
-	return fmt.Sprintf(openExchangeRatesURL, c.APIKey, pair.Base, pair.Quote)
+func (o *OpenExchangeRates) getURL(pair Pair) string {
+	return fmt.Sprintf(openExchangeRatesURL, o.APIKey, pair.Base, pair.Quote)
 }
 
-func (c *OpenExchangeRates) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(c, pairs)
+func (o OpenExchangeRates) Pool() query.WorkerPool {
+	return o.WorkerPool
+}
+func (o OpenExchangeRates) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&o, pairs)
 }
 
-func (c *OpenExchangeRates) callOne(pair Pair) (*Price, error) {
+func (o *OpenExchangeRates) callOne(pair Pair) (*Price, error) {
 	var err error
 	req := &query.HTTPRequest{
-		URL: c.getURL(pair),
+		URL: o.getURL(pair),
 	}
 
 	// make query
-	res := c.Pool.Query(req)
+	res := o.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

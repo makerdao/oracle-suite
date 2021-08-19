@@ -23,18 +23,22 @@ import (
 )
 
 type Kyber struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
-func (o *Kyber) Fetch(pairs []Pair) []FetchResult {
+func (k Kyber) Pool() query.WorkerPool {
+	return k.WorkerPool
+}
+
+func (k Kyber) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
 		URL: kyberURL,
 	}
-	res := o.Pool.Query(req)
+	res := k.Pool().Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}
-	return o.parseResponse(pairs, res)
+	return k.parseResponse(pairs, res)
 }
 
 const kyberURL = "https://api.kyber.network/change24h"
@@ -51,7 +55,7 @@ type kyberTicker struct {
 	RateUsdNow   float64              `json:"rate_usd_now"`
 }
 
-func (o *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+func (k *Kyber) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	results := make([]FetchResult, 0)
 	var tickers map[string]kyberTicker
 	err := json.Unmarshal(res.Body, &tickers)

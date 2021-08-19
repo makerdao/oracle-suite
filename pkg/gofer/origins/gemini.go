@@ -29,14 +29,14 @@ import (
 const geminiURL = "https://api.gemini.com/v1/pubticker/%s"
 
 type geminiResponse struct {
-	Price  string `json:"last"`
-	Ask    string `json:"ask"`
-	Bid    string `json:"bid"`
+	Price string `json:"last"`
+	Ask   string `json:"ask"`
+	Bid   string `json:"bid"`
 }
 
 // Gemini origin handler
 type Gemini struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (g *Gemini) localPairName(pair Pair) string {
@@ -47,8 +47,12 @@ func (g *Gemini) getURL(pair Pair) string {
 	return fmt.Sprintf(geminiURL, g.localPairName(pair))
 }
 
-func (g *Gemini) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(g, pairs)
+func (g Gemini) Pool() query.WorkerPool {
+	return g.WorkerPool
+}
+
+func (g Gemini) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&g, pairs)
 }
 
 func (g *Gemini) callOne(pair Pair) (*Price, error) {
@@ -58,7 +62,7 @@ func (g *Gemini) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := g.Pool.Query(req)
+	res := g.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

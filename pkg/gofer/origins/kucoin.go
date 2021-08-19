@@ -39,7 +39,7 @@ type kucoinResponse struct {
 
 // Kucoin origin handler
 type Kucoin struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (k *Kucoin) localPairName(pair Pair) string {
@@ -50,8 +50,12 @@ func (k *Kucoin) getURL(pair Pair) string {
 	return fmt.Sprintf(kucoinURL, k.localPairName(pair))
 }
 
-func (k *Kucoin) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(k, pairs)
+func (k Kucoin) Pool() query.WorkerPool {
+	return k.WorkerPool
+}
+
+func (k Kucoin) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&k, pairs)
 }
 
 func (k *Kucoin) callOne(pair Pair) (*Price, error) {
@@ -61,7 +65,7 @@ func (k *Kucoin) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := k.Pool.Query(req)
+	res := k.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

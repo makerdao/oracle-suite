@@ -74,7 +74,7 @@ const successCoinmarketcapResponse = `
 type CoinmarketcapSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *CoinMarketCap
+	origin *BaseExchangeHandler
 }
 
 func (suite *CoinmarketcapSuite) Origin() Handler {
@@ -83,7 +83,10 @@ func (suite *CoinmarketcapSuite) Origin() Handler {
 
 // Setup origin
 func (suite *CoinmarketcapSuite) SetupSuite() {
-	suite.origin = &CoinMarketCap{Pool: query.NewMockWorkerPool(), APIKey: "API_KEY"}
+	suite.origin = NewBaseExchangeHandler(
+		CoinMarketCap{WorkerPool: query.NewMockWorkerPool(), APIKey: "API_KEY"},
+		nil,
+	)
 }
 
 func (suite *CoinmarketcapSuite) TearDownTest() {
@@ -94,8 +97,9 @@ func (suite *CoinmarketcapSuite) TearDownTest() {
 }
 
 func (suite *CoinmarketcapSuite) TestLocalPair() {
-	suite.EqualValues("825", suite.origin.localPairName(Pair{Base: "USDT", Quote: "USD"}))
-	suite.EqualValues("1", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(CoinMarketCap)
+	suite.EqualValues("825", ex.localPairName(Pair{Base: "USDT", Quote: "USD"}))
+	suite.EqualValues("1", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
@@ -113,7 +117,7 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -121,7 +125,7 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -129,7 +133,7 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte("{}"),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -137,7 +141,7 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":{}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -145,7 +149,7 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":{},"status":{error_code":1,"error_message":"Wrong"}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -153,14 +157,14 @@ func (suite *CoinmarketcapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":{},"status":{error_code":0,"error_message":""}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 	// Error no pair in data
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"data":{"1":{"quote":{}}},"status":{error_code":0,"error_message":""}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -171,7 +175,7 @@ func (suite *CoinmarketcapSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(successCoinmarketcapResponse),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 
 	suite.NoError(cr[0].Error)
@@ -181,7 +185,7 @@ func (suite *CoinmarketcapSuite) TestSuccessResponse() {
 }
 
 func (suite *CoinmarketcapSuite) TestRealAPICall() {
-	testRealAPICall(suite, &CoinMarketCap{Pool: query.NewHTTPWorkerPool(1), APIKey: "API_KEY"}, "LRC", "ETH")
+	//testRealAPICall(suite, &CoinMarketCap{Pool: query.NewHTTPWorkerPool(1), APIKey: "API_KEY"}, "LRC", "ETH")
 }
 
 // In order for 'go test' to run this suite, we need to create

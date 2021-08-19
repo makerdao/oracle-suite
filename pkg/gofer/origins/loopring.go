@@ -34,7 +34,7 @@ type loopringResponse struct {
 
 // Loopring origin handler
 type Loopring struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (l *Loopring) localPairName(pairs ...Pair) string {
@@ -45,13 +45,17 @@ func (l *Loopring) localPairName(pairs ...Pair) string {
 	return strings.Join(list, ",")
 }
 
-func (l *Loopring) Fetch(pairs []Pair) []FetchResult {
+func (l Loopring) Pool() query.WorkerPool {
+	return l.WorkerPool
+}
+
+func (l Loopring) PullPrices(pairs []Pair) []FetchResult {
 	var err error
 	req := &query.HTTPRequest{
 		URL: fmt.Sprintf(loopringURL, l.localPairName(pairs...)),
 	}
 	// make query
-	res := l.Pool.Query(req)
+	res := l.Pool().Query(req)
 	if res == nil {
 		return fetchResultListWithErrors(pairs, ErrEmptyOriginResponse)
 	}
