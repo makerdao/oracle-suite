@@ -26,11 +26,12 @@ type Transaction struct {
 	// Nonce is the transaction nonce. If zero, the nonce will be filled
 	// automatically.
 	Nonce uint64
-	// GasTipCap is the maximum tip value. If nil, the suggested gas tip value will be used.
-	GasTipCap *big.Int
-	// GasFeeCap is the maximum total fee. If nil, then fee cap will be calculated using
-	// following formula: baseFee*2+gasTipCap.
-	GasFeeCap *big.Int
+	// MaxFee is the maximum tip value. If nil, the suggested gas tip value
+	// will be used.
+	MaxFee *big.Int
+	// PriorityFee is the maximum fee value. If nil, double value of a suggested
+	// gas fee will be used.
+	PriorityFee *big.Int
 	// GasLimit is the maximum gas available to be used for this transaction.
 	GasLimit *big.Int
 	// Data is the raw transaction data.

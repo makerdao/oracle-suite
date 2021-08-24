@@ -172,13 +172,13 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 	// We don't want to modify passed structure because that would be rude, so
 	// we copy it here:
 	tx := &pkgEthereum.Transaction{
-		Address:   transaction.Address,
-		Nonce:     transaction.Nonce,
-		GasTipCap: transaction.GasTipCap,
-		GasFeeCap: transaction.GasFeeCap,
-		GasLimit:  transaction.GasLimit,
-		ChainID:   transaction.ChainID,
-		SignedTx:  transaction.SignedTx,
+		Address:     transaction.Address,
+		Nonce:       transaction.Nonce,
+		MaxFee:      transaction.MaxFee,
+		PriorityFee: transaction.PriorityFee,
+		GasLimit:    transaction.GasLimit,
+		ChainID:     transaction.ChainID,
+		SignedTx:    transaction.SignedTx,
 	}
 	tx.Data = make([]byte, len(transaction.Data))
 	copy(tx.Data, transaction.Data)
@@ -190,19 +190,19 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 			return nil, err
 		}
 	}
-	if tx.GasTipCap == nil {
+	if tx.MaxFee == nil {
 		suggestedGasTipPrice, err := e.ethClient.SuggestGasTipCap(ctx)
 		if err != nil {
 			return nil, err
 		}
-		tx.GasTipCap = suggestedGasTipPrice
+		tx.MaxFee = suggestedGasTipPrice
 	}
-	if tx.GasFeeCap == nil {
+	if tx.PriorityFee == nil {
 		suggestedGasPrice, err := e.ethClient.SuggestGasPrice(ctx)
 		if err != nil {
 			return nil, err
 		}
-		tx.GasFeeCap = new(big.Int).Mul(suggestedGasPrice, big.NewInt(2))
+		tx.PriorityFee = new(big.Int).Mul(suggestedGasPrice, big.NewInt(2))
 	}
 	if tx.ChainID == nil {
 		tx.ChainID, err = e.ethClient.NetworkID(ctx)
