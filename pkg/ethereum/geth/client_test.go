@@ -193,8 +193,8 @@ func TestClient_SendTransaction(t *testing.T) {
 	tx := &pkgEthereum.Transaction{
 		Address:     clientContractAddress,
 		Nonce:       10,
-		MaxFee:      big.NewInt(100),
 		PriorityFee: big.NewInt(50),
+		MaxFee:      big.NewInt(100),
 		GasLimit:    big.NewInt(1000),
 		Data:        clientCallData,
 		ChainID:     big.NewInt(mainnetChainID),
@@ -208,8 +208,8 @@ func TestClient_SendTransaction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, clientContractAddress, *stx.To())
 	assert.Equal(t, uint64(10), stx.Nonce())
-	assert.Equal(t, big.NewInt(50), stx.GasFeeCap())
-	assert.Equal(t, big.NewInt(100), stx.GasTipCap())
+	assert.Equal(t, big.NewInt(100), stx.GasFeeCap())
+	assert.Equal(t, big.NewInt(50), stx.GasTipCap())
 	assert.Equal(t, uint64(1000), stx.Gas())
 	assert.Equal(t, big.NewInt(mainnetChainID), stx.ChainId())
 	assert.Equal(t, clientCallData, stx.Data())

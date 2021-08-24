@@ -174,8 +174,8 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 	tx := &pkgEthereum.Transaction{
 		Address:     transaction.Address,
 		Nonce:       transaction.Nonce,
-		MaxFee:      transaction.MaxFee,
 		PriorityFee: transaction.PriorityFee,
+		MaxFee:      transaction.MaxFee,
 		GasLimit:    transaction.GasLimit,
 		ChainID:     transaction.ChainID,
 		SignedTx:    transaction.SignedTx,
@@ -190,19 +190,19 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 			return nil, err
 		}
 	}
-	if tx.MaxFee == nil {
+	if tx.PriorityFee == nil {
 		suggestedGasTipPrice, err := e.ethClient.SuggestGasTipCap(ctx)
 		if err != nil {
 			return nil, err
 		}
-		tx.MaxFee = suggestedGasTipPrice
+		tx.PriorityFee = suggestedGasTipPrice
 	}
-	if tx.PriorityFee == nil {
+	if tx.MaxFee == nil {
 		suggestedGasPrice, err := e.ethClient.SuggestGasPrice(ctx)
 		if err != nil {
 			return nil, err
 		}
-		tx.PriorityFee = new(big.Int).Mul(suggestedGasPrice, big.NewInt(2))
+		tx.MaxFee = new(big.Int).Mul(suggestedGasPrice, big.NewInt(2))
 	}
 	if tx.ChainID == nil {
 		tx.ChainID, err = e.ethClient.NetworkID(ctx)

@@ -53,8 +53,8 @@ func (s *Signer) SignTransaction(transaction *ethereum.Transaction) error {
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:    nil,
 		Nonce:      transaction.Nonce,
-		GasTipCap:  transaction.MaxFee,
-		GasFeeCap:  transaction.PriorityFee,
+		GasTipCap:  transaction.PriorityFee,
+		GasFeeCap:  transaction.MaxFee,
 		Gas:        transaction.GasLimit.Uint64(),
 		To:         &transaction.Address,
 		Value:      nil,
