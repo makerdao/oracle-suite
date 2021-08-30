@@ -16,24 +16,17 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/makerdao/oracle-suite/internal/config"
 	ethereumConfig "github.com/makerdao/oracle-suite/internal/config/ethereum"
 	spectreConfig "github.com/makerdao/oracle-suite/internal/config/spectre"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 type Config struct {
 	Ethereum ethereumConfig.Ethereum `json:"ethereum"`
 	Spectre  spectreConfig.Spectre   `json:"spectre"`
-}
-
-type Dependencies struct {
-	Context context.Context
-	Logger  log.Logger
 }
 
 func (c *Config) Configure() (ethereum.Client, ethereum.Signer, error) {
