@@ -22,10 +22,8 @@ import (
 )
 
 type options struct {
-	EthereumKeystore string
-	EthereumPassword string
-	EthereumAddress  string
-	EthereumRPC      string
+	ConfigFilePath string
+	Config         Config
 }
 
 func NewRootCommand() *cobra.Command {
@@ -40,38 +38,19 @@ func NewRootCommand() *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumKeystore,
-		"eth-keystore",
-		"",
-		"ethereum keystore path",
-	)
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumPassword,
-		"eth-password",
-		"",
-		"ethereum keystore password",
-	)
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumAddress,
-		"eth-address",
-		"",
-		"ethereum account address",
-	)
-
-	rootCmd.PersistentFlags().StringVar(
-		&opts.EthereumRPC,
-		"eth-rpc",
-		"",
-		"ethereum RPC address",
+	rootCmd.PersistentFlags().StringVarP(
+		&opts.ConfigFilePath,
+		"config",
+		"c",
+		"./config.json",
+		"spire config file",
 	)
 
 	rootCmd.AddCommand(
 		NewMedianCmd(&opts),
 		NewPriceCmd(&opts),
 		NewSignerCmd(&opts),
+		NewSpectreCmd(&opts),
 	)
 
 	return rootCmd
