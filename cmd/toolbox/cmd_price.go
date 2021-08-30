@@ -20,7 +20,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
@@ -48,18 +47,10 @@ func NewPriceSignCmd(opts *options) *cobra.Command {
 		Short: "signs given JSON price message and returns JSON with VRS fields",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			var err error
-
-			account, err := geth.NewAccount(
-				opts.EthereumKeystore,
-				opts.EthereumPassword,
-				ethereum.HexToAddress(opts.EthereumAddress),
-			)
+			srv, err := PrepareServices(opts)
 			if err != nil {
 				return err
 			}
-
-			signer := geth.NewSigner(account)
 
 			// Read JSON and parse it:
 			input, err := readInput(args, 0)
@@ -73,7 +64,7 @@ func NewPriceSignCmd(opts *options) *cobra.Command {
 			}
 
 			// Sign price:
-			err = msg.Price.Sign(signer)
+			err = msg.Price.Sign(srv.Signer)
 			if err != nil {
 				return err
 			}
