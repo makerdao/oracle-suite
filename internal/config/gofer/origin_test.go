@@ -32,9 +32,10 @@ func TestParsingOriginParamsAliasesFailParsing(t *testing.T) {
 }
 
 func TestParsingOriginParamsAliases(t *testing.T) {
+	// parsing empty aliases
 	parsed, err := parseParamsSymbolAliases([]byte(`{}`))
 	assert.NoError(t, err)
-	assert.NotNil(t, parsed)
+	assert.Nil(t, parsed)
 
 	// Parsing only apiKey
 	key, err := parseParamsAPIKey([]byte(`{"apiKey":"test"}`))
