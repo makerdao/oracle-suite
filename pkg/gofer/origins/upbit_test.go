@@ -159,16 +159,24 @@ func (suite *UpbitSuite) TestSuccessResponse() {
 }
 
 func (suite *UpbitSuite) TestRealAPICall() {
-	//testRealAPICall(suite, &Upbit{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
-	//pairs := []Pair{
-	//	{Base: "KNC", Quote: "KRW"},
-	//	{Base: "MANA", Quote: "KRW"},
-	//	{Base: "OMG", Quote: "KRW"},
-	//	{Base: "REP", Quote: "KRW"},
-	//	{Base: "SNT", Quote: "KRW"},
-	//	{Base: "ZRX", Quote: "KRW"},
-	//}
-	//testRealBatchAPICall(suite, &Upbit{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Upbit{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH", "BTC",
+	)
+	pairs := []Pair{
+		{Base: "KNC", Quote: "KRW"},
+		{Base: "MANA", Quote: "KRW"},
+		{Base: "OMG", Quote: "KRW"},
+		{Base: "REP", Quote: "KRW"},
+		{Base: "SNT", Quote: "KRW"},
+		{Base: "ZRX", Quote: "KRW"},
+	}
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Upbit{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		pairs,
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create
