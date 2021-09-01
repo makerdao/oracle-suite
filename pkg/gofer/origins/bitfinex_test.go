@@ -109,10 +109,10 @@ func (suite *BitfinexSuite) TestRealAPICall() {
 	pairs := []Pair{
 		{Base: "USDT", Quote: "USD"},
 		{Base: "ETH", Quote: "BTC"},
-		//{Base: "MKR", Quote: "ETH"},
+		// {Base: "MKR", Quote: "ETH"},
 		{Base: "ZRX", Quote: "USD"},
 		{Base: "ETH", Quote: "USD"},
-		//{Base: "DGX", Quote: "USDT"},
+		// {Base: "DGX", Quote: "USDT"},
 		{Base: "OMG", Quote: "USDT"},
 	}
 	testRealBatchAPICall(
