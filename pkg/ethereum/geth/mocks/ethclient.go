@@ -44,12 +44,22 @@ func (e *EthClient) CallContract(ctx context.Context, call ethereum.CallMsg, blo
 	return args.Get(0).([]byte), args.Error(1)
 }
 
+func (e *EthClient) NonceAt(ctx context.Context, account common.Address, block *big.Int) (uint64, error) {
+	args := e.Called(ctx, account, block)
+	return uint64(args.Int(0)), args.Error(1)
+}
+
 func (e *EthClient) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
 	args := e.Called(ctx, account)
 	return uint64(args.Int(0)), args.Error(1)
 }
 
 func (e *EthClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	args := e.Called(ctx)
+	return args.Get(0).(*big.Int), args.Error(1)
+}
+
+func (e *EthClient) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	args := e.Called(ctx)
 	return args.Get(0).(*big.Int), args.Error(1)
 }

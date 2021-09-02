@@ -50,14 +50,20 @@ func (s *Signer) Address() ethereum.Address {
 
 // SignTransaction implements the ethereum.Signer interface.
 func (s *Signer) SignTransaction(transaction *ethereum.Transaction) error {
-	tx := types.NewTransaction(
-		transaction.Nonce,
-		transaction.Address,
-		nil,
-		transaction.GasLimit.Uint64(),
-		transaction.Gas,
-		transaction.Data,
-	)
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:    nil,
+		Nonce:      transaction.Nonce,
+		GasTipCap:  transaction.PriorityFee,
+		GasFeeCap:  transaction.MaxFee,
+		Gas:        transaction.GasLimit.Uint64(),
+		To:         &transaction.Address,
+		Value:      nil,
+		Data:       transaction.Data,
+		AccessList: nil,
+		V:          nil,
+		R:          nil,
+		S:          nil,
+	})
 	signedTx, err := s.account.wallet.SignTxWithPassphrase(
 		*s.account.account,
 		s.account.passphrase,
