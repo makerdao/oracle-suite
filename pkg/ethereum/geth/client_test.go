@@ -191,13 +191,14 @@ func TestClient_SendTransaction(t *testing.T) {
 	).Return(nil)
 
 	tx := &pkgEthereum.Transaction{
-		Address:  clientContractAddress,
-		Nonce:    10,
-		Gas:      big.NewInt(100),
-		GasLimit: big.NewInt(1000),
-		Data:     clientCallData,
-		ChainID:  big.NewInt(mainnetChainID),
-		SignedTx: nil,
+		Address:     clientContractAddress,
+		Nonce:       10,
+		PriorityFee: big.NewInt(50),
+		MaxFee:      big.NewInt(100),
+		GasLimit:    big.NewInt(1000),
+		Data:        clientCallData,
+		ChainID:     big.NewInt(mainnetChainID),
+		SignedTx:    nil,
 	}
 
 	hash, err := client.SendTransaction(context.Background(), tx)
@@ -205,12 +206,13 @@ func TestClient_SendTransaction(t *testing.T) {
 
 	assert.NotNil(t, hash)
 	assert.NoError(t, err)
-	assert.Equal(t, *stx.To(), clientContractAddress)
-	assert.Equal(t, stx.Nonce(), uint64(10))
-	assert.Equal(t, stx.GasPrice(), big.NewInt(100))
-	assert.Equal(t, stx.Gas(), uint64(1000))
-	assert.Equal(t, stx.ChainId(), big.NewInt(mainnetChainID))
-	assert.Equal(t, stx.Data(), clientCallData)
+	assert.Equal(t, clientContractAddress, *stx.To())
+	assert.Equal(t, uint64(10), stx.Nonce())
+	assert.Equal(t, big.NewInt(100), stx.GasFeeCap())
+	assert.Equal(t, big.NewInt(50), stx.GasTipCap())
+	assert.Equal(t, uint64(1000), stx.Gas())
+	assert.Equal(t, big.NewInt(mainnetChainID), stx.ChainId())
+	assert.Equal(t, clientCallData, stx.Data())
 }
 
 func TestClient_SendTransaction_Minimal(t *testing.T) {
@@ -225,9 +227,14 @@ func TestClient_SendTransaction_Minimal(t *testing.T) {
 	).Return(10, nil)
 
 	ethClient.On(
+		"SuggestGasTipCap",
+		mock.Anything,
+	).Return(big.NewInt(10), nil)
+
+	ethClient.On(
 		"SuggestGasPrice",
 		mock.Anything,
-	).Return(big.NewInt(100), nil)
+	).Return(big.NewInt(70), nil)
 
 	ethClient.On(
 		"NetworkID",
@@ -248,13 +255,14 @@ func TestClient_SendTransaction_Minimal(t *testing.T) {
 	}
 
 	hash, err := client.SendTransaction(context.Background(), tx)
-	stx := ethClient.Calls[3].Arguments.Get(1).(*types.Transaction)
+	stx := ethClient.Calls[4].Arguments.Get(1).(*types.Transaction)
 
 	assert.NotNil(t, hash)
 	assert.NoError(t, err)
-	assert.Equal(t, *stx.To(), clientContractAddress)
-	assert.Equal(t, stx.Nonce(), uint64(10))
-	assert.Equal(t, stx.GasPrice(), big.NewInt(100))
-	assert.Equal(t, stx.Gas(), uint64(1000))
-	assert.Equal(t, stx.ChainId(), big.NewInt(mainnetChainID))
+	assert.Equal(t, clientContractAddress, *stx.To())
+	assert.Equal(t, uint64(10), stx.Nonce())
+	assert.Equal(t, big.NewInt(10), stx.GasTipCap())
+	assert.Equal(t, big.NewInt(140), stx.GasFeeCap())
+	assert.Equal(t, uint64(1000), stx.Gas())
+	assert.Equal(t, big.NewInt(mainnetChainID), stx.ChainId())
 }

@@ -89,7 +89,7 @@ type Config struct {
 	// This option is ignored when discovery is disabled.
 	BootstrapAddrs []string
 	// DirectPeersAddrs is a list multiaddresses of peers to which messages
-	// will be send directly. This option have to be configured symmetrically
+	// will be send directly. This option has to be configured symmetrically
 	// at both ends.
 	DirectPeersAddrs []string
 	// BlockedAddrs is a list of multiaddresses to which connection will be

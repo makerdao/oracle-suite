@@ -76,8 +76,10 @@ type EthClient interface {
 	SendTransaction(ctx context.Context, tx *types.Transaction) error
 	StorageAt(ctx context.Context, account common.Address, key common.Hash, block *big.Int) ([]byte, error)
 	CallContract(ctx context.Context, call ethereum.CallMsg, block *big.Int) ([]byte, error)
+	NonceAt(ctx context.Context, account common.Address, block *big.Int) (uint64, error)
 	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
+	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 	NetworkID(ctx context.Context) (*big.Int, error)
 }
 
@@ -170,12 +172,13 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 	// We don't want to modify passed structure because that would be rude, so
 	// we copy it here:
 	tx := &pkgEthereum.Transaction{
-		Address:  transaction.Address,
-		Nonce:    transaction.Nonce,
-		Gas:      transaction.Gas,
-		GasLimit: transaction.GasLimit,
-		ChainID:  transaction.ChainID,
-		SignedTx: transaction.SignedTx,
+		Address:     transaction.Address,
+		Nonce:       transaction.Nonce,
+		PriorityFee: transaction.PriorityFee,
+		MaxFee:      transaction.MaxFee,
+		GasLimit:    transaction.GasLimit,
+		ChainID:     transaction.ChainID,
+		SignedTx:    transaction.SignedTx,
 	}
 	tx.Data = make([]byte, len(transaction.Data))
 	copy(tx.Data, transaction.Data)
@@ -187,11 +190,19 @@ func (e *Client) SendTransaction(ctx context.Context, transaction *pkgEthereum.T
 			return nil, err
 		}
 	}
-	if tx.Gas == nil {
-		tx.Gas, err = e.ethClient.SuggestGasPrice(ctx)
+	if tx.PriorityFee == nil {
+		suggestedGasTipPrice, err := e.ethClient.SuggestGasTipCap(ctx)
 		if err != nil {
 			return nil, err
 		}
+		tx.PriorityFee = suggestedGasTipPrice
+	}
+	if tx.MaxFee == nil {
+		suggestedGasPrice, err := e.ethClient.SuggestGasPrice(ctx)
+		if err != nil {
+			return nil, err
+		}
+		tx.MaxFee = new(big.Int).Mul(suggestedGasPrice, big.NewInt(2))
 	}
 	if tx.ChainID == nil {
 		tx.ChainID, err = e.ethClient.NetworkID(ctx)
