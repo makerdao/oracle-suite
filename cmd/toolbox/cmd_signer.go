@@ -19,17 +19,15 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+
+	"github.com/spf13/cobra"
 )
 
 type signerOptions struct {
 	Hex bool
 }
-
-var signer ethereum.Signer
 
 func NewSignerCmd(opts *options) *cobra.Command {
 	var signerOpts signerOptions
@@ -39,23 +37,6 @@ func NewSignerCmd(opts *options) *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Short: "commands used to sign and verify data",
 		Long:  ``,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if opts.EthereumAddress != "" {
-				account, err := geth.NewAccount(
-					opts.EthereumKeystore,
-					opts.EthereumPassword,
-					ethereum.HexToAddress(opts.EthereumAddress),
-				)
-				if err != nil {
-					return err
-				}
-
-				signer = geth.NewSigner(account)
-			} else {
-				signer = geth.NewSigner(nil)
-			}
-			return nil
-		},
 	}
 
 	cmd.PersistentFlags().BoolVar(
@@ -66,20 +47,25 @@ func NewSignerCmd(opts *options) *cobra.Command {
 	)
 
 	cmd.AddCommand(
-		NewSignerSignCmd(&signerOpts),
+		NewSignerSignCmd(opts, &signerOpts),
 		NewSignerVerifyCmd(&signerOpts),
 	)
 
 	return cmd
 }
 
-func NewSignerSignCmd(signerOpts *signerOptions) *cobra.Command {
+func NewSignerSignCmd(opts *options, signerOpts *signerOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sign [input]",
 		Args:  cobra.MaximumNArgs(1),
 		Short: "signs given input (stdin is used if input argument is empty)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
+			_, signer, err := opts.Config.Configure()
+			if err != nil {
+				return err
+			}
+
 			in, err := readInput(args, 0)
 			if err != nil {
 				return err
@@ -111,6 +97,8 @@ func NewSignerVerifyCmd(signerOpts *signerOptions) *cobra.Command {
 		Short: "verifies given signature (stdin is used if input argument is empty)",
 		Long:  ``,
 		RunE: func(_ *cobra.Command, args []string) error {
+			signer := geth.NewSigner(nil)
+
 			in, err := readInput(args, 1)
 			if err != nil {
 				return err
