@@ -108,6 +108,8 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			origins.CoinMarketCap{WorkerPool: pool, APIKey: apiKey},
 			aliases,
 		), nil
+	case "curve":
+		return origins.NewBaseExchangeHandler(origins.Curve{WorkerPool: pool}, aliases), nil
 	case "ddex":
 		return origins.NewBaseExchangeHandler(origins.Ddex{WorkerPool: pool}, aliases), nil
 	case "folgory":

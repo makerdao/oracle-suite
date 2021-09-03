@@ -247,6 +247,7 @@ func DefaultOriginSet(pool query.WorkerPool) *Set {
 		"coinbase":      NewBaseExchangeHandler(CoinbasePro{WorkerPool: pool}, nil),
 		"coinbasepro":   NewBaseExchangeHandler(CoinbasePro{WorkerPool: pool}, nil),
 		"cryptocompare": NewBaseExchangeHandler(CryptoCompare{WorkerPool: pool}, nil),
+		"curve":         NewBaseExchangeHandler(Curve{WorkerPool: pool}, nil),
 		"ddex":          NewBaseExchangeHandler(Ddex{WorkerPool: pool}, nil),
 		"folgory":       NewBaseExchangeHandler(Folgory{WorkerPool: pool}, nil),
 		"ftx":           NewBaseExchangeHandler(Ftx{WorkerPool: pool}, nil),
