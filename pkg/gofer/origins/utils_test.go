@@ -29,11 +29,11 @@ type Suite interface {
 	Origin() Handler
 }
 
-func testRealAPICall(suite Suite, origin Handler, base, quote string) {
+func testRealAPICall(suite Suite, origin *BaseExchangeHandler, base, quote string) {
 	testRealBatchAPICall(suite, origin, []Pair{{Base: base, Quote: quote}})
 }
 
-func testRealBatchAPICall(suite Suite, origin Handler, pairs []Pair) {
+func testRealBatchAPICall(suite Suite, origin *BaseExchangeHandler, pairs []Pair) {
 	if os.Getenv("GOFER_TEST_API_CALLS") == "" {
 		suite.T().SkipNow()
 	}

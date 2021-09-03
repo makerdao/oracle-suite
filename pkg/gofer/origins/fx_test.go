@@ -30,7 +30,7 @@ import (
 type FxSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Fx
+	origin *BaseExchangeHandler
 }
 
 func (suite *FxSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *FxSuite) Origin() Handler {
 
 // Setup exchange
 func (suite *FxSuite) SetupSuite() {
-	suite.origin = &Fx{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Fx{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *FxSuite) TearDownTest() {
@@ -60,7 +60,7 @@ func (suite *FxSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -68,7 +68,7 @@ func (suite *FxSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -76,7 +76,7 @@ func (suite *FxSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -84,7 +84,7 @@ func (suite *FxSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{"ETH":"abcd"}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -94,7 +94,7 @@ func (suite *FxSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"rates":{"B":1,"C":2},"base":"A"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)
@@ -102,7 +102,11 @@ func (suite *FxSuite) TestSuccessResponse() {
 }
 
 func (suite *FxSuite) TestRealAPICall() {
-	fx := &Fx{Pool: query.NewHTTPWorkerPool(1)}
+	fx := NewBaseExchangeHandler(Fx{
+		WorkerPool: query.NewHTTPWorkerPool(1),
+		APIKey:     "API_KEY", // TODO: find a way to pass API kEY ?
+	}, nil)
+
 	testRealAPICall(suite, fx, "USD", "EUR")
 	testRealBatchAPICall(suite, fx, []Pair{
 		{Base: "EUR", Quote: "USD"},

@@ -30,7 +30,7 @@ import (
 type BitfinexSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Bitfinex
+	origin *BaseExchangeHandler
 }
 
 func (suite *BitfinexSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *BitfinexSuite) Origin() Handler {
 
 // Setup origin
 func (suite *BitfinexSuite) SetupSuite() {
-	suite.origin = &Bitfinex{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Bitfinex{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *BitfinexSuite) TearDownTest() {
@@ -50,9 +50,10 @@ func (suite *BitfinexSuite) TearDownTest() {
 }
 
 func (suite *BitfinexSuite) TestLocalPair() {
-	suite.EqualValues("tBTCETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("tBTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
-	suite.EqualValues("tBTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USDT"}))
+	ex := suite.origin.ExchangeHandler.(Bitfinex)
+	suite.EqualValues("tBTCETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("tBTCUSD", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	suite.EqualValues("tBTCUSD", ex.localPairName(Pair{Base: "BTC", Quote: "USDT"}))
 }
 
 func (suite *BitfinexSuite) TestFailOnWrongInput() {
@@ -65,7 +66,7 @@ func (suite *BitfinexSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
@@ -82,7 +83,7 @@ func (suite *BitfinexSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Errorf(cr[0].Error, fmt.Sprintf("Case-%d", n+1))
 		})
@@ -94,7 +95,7 @@ func (suite *BitfinexSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`[["tBTCETH",1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.10]]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.01, cr[0].Price.Bid)
@@ -108,13 +109,17 @@ func (suite *BitfinexSuite) TestRealAPICall() {
 	pairs := []Pair{
 		{Base: "USDT", Quote: "USD"},
 		{Base: "ETH", Quote: "BTC"},
-		{Base: "MKR", Quote: "ETH"},
+		// {Base: "MKR", Quote: "ETH"},
 		{Base: "ZRX", Quote: "USD"},
 		{Base: "ETH", Quote: "USD"},
-		{Base: "DGX", Quote: "USDT"},
+		// {Base: "DGX", Quote: "USDT"},
 		{Base: "OMG", Quote: "USDT"},
 	}
-	testRealBatchAPICall(suite, &Bitfinex{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	testRealBatchAPICall(
+		suite,
+		NewBaseExchangeHandler(Bitfinex{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		pairs,
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

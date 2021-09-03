@@ -30,7 +30,7 @@ import (
 type HitbtcSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Hitbtc
+	origin *BaseExchangeHandler
 }
 
 func (suite *HitbtcSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *HitbtcSuite) Origin() Handler {
 
 // Setup exchange
 func (suite *HitbtcSuite) SetupSuite() {
-	suite.origin = &Hitbtc{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Hitbtc{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *HitbtcSuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *HitbtcSuite) TearDownTest() {
 }
 
 func (suite *HitbtcSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTCUSD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(Hitbtc)
+	suite.EqualValues("BTCETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTCUSD", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *HitbtcSuite) TestFailOnWrongInput() {
@@ -65,7 +66,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -73,7 +74,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -81,7 +82,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -89,7 +90,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -97,7 +98,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"1","volume":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -105,7 +106,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"1","volume":"1","bid":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -113,7 +114,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"1","volume":"1","bid":"abc","symbol":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -121,7 +122,7 @@ func (suite *HitbtcSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"last":"1","ask":"2","volume":"3","bid":"4","symbol":"BTCETH","timestamp":"2020-04-24T20:09:36.229Z"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -135,7 +136,7 @@ func (suite *HitbtcSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`[{"last":"1","ask":"2","volume":"3","bid":"4","symbol":"BTCETH","timestamp":"2020-04-24T20:09:36.229Z"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)
@@ -146,7 +147,8 @@ func (suite *HitbtcSuite) TestSuccessResponse() {
 }
 
 func (suite *HitbtcSuite) TestRealAPICall() {
-	hitbtc := &Hitbtc{Pool: query.NewHTTPWorkerPool(1)}
+	hitbtc := NewBaseExchangeHandler(Hitbtc{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+
 	testRealAPICall(suite, hitbtc, "ETH", "BTC")
 	testRealBatchAPICall(suite, hitbtc, []Pair{
 		{Base: "BTC", Quote: "USD"},

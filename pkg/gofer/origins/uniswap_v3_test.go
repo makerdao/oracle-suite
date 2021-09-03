@@ -26,7 +26,7 @@ import (
 
 type UniswapV3Suite struct {
 	suite.Suite
-	origin *UniswapV3
+	origin *BaseExchangeHandler
 }
 
 func (suite *UniswapV3Suite) Origin() Handler {
@@ -34,11 +34,23 @@ func (suite *UniswapV3Suite) Origin() Handler {
 }
 
 func (suite *UniswapV3Suite) SetupSuite() {
-	suite.origin = &UniswapV3{Pool: query.NewMockWorkerPool()}
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+		"BTC": "WBTC",
+	}
+	addresses := ContractAddresses{
+		"YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"YFI/WBTC": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+		"CRV/WETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009",
+	}
+	suite.origin = NewBaseExchangeHandler(
+		UniswapV3{query.NewMockWorkerPool(), addresses},
+		aliases,
+	)
 }
 
 func (suite *UniswapV3Suite) TestFailOnWrongInput() {
-	pair := Pair{Base: "YFI", Quote: "WETH"}
+	pair := Pair{Base: "YFI", Quote: "ETH"}
 
 	// Wrong pair
 	fr := suite.origin.Fetch([]Pair{{}})
@@ -54,7 +66,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -62,7 +74,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -90,7 +102,7 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -118,13 +130,13 @@ func (suite *UniswapV3Suite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
 
 func (suite *UniswapV3Suite) TestSuccessResponse() {
-	pairYFIWETH := Pair{Base: "YFI", Quote: "WETH"}
+	pairYFIWETH := Pair{Base: "YFI", Quote: "ETH"}
 
 	resp := &query.HTTPResponse{
 		Body: []byte(`
@@ -149,7 +161,7 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairYFIWETH})
 
 	suite.Len(fr, 1)
@@ -163,7 +175,7 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 	suite.Equal(31.00155, fr[0].Price.Volume24h)
 	suite.Greater(fr[0].Price.Timestamp.Unix(), int64(0))
 
-	pairCRVWETH := Pair{Base: "CRV", Quote: "WETH"}
+	pairCRVWETH := Pair{Base: "CRV", Quote: "ETH"}
 	resp1 := &query.HTTPResponse{
 		Body: []byte(`
 			{
@@ -187,7 +199,7 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp1)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp1)
 	fr1 := suite.origin.Fetch([]Pair{pairCRVWETH})
 
 	suite.Len(fr1, 1)
@@ -203,9 +215,20 @@ func (suite *UniswapV3Suite) TestSuccessResponse() {
 }
 
 func (suite *UniswapV3Suite) TestRealAPICall() {
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+	}
+	addresses := ContractAddresses{
+		"YFI/WETH": "0x04916039b1f59d9745bf6e0a21f191d1e0a84287",
+	}
+	origin := NewBaseExchangeHandler(UniswapV3{
+		WorkerPool:        query.NewHTTPWorkerPool(1),
+		ContractAddresses: addresses,
+	}, aliases)
+
 	testRealBatchAPICall(
 		suite,
-		&UniswapV3{Pool: query.NewHTTPWorkerPool(1)},
+		origin,
 		[]Pair{
 			{Base: "YFI", Quote: "WETH"},
 		},

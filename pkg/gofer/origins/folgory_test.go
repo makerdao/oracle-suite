@@ -30,7 +30,7 @@ import (
 type FolgorySuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Folgory
+	origin *BaseExchangeHandler
 }
 
 func (suite *FolgorySuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *FolgorySuite) Origin() Handler {
 
 // Setup origin
 func (suite *FolgorySuite) SetupSuite() {
-	suite.origin = &Folgory{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Folgory{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *FolgorySuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *FolgorySuite) TearDownTest() {
 }
 
 func (suite *FolgorySuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.NotEqual("BTC/USDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(Folgory)
+	suite.EqualValues("BTC/ETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.NotEqual("BTC/USDC", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *FolgorySuite) TestFailOnWrongInput() {
@@ -67,7 +68,7 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
@@ -75,7 +76,7 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -83,7 +84,7 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -91,7 +92,7 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"symbol":"BTC/ETH","last":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -99,7 +100,7 @@ func (suite *FolgorySuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`[{"symbol":"BTC/ETH","last":"1","volume":"abc"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -109,7 +110,7 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`[{"symbol":"BTC/ETH","last":"1","volume":"2"}]`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)
@@ -118,14 +119,15 @@ func (suite *FolgorySuite) TestSuccessResponse() {
 }
 
 func (suite *FolgorySuite) TestRealAPICall() {
-	testRealAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	origin := NewBaseExchangeHandler(Folgory{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+	testRealAPICall(suite, origin, "ETH", "BTC")
 	pairs := []Pair{
 		{Base: "ETH", Quote: "USDF"},
 		{Base: "BTC", Quote: "USDT"},
 		{Base: "USDF", Quote: "DAI"},
 		{Base: "BTC", Quote: "TUSD"},
 	}
-	testRealBatchAPICall(suite, &Folgory{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

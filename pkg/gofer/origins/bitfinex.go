@@ -26,36 +26,40 @@ import (
 )
 
 type Bitfinex struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 const bitfinexURL = "https://api-pub.bitfinex.com/v2/tickers?symbols=%s"
 
-func (o *Bitfinex) Fetch(pairs []Pair) []FetchResult {
+func (b Bitfinex) Pool() query.WorkerPool {
+	return b.WorkerPool
+}
+
+func (b Bitfinex) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
-		URL: fmt.Sprintf(bitfinexURL, o.localPairName(pairs...)),
+		URL: fmt.Sprintf(bitfinexURL, b.localPairName(pairs...)),
 	}
-	res := o.Pool.Query(req)
+	res := b.WorkerPool.Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}
-	return o.parseResponse(pairs, res)
+	return b.parseResponse(pairs, res)
 }
 
-func (o *Bitfinex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+func (b *Bitfinex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	var resp [][]interface{}
 	err := json.Unmarshal(res.Body, &resp)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse response: %w", err))
 	}
-	return o.mapResults(pairs, o.mapTickers(resp))
+	return b.mapResults(pairs, b.mapTickers(resp))
 }
 
-func (o *Bitfinex) mapResults(pairs []Pair, tickers map[string]bitfinexTicker) []FetchResult {
+func (b *Bitfinex) mapResults(pairs []Pair, tickers map[string]bitfinexTicker) []FetchResult {
 	results := make([]FetchResult, 0)
 	for _, pair := range pairs {
 		//nolint:gocritic
-		if t, is := tickers[o.localPairName(pair)]; !is {
+		if t, is := tickers[b.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,
@@ -81,10 +85,10 @@ func (o *Bitfinex) mapResults(pairs []Pair, tickers map[string]bitfinexTicker) [
 	return results
 }
 
-func (o *Bitfinex) mapTickers(resp [][]interface{}) map[string]bitfinexTicker {
+func (b *Bitfinex) mapTickers(resp [][]interface{}) map[string]bitfinexTicker {
 	tickers := make(map[string]bitfinexTicker)
 	for _, tt := range resp {
-		t := o.parseTicker(tt)
+		t := b.parseTicker(tt)
 		tickers[t.Symbol] = t
 	}
 	return tickers
@@ -161,6 +165,7 @@ func (*Bitfinex) parseTicker(tt []interface{}) bitfinexTicker {
 	return t
 }
 
+// TODO: move to aliases ?
 //nolint:lll
 const bitfinexConfig = `[[["AAA","TESTAAA"],["ABS","ABYSS"],["AIO","AION"],["ALG","ALGO"],["AMP","AMPL"],["AMPF0","AMPLF0"],["ATO","ATOM"],["BAB","BCH"],["BBB","TESTBBB"],["CNHT","CNHt"],["CSX","CS"],["CTX","CTXC"],["DAT","DATA"],["DOG","MDOGE"],["DRN","DRGN"],["DSH","DASH"],["DTX","DT"],["EDO","PNT"],["EUS","EURS"],["EUT","EURt"],["GSD","GUSD"],["IOS","IOST"],["IOT","IOTA"],["LBT","LBTC"],["LES","LEO-EOS"],["LET","LEO-ERC20"],["MIT","MITH"],["MNA","MANA"],["NCA","NCASH"],["OMN","OMNI"],["PAS","PASS"],["POY","POLY"],["QSH","QASH"],["QTM","QTUM"],["RBT","RBTC"],["REP","REP2"],["SCR","XD"],["SNG","SNGLS"],["SPK","SPANK"],["STJ","STORJ"],["TSD","TUSD"],["UDC","USDC"],["USK","USDK"],["UST","USDt"],["USTF0","USDt0"],["UTN","UTNP"],["VSY","VSYS"],["WBT","WBTC"],["XAUT","XAUt"],["XCH","XCHF"],["YGG","YEED"],["YYW","YOYOW"]]]`
 
@@ -178,7 +183,6 @@ func (*Bitfinex) localPairName(pairs ...Pair) string {
 		}
 		// Hack to treat prices with USD quotes from Bitfinex as if they were with USDT quotes
 		if pair.Quote == "USDT" {
-			//nolint
 			q = "USD"
 		}
 		l = append(l, fmt.Sprintf("t%s%s", b, q))

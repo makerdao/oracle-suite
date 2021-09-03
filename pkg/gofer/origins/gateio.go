@@ -39,7 +39,7 @@ type gateioResponse struct {
 
 // Gateio exchange handler
 type Gateio struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (g *Gateio) renameSymbol(symbol string) string {
@@ -50,7 +50,11 @@ func (g *Gateio) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s_%s", g.renameSymbol(pair.Base), g.renameSymbol(pair.Quote))
 }
 
-func (g *Gateio) Fetch(pairs []Pair) []FetchResult {
+func (g Gateio) Pool() query.WorkerPool {
+	return g.WorkerPool
+}
+
+func (g Gateio) PullPrices(pairs []Pair) []FetchResult {
 	crs, err := g.fetch(pairs)
 	if err != nil {
 		return fetchResultListWithErrors(pairs, err)
@@ -69,7 +73,7 @@ func (g *Gateio) fetch(pairs []Pair) ([]FetchResult, error) {
 	req := &query.HTTPRequest{URL: url}
 
 	// make query
-	res := g.Pool.Query(req)
+	res := g.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

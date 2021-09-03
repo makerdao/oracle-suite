@@ -30,7 +30,7 @@ import (
 type GeminiSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Gemini
+	origin *BaseExchangeHandler
 }
 
 func (suite *GeminiSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *GeminiSuite) Origin() Handler {
 
 // Setup origin
 func (suite *GeminiSuite) SetupSuite() {
-	suite.origin = &Gemini{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Gemini{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *GeminiSuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *GeminiSuite) TearDownTest() {
 }
 
 func (suite *GeminiSuite) TestLocalPair() {
-	suite.EqualValues("btceth", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("btcusd", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(Gemini)
+	suite.EqualValues("btceth", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("btcusd", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *GeminiSuite) TestFailOnWrongInput() {
@@ -69,7 +70,7 @@ func (suite *GeminiSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -77,7 +78,7 @@ func (suite *GeminiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -85,7 +86,7 @@ func (suite *GeminiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"last":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -93,7 +94,7 @@ func (suite *GeminiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"last":"1","ask":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -101,7 +102,7 @@ func (suite *GeminiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"last":"1","ask":"1","bid":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -111,7 +112,7 @@ func (suite *GeminiSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"last":"1","ask":"2","bid":"4"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)
@@ -121,7 +122,12 @@ func (suite *GeminiSuite) TestSuccessResponse() {
 }
 
 func (suite *GeminiSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Gemini{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Gemini{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH",
+		"BTC",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

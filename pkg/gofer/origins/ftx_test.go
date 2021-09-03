@@ -30,7 +30,7 @@ import (
 type FtxSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Ftx
+	origin *BaseExchangeHandler
 }
 
 func (suite *FtxSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *FtxSuite) Origin() Handler {
 
 // Setup origin
 func (suite *FtxSuite) SetupSuite() {
-	suite.origin = &Ftx{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Ftx{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *FtxSuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *FtxSuite) TearDownTest() {
 }
 
 func (suite *FtxSuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC/USDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USDC"}))
+	ex := suite.origin.ExchangeHandler.(Ftx)
+	suite.EqualValues("BTC/ETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTC/USDC", ex.localPairName(Pair{Base: "BTC", Quote: "USDC"}))
 }
 
 func (suite *FtxSuite) TestFailOnWrongInput() {
@@ -66,7 +67,7 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
@@ -97,7 +98,7 @@ func (suite *FtxSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
@@ -130,7 +131,7 @@ func (suite *FtxSuite) TestSuccessResponse() {
 "volumeUsd24h": 12467473.8244
 }],"success":true}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(380.23, cr[0].Price.Price)
@@ -141,12 +142,14 @@ func (suite *FtxSuite) TestSuccessResponse() {
 }
 
 func (suite *FtxSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	origin := NewBaseExchangeHandler(Ftx{WorkerPool: query.NewHTTPWorkerPool(1)}, nil)
+
+	testRealAPICall(suite, origin, "ETH", "BTC")
 	pairs := []Pair{
 		{Base: "ETH", Quote: "USDT"},
 		{Base: "BTC", Quote: "USDT"},
 	}
-	testRealBatchAPICall(suite, &Ftx{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	testRealBatchAPICall(suite, origin, pairs)
 }
 
 // In order for 'go test' to run this suite, we need to create

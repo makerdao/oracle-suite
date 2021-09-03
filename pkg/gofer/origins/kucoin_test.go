@@ -30,7 +30,7 @@ import (
 type KucoinSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Kucoin
+	origin *BaseExchangeHandler
 }
 
 func (suite *KucoinSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *KucoinSuite) Origin() Handler {
 
 // Setup origin
 func (suite *KucoinSuite) SetupSuite() {
-	suite.origin = &Kucoin{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Kucoin{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *KucoinSuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *KucoinSuite) TearDownTest() {
 }
 
 func (suite *KucoinSuite) TestLocalPair() {
-	suite.EqualValues("BTC-ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.NotEqual("BTC-USDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(Kucoin)
+	suite.EqualValues("BTC-ETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.NotEqual("BTC-USDC", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *KucoinSuite) TestFailOnWrongInput() {
@@ -69,7 +70,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -77,7 +78,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -127,7 +128,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+			suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
@@ -151,7 +152,7 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 			}
 		}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(int64(1596632420), cr[0].Price.Timestamp.Unix())
@@ -161,7 +162,12 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 }
 
 func (suite *KucoinSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Kucoin{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Kucoin{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH",
+		"BTC",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

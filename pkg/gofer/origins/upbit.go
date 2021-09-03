@@ -24,14 +24,17 @@ import (
 )
 
 type Upbit struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
-func (o *Upbit) Fetch(pairs []Pair) []FetchResult {
+func (o Upbit) Pool() query.WorkerPool {
+	return o.WorkerPool
+}
+func (o Upbit) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
 		URL: fmt.Sprintf(upbitURL, o.localPairName(pairs...)),
 	}
-	res := o.Pool.Query(req)
+	res := o.Pool().Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}

@@ -38,12 +38,16 @@ type cryptoCompareMultiResponse struct {
 }
 
 type CryptoCompare struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
-func (c *CryptoCompare) Fetch(pairs []Pair) []FetchResult {
+func (c CryptoCompare) Pool() query.WorkerPool {
+	return c.WorkerPool
+}
+
+func (c CryptoCompare) PullPrices(pairs []Pair) []FetchResult {
 	req := c.makeRequest(pairs)
-	res := c.Pool.Query(req)
+	res := c.Pool().Query(req)
 	if errorResponses := c.validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}

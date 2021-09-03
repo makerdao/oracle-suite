@@ -26,7 +26,7 @@ import (
 
 type BinanceSuite struct {
 	suite.Suite
-	origin *Binance
+	origin *BaseExchangeHandler
 }
 
 func (suite *BinanceSuite) Origin() Handler {
@@ -34,12 +34,13 @@ func (suite *BinanceSuite) Origin() Handler {
 }
 
 func (suite *BinanceSuite) SetupSuite() {
-	suite.origin = &Binance{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Binance{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *BinanceSuite) TestLocalPair() {
-	suite.EqualValues("BTCETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.NotEqual("BTCUSDC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	binance := suite.origin.ExchangeHandler.(Binance)
+	suite.EqualValues("BTCETH", binance.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.NotEqual("BTCUSDC", binance.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *BinanceSuite) TestFailOnWrongInput() {
@@ -59,7 +60,7 @@ func (suite *BinanceSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -67,7 +68,7 @@ func (suite *BinanceSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -86,7 +87,7 @@ func (suite *BinanceSuite) TestFailOnWrongInput() {
 			]
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -105,7 +106,7 @@ func (suite *BinanceSuite) TestFailOnWrongInput() {
 			]
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -144,7 +145,7 @@ func (suite *BinanceSuite) TestSuccessResponse() {
 			]
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairBTCETH, pairBTCUSD})
 
 	suite.Len(fr, 2)
@@ -171,14 +172,14 @@ func (suite *BinanceSuite) TestSuccessResponse() {
 func (suite *BinanceSuite) TestRealAPICall() {
 	testRealBatchAPICall(
 		suite,
-		&Binance{Pool: query.NewHTTPWorkerPool(1)},
+		NewBaseExchangeHandler(Binance{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
 		[]Pair{
 			{Base: "BAT", Quote: "BTC"},
 			{Base: "COMP", Quote: "USDT"},
 			{Base: "ETH", Quote: "BTC"},
-			{Base: "GNT", Quote: "BTC"},
+			// {Base: "GNT", Quote: "BTC"},
 			{Base: "KNC", Quote: "BTC"},
-			{Base: "LEND", Quote: "BTC"},
+			// {Base: "LEND", Quote: "BTC"},
 			{Base: "LINK", Quote: "BTC"},
 			{Base: "LRC", Quote: "BTC"},
 			{Base: "MANA", Quote: "BTC"},

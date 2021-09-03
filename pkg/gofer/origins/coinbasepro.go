@@ -38,7 +38,7 @@ type coinbaseProResponse struct {
 
 // Coinbase origin handler
 type CoinbasePro struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (c *CoinbasePro) localPairName(pair Pair) string {
@@ -49,8 +49,12 @@ func (c *CoinbasePro) getURL(pair Pair) string {
 	return fmt.Sprintf(coinbaseProURL, c.localPairName(pair))
 }
 
-func (c *CoinbasePro) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(c, pairs)
+func (c CoinbasePro) Pool() query.WorkerPool {
+	return c.WorkerPool
+}
+
+func (c CoinbasePro) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&c, pairs)
 }
 
 func (c *CoinbasePro) callOne(pair Pair) (*Price, error) {
@@ -60,7 +64,7 @@ func (c *CoinbasePro) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := c.Pool.Query(req)
+	res := c.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

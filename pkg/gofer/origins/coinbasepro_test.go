@@ -30,7 +30,7 @@ import (
 type CoinbaseProSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *CoinbasePro
+	origin *BaseExchangeHandler
 }
 
 func (suite *CoinbaseProSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *CoinbaseProSuite) Origin() Handler {
 
 // Setup origin
 func (suite *CoinbaseProSuite) SetupSuite() {
-	suite.origin = &CoinbasePro{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(CoinbasePro{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *CoinbaseProSuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *CoinbaseProSuite) TearDownTest() {
 }
 
 func (suite *CoinbaseProSuite) TestLocalPair() {
-	suite.EqualValues("BTC-ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC-USD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(CoinbasePro)
+	suite.EqualValues("BTC-ETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTC-USD", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
@@ -69,7 +70,7 @@ func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -77,7 +78,7 @@ func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -85,7 +86,7 @@ func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -93,7 +94,7 @@ func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -101,7 +102,7 @@ func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"1","volume":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -109,7 +110,7 @@ func (suite *CoinbaseProSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"1","volume":"1","bid":"abc"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -119,7 +120,7 @@ func (suite *CoinbaseProSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"price":"1","ask":"2","volume":"3","bid":"4"}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)
@@ -130,7 +131,12 @@ func (suite *CoinbaseProSuite) TestSuccessResponse() {
 }
 
 func (suite *CoinbaseProSuite) TestRealAPICall() {
-	testRealAPICall(suite, &CoinbasePro{Pool: query.NewHTTPWorkerPool(1)}, "ETH", "BTC")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(CoinbasePro{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"ETH",
+		"BTC",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

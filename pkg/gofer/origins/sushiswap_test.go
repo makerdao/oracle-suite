@@ -26,7 +26,7 @@ import (
 
 type SushiswapSuite struct {
 	suite.Suite
-	origin *Sushiswap
+	origin *BaseExchangeHandler
 }
 
 func (suite *SushiswapSuite) Origin() Handler {
@@ -34,7 +34,20 @@ func (suite *SushiswapSuite) Origin() Handler {
 }
 
 func (suite *SushiswapSuite) SetupSuite() {
-	suite.origin = &Sushiswap{Pool: query.NewMockWorkerPool()}
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+		"BTC": "WBTC",
+		"USD": "USDC",
+	}
+	addresses := ContractAddresses{
+		"SNX/WETH": "0xa1d7b2d891e3a1f9ef4bbc5be20630c2feb1c470",
+		"SNX/WBTC": "0xaabbccddeeffgghh0011223344556677889900aa",
+		"CRV/WETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009",
+	}
+	suite.origin = NewBaseExchangeHandler(
+		Sushiswap{WorkerPool: query.NewMockWorkerPool(), ContractAddresses: addresses},
+		aliases,
+	)
 }
 
 func (suite *SushiswapSuite) TestFailOnWrongInput() {
@@ -54,7 +67,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -62,7 +75,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -90,7 +103,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -118,7 +131,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -149,7 +162,7 @@ func (suite *SushiswapSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairSNXWETH})
 
 	suite.Len(fr, 1)
@@ -187,7 +200,7 @@ func (suite *SushiswapSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp1)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp1)
 	fr1 := suite.origin.Fetch([]Pair{pairCRVWETH})
 
 	suite.Len(fr1, 1)
@@ -203,9 +216,23 @@ func (suite *SushiswapSuite) TestSuccessResponse() {
 }
 
 func (suite *SushiswapSuite) TestRealAPICall() {
+	aliases := SymbolAliases{
+		"ETH": "WETH",
+		"BTC": "WBTC",
+		"USD": "USDC",
+	}
+	addresses := ContractAddresses{
+		"SNX/WETH": "0xa1d7b2d891e3a1f9ef4bbc5be20630c2feb1c470",
+	}
+
+	origin := NewBaseExchangeHandler(Sushiswap{
+		WorkerPool:        query.NewHTTPWorkerPool(1),
+		ContractAddresses: addresses,
+	}, aliases)
+
 	testRealBatchAPICall(
 		suite,
-		&Sushiswap{Pool: query.NewHTTPWorkerPool(1)},
+		origin,
 		[]Pair{
 			{Base: "SNX", Quote: "ETH"},
 		},

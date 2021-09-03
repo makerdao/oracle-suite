@@ -63,7 +63,7 @@ const successResponse = `{
 type LoopringSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Loopring
+	origin *BaseExchangeHandler
 }
 
 func (suite *LoopringSuite) Origin() Handler {
@@ -72,7 +72,7 @@ func (suite *LoopringSuite) Origin() Handler {
 
 // Setup origin
 func (suite *LoopringSuite) SetupSuite() {
-	suite.origin = &Loopring{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Loopring{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *LoopringSuite) TearDownTest() {
@@ -83,8 +83,9 @@ func (suite *LoopringSuite) TearDownTest() {
 }
 
 func (suite *LoopringSuite) TestLocalPair() {
-	suite.EqualValues("USDT-DAI", suite.origin.localPairName(Pair{Base: "USDT", Quote: "DAI"}))
-	suite.EqualValues("ETH-DAI", suite.origin.localPairName(Pair{Base: "ETH", Quote: "DAI"}))
+	ex := suite.origin.ExchangeHandler.(Loopring)
+	suite.EqualValues("USDT-DAI", ex.localPairName(Pair{Base: "USDT", Quote: "DAI"}))
+	suite.EqualValues("ETH-DAI", ex.localPairName(Pair{Base: "ETH", Quote: "DAI"}))
 }
 
 func (suite *LoopringSuite) TestFailOnWrongInput() {
@@ -102,7 +103,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -110,7 +111,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -118,7 +119,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte("{}"),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -126,7 +127,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"tickers":{}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -134,7 +135,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"tickers":[]}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -142,7 +143,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"tickers":[[]]}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 	// Error no pair in data
@@ -151,7 +152,7 @@ func (suite *LoopringSuite) TestFailOnWrongInput() {
 			["LRC-USDT"]
 		]}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -163,7 +164,7 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(successResponse),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair, pair2})
 
 	suite.NoError(cr[0].Error)
@@ -180,7 +181,12 @@ func (suite *LoopringSuite) TestSuccessResponse() {
 }
 
 func (suite *LoopringSuite) TestRealAPICall() {
-	testRealAPICall(suite, &Loopring{Pool: query.NewHTTPWorkerPool(1)}, "LRC", "ETH")
+	testRealAPICall(
+		suite,
+		NewBaseExchangeHandler(Loopring{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
+		"LRC",
+		"ETH",
+	)
 }
 
 // In order for 'go test' to run this suite, we need to create

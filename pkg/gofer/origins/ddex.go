@@ -23,23 +23,27 @@ import (
 )
 
 type Ddex struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 const ddexTickersURL = "https://api.ddex.io/v4/markets/tickers"
 
-func (o *Ddex) Fetch(pairs []Pair) []FetchResult {
+func (d Ddex) Pool() query.WorkerPool {
+	return d.WorkerPool
+}
+
+func (d Ddex) PullPrices(pairs []Pair) []FetchResult {
 	req := &query.HTTPRequest{
 		URL: ddexTickersURL,
 	}
-	res := o.Pool.Query(req)
+	res := d.Pool().Query(req)
 	if errorResponses := validateResponse(pairs, res); len(errorResponses) > 0 {
 		return errorResponses
 	}
-	return o.parseResponse(pairs, res)
+	return d.parseResponse(pairs, res)
 }
 
-func (o *Ddex) localPairName(pair Pair) string {
+func (d *Ddex) localPairName(pair Pair) string {
 	return fmt.Sprintf("%s-%s", pair.Base, pair.Quote)
 }
 
@@ -61,7 +65,7 @@ type ddexTickersResponse struct {
 	} `json:"data"`
 }
 
-func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
+func (d *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 	results := make([]FetchResult, 0)
 	var resp ddexTickersResponse
 	err := json.Unmarshal(res.Body, &resp)
@@ -78,7 +82,7 @@ func (o *Ddex) parseResponse(pairs []Pair, res *query.HTTPResponse) []FetchResul
 	}
 
 	for _, pair := range pairs {
-		if t, is := tickers[o.localPairName(pair)]; !is {
+		if t, is := tickers[d.localPairName(pair)]; !is {
 			results = append(results, FetchResult{
 				Price: Price{Pair: pair},
 				Error: ErrMissingResponseForPair,

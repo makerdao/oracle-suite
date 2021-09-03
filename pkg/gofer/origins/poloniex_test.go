@@ -26,7 +26,7 @@ import (
 
 type PoloniexSuite struct {
 	suite.Suite
-	origin *Poloniex
+	origin *BaseExchangeHandler
 }
 
 func (suite *PoloniexSuite) Origin() Handler {
@@ -34,11 +34,15 @@ func (suite *PoloniexSuite) Origin() Handler {
 }
 
 func (suite *PoloniexSuite) SetupSuite() {
-	suite.origin = &Poloniex{Pool: query.NewMockWorkerPool()}
+	aliases := SymbolAliases{
+		"REP": "REPV2",
+	}
+	suite.origin = NewBaseExchangeHandler(Poloniex{WorkerPool: query.NewMockWorkerPool()}, aliases)
 }
 
 func (suite *PoloniexSuite) TestLocalPair() {
-	suite.EqualValues("ETH_BTC", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	ex := suite.origin.ExchangeHandler.(Poloniex)
+	suite.EqualValues("ETH_BTC", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
 }
 
 func (suite *PoloniexSuite) TestFailOnWrongInput() {
@@ -58,7 +62,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -66,7 +70,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -84,7 +88,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -102,7 +106,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -120,7 +124,7 @@ func (suite *PoloniexSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -156,7 +160,7 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairBTCETH, pairBTCUSD})
 
 	suite.Len(fr, 2)
@@ -183,7 +187,7 @@ func (suite *PoloniexSuite) TestSuccessResponse() {
 func (suite *PoloniexSuite) TestRealAPICall() {
 	testRealBatchAPICall(
 		suite,
-		&Poloniex{Pool: query.NewHTTPWorkerPool(1)},
+		NewBaseExchangeHandler(Poloniex{WorkerPool: query.NewHTTPWorkerPool(1)}, nil),
 		[]Pair{
 			{Base: "ETH", Quote: "BTC"},
 			{Base: "REP", Quote: "BTC"},

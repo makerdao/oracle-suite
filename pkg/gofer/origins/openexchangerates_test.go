@@ -30,7 +30,7 @@ import (
 type OpenExchangeRatesSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *OpenExchangeRates
+	origin *BaseExchangeHandler
 }
 
 func (suite *OpenExchangeRatesSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *OpenExchangeRatesSuite) Origin() Handler {
 
 // Setup origin
 func (suite *OpenExchangeRatesSuite) SetupSuite() {
-	suite.origin = &OpenExchangeRates{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(OpenExchangeRates{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *OpenExchangeRatesSuite) TearDownTest() {
@@ -64,7 +64,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -72,7 +72,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -80,7 +80,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -88,7 +88,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{"EUR":0}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -106,7 +106,7 @@ func (suite *OpenExchangeRatesSuite) TestSuccessResponse() {
 		  }
 		}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(0.000891, cr[0].Price.Price)
@@ -114,10 +114,10 @@ func (suite *OpenExchangeRatesSuite) TestSuccessResponse() {
 }
 
 func (suite *OpenExchangeRatesSuite) TestRealAPICall() {
-	origin := &OpenExchangeRates{
-		Pool:   query.NewHTTPWorkerPool(1),
-		APIKey: "KEY_HERE",
-	}
+	origin := NewBaseExchangeHandler(OpenExchangeRates{
+		WorkerPool: query.NewHTTPWorkerPool(1),
+		APIKey:     "KEY_HERE",
+	}, nil)
 	testRealAPICall(suite, origin, "KRW", "USD")
 }
 

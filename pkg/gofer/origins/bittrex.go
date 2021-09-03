@@ -38,28 +38,19 @@ type bittrexSymbolResponse struct {
 
 // Bittrex origin handler
 type Bittrex struct {
-	Pool query.WorkerPool
+	WorkerPool query.WorkerPool
 }
 
 func (b *Bittrex) localPairName(pair Pair) string {
-	const (
-		REP   = "REP"
-		REPV2 = "REPV2"
-	)
-
-	if pair.Quote == REP {
-		pair.Quote = REPV2
-	}
-
-	if pair.Base == REP {
-		pair.Base = REPV2
-	}
-
 	return fmt.Sprintf("%s-%s", pair.Quote, pair.Base)
 }
 
-func (b *Bittrex) Fetch(pairs []Pair) []FetchResult {
-	return callSinglePairOrigin(b, pairs)
+func (b Bittrex) Pool() query.WorkerPool {
+	return b.WorkerPool
+}
+
+func (b Bittrex) PullPrices(pairs []Pair) []FetchResult {
+	return callSinglePairOrigin(&b, pairs)
 }
 
 func (b *Bittrex) callOne(pair Pair) (*Price, error) {
@@ -69,7 +60,7 @@ func (b *Bittrex) callOne(pair Pair) (*Price, error) {
 	}
 
 	// make query
-	res := b.Pool.Query(req)
+	res := b.Pool().Query(req)
 	if res == nil {
 		return nil, ErrEmptyOriginResponse
 	}

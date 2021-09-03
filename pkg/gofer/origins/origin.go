@@ -30,9 +30,102 @@ type Handler interface {
 	Fetch(pairs []Pair) []FetchResult
 }
 
+type ExchangeHandler interface {
+	// PullPrices is similar to Handler.Fetch
+	// but pairs will be already renamed based on given BaseExchangeHandler.SymbolAliases
+	PullPrices(pairs []Pair) []FetchResult
+
+	Pool() query.WorkerPool
+}
+
+type BaseExchangeHandler struct {
+	ExchangeHandler
+
+	SymbolAliases SymbolAliases
+}
+
+func NewBaseExchangeHandler(handler ExchangeHandler, aliases SymbolAliases) *BaseExchangeHandler {
+	return &BaseExchangeHandler{
+		ExchangeHandler: handler,
+		SymbolAliases:   aliases,
+	}
+}
+
+func (h BaseExchangeHandler) Fetch(pairs []Pair) []FetchResult {
+	if h.SymbolAliases == nil {
+		return h.ExchangeHandler.PullPrices(pairs)
+	}
+
+	var renamedPairs []Pair
+	for _, pair := range pairs {
+		renamedPairs = append(renamedPairs, h.SymbolAliases.ReplacePair(pair))
+	}
+	results := h.ExchangeHandler.PullPrices(renamedPairs)
+
+	// Reverting our replacement
+	for i := range results {
+		results[i].Price.Pair = h.SymbolAliases.RevertPair(results[i].Price.Pair)
+	}
+	return results
+}
+
+type ContractAddresses map[string]string
+
+func (c ContractAddresses) ByPair(p Pair) (string, bool) {
+	contract, ok := c[fmt.Sprintf("%s/%s", p.Base, p.Quote)]
+	if !ok {
+		contract, ok = c[fmt.Sprintf("%s/%s", p.Quote, p.Base)]
+	}
+	return contract, ok
+}
+
+type SymbolAliases map[string]string
+
+func (a SymbolAliases) replaceSymbol(symbol string) (string, bool) {
+	replacement, ok := a[symbol]
+	if !ok {
+		return symbol, false
+	}
+	return replacement, ok
+}
+
+// Revert reverts symbol replacement.
+func (a SymbolAliases) Revert(symbol string) string {
+	for pre, post := range a {
+		if symbol == post {
+			return pre
+		}
+	}
+
+	return symbol
+}
+
+func (a SymbolAliases) ReplacePair(pair Pair) Pair {
+	base, baseOk := a.replaceSymbol(pair.Base)
+	quote, quoteOk := a.replaceSymbol(pair.Quote)
+
+	return Pair{Base: base, Quote: quote, baseReplaced: baseOk, quoteReplaced: quoteOk}
+}
+
+func (a SymbolAliases) RevertPair(pair Pair) Pair {
+	base := pair.Base
+	if pair.baseReplaced {
+		base = a.Revert(pair.Base)
+	}
+
+	quote := pair.Quote
+	if pair.quoteReplaced {
+		quote = a.Revert(pair.Quote)
+	}
+
+	return Pair{Base: base, Quote: quote, baseReplaced: false, quoteReplaced: false}
+}
+
 type Pair struct {
-	Quote string
-	Base  string
+	Quote         string
+	Base          string
+	quoteReplaced bool
+	baseReplaced  bool
 }
 
 func (p Pair) String() string {
@@ -146,34 +239,27 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 
 func DefaultOriginSet(pool query.WorkerPool) *Set {
 	return NewSet(map[string]Handler{
-		"balancer":      &Balancer{Pool: pool},
-		"binance":       &Binance{Pool: pool},
-		"bitfinex":      &Bitfinex{Pool: pool},
-		"bitstamp":      &Bitstamp{Pool: pool},
-		"bitthumb":      &BitThump{Pool: pool},
-		"bithumb":       &BitThump{Pool: pool},
-		"bittrex":       &Bittrex{Pool: pool},
-		"coinbase":      &CoinbasePro{Pool: pool},
-		"coinbasepro":   &CoinbasePro{Pool: pool},
-		"cryptocompare": &CryptoCompare{Pool: pool},
-		"ddex":          &Ddex{Pool: pool},
-		"folgory":       &Folgory{Pool: pool},
-		"ftx":           &Ftx{Pool: pool},
-		"gateio":        &Gateio{Pool: pool},
-		"gemini":        &Gemini{Pool: pool},
-		"hitbtc":        &Hitbtc{Pool: pool},
-		"huobi":         &Huobi{Pool: pool},
-		"kraken":        &Kraken{Pool: pool},
-		"kucoin":        &Kucoin{Pool: pool},
-		"kyber":         &Kyber{Pool: pool},
-		"loopring":      &Loopring{Pool: pool},
-		"okex":          &Okex{Pool: pool},
-		"poloniex":      &Poloniex{Pool: pool},
-		"sushiswap":     &Sushiswap{Pool: pool},
-		"uniswap":       &Uniswap{Pool: pool},
-		"uniswapV2":     &Uniswap{Pool: pool},
-		"uniswapV3":     &UniswapV3{Pool: pool},
-		"upbit":         &Upbit{Pool: pool},
+		"binance":       NewBaseExchangeHandler(Binance{WorkerPool: pool}, nil),
+		"bitfinex":      NewBaseExchangeHandler(Bitfinex{WorkerPool: pool}, nil),
+		"bitstamp":      NewBaseExchangeHandler(Bitstamp{WorkerPool: pool}, nil),
+		"bitthumb":      NewBaseExchangeHandler(BitThump{WorkerPool: pool}, nil),
+		"bithumb":       NewBaseExchangeHandler(BitThump{WorkerPool: pool}, nil),
+		"coinbase":      NewBaseExchangeHandler(CoinbasePro{WorkerPool: pool}, nil),
+		"coinbasepro":   NewBaseExchangeHandler(CoinbasePro{WorkerPool: pool}, nil),
+		"cryptocompare": NewBaseExchangeHandler(CryptoCompare{WorkerPool: pool}, nil),
+		"ddex":          NewBaseExchangeHandler(Ddex{WorkerPool: pool}, nil),
+		"folgory":       NewBaseExchangeHandler(Folgory{WorkerPool: pool}, nil),
+		"ftx":           NewBaseExchangeHandler(Ftx{WorkerPool: pool}, nil),
+		"gateio":        NewBaseExchangeHandler(Gateio{WorkerPool: pool}, nil),
+		"gemini":        NewBaseExchangeHandler(Gemini{WorkerPool: pool}, nil),
+		"hitbtc":        NewBaseExchangeHandler(Hitbtc{WorkerPool: pool}, nil),
+		"huobi":         NewBaseExchangeHandler(Huobi{WorkerPool: pool}, nil),
+		"kraken":        NewBaseExchangeHandler(Kraken{WorkerPool: pool}, nil),
+		"kucoin":        NewBaseExchangeHandler(Kucoin{WorkerPool: pool}, nil),
+		"kyber":         NewBaseExchangeHandler(Kyber{WorkerPool: pool}, nil),
+		"loopring":      NewBaseExchangeHandler(Loopring{WorkerPool: pool}, nil),
+		"okex":          NewBaseExchangeHandler(Okex{WorkerPool: pool}, nil),
+		"upbit":         NewBaseExchangeHandler(Upbit{WorkerPool: pool}, nil),
 	})
 }
 

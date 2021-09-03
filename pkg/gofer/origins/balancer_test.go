@@ -26,7 +26,7 @@ import (
 
 type BalancerSuite struct {
 	suite.Suite
-	origin *Balancer
+	origin *BaseExchangeHandler
 }
 
 func (suite *BalancerSuite) Origin() Handler {
@@ -34,7 +34,13 @@ func (suite *BalancerSuite) Origin() Handler {
 }
 
 func (suite *BalancerSuite) SetupSuite() {
-	suite.origin = &Balancer{Pool: query.NewMockWorkerPool()}
+	addresses := ContractAddresses{
+		"BAL/USD": "0xba100000625a3754423978a60c9317c58a424e3d",
+	}
+	suite.origin = NewBaseExchangeHandler(
+		Balancer{WorkerPool: query.NewMockWorkerPool(), ContractAddresses: addresses},
+		nil,
+	)
 }
 
 func (suite *BalancerSuite) TestFailOnWrongInput() {
@@ -54,7 +60,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -62,7 +68,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -82,7 +88,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -102,7 +108,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -124,7 +130,7 @@ func (suite *BalancerSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairBALUSD})
 
 	suite.Len(fr, 1)
@@ -138,9 +144,17 @@ func (suite *BalancerSuite) TestSuccessResponse() {
 }
 
 func (suite *BalancerSuite) TestRealAPICall() {
+	addresses := ContractAddresses{
+		"BAL/USD": "0xba100000625a3754423978a60c9317c58a424e3d",
+	}
+	origin := NewBaseExchangeHandler(
+		Balancer{WorkerPool: query.NewHTTPWorkerPool(1), ContractAddresses: addresses},
+		nil,
+	)
+
 	testRealBatchAPICall(
 		suite,
-		&Balancer{Pool: query.NewHTTPWorkerPool(1)},
+		origin,
 		[]Pair{
 			{Base: "BAL", Quote: "USD"},
 		},

@@ -30,7 +30,7 @@ import (
 type KrakenSuite struct {
 	suite.Suite
 	pool   query.WorkerPool
-	origin *Kraken
+	origin *BaseExchangeHandler
 }
 
 func (suite *KrakenSuite) Origin() Handler {
@@ -39,7 +39,7 @@ func (suite *KrakenSuite) Origin() Handler {
 
 // Setup origin
 func (suite *KrakenSuite) SetupSuite() {
-	suite.origin = &Kraken{Pool: query.NewMockWorkerPool()}
+	suite.origin = NewBaseExchangeHandler(Kraken{WorkerPool: query.NewMockWorkerPool()}, nil)
 }
 
 func (suite *KrakenSuite) TearDownTest() {
@@ -50,8 +50,9 @@ func (suite *KrakenSuite) TearDownTest() {
 }
 
 func (suite *KrakenSuite) TestLocalPair() {
-	suite.EqualValues("BTC/ETH", suite.origin.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
-	suite.EqualValues("BTC/USD", suite.origin.localPairName(Pair{Base: "BTC", Quote: "USD"}))
+	ex := suite.origin.ExchangeHandler.(Kraken)
+	suite.EqualValues("BTC/ETH", ex.localPairName(Pair{Base: "BTC", Quote: "ETH"}))
+	suite.EqualValues("BTC/USD", ex.localPairName(Pair{Base: "BTC", Quote: "USD"}))
 }
 
 func (suite *KrakenSuite) TestFailOnWrongInput() {
@@ -69,7 +70,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
@@ -77,7 +78,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -85,7 +86,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":["abcd"]}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -93,7 +94,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -101,7 +102,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}})`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -111,7 +112,7 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"error":[],"result":{"DAI/USD":{"c":["1"],"v":["2"]}}}`),
 	}
-	suite.origin.Pool.(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)
@@ -128,7 +129,10 @@ func (suite *KrakenSuite) TestRealAPICall() {
 		{Base: "REP", Quote: "EUR"},
 		{Base: "USDT", Quote: "USD"},
 	}
-	testRealBatchAPICall(suite, &Kraken{Pool: query.NewHTTPWorkerPool(1)}, pairs)
+	testRealBatchAPICall(suite, NewBaseExchangeHandler(
+		Kraken{WorkerPool: query.NewHTTPWorkerPool(1)},
+		nil,
+	), pairs)
 }
 
 func TestKrakenSuite(t *testing.T) {
