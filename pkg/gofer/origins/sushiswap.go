@@ -124,24 +124,18 @@ func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 		respMap[pairResp.Token0.Symbol+"/"+pairResp.Token1.Symbol] = pairResp
 	}
 
-	b := pair.Base
-	q := pair.Quote
-
-	pair0 := b + "/" + q
-	pair1 := q + "/" + b
-
-	if r, ok := respMap[pair0]; ok {
+	if r, ok := respMap[pair.Base+"/"+pair.Quote]; ok {
 		return &Price{
-			Pair:      pair,
+			Pair:      Pair{Base: pair.Base, Quote: pair.Quote},
 			Price:     r.Price1.val(),
 			Bid:       r.Price1.val(),
 			Ask:       r.Price1.val(),
 			Volume24h: r.Volume0.val(),
 			Timestamp: time.Now(),
 		}, nil
-	} else if r, ok := respMap[pair1]; ok {
+	} else if r, ok := respMap[pair.Quote+"/"+pair.Base]; ok {
 		return &Price{
-			Pair:      pair,
+			Pair:      Pair{Base: pair.Quote, Quote: pair.Base},
 			Price:     r.Price0.val(),
 			Bid:       r.Price0.val(),
 			Ask:       r.Price0.val(),

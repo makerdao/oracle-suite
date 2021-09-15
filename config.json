@@ -317,26 +317,34 @@
         "name": "curve",
         "params": {
           "contracts": {
-            "ETH/stETH": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"
+            "ETH/STETH": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"
           }
         }
-
       },
       "lido": {
         "type": "lido",
         "name": "lido",
         "params": {
           "contracts": {
-            "WSTETH/stETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+            "WSTETH/STETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
           }
         }
       }
     },
     "priceModels": {
+      "STETH/USD": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "curve", "pair": "ETH/STETH" },{ "origin": ".", "pair": "ETH/USD" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
+      },
       "WSTETH/USD": {
         "method": "median",
         "sources": [
-          [{ "origin": "lido", "pair": "WSTETH/stETH" },{ "origin": "curve", "pair": "ETH/stETH" },{ "origin": ".", "pair": "ETH/USD" }]
+          [{ "origin": "lido", "pair": "WSTETH/STETH" },{ "origin": ".", "pair": "STETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 1

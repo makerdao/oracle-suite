@@ -23,8 +23,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
 type curveResponse struct {
@@ -53,22 +55,29 @@ type CurveFinance struct {
 	EthRpcUrl         string
 	WorkerPool        query.WorkerPool
 	ContractAddresses ContractAddresses
+	abi               abi.ABI
 }
 
-func NewCurveFinance(ethRpcUrl string, workerPool query.WorkerPool, contractAddresses ContractAddresses) CurveFinance {
-	return CurveFinance{
+func NewCurveFinance(ethRpcUrl string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*CurveFinance, error) {
+	a, err := abi.JSON(strings.NewReader(_CurvePoolABI))
+	if err != nil {
+		return nil, err
+	}
+	return &CurveFinance{
 		EthRpcUrl:         ethRpcUrl,
 		WorkerPool:        workerPool,
 		ContractAddresses: contractAddresses,
-	}
+		abi:               a,
+	}, nil
 }
 
-func (s *CurveFinance) pairsToContractAddress(pair Pair) (string, error) {
+func (s CurveFinance) pairsToContractAddress(pair Pair) (ethereum.Address, error) {
 	contract, ok := s.ContractAddresses.ByPair(pair)
 	if !ok {
-		return "", fmt.Errorf("failed to get Curve contract address for pair: %s", pair.String())
+		return ethereum.Address{}, fmt.Errorf("failed to get Curve contract address for pair: %s", pair.String())
 	}
-	return contract, nil
+
+	return ethereum.HexToAddress(contract), nil
 }
 
 func (s CurveFinance) Pool() query.WorkerPool {
@@ -80,18 +89,22 @@ func (s CurveFinance) PullPrices(pairs []Pair) []FetchResult {
 }
 
 // xnolint:dupl
-func (s *CurveFinance) callOne(pair Pair) (*Price, error) {
+func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 	var err error
 
 	contract, err := s.pairsToContractAddress(pair)
 	if err != nil {
 		return nil, err
 	}
-
-	abi.JSON(strings.NewReader(_CurvePoolABI))
+	// ETHindex: 0, stETHindex: 1
+	args, err := s.abi.Pack("get_dy", 0, 1, 1000000000000000000)
+	if err != nil {
+		return nil, err
+	}
 	body := fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"%s","data":"%s"},"latest"],"id":1}`,
-		contract,
+		contract.String(),
+		hexutil.Encode(args),
 	)
 
 	req := &query.HTTPRequest{

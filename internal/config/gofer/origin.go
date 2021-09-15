@@ -166,11 +166,15 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 		if err != nil {
 			return nil, err
 		}
-		return origins.NewBaseExchangeHandler(origins.NewCurveFinance(
-			"",
+		h, err := origins.NewCurveFinance(
+			"xxxxxxxxx",
 			pool,
 			contracts,
-		), aliases), nil
+		)
+		if err != nil {
+			return nil, err
+		}
+		return origins.NewBaseExchangeHandler(*h, aliases), nil
 	case "uniswap", "uniswapV2":
 		contracts, err := parseParamsContracts(params)
 		if err != nil {
