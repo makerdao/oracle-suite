@@ -161,6 +161,16 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			WorkerPool:        pool,
 			ContractAddresses: contracts,
 		}, aliases), nil
+	case "curvefinance", "curve":
+		contracts, err := parseParamsContracts(params)
+		if err != nil {
+			return nil, err
+		}
+		return origins.NewBaseExchangeHandler(origins.NewCurveFinance(
+			"",
+			pool,
+			contracts,
+		), aliases), nil
 	case "uniswap", "uniswapV2":
 		contracts, err := parseParamsContracts(params)
 		if err != nil {
