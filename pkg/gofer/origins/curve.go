@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"regexp"
 	"strings"
@@ -33,25 +32,30 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
-const _CurvePoolJSON = `[
-{"name":"get_dy","outputs":[{"type":"uint256","name":""}],"inputs":[{"type":"int128","name":"i"},{"type":"int128","name":"j"},{"type":"uint256","name":"dx"}],"stateMutability":"view","type":"function","gas":2654541}
-]`
+const _CurvePoolJSON = `[{
+"name":"get_dy",
+"outputs":[{"type":"uint256","name":""}],
+"inputs":[{"type":"int128","name":"i"},{"type":"int128","name":"j"},{"type":"uint256","name":"dx"}],
+"stateMutability":"view",
+"type":"function",
+"gas":2654541
+}]`
 
 type CurveFinance struct {
-	EthRpcUrl                 string
+	EthRPCURL                 string
 	WorkerPool                query.WorkerPool
 	ContractAddresses         ContractAddresses
 	abi                       abi.ABI
 	baseIndex, quoteIndex, dx *big.Int
 }
 
-func NewCurveFinance(ethRpcUrl string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*CurveFinance, error) {
+func NewCurveFinance(ethRPCURL string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*CurveFinance, error) {
 	a, err := abi.JSON(strings.NewReader(_CurvePoolJSON))
 	if err != nil {
 		return nil, err
 	}
 	return &CurveFinance{
-		EthRpcUrl:         ethRpcUrl,
+		EthRPCURL:         ethRPCURL,
 		WorkerPool:        workerPool,
 		ContractAddresses: contractAddresses,
 		abi:               a,
@@ -94,7 +98,7 @@ func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 	}
 
 	res := s.Pool().Query(&query.HTTPRequest{
-		URL:    s.EthRpcUrl,
+		URL:    s.EthRPCURL,
 		Method: "POST",
 		Body: bytes.NewBuffer([]byte(fmt.Sprintf(
 			`{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"%s","data":"%s"},"latest"],"id":1}`,
@@ -114,6 +118,9 @@ func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Curve response: %w", err)
 	}
+	if !response.isResponse() {
+		return nil, ErrInvalidResponse
+	}
 	if response.Error != nil {
 		return nil, response.Error
 	}
@@ -124,8 +131,6 @@ func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 	}
 
 	price, _ := new(big.Float).Quo(new(big.Float).SetInt(result.ToInt()), big.NewFloat(params.Ether)).Float64()
-
-	log.Println("curve", inverted, price)
 
 	return &Price{
 		Pair:      pair,

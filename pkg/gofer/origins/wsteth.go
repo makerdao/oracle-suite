@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 	"regexp"
 	"strings"
@@ -33,26 +32,31 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
-const _WrappedStakedETHJSON = `[
-{"inputs":[],"name":"stEthPerToken","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-{"inputs":[],"name":"tokensPerStEth","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-]`
+const _WrappedStakedETHJSON = `[{
+"inputs":[],"name":"stEthPerToken","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+"stateMutability":"view","type":"function"
+},{
+"inputs":[],"name":"tokensPerStEth","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+"stateMutability":"view","type":"function"
+},{
+"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+"stateMutability":"view","type":"function"
+}]`
 
 type WrappedStakedETH struct {
-	EthRpcUrl         string
+	EthRPCURL         string
 	WorkerPool        query.WorkerPool
 	ContractAddresses ContractAddresses
 	abi               abi.ABI
 }
 
-func NewWrappedStakedETH(ethRpcUrl string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*WrappedStakedETH, error) {
+func NewWrappedStakedETH(ethRPCURL string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*WrappedStakedETH, error) {
 	a, err := abi.JSON(strings.NewReader(_WrappedStakedETHJSON))
 	if err != nil {
 		return nil, err
 	}
 	return &WrappedStakedETH{
-		EthRpcUrl:         ethRpcUrl,
+		EthRPCURL:         ethRPCURL,
 		WorkerPool:        workerPool,
 		ContractAddresses: contractAddresses,
 		abi:               a,
@@ -92,7 +96,7 @@ func (s WrappedStakedETH) callOne(pair Pair) (*Price, error) {
 	}
 
 	res := s.Pool().Query(&query.HTTPRequest{
-		URL:    s.EthRpcUrl,
+		URL:    s.EthRPCURL,
 		Method: "POST",
 		Body: bytes.NewBuffer([]byte(fmt.Sprintf(
 			`{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"%s","data":"%s"},"latest"],"id":1}`,
@@ -122,8 +126,6 @@ func (s WrappedStakedETH) callOne(pair Pair) (*Price, error) {
 	}
 
 	price, _ := new(big.Float).Quo(new(big.Float).SetInt(result.ToInt()), big.NewFloat(params.Ether)).Float64()
-
-	log.Println("wsteth", inverted, price)
 
 	return &Price{
 		Pair:      pair,

@@ -69,7 +69,7 @@ func parseParamsContracts(params json.RawMessage) (origins.ContractAddresses, er
 }
 
 //nolint
-func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage) (origins.Handler, error) {
+func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage, ethRPC string) (origins.Handler, error) {
 	aliases, err := parseParamsSymbolAliases(params)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			return nil, err
 		}
 		h, err := origins.NewCurveFinance(
-			"",
+			ethRPC,
 			pool,
 			contracts,
 		)
@@ -181,7 +181,7 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			return nil, err
 		}
 		h, err := origins.NewWrappedStakedETH(
-			"",
+			ethRPC,
 			pool,
 			contracts,
 		)

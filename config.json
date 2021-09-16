@@ -214,6 +214,7 @@
     ]
   },
   "gofer": {
+    "ethRpc": "",
     "rpc": {
       "disable": false,
       "address": "127.0.0.1:9000"
@@ -245,7 +246,8 @@
             "LEND/WETH": "0xab3f9bf1d81ddb224a2014e98b238638824bcf20",
             "LRC/WETH": "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70",
             "PAXG/WETH": "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c",
-            "YFI/WETH": "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28"
+            "YFI/WETH": "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28",
+            "BAL/WETH": "0xa70d458a4d9bc0e6571565faee18a48da5c0d593"
           }
         }
       },
