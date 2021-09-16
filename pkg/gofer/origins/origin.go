@@ -16,6 +16,7 @@
 package origins
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -70,11 +71,18 @@ func (h BaseExchangeHandler) Fetch(pairs []Pair) []FetchResult {
 
 type ContractAddresses map[string]string
 
-func (c ContractAddresses) ByPair(p Pair) (string, bool) {
+func (c ContractAddresses) ByPair(p Pair) (string, bool, bool) {
+	var inverted bool
 	contract, ok := c[fmt.Sprintf("%s/%s", p.Base, p.Quote)]
 	if !ok {
+		inverted = true
 		contract, ok = c[fmt.Sprintf("%s/%s", p.Quote, p.Base)]
 	}
+	return contract, inverted, ok
+}
+
+func (c ContractAddresses) ByExactPair(p Pair) (string, bool) {
+	contract, ok := c[fmt.Sprintf("%s/%s", p.Base, p.Quote)]
 	return contract, ok
 }
 
@@ -121,14 +129,22 @@ func (a SymbolAliases) revertPair(pair Pair) Pair {
 }
 
 type Pair struct {
-	Quote         string
 	Base          string
-	quoteReplaced bool
+	Quote         string
 	baseReplaced  bool
+	quoteReplaced bool
 }
 
 func (p Pair) String() string {
 	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
+}
+func (p Pair) Inverse() Pair {
+	return Pair{
+		Base:          p.Quote,
+		Quote:         p.Base,
+		baseReplaced:  p.quoteReplaced,
+		quoteReplaced: p.baseReplaced,
+	}
 }
 
 func (p Pair) Equal(c Pair) bool {
@@ -293,4 +309,43 @@ func validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("bad response: %w", res.Error))
 	}
 	return nil
+}
+
+type jsonrpcMessage struct {
+	Version string          `json:"jsonrpc,omitempty"`
+	ID      json.RawMessage `json:"id,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params,omitempty"`
+	Error   *jsonError      `json:"error,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+}
+
+func (msg *jsonrpcMessage) isResponse() bool {
+	return msg.hasValidID() && msg.Method == "" && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
+}
+
+func (msg *jsonrpcMessage) hasValidID() bool {
+	return len(msg.ID) > 0 && msg.ID[0] != '{' && msg.ID[0] != '['
+}
+
+func (msg *jsonrpcMessage) String() string {
+	b, _ := json.Marshal(msg)
+	return string(b)
+}
+
+type jsonError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func (err *jsonError) Error() string {
+	if err.Message == "" {
+		return fmt.Sprintf("json-rpc error %d", err.Code)
+	}
+	return err.Message
+}
+
+func (err *jsonError) ErrorCode() int {
+	return err.Code
 }

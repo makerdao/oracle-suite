@@ -33,35 +33,33 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
-const _CurvePoolJSON = `[
-{"name":"get_dy","outputs":[{"type":"uint256","name":""}],"inputs":[{"type":"int128","name":"i"},{"type":"int128","name":"j"},{"type":"uint256","name":"dx"}],"stateMutability":"view","type":"function","gas":2654541}
+const _WrappedStakedETHJSON = `[
+{"inputs":[],"name":"stEthPerToken","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+{"inputs":[],"name":"tokensPerStEth","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
 ]`
 
-type CurveFinance struct {
-	EthRpcUrl                 string
-	WorkerPool                query.WorkerPool
-	ContractAddresses         ContractAddresses
-	abi                       abi.ABI
-	baseIndex, quoteIndex, dx *big.Int
+type WrappedStakedETH struct {
+	EthRpcUrl         string
+	WorkerPool        query.WorkerPool
+	ContractAddresses ContractAddresses
+	abi               abi.ABI
 }
 
-func NewCurveFinance(ethRpcUrl string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*CurveFinance, error) {
-	a, err := abi.JSON(strings.NewReader(_CurvePoolJSON))
+func NewWrappedStakedETH(ethRpcUrl string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*WrappedStakedETH, error) {
+	a, err := abi.JSON(strings.NewReader(_WrappedStakedETHJSON))
 	if err != nil {
 		return nil, err
 	}
-	return &CurveFinance{
+	return &WrappedStakedETH{
 		EthRpcUrl:         ethRpcUrl,
 		WorkerPool:        workerPool,
 		ContractAddresses: contractAddresses,
 		abi:               a,
-		baseIndex:         big.NewInt(0),
-		quoteIndex:        big.NewInt(1),
-		dx:                new(big.Int).Mul(big.NewInt(1), big.NewInt(params.Ether)),
 	}, nil
 }
 
-func (s CurveFinance) pairsToContractAddress(pair Pair) (ethereum.Address, bool, error) {
+func (s WrappedStakedETH) pairsToContractAddress(pair Pair) (ethereum.Address, bool, error) {
 	contract, inverted, ok := s.ContractAddresses.ByPair(pair)
 	if !ok {
 		return ethereum.Address{}, inverted, fmt.Errorf("failed to get Curve contract address for pair: %s", pair.String())
@@ -69,15 +67,15 @@ func (s CurveFinance) pairsToContractAddress(pair Pair) (ethereum.Address, bool,
 	return ethereum.HexToAddress(contract), inverted, nil
 }
 
-func (s CurveFinance) Pool() query.WorkerPool {
+func (s WrappedStakedETH) Pool() query.WorkerPool {
 	return s.WorkerPool
 }
 
-func (s CurveFinance) PullPrices(pairs []Pair) []FetchResult {
+func (s WrappedStakedETH) PullPrices(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(&s, pairs)
 }
 
-func (s CurveFinance) callOne(pair Pair) (*Price, error) {
+func (s WrappedStakedETH) callOne(pair Pair) (*Price, error) {
 	contract, inverted, err := s.pairsToContractAddress(pair)
 	if err != nil {
 		return nil, err
@@ -85,9 +83,9 @@ func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 
 	var args []byte
 	if !inverted {
-		args, err = s.abi.Pack("get_dy", s.baseIndex, s.quoteIndex, s.dx)
+		args, err = s.abi.Pack("stEthPerToken")
 	} else {
-		args, err = s.abi.Pack("get_dy", s.quoteIndex, s.baseIndex, s.dx)
+		args, err = s.abi.Pack("tokensPerStEth")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Curve contract args for pair: %s", pair.String())
@@ -125,7 +123,7 @@ func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 
 	price, _ := new(big.Float).Quo(new(big.Float).SetInt(result.ToInt()), big.NewFloat(params.Ether)).Float64()
 
-	log.Println("curve", inverted, price)
+	log.Println("wsteth", inverted, price)
 
 	return &Price{
 		Pair:      pair,

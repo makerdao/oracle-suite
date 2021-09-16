@@ -53,7 +53,7 @@ type Sushiswap struct {
 }
 
 func (s *Sushiswap) pairsToContractAddress(pair Pair) (string, error) {
-	contract, ok := s.ContractAddresses.ByPair(pair)
+	contract, _, ok := s.ContractAddresses.ByPair(pair)
 	if !ok {
 		return "", fmt.Errorf("failed to get SushiSwap contract address for pair: %s", pair.String())
 	}

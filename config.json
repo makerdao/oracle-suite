@@ -321,9 +321,9 @@
           }
         }
       },
-      "lido": {
-        "type": "lido",
-        "name": "lido",
+      "wsteth": {
+        "type": "wsteth",
+        "name": "wsteth",
         "params": {
           "contracts": {
             "WSTETH/STETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
@@ -332,10 +332,19 @@
       }
     },
     "priceModels": {
+      "WSTETH/ETH": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "wsteth", "pair": "WSTETH/STETH" },{ "origin": "curve", "pair": "STETH/ETH" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
+      },
       "STETH/USD": {
         "method": "median",
         "sources": [
-          [{ "origin": "curve", "pair": "ETH/STETH" },{ "origin": ".", "pair": "ETH/USD" }]
+          [{ "origin": "curve", "pair": "STETH/ETH" },{ "origin": ".", "pair": "ETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 1
@@ -344,7 +353,7 @@
       "WSTETH/USD": {
         "method": "median",
         "sources": [
-          [{ "origin": "lido", "pair": "WSTETH/STETH" },{ "origin": ".", "pair": "STETH/USD" }]
+          [{ "origin": "wsteth", "pair": "WSTETH/STETH" },{ "origin": ".", "pair": "STETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 1

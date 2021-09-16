@@ -155,17 +155,17 @@ func TestGettingContractAddressByBaseAndQuote(t *testing.T) {
 	contracts := ContractAddresses{"BTC/ETH": contract}
 
 	// Not existing pair
-	address, ok := contracts.ByPair(Pair{Base: "BTC", Quote: "USD"})
+	address, _, ok := contracts.ByPair(Pair{Base: "BTC", Quote: "USD"})
 	assert.Empty(t, address)
 	assert.False(t, ok)
 
 	// Existing direct pair
-	address, ok = contracts.ByPair(Pair{Base: "BTC", Quote: "ETH"})
+	address, _, ok = contracts.ByPair(Pair{Base: "BTC", Quote: "ETH"})
 	assert.True(t, ok)
 	assert.Equal(t, contract, address)
 
 	// Existing reversed pair
-	address, ok = contracts.ByPair(Pair{Base: "ETH", Quote: "BTC"})
+	address, _, ok = contracts.ByPair(Pair{Base: "ETH", Quote: "BTC"})
 	assert.True(t, ok)
 	assert.Equal(t, contract, address)
 }
