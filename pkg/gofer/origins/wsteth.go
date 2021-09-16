@@ -16,17 +16,11 @@
 package origins
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"math/big"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/makerdao/oracle-suite/internal/query"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
@@ -50,7 +44,12 @@ type WrappedStakedETH struct {
 	abi               abi.ABI
 }
 
-func NewWrappedStakedETH(ethRPCURL string, workerPool query.WorkerPool, contractAddresses ContractAddresses) (*WrappedStakedETH, error) {
+func NewWrappedStakedETH(
+	ethRPCURL string,
+	workerPool query.WorkerPool,
+	contractAddresses ContractAddresses,
+) (*WrappedStakedETH, error) {
+
 	a, err := abi.JSON(strings.NewReader(_WrappedStakedETHJSON))
 	if err != nil {
 		return nil, err
@@ -85,47 +84,20 @@ func (s WrappedStakedETH) callOne(pair Pair) (*Price, error) {
 		return nil, err
 	}
 
-	var args []byte
+	var callData []byte
 	if !inverted {
-		args, err = s.abi.Pack("stEthPerToken")
+		callData, err = s.abi.Pack("stEthPerToken")
 	} else {
-		args, err = s.abi.Pack("tokensPerStEth")
+		callData, err = s.abi.Pack("tokensPerStEth")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Curve contract args for pair: %s", pair.String())
+		return nil, fmt.Errorf("failed to get contract args for pair: %s", pair.String())
 	}
 
-	res := s.Pool().Query(&query.HTTPRequest{
-		URL:    s.EthRPCURL,
-		Method: "POST",
-		Body: bytes.NewBuffer([]byte(fmt.Sprintf(
-			`{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"%s","data":"%s"},"latest"],"id":1}`,
-			contract.String(),
-			hexutil.Encode(args),
-		))),
-	})
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	if res == nil {
-		return nil, ErrEmptyOriginResponse
-	}
-
-	var response jsonrpcMessage
-	err = json.Unmarshal(res.Body, &response)
+	price, err := ethCall(s.Pool(), s.EthRPCURL, contract, callData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Curve response: %w", err)
+		return nil, err
 	}
-	if response.Error != nil {
-		return nil, response.Error
-	}
-
-	var result hexutil.Big
-	if err := result.UnmarshalJSON(regexp.MustCompile(`0x[0]+`).ReplaceAll(response.Result, []byte("0x"))); err != nil {
-		return nil, fmt.Errorf("failed to decode Curve result: %w", err)
-	}
-
-	price, _ := new(big.Float).Quo(new(big.Float).SetInt(result.ToInt()), big.NewFloat(params.Ether)).Float64()
 
 	return &Price{
 		Pair:      pair,

@@ -81,11 +81,6 @@ func (c ContractAddresses) ByPair(p Pair) (string, bool, bool) {
 	return contract, inverted, ok
 }
 
-func (c ContractAddresses) ByExactPair(p Pair) (string, bool) {
-	contract, ok := c[fmt.Sprintf("%s/%s", p.Base, p.Quote)]
-	return contract, ok
-}
-
 type SymbolAliases map[string]string
 
 func (a SymbolAliases) replaceSymbol(symbol string) (string, bool) {
@@ -318,6 +313,10 @@ type jsonrpcMessage struct {
 	Params  json.RawMessage `json:"params,omitempty"`
 	Error   *jsonError      `json:"error,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
+}
+
+func (msg *jsonrpcMessage) isCall() bool {
+	return msg.hasValidID() && msg.Method != ""
 }
 
 func (msg *jsonrpcMessage) isResponse() bool {
