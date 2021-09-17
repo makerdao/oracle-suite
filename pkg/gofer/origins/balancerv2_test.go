@@ -24,43 +24,43 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type CurveSuite struct {
+type BalancerV2Suite struct {
 	suite.Suite
 	addresses ContractAddresses
 	pool      *query.MockWorkerPool
 	origin    *BaseExchangeHandler
 }
 
-func (suite *CurveSuite) SetupSuite() {
+func (suite *BalancerV2Suite) SetupSuite() {
 	suite.addresses = ContractAddresses{
-		"ETH/STETH": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
+		"STETH/ETH": "0x32296969ef14eb0c6d29669c550d4a0449130230",
 	}
 	suite.pool = query.NewMockWorkerPool()
 }
-func (suite *CurveSuite) TearDownSuite() {
+func (suite *BalancerV2Suite) TearDownSuite() {
 	suite.addresses = nil
 	suite.pool = nil
 }
 
-func (suite *CurveSuite) SetupTest() {
-	curveFinance, err := NewCurveFinance("", suite.pool, suite.addresses)
+func (suite *BalancerV2Suite) SetupTest() {
+	balancerV2Finance, err := NewBalancerV2("", suite.pool, suite.addresses)
 	suite.NoError(err)
-	suite.origin = NewBaseExchangeHandler(curveFinance, nil)
+	suite.origin = NewBaseExchangeHandler(balancerV2Finance, nil)
 }
 
-func (suite *CurveSuite) TearDownTest() {
+func (suite *BalancerV2Suite) TearDownTest() {
 	suite.origin = nil
 }
 
-func (suite *CurveSuite) Origin() Handler {
+func (suite *BalancerV2Suite) Origin() Handler {
 	return suite.origin
 }
 
-func TestCurveSuite(t *testing.T) {
-	suite.Run(t, new(CurveSuite))
+func TestBalancerV2Suite(t *testing.T) {
+	suite.Run(t, new(BalancerV2Suite))
 }
 
-func (suite *CurveSuite) TestSuccessResponse() {
+func (suite *BalancerV2Suite) TestSuccessResponse() {
 	suite.pool.MockBody(`{"jsonrpc":"2.0","id":1,"result":"0x0000000000000000000000000000000000000000000000000dc19f91822f3fe3"}`)
 	suite.pool.SetRequestAssertions(func(req *query.HTTPRequest) {
 		suite.NotEmpty(req)
@@ -73,7 +73,7 @@ func (suite *CurveSuite) TestSuccessResponse() {
 		suite.True(request.isCall())
 		suite.Equal("eth_call", request.Method)
 
-		suite.Contains(string(request.Params), `{"to":"0xDC24316b9AE028F1497c275EB9192a3Ea0f67022","data":"0x5e0d443f`)
+		suite.Contains(string(request.Params), `{"to":"0x32296969Ef14EB0c6d29669C550D4a0449130230","data":"0xb10be739`)
 	})
 
 	pair := Pair{Base: "STETH", Quote: "ETH"}
@@ -84,12 +84,10 @@ func (suite *CurveSuite) TestSuccessResponse() {
 	suite.Greater(results1[0].Price.Timestamp.Unix(), int64(0))
 
 	results2 := suite.origin.Fetch([]Pair{pair.Inverse()})
-	suite.Require().NoError(results2[0].Error)
-	suite.Equal(0.9912488403014287, results2[0].Price.Price)
-	suite.Greater(results2[0].Price.Timestamp.Unix(), int64(0))
+	suite.Require().Error(results2[0].Error)
 }
 
-func (suite *CurveSuite) TestFailOnWrongPair() {
+func (suite *BalancerV2Suite) TestFailOnWrongPair() {
 	pair := Pair{Base: "x", Quote: "y"}
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.Require().EqualError(cr[0].Error, "failed to get contract address for pair: x/y")

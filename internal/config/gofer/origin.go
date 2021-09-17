@@ -175,6 +175,20 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			return nil, err
 		}
 		return origins.NewBaseExchangeHandler(*h, aliases), nil
+	case "balancerV2":
+		contracts, err := parseParamsContracts(params)
+		if err != nil {
+			return nil, err
+		}
+		h, err := origins.NewBalancerV2(
+			ethRPC,
+			pool,
+			contracts,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return origins.NewBaseExchangeHandler(*h, aliases), nil
 	case "wsteth":
 		contracts, err := parseParamsContracts(params)
 		if err != nil {

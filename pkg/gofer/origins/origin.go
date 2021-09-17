@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
 // Handler is interface that all Origin API handlers should implement.
@@ -79,6 +80,14 @@ func (c ContractAddresses) ByPair(p Pair) (string, bool, bool) {
 		contract, ok = c[fmt.Sprintf("%s/%s", p.Quote, p.Base)]
 	}
 	return contract, inverted, ok
+}
+
+func (c ContractAddresses) AddressByPair(pair Pair) (ethereum.Address, bool, error) {
+	contract, inverted, ok := c.ByPair(pair)
+	if !ok {
+		return ethereum.Address{}, inverted, fmt.Errorf("failed to get contract address for pair: %s", pair.String())
+	}
+	return ethereum.HexToAddress(contract), inverted, nil
 }
 
 type SymbolAliases map[string]string

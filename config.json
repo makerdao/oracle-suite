@@ -246,8 +246,8 @@
             "LEND/WETH": "0xab3f9bf1d81ddb224a2014e98b238638824bcf20",
             "LRC/WETH": "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70",
             "PAXG/WETH": "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c",
-            "YFI/WETH": "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28",
-            "BAL/WETH": "0xa70d458a4d9bc0e6571565faee18a48da5c0d593"
+            "BAL/WETH": "0xa70d458a4d9bc0e6571565faee18a48da5c0d593",
+            "YFI/WETH": "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28"
           }
         }
       },
@@ -323,6 +323,15 @@
           }
         }
       },
+      "balancerV2": {
+        "type": "balancerV2",
+        "name": "balancerV2",
+        "params": {
+          "contracts": {
+            "STETH/ETH": "0x32296969ef14eb0c6d29669c550d4a0449130230"
+          }
+        }
+      },
       "wsteth": {
         "type": "wsteth",
         "name": "wsteth",
@@ -334,10 +343,20 @@
       }
     },
     "priceModels": {
+      "STETH/ETH": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "curve", "pair": "STETH/ETH" }],
+          [{ "origin": "balancerV2", "pair": "STETH/ETH" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 2
+        }
+      },
       "WSTETH/ETH": {
         "method": "median",
         "sources": [
-          [{ "origin": "wsteth", "pair": "WSTETH/STETH" },{ "origin": "curve", "pair": "STETH/ETH" }]
+          [{ "origin": "wsteth", "pair": "WSTETH/STETH" },{ "origin": ".", "pair": "STETH/ETH" }]
         ],
         "params": {
           "minimumSuccessfulSources": 1
@@ -346,7 +365,7 @@
       "STETH/USD": {
         "method": "median",
         "sources": [
-          [{ "origin": "curve", "pair": "STETH/ETH" },{ "origin": ".", "pair": "ETH/USD" }]
+          [{ "origin": ".", "pair": "STETH/ETH" },{ "origin": ".", "pair": "ETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 1
@@ -355,7 +374,7 @@
       "WSTETH/USD": {
         "method": "median",
         "sources": [
-          [{ "origin": "wsteth", "pair": "WSTETH/STETH" },{ "origin": ".", "pair": "STETH/USD" }]
+          [{ "origin": ".", "pair": "WSTETH/ETH" },{ "origin": ".", "pair": "ETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 1
