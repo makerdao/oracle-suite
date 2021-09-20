@@ -48,14 +48,14 @@ func NewRunCmd(opts *options) *cobra.Command {
 				return err
 			}
 
-			rpc, err := rpcsplitter.NewRPC(args)
+			handler, err := rpcsplitter.NewHandler(args)
 			if err != nil {
 				return err
 			}
 
 			srv := httpserver.New(ctx, &http.Server{
 				Addr:    opts.Listen,
-				Handler: rpc,
+				Handler: handler,
 			})
 
 			srv.Use(&middleware.Recover{

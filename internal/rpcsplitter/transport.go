@@ -15,7 +15,7 @@ type Transport struct {
 }
 
 func NewTransport(endpoints []string, virtualHost string, transport http.RoundTripper) (*Transport, error) {
-	rpc, err := NewRPC(endpoints)
+	rpc, err := NewHandler(endpoints)
 	if err != nil {
 		return nil, err
 	}
