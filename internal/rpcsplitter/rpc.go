@@ -21,8 +21,8 @@ type rpcClient interface {
 	Call(result interface{}, method string, args ...interface{}) error
 }
 
-// rpc is an RPC proxy server. It merges multiple RPC endpoints into one.
-type rpc struct {
+// RPC is an RPC proxy server. It merges multiple RPC endpoints into one.
+type RPC struct {
 	rpc *gethRPC.Server // rpc is an RPC server.
 	cli []rpcClient     // cli is a list of RPC clients.
 	eth *rpcETHAPI      // eth implements procedures with the "eth_" prefix.
@@ -30,36 +30,36 @@ type rpc struct {
 }
 
 type rpcETHAPI struct {
-	srv *rpc
+	rpc *RPC
 }
 
 type rpcNETAPI struct {
-	srv *rpc
+	rpc *RPC
 }
 
-func newRPC(endpoints []string) (*rpc, error) {
-	srv := &rpc{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(endpoints))}
-	eth := &rpcETHAPI{srv: srv}
-	net := &rpcNETAPI{srv: srv}
-	srv.eth = eth
-	srv.net = net
+func NewRPC(endpoints []string) (*RPC, error) {
+	rpc := &RPC{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(endpoints))}
+	eth := &rpcETHAPI{rpc: rpc}
+	net := &rpcNETAPI{rpc: rpc}
+	rpc.eth = eth
+	rpc.net = net
 	for n, e := range endpoints {
 		c, err := gethRPC.Dial(e)
 		if err != nil {
 			return nil, err
 		}
-		srv.cli[n] = c
+		rpc.cli[n] = c
 	}
-	if err := srv.rpc.RegisterName("eth", eth); err != nil {
+	if err := rpc.rpc.RegisterName("eth", eth); err != nil {
 		return nil, err
 	}
-	if err := srv.rpc.RegisterName("net", net); err != nil {
+	if err := rpc.rpc.RegisterName("net", net); err != nil {
 		return nil, err
 	}
-	return srv, nil
+	return rpc, nil
 }
 
-func (r *rpc) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (r *RPC) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	r.rpc.ServeHTTP(rw, req)
 }
 
@@ -68,7 +68,7 @@ func (r *rpc) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcETHAPI) BlockNumber() (interface{}, error) {
-	return useMedianDist(r.srv.doRPC((*numberType)(nil), "eth_blockNumber"), r.srv.minReq(), -maxBlocksBehind)
+	return useMedianDist(r.rpc.doRPC((*numberType)(nil), "eth_blockNumber"), r.rpc.minReq(), -maxBlocksBehind)
 }
 
 // GetBlockByHash implements the "eth_getBlockByHash" call.
@@ -76,7 +76,7 @@ func (r *rpcETHAPI) BlockNumber() (interface{}, error) {
 // The number returned by this method is the median of all numbers returned
 // by the endpoints.
 func (r *rpcETHAPI) GetBlockByHash(blockHash hashType, obj bool) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*blockType)(nil), "eth_getBlockByHash", blockHash, obj), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*blockType)(nil), "eth_getBlockByHash", blockHash, obj), r.rpc.minReq())
 }
 
 // GetBlockByNumber implements the "eth_getBlockByNumber" call.
@@ -84,7 +84,7 @@ func (r *rpcETHAPI) GetBlockByHash(blockHash hashType, obj bool) (interface{}, e
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcETHAPI) GetBlockByNumber(blockNumber numberType, obj bool) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*blockType)(nil), "eth_getBlockByNumber", blockNumber, obj), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*blockType)(nil), "eth_getBlockByNumber", blockNumber, obj), r.rpc.minReq())
 }
 
 // GetTransactionByHash implements the "eth_getTransactionByHash" call.
@@ -92,7 +92,7 @@ func (r *rpcETHAPI) GetBlockByNumber(blockNumber numberType, obj bool) (interfac
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcETHAPI) GetTransactionByHash(txHash hashType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*transactionType)(nil), "eth_getTransactionByHash", txHash), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*transactionType)(nil), "eth_getTransactionByHash", txHash), r.rpc.minReq())
 }
 
 // GetTransactionCount implements the "eth_getTransactionCount" call.
@@ -104,7 +104,7 @@ func (r *rpcETHAPI) GetTransactionByHash(txHash hashType) (interface{}, error) {
 // the block number returned by the BlockNumber method. The "earliest" tag is
 // not supported.
 func (r *rpcETHAPI) GetTransactionCount(addr addressType, blockNumber blockNumberType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*numberType)(nil), "eth_getTransactionCount", addr, blockNumber), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*numberType)(nil), "eth_getTransactionCount", addr, blockNumber), r.rpc.minReq())
 }
 
 // GetTransactionReceipt implements the "eth_getTransactionReceipt" call.
@@ -112,7 +112,7 @@ func (r *rpcETHAPI) GetTransactionCount(addr addressType, blockNumber blockNumbe
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcETHAPI) GetTransactionReceipt(txHash hashType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*transactionReceiptType)(nil), "eth_getTransactionReceipt", txHash), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*transactionReceiptType)(nil), "eth_getTransactionReceipt", txHash), r.rpc.minReq())
 }
 
 // TODO: eth_getBlockTransactionCountByHash
@@ -124,7 +124,7 @@ func (r *rpcETHAPI) GetTransactionReceipt(txHash hashType) (interface{}, error) 
 //
 // It returns the most common response.
 func (r *rpcETHAPI) SendRawTransaction(data jsonType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*hashType)(nil), "eth_sendRawTransaction", data), 1)
+	return useMostCommon(r.rpc.doRPC((*hashType)(nil), "eth_sendRawTransaction", data), 1)
 }
 
 // GetBalance implements the "eth_getBalance" call.
@@ -136,7 +136,7 @@ func (r *rpcETHAPI) SendRawTransaction(data jsonType) (interface{}, error) {
 // the block number returned by the BlockNumber method. The "earliest" tag is
 // not supported.
 func (r *rpcETHAPI) GetBalance(addr addressType, blockNumber blockNumberType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*numberType)(nil), "eth_getBalance", addr, blockNumber), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*numberType)(nil), "eth_getBalance", addr, blockNumber), r.rpc.minReq())
 }
 
 // GetCode implements the "eth_getCode" call.
@@ -148,7 +148,7 @@ func (r *rpcETHAPI) GetBalance(addr addressType, blockNumber blockNumberType) (i
 // the block number returned by the BlockNumber method. The "earliest" tag is
 // not supported.
 func (r *rpcETHAPI) GetCode(addr addressType, blockNumber blockNumberType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*bytesType)(nil), "eth_getCode", addr, blockNumber), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*bytesType)(nil), "eth_getCode", addr, blockNumber), r.rpc.minReq())
 }
 
 // GetStorageAt implements the "eth_getStorageAt" call.
@@ -160,7 +160,7 @@ func (r *rpcETHAPI) GetCode(addr addressType, blockNumber blockNumberType) (inte
 // the block number returned by the BlockNumber method. The "earliest" tag is
 // not supported.
 func (r *rpcETHAPI) GetStorageAt(data addressType, position numberType, blockNumber blockNumberType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*hashType)(nil), "eth_getStorageAt", data, position, blockNumber), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*hashType)(nil), "eth_getStorageAt", data, position, blockNumber), r.rpc.minReq())
 }
 
 // TODO: eth_accounts
@@ -175,7 +175,7 @@ func (r *rpcETHAPI) GetStorageAt(data addressType, position numberType, blockNum
 // the block number returned by the BlockNumber method. The "earliest" tag is
 // not supported.
 func (r *rpcETHAPI) Call(args jsonType, blockNumber blockNumberType, overrides *jsonType) (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*bytesType)(nil), "eth_call", args, blockNumber, overrides), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*bytesType)(nil), "eth_call", args, blockNumber, overrides), r.rpc.minReq())
 }
 
 // TODO: eth_getLogs
@@ -186,7 +186,7 @@ func (r *rpcETHAPI) Call(args jsonType, blockNumber blockNumberType, overrides *
 // The number returned by this method is the median of all numbers returned
 // by the endpoints.
 func (r *rpcETHAPI) GasPrice() (interface{}, error) {
-	return useMedian(r.srv.doRPC((*numberType)(nil), "eth_gasPrice"), r.srv.minReq())
+	return useMedian(r.rpc.doRPC((*numberType)(nil), "eth_gasPrice"), r.rpc.minReq())
 }
 
 // EstimateGas implements the "eth_estimateGas" call.
@@ -198,7 +198,7 @@ func (r *rpcETHAPI) GasPrice() (interface{}, error) {
 // the block number returned by the BlockNumber method. The "earliest" tag is
 // not supported.
 func (r *rpcETHAPI) EstimateGas(args jsonType, blockNumber blockNumberType) (interface{}, error) {
-	return useMedian(r.srv.doRPC((*numberType)(nil), "eth_estimateGas", args, blockNumber), r.srv.minReq())
+	return useMedian(r.rpc.doRPC((*numberType)(nil), "eth_estimateGas", args, blockNumber), r.rpc.minReq())
 }
 
 // TODO: eth_feeHistory
@@ -208,7 +208,7 @@ func (r *rpcETHAPI) EstimateGas(args jsonType, blockNumber blockNumberType) (int
 // The number returned by this method is the median of all numbers returned
 // by the endpoints.
 func (r *rpcETHAPI) MaxPriorityFeePerGas() (interface{}, error) {
-	return useMedian(r.srv.doRPC((*numberType)(nil), "eth_maxPriorityFeePerGas"), r.srv.minReq())
+	return useMedian(r.rpc.doRPC((*numberType)(nil), "eth_maxPriorityFeePerGas"), r.rpc.minReq())
 }
 
 // ChainId implements the "eth_chainId" call.
@@ -216,7 +216,7 @@ func (r *rpcETHAPI) MaxPriorityFeePerGas() (interface{}, error) {
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcETHAPI) ChainId() (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*numberType)(nil), "eth_chainId"), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*numberType)(nil), "eth_chainId"), r.rpc.minReq())
 }
 
 // TODO: eth_getUncleByBlockNumberAndIndex
@@ -235,13 +235,13 @@ func (r *rpcETHAPI) ChainId() (interface{}, error) {
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcNETAPI) Version() (interface{}, error) {
-	return useMostCommon(r.srv.doRPC((*jsonType)(nil), "net_version"), r.srv.minReq())
+	return useMostCommon(r.rpc.doRPC((*jsonType)(nil), "net_version"), r.rpc.minReq())
 }
 
 // doRPC executes RPC on all endpoints and returns a slice with all results.
 // The typ argument must be an empty pointer with a type to which the results
 // will be converted.
-func (r *rpc) doRPC(typ interface{}, method string, args ...interface{}) (res []interface{}) {
+func (r *RPC) doRPC(typ interface{}, method string, args ...interface{}) (res []interface{}) {
 	err := r.processRPCArgs(&args)
 	if err != nil {
 		return []interface{}{err}
@@ -277,7 +277,7 @@ func (r *rpc) doRPC(typ interface{}, method string, args ...interface{}) (res []
 
 // processRPCArgs removes trailing nil arguments from the args slice and
 // replaces tagged blocks to block numbers.
-func (r *rpc) processRPCArgs(args *[]interface{}) error {
+func (r *RPC) processRPCArgs(args *[]interface{}) error {
 	for i := len(*args) - 1; i >= 0; i-- {
 		// Remove null arguments from the end of the args list. Some RPC
 		// servers do not like null parameters and will return a "bad request"
@@ -308,7 +308,7 @@ func (r *rpc) processRPCArgs(args *[]interface{}) error {
 
 // minReq returns a number indicating how many times the same response
 // must be returned by different endpoints to be considered valid.
-func (r *rpc) minReq() int {
+func (r *RPC) minReq() int {
 	l := len(r.cli)
 	if l <= 2 {
 		return l

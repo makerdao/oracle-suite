@@ -24,6 +24,7 @@ import (
 
 type options struct {
 	Listen       string
+	EnableCORS   bool
 	LogVerbosity string
 	LogFormat    logrusFlag.FormatTypeValue
 }
@@ -39,11 +40,29 @@ func NewRootCommand(opts *options) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().StringVarP(
+		&opts.LogVerbosity,
+		"log.verbosity", "v",
+		"info",
+		"verbosity level",
+	)
+	rootCmd.PersistentFlags().Var(
+		&opts.LogFormat,
+		"log.format",
+		"log format",
+	)
+	rootCmd.PersistentFlags().StringVarP(
 		&opts.Listen,
 		"listen",
 		"l",
 		"info",
 		"listen address",
+	)
+	rootCmd.PersistentFlags().BoolVarP(
+		&opts.EnableCORS,
+		"enable-cors",
+		"c",
+		false,
+		"enables CORS requests for all origins",
 	)
 
 	return rootCmd

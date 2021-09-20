@@ -17,15 +17,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/makerdao/oracle-suite/internal/httpserver"
+	"github.com/makerdao/oracle-suite/internal/httpserver/middleware"
 	"github.com/makerdao/oracle-suite/internal/rpcsplitter"
 	"github.com/spf13/cobra"
 )
+
+const httpTimeout = 10 * time.Second
 
 func NewRunCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
@@ -35,15 +40,38 @@ func NewRunCmd(opts *options) *cobra.Command {
 		Short:   "",
 		Long:    ``,
 		RunE: func(_ *cobra.Command, args []string) error {
-			rpc, err := rpcsplitter.NewHandler(args)
+			ctx, ctxCancel := context.WithCancel(context.Background())
+			defer ctxCancel()
+
+			log, err := logger(opts)
 			if err != nil {
 				return err
 			}
 
-			ctx, ctxCancel := context.WithCancel(context.Background())
-			defer ctxCancel()
+			rpc, err := rpcsplitter.NewRPC(args)
+			if err != nil {
+				return err
+			}
 
-			srv := httpserver.New(ctx, &http.Server{Handler: rpc, Addr: opts.Listen})
+			srv := httpserver.New(ctx, &http.Server{
+				Addr:    opts.Listen,
+				Handler: rpc,
+			})
+
+			srv.Use(&middleware.Recover{
+				Recover: func(err interface{}) {
+					log.WithField("panic", fmt.Sprintf("%s", err)).Error("Server handler crashed")
+				},
+			})
+
+			if opts.EnableCORS {
+				srv.Use(&middleware.CORS{
+					Origin:  func(r *http.Request) string { return r.Header.Get("Origin") },
+					Headers: func(*http.Request) string { return "Content-Type" },
+					Methods: func(*http.Request) string { return "POST" },
+				})
+			}
+
 			err = srv.ListenAndServe()
 			if err != nil {
 				return err

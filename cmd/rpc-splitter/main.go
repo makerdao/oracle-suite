@@ -34,7 +34,7 @@ func main() {
 	}
 }
 
-func logger(opts *options) (log.Logger, error {
+func logger(opts *options) (log.Logger, error) {
 	ll, err := logrus.ParseLevel(opts.LogVerbosity)
 	if err != nil {
 		return nil, err

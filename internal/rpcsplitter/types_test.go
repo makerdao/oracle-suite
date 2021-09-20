@@ -1,4 +1,4 @@
-package splitter
+package rpcsplitter
 
 import (
 	"fmt"

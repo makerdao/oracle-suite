@@ -15,14 +15,14 @@ type Transport struct {
 }
 
 func NewTransport(endpoints []string, virtualHost string, transport http.RoundTripper) (*Transport, error) {
-	rpc, err := newRPC(endpoints)
+	rpc, err := NewRPC(endpoints)
 	if err != nil {
 		return nil, err
 	}
 	return &Transport{
 		transport:   transport,
 		virtualHost: virtualHost,
-		handler:     &cors{handler: rpc},
+		handler:     rpc,
 	}, nil
 }
 
