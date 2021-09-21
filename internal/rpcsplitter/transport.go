@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 )
 
@@ -18,6 +17,9 @@ func NewTransport(endpoints []string, virtualHost string, transport http.RoundTr
 	rpc, err := NewHandler(endpoints)
 	if err != nil {
 		return nil, err
+	}
+	if transport == nil {
+		transport = http.DefaultTransport
 	}
 	return &Transport{
 		transport:   transport,
@@ -36,11 +38,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func (t *Transport) isVirtualHost(req *http.Request) bool {
-	host, _, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		return false
-	}
-	return host == t.virtualHost
+	return req.Host == t.virtualHost
 }
 
 func (t *Transport) buildResponse(res *recorder) *http.Response {

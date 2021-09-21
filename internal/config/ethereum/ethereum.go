@@ -16,26 +16,50 @@
 package ethereum
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/makerdao/oracle-suite/internal/rpcsplitter"
 
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
 )
 
+const splitterVirtualHost = "makerdao-splitter"
+
 //nolint:unlambda
-var ethClientFactory = func(rpc string) (geth.EthClient, error) {
-	return ethclient.Dial(rpc)
+var ethClientFactory = func(endpoints []string) (geth.EthClient, error) {
+	switch len(endpoints) {
+	case 0:
+		return nil, errors.New("missing address to a RPC client in the configuration file")
+	case 1:
+		return ethclient.Dial(endpoints[0])
+	default:
+		splitter, err := rpcsplitter.NewTransport(endpoints, splitterVirtualHost, nil)
+		if err != nil {
+			return nil, err
+		}
+		rpcClient, err := rpc.DialHTTPWithClient(
+			fmt.Sprintf("http://%s", splitterVirtualHost),
+			&http.Client{Transport: splitter},
+		)
+		if err != nil {
+			return nil, err
+		}
+		return ethclient.NewClient(rpcClient), nil
+	}
 }
 
 type Ethereum struct {
-	From     string `json:"from"`
-	Keystore string `json:"keystore"`
-	Password string `json:"password"`
-	RPC      string `json:"rpc"`
+	From     string   `json:"from"`
+	Keystore string   `json:"keystore"`
+	Password string   `json:"password"`
+	RPC      []string `json:"rpc"`
 }
 
 func (c *Ethereum) ConfigureSigner() (ethereum.Signer, error) {
