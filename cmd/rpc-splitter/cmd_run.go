@@ -64,6 +64,8 @@ func NewRunCmd(opts *options) *cobra.Command {
 				},
 			})
 
+			srv.Use(&middleware.Logger{Log: log})
+
 			if opts.EnableCORS {
 				srv.Use(&middleware.CORS{
 					Origin:  func(r *http.Request) string { return r.Header.Get("Origin") },

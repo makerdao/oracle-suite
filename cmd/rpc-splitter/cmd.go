@@ -54,7 +54,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 		&opts.Listen,
 		"listen",
 		"l",
-		"info",
+		"127.0.0.1:8545",
 		"listen address",
 	)
 	rootCmd.PersistentFlags().BoolVarP(

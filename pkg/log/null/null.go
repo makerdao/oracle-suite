@@ -15,7 +15,11 @@
 
 package null
 
-import "github.com/makerdao/oracle-suite/pkg/log"
+import (
+	"fmt"
+
+	"github.com/makerdao/oracle-suite/pkg/log"
+)
 
 type Null struct{}
 
@@ -23,6 +27,7 @@ func New() *Null {
 	return &Null{}
 }
 
+func (n *Null) Level() log.Level                             { return log.Panic }
 func (n *Null) WithField(_ string, _ interface{}) log.Logger { return n }
 func (n *Null) WithFields(_ log.Fields) log.Logger           { return n }
 func (n *Null) WithError(_ error) log.Logger                 { return n }
@@ -30,14 +35,9 @@ func (n *Null) Debugf(_ string, _ ...interface{})            {}
 func (n *Null) Infof(_ string, _ ...interface{})             {}
 func (n *Null) Warnf(_ string, _ ...interface{})             {}
 func (n *Null) Errorf(_ string, _ ...interface{})            {}
-func (n *Null) Panicf(_ string, _ ...interface{})            {}
+func (n *Null) Panicf(format string, args ...interface{})    { panic(fmt.Sprintf(format, args)) }
 func (n *Null) Debug(_ ...interface{})                       {}
 func (n *Null) Info(_ ...interface{})                        {}
 func (n *Null) Warn(_ ...interface{})                        {}
 func (n *Null) Error(_ ...interface{})                       {}
-func (n *Null) Panic(_ ...interface{})                       {}
-func (n *Null) Debugln(_ ...interface{})                     {}
-func (n *Null) Infoln(_ ...interface{})                      {}
-func (n *Null) Warnln(_ ...interface{})                      {}
-func (n *Null) Errorln(_ ...interface{})                     {}
-func (n *Null) Panicln(_ ...interface{})                     {}
+func (n *Null) Panic(args ...interface{})                    { panic(fmt.Sprint(args)) }

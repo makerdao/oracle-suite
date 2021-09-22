@@ -38,29 +38,29 @@ type rpcNETAPI struct {
 }
 
 func NewHandler(endpoints []string) (http.Handler, error) {
-	rpc := &handler{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(endpoints))}
-	eth := &rpcETHAPI{handler: rpc}
-	net := &rpcNETAPI{handler: rpc}
-	rpc.eth = eth
-	rpc.net = net
+	h := &handler{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(endpoints))}
+	eth := &rpcETHAPI{handler: h}
+	net := &rpcNETAPI{handler: h}
+	h.eth = eth
+	h.net = net
 	for n, e := range endpoints {
 		c, err := gethRPC.Dial(e)
 		if err != nil {
 			return nil, err
 		}
-		rpc.cli[n] = c
+		h.cli[n] = c
 	}
-	if err := rpc.rpc.RegisterName("eth", eth); err != nil {
+	if err := h.rpc.RegisterName("eth", eth); err != nil {
 		return nil, err
 	}
-	if err := rpc.rpc.RegisterName("net", net); err != nil {
+	if err := h.rpc.RegisterName("net", net); err != nil {
 		return nil, err
 	}
-	return rpc, nil
+	return h, nil
 }
 
-func (r *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	r.rpc.ServeHTTP(rw, req)
+func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	h.rpc.ServeHTTP(rw, req)
 }
 
 // BlockNumber implements the "eth_blockNumber" call.
@@ -76,7 +76,7 @@ func (r *rpcETHAPI) BlockNumber() (interface{}, error) {
 // The number returned by this method is the median of all numbers returned
 // by the endpoints.
 func (r *rpcETHAPI) GetBlockByHash(blockHash hashType, obj bool) (interface{}, error) {
-	return useMostCommon(r.handler.doRPC((*blockType)(nil), "eth_getBlockByHash", blockHash, obj), r.handler.minReq())
+	return useMostCommon(r.handler.doRPC(blockTypeNilPtr(obj), "eth_getBlockByHash", blockHash, obj), r.handler.minReq())
 }
 
 // GetBlockByNumber implements the "eth_getBlockByNumber" call.
@@ -84,7 +84,7 @@ func (r *rpcETHAPI) GetBlockByHash(blockHash hashType, obj bool) (interface{}, e
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
 func (r *rpcETHAPI) GetBlockByNumber(blockNumber numberType, obj bool) (interface{}, error) {
-	return useMostCommon(r.handler.doRPC((*blockType)(nil), "eth_getBlockByNumber", blockNumber, obj), r.handler.minReq())
+	return useMostCommon(r.handler.doRPC(blockTypeNilPtr(obj), "eth_getBlockByNumber", blockNumber, obj), r.handler.minReq())
 }
 
 // GetTransactionByHash implements the "eth_getTransactionByHash" call.
@@ -241,14 +241,14 @@ func (r *rpcNETAPI) Version() (interface{}, error) {
 // doRPC executes RPC on all endpoints and returns a slice with all results.
 // The typ argument must be an empty pointer with a type to which the results
 // will be converted.
-func (r *handler) doRPC(typ interface{}, method string, args ...interface{}) (res []interface{}) {
-	err := r.processRPCArgs(&args)
+func (h *handler) doRPC(typ interface{}, method string, args ...interface{}) (res []interface{}) {
+	err := h.processRPCArgs(&args)
 	if err != nil {
 		return []interface{}{err}
 	}
 	ch := make(chan interface{})
 	rt := reflect.TypeOf(typ).Elem()
-	for _, cli := range r.cli {
+	for _, cli := range h.cli {
 		cli := cli
 		go func() {
 			var val interface{}
@@ -268,7 +268,7 @@ func (r *handler) doRPC(typ interface{}, method string, args ...interface{}) (re
 	}
 	for {
 		res = append(res, <-ch)
-		if len(res) == len(r.cli) {
+		if len(res) == len(h.cli) {
 			break
 		}
 	}
@@ -277,7 +277,7 @@ func (r *handler) doRPC(typ interface{}, method string, args ...interface{}) (re
 
 // processRPCArgs removes trailing nil arguments from the args slice and
 // replaces tagged blocks to block numbers.
-func (r *handler) processRPCArgs(args *[]interface{}) error {
+func (h *handler) processRPCArgs(args *[]interface{}) error {
 	for i := len(*args) - 1; i >= 0; i-- {
 		// Remove null arguments from the end of the args list. Some RPC
 		// servers do not like null parameters and will return a "bad request"
@@ -296,7 +296,7 @@ func (r *handler) processRPCArgs(args *[]interface{}) error {
 				return errors.New("earliest tag is not supported")
 			}
 			// The latest and pending blocks are handled in the same way.
-			bn, err := r.eth.BlockNumber()
+			bn, err := h.eth.BlockNumber()
 			if err != nil {
 				return err
 			}
@@ -308,8 +308,8 @@ func (r *handler) processRPCArgs(args *[]interface{}) error {
 
 // minReq returns a number indicating how many times the same response
 // must be returned by different endpoints to be considered valid.
-func (r *handler) minReq() int {
-	l := len(r.cli)
+func (h *handler) minReq() int {
+	l := len(h.cli)
 	if l <= 2 {
 		return l
 	}
@@ -479,6 +479,15 @@ func useMedianDist(s []interface{}, minReq int, distance int64) (*numberType, er
 		}
 	}
 	return (*numberType)(bx), nil
+}
+
+// blockTypeNilPtr returns a nil pointer to blockTxObjectsType if obj is set
+// to true or blockTxHashesType otherwise.
+func blockTypeNilPtr(obj bool) interface{} {
+	if obj {
+		return (*blockTxObjectsType)(nil)
+	}
+	return (*blockTxHashesType)(nil)
 }
 
 // filter returns values from a slice that have the same type as a typ arg.

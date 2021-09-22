@@ -19,7 +19,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 )
+
+type Level uint8
+
+const (
+	Panic Level = iota
+	Error
+	Warn
+	Info
+	Debug
+)
+
+// ParseLevel takes a string level and returns the Logrus log level constant.
+func ParseLevel(lvl string) (Level, error) {
+	switch strings.ToLower(lvl) {
+	case "panic":
+		return Panic, nil
+	case "error", "err":
+		return Error, nil
+	case "warn", "warning":
+		return Warn, nil
+	case "info":
+		return Info, nil
+	case "debug":
+		return Debug, nil
+	}
+	return Level(0), fmt.Errorf("not a valid log level: %q", lvl)
+}
+
+func (l Level) String() string {
+	switch l {
+	case Panic:
+		return "panic"
+	case Error:
+		return "error"
+	case Warn:
+		return "warn"
+	case Info:
+		return "info"
+	case Debug:
+	}
+	return "unknown"
+}
 
 type Fields = map[string]interface{}
 
@@ -29,6 +72,8 @@ type ErrorWithFields interface {
 }
 
 type Logger interface {
+	Level() Level
+
 	WithField(key string, value interface{}) Logger
 	WithFields(fields Fields) Logger
 	WithError(err error) Logger
@@ -44,12 +89,6 @@ type Logger interface {
 	Warn(args ...interface{})
 	Error(args ...interface{})
 	Panic(args ...interface{})
-
-	Debugln(args ...interface{})
-	Infoln(args ...interface{})
-	Warnln(args ...interface{})
-	Errorln(args ...interface{})
-	Panicln(args ...interface{})
 }
 
 func Format(s ...interface{}) []string {

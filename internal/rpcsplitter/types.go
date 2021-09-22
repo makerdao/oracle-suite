@@ -207,26 +207,35 @@ func (b *hashType) Compare(v interface{}) bool {
 }
 
 type blockType struct {
-	Number           numberType        `json:"number"`
-	Hash             hashType          `json:"hash"`
-	ParentHash       hashType          `json:"parentHash"`
-	Nonce            numberType        `json:"nonce"`
-	Sha3Uncles       hashType          `json:"sha3Uncles"`
-	LogsBloom        bytesType         `json:"logsBloom"`
-	TransactionsRoot hashType          `json:"transactionsRoot"`
-	StateRoot        hashType          `json:"stateRoot"`
-	ReceiptsRoot     hashType          `json:"receiptsRoot"`
-	Miner            addressType       `json:"miner"`
-	MixHash          hashType          `json:"mixHash"`
-	Difficulty       numberType        `json:"difficulty"`
-	TotalDifficulty  numberType        `json:"totalDifficulty"`
-	ExtraData        bytesType         `json:"extraData"`
-	Size             numberType        `json:"size"`
-	GasLimit         numberType        `json:"gasLimit"`
-	GasUsed          numberType        `json:"gasUsed"`
-	Timestamp        numberType        `json:"timestamp"`
-	Transactions     []transactionType `json:"transactions"`
-	Uncles           []hashType        `json:"uncles"`
+	Number           numberType  `json:"number"`
+	Hash             hashType    `json:"hash"`
+	ParentHash       hashType    `json:"parentHash"`
+	Nonce            numberType  `json:"nonce"`
+	Sha3Uncles       hashType    `json:"sha3Uncles"`
+	LogsBloom        bytesType   `json:"logsBloom"`
+	TransactionsRoot hashType    `json:"transactionsRoot"`
+	StateRoot        hashType    `json:"stateRoot"`
+	ReceiptsRoot     hashType    `json:"receiptsRoot"`
+	Miner            addressType `json:"miner"`
+	MixHash          hashType    `json:"mixHash"`
+	Difficulty       numberType  `json:"difficulty"`
+	TotalDifficulty  numberType  `json:"totalDifficulty"`
+	ExtraData        bytesType   `json:"extraData"`
+	Size             numberType  `json:"size"`
+	GasLimit         numberType  `json:"gasLimit"`
+	GasUsed          numberType  `json:"gasUsed"`
+	Timestamp        numberType  `json:"timestamp"`
+	Uncles           []hashType  `json:"uncles"`
+}
+
+type blockTxHashesType struct {
+	blockType
+	Transactions []hashType `json:"transactions"`
+}
+
+type blockTxObjectsType struct {
+	blockType
+	Transactions []transactionType `json:"transactions"`
 }
 
 type transactionType struct {

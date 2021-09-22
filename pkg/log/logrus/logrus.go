@@ -22,85 +22,89 @@ import (
 )
 
 type Logger struct {
-	Logger logrus.FieldLogger
+	log logrus.FieldLogger
+	lvl log.Level
 }
 
 func New(logger logrus.FieldLogger) log.Logger {
-	return &Logger{Logger: logger}
+	lvl := log.Debug
+	if l, ok := logger.(*logrus.Logger); ok {
+		switch l.Level {
+		case logrus.PanicLevel:
+			lvl = log.Panic
+		case logrus.FatalLevel:
+			lvl = log.Panic
+		case logrus.ErrorLevel:
+			lvl = log.Error
+		case logrus.WarnLevel:
+			lvl = log.Warn
+		case logrus.InfoLevel:
+			lvl = log.Info
+		case logrus.DebugLevel:
+			lvl = log.Debug
+		case logrus.TraceLevel:
+			lvl = log.Debug
+		}
+	}
+	return &Logger{log: logger, lvl: lvl}
 }
 
-func (d *Logger) WithField(key string, value interface{}) log.Logger {
-	return &Logger{Logger: d.Logger.WithField(key, value)}
+func (l *Logger) Level() log.Level {
+	return l.lvl
 }
 
-func (d *Logger) WithFields(fields log.Fields) log.Logger {
-	return &Logger{Logger: d.Logger.WithFields(fields)}
+func (l *Logger) WithField(key string, value interface{}) log.Logger {
+	return &Logger{log: l.log.WithField(key, value)}
 }
 
-func (d *Logger) WithError(err error) log.Logger {
+func (l *Logger) WithFields(fields log.Fields) log.Logger {
+	return &Logger{log: l.log.WithFields(fields)}
+}
+
+func (l *Logger) WithError(err error) log.Logger {
 	if fErr, ok := err.(log.ErrorWithFields); ok {
-		return &Logger{Logger: d.Logger.WithFields(fErr.Fields()).WithError(err)}
+		return &Logger{log: l.log.WithFields(fErr.Fields()).WithError(err)}
 	}
 
-	return &Logger{Logger: d.Logger.WithError(err)}
+	return &Logger{log: l.log.WithError(err)}
 }
 
-func (d *Logger) Debugf(format string, args ...interface{}) {
-	d.Logger.Debugf(format, args...)
+func (l *Logger) Debugf(format string, args ...interface{}) {
+	l.log.Debugf(format, args...)
 }
 
-func (d *Logger) Infof(format string, args ...interface{}) {
-	d.Logger.Infof(format, args...)
+func (l *Logger) Infof(format string, args ...interface{}) {
+	l.log.Infof(format, args...)
 }
 
-func (d *Logger) Warnf(format string, args ...interface{}) {
-	d.Logger.Warnf(format, args...)
+func (l *Logger) Warnf(format string, args ...interface{}) {
+	l.log.Warnf(format, args...)
 }
 
-func (d *Logger) Errorf(format string, args ...interface{}) {
-	d.Logger.Errorf(format, args...)
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	l.log.Errorf(format, args...)
 }
 
-func (d *Logger) Panicf(format string, args ...interface{}) {
-	d.Logger.Panicf(format, args...)
+func (l *Logger) Panicf(format string, args ...interface{}) {
+	l.log.Panicf(format, args...)
 }
 
-func (d *Logger) Debug(args ...interface{}) {
-	d.Logger.Debug(args...)
+func (l *Logger) Debug(args ...interface{}) {
+	l.log.Debug(args...)
 }
 
-func (d *Logger) Info(args ...interface{}) {
-	d.Logger.Info(args...)
+func (l *Logger) Info(args ...interface{}) {
+	l.log.Info(args...)
 }
 
-func (d *Logger) Warn(args ...interface{}) {
-	d.Logger.Warn(args...)
+func (l *Logger) Warn(args ...interface{}) {
+	l.log.Warn(args...)
 }
 
-func (d *Logger) Error(args ...interface{}) {
-	d.Logger.Error(args...)
+func (l *Logger) Error(args ...interface{}) {
+	l.log.Error(args...)
 }
 
-func (d *Logger) Panic(args ...interface{}) {
-	d.Logger.Panic(args...)
-}
-
-func (d *Logger) Debugln(args ...interface{}) {
-	d.Logger.Debugln(args...)
-}
-
-func (d *Logger) Infoln(args ...interface{}) {
-	d.Logger.Infoln(args...)
-}
-
-func (d *Logger) Warnln(args ...interface{}) {
-	d.Logger.Warnln(args...)
-}
-
-func (d *Logger) Errorln(args ...interface{}) {
-	d.Logger.Errorln(args...)
-}
-
-func (d *Logger) Panicln(args ...interface{}) {
-	d.Logger.Panicln(args...)
+func (l *Logger) Panic(args ...interface{}) {
+	l.log.Panic(args...)
 }
