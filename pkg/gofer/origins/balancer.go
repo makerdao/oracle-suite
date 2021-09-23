@@ -51,7 +51,7 @@ func (s Balancer) Pool() query.WorkerPool {
 func (s *Balancer) pairsToContractAddress(pair Pair) (string, error) {
 	// We're checking for reverse pairs because the same contract is used to
 	// trade in both directions.
-	contract, ok := s.ContractAddresses.ByPair(pair)
+	contract, _, ok := s.ContractAddresses.ByPair(pair)
 	if !ok {
 		return "", fmt.Errorf("failed to find Balancer contract address for pair: %s", pair.String())
 	}
