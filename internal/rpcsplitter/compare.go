@@ -22,7 +22,7 @@ type comparable interface {
 // To properly handle those structures, the comparable interface needs to be
 // implemented.
 //
-// This function DO NOT work with a recursive data structures!
+// This function DOES NOT work with recursive data structures!
 func compare(a, b interface{}) bool {
 	if a == nil && b == nil {
 		return true

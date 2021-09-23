@@ -38,16 +38,24 @@ type rpcNETAPI struct {
 }
 
 func NewHandler(endpoints []string) (http.Handler, error) {
-	h := &handler{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(endpoints))}
-	eth := &rpcETHAPI{handler: h}
-	net := &rpcNETAPI{handler: h}
-	h.eth = eth
-	h.net = net
-	for n, e := range endpoints {
+	var clients []rpcClient
+	for _, e := range endpoints {
 		c, err := gethRPC.Dial(e)
 		if err != nil {
 			return nil, err
 		}
+		clients = append(clients, c)
+	}
+	return newHandlerWithClients(clients)
+}
+
+func newHandlerWithClients(clients []rpcClient) (http.Handler, error) {
+	h := &handler{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(clients))}
+	eth := &rpcETHAPI{handler: h}
+	net := &rpcNETAPI{handler: h}
+	h.eth = eth
+	h.net = net
+	for n, c := range clients {
 		h.cli[n] = c
 	}
 	if err := h.rpc.RegisterName("eth", eth); err != nil {
@@ -123,7 +131,7 @@ func (r *rpcETHAPI) GetTransactionReceipt(txHash hashType) (interface{}, error) 
 // SendRawTransaction implements the "eth_sendRawTransaction" call.
 //
 // It returns the most common response.
-func (r *rpcETHAPI) SendRawTransaction(data jsonType) (interface{}, error) {
+func (r *rpcETHAPI) SendRawTransaction(data bytesType) (interface{}, error) {
 	return useMostCommon(r.handler.doRPC((*hashType)(nil), "eth_sendRawTransaction", data), 1)
 }
 
@@ -242,7 +250,7 @@ func (r *rpcNETAPI) Version() (interface{}, error) {
 // The typ argument must be an empty pointer with a type to which the results
 // will be converted.
 func (h *handler) doRPC(typ interface{}, method string, args ...interface{}) (res []interface{}) {
-	err := h.processRPCArgs(&args)
+	err := h.processArgs(&args)
 	if err != nil {
 		return []interface{}{err}
 	}
@@ -275,9 +283,9 @@ func (h *handler) doRPC(typ interface{}, method string, args ...interface{}) (re
 	return
 }
 
-// processRPCArgs removes trailing nil arguments from the args slice and
+// processArgs removes trailing nil arguments from the args slice and
 // replaces tagged blocks to block numbers.
-func (h *handler) processRPCArgs(args *[]interface{}) error {
+func (h *handler) processArgs(args *[]interface{}) error {
 	for i := len(*args) - 1; i >= 0; i-- {
 		// Remove null arguments from the end of the args list. Some RPC
 		// servers do not like null parameters and will return a "bad request"
@@ -301,6 +309,13 @@ func (h *handler) processRPCArgs(args *[]interface{}) error {
 				return err
 			}
 			(*args)[i] = bn
+			continue
+		}
+		// Replace blockNumberType with numberType. At this moment any block
+		// number should be just a number. Reducing a number of types
+		// simplifies the useMedian and useMedianDist functions.
+		if arg, ok := (*args)[i].(blockNumberType); ok {
+			(*args)[i] = numberType(arg)
 		}
 	}
 	return nil
@@ -379,8 +394,8 @@ func useMostCommon(s []interface{}, minReq int) (interface{}, error) {
 			err = addErr(err, e, false)
 			continue
 		}
-		// Check if there is an item same as the a var already added to
-		// the counters map. If so, skip it.
+		// Check if there is an item same as the `a` var already added to
+		// the `counters` map. If so, skip it.
 		f := false
 		for b, _ := range counters {
 			if compare(a, b) {
@@ -391,7 +406,7 @@ func useMostCommon(s []interface{}, minReq int) (interface{}, error) {
 		if f {
 			continue
 		}
-		// Count occurrences of the item.
+		// Count occurrences of the `a` item.
 		for _, b := range s {
 			if compare(a, b) {
 				counters[a]++
@@ -411,8 +426,8 @@ func useMostCommon(s []interface{}, minReq int) (interface{}, error) {
 	for v, c := range counters {
 		if c == maxCount {
 			if res != nil {
-				// If res is not nil it means, that there are multiple items
-				// that occurred maxCount times. In this case, we cannot
+				// If `res` is not nil it means, that there are multiple items
+				// that occurred `maxCount` times. In this case, we cannot
 				// determine which one should be chosen.
 				err = addErr(err, errors.New("RPC servers returned different responses"), true)
 				return nil, err

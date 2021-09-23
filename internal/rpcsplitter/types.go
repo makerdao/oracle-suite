@@ -18,6 +18,15 @@ const hashLength = 32
 // endpoints unchanged.
 type jsonType struct{ j interface{} }
 
+func newJSON(j string) *jsonType {
+	t := &jsonType{}
+	err := t.UnmarshalJSON([]byte(j))
+	if err != nil {
+		return nil
+	}
+	return t
+}
+
 // MarshalJSON returns m as the JSON encoding of m.
 func (t jsonType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.j)
@@ -42,9 +51,26 @@ const earliestBlockNumber = -1
 const latestBlockNumber = -2
 const pendingBlockNumber = -3
 
+func newBlockNumber(n string) *blockNumberType {
+	b := &blockNumberType{}
+	if err := b.UnmarshalJSON([]byte(n)); err != nil {
+		return nil
+	}
+	return b
+}
+
 // MarshalJSON implements json.Marshaler.
 func (n blockNumberType) MarshalJSON() ([]byte, error) {
-	return naiveQuote(bigIntToHex((*big.Int)(&n))), nil
+	switch {
+	case n.IsEarliest():
+		return []byte(`"earliest"`), nil
+	case n.IsLatest():
+		return []byte(`"latest"`), nil
+	case n.IsPending():
+		return []byte(`"pending"`), nil
+	default:
+		return naiveQuote(bigIntToHex((*big.Int)(&n))), nil
+	}
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -100,6 +126,14 @@ func (n *blockNumberType) Big() *big.Int {
 
 type numberType big.Int
 
+func newNumber(n string) *numberType {
+	b, ok := new(big.Int).SetString(strings.TrimPrefix(n, "0x"), 16)
+	if !ok {
+		return nil
+	}
+	return (*numberType)(b)
+}
+
 // MarshalJSON implements json.Marshaler.
 func (n numberType) MarshalJSON() ([]byte, error) {
 	return naiveQuote(bigIntToHex((*big.Int)(&n))), nil
@@ -131,6 +165,14 @@ func (n *numberType) Big() *big.Int {
 // The empty slice marshals as "0x".
 type bytesType []byte
 
+func newBytes(hex string) bytesType {
+	b, err := hexToBytes([]byte(hex))
+	if err != nil {
+		return nil
+	}
+	return b
+}
+
 // MarshalJSON implements json.Marshaler.
 func (b bytesType) MarshalJSON() ([]byte, error) {
 	return naiveQuote(bytesToHex(b)), nil
@@ -157,6 +199,19 @@ func (b *bytesType) Compare(v interface{}) bool {
 // addressType marshals/unmarshals as an Ethereum address.
 type addressType [addressLength]byte
 
+func newAddress(address string) addressType {
+	a := addressType{}
+	b, err := hexToBytes([]byte(address))
+	if err != nil {
+		return a
+	}
+	if len(b) != addressLength {
+		return a
+	}
+	copy(a[:], b)
+	return a
+}
+
 // MarshalJSON implements json.Marshaler.
 func (b addressType) MarshalJSON() ([]byte, error) {
 	return naiveQuote(bytesToHex(b[:])), nil
@@ -182,6 +237,19 @@ func (b *addressType) Compare(v interface{}) bool {
 
 // addressType marshals/unmarshals as hash.
 type hashType [hashLength]byte
+
+func newHash(hash string) hashType {
+	h := hashType{}
+	b, err := hexToBytes([]byte(hash))
+	if err != nil {
+		return h
+	}
+	if len(b) != hashLength {
+		return h
+	}
+	copy(h[:], b)
+	return h
+}
 
 // MarshalJSON implements json.Marshaler.
 func (b hashType) MarshalJSON() ([]byte, error) {
