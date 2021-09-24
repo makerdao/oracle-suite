@@ -28,7 +28,7 @@ import (
 // KeyTypeID uses the Ethereum keys to sign and verify messages.
 const KeyTypeID cryptoPB.KeyType = 10
 
-// NewSigner points to a function which create new Ethereum signer used to
+// NewSigner points to a function which creates a new Ethereum signer used to
 // verify signatures.
 var NewSigner = func() ethereum.Signer {
 	return geth.NewSigner(nil)

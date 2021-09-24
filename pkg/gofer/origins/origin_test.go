@@ -121,7 +121,7 @@ func TestNewBaseExchangeHandlerWithoutAliases(t *testing.T) {
 	pair := Pair{Base: "BTC", Quote: "ETH"}
 
 	eh := NewBaseExchangeHandler(mockExchangeHandler{}, nil)
-	assert.Nil(t, eh.SymbolAliases)
+	assert.Nil(t, eh.aliases)
 
 	results := eh.Fetch([]Pair{pair})
 	assert.Len(t, results, 1)
@@ -139,7 +139,7 @@ func TestBaseExchangeHandlerReplacement(t *testing.T) {
 
 	handler := BaseExchangeHandler{
 		ExchangeHandler: mockHandler,
-		SymbolAliases:   aliases,
+		aliases:         aliases,
 	}
 
 	results := handler.Fetch([]Pair{pair})
@@ -155,17 +155,17 @@ func TestGettingContractAddressByBaseAndQuote(t *testing.T) {
 	contracts := ContractAddresses{"BTC/ETH": contract}
 
 	// Not existing pair
-	address, ok := contracts.ByPair(Pair{Base: "BTC", Quote: "USD"})
+	address, _, ok := contracts.ByPair(Pair{Base: "BTC", Quote: "USD"})
 	assert.Empty(t, address)
 	assert.False(t, ok)
 
 	// Existing direct pair
-	address, ok = contracts.ByPair(Pair{Base: "BTC", Quote: "ETH"})
+	address, _, ok = contracts.ByPair(Pair{Base: "BTC", Quote: "ETH"})
 	assert.True(t, ok)
 	assert.Equal(t, contract, address)
 
 	// Existing reversed pair
-	address, ok = contracts.ByPair(Pair{Base: "ETH", Quote: "BTC"})
+	address, _, ok = contracts.ByPair(Pair{Base: "ETH", Quote: "BTC"})
 	assert.True(t, ok)
 	assert.Equal(t, contract, address)
 }
@@ -184,7 +184,7 @@ func TestReplacingSymbolsUsingAliases(t *testing.T) {
 	assert.True(t, replaced)
 
 	pair := Pair{Base: "BTC", Quote: "ETH"}
-	replacedPair := aliases.ReplacePair(pair)
+	replacedPair := aliases.replacePair(pair)
 	assert.Equal(t, "BTC", replacedPair.Base)
 	assert.Equal(t, "WETH", replacedPair.Quote)
 
@@ -199,20 +199,20 @@ func TestReplacementAndRevertingUsingAliases(t *testing.T) {
 	symbol, replaced := aliases.replaceSymbol("ETH")
 	assert.Equal(t, "WETH", symbol)
 	assert.True(t, replaced)
-	assert.Equal(t, "ETH", aliases.Revert(symbol))
+	assert.Equal(t, "ETH", aliases.revertSymbol(symbol))
 
 	// Replacing pair
 	pair := Pair{Base: "BTC", Quote: "ETH"}
-	replacedPair := aliases.ReplacePair(pair)
+	replacedPair := aliases.replacePair(pair)
 	assert.Equal(t, "BTC", replacedPair.Base)
 	assert.Equal(t, "WETH", replacedPair.Quote)
 
-	reverted := aliases.RevertPair(replacedPair)
+	reverted := aliases.revertPair(replacedPair)
 	assert.Equal(t, "BTC", reverted.Base)
 	assert.Equal(t, "ETH", reverted.Quote)
 
 	// Do not revert newly created pair
-	reverted = aliases.RevertPair(Pair{Base: "BTC", Quote: "WETH"})
+	reverted = aliases.revertPair(Pair{Base: "BTC", Quote: "WETH"})
 	assert.Equal(t, "BTC", reverted.Base)
 	assert.Equal(t, "WETH", reverted.Quote)
 }

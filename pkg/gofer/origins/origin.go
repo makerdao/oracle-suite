@@ -16,11 +16,13 @@
 package origins
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
 // Handler is interface that all Origin API handlers should implement.
@@ -32,7 +34,7 @@ type Handler interface {
 
 type ExchangeHandler interface {
 	// PullPrices is similar to Handler.Fetch
-	// but pairs will be already renamed based on given BaseExchangeHandler.SymbolAliases
+	// but pairs will be already renamed based on given BaseExchangeHandler.symbolAliases
 	PullPrices(pairs []Pair) []FetchResult
 
 	Pool() query.WorkerPool
@@ -40,43 +42,52 @@ type ExchangeHandler interface {
 
 type BaseExchangeHandler struct {
 	ExchangeHandler
-
-	SymbolAliases SymbolAliases
+	aliases SymbolAliases
 }
 
 func NewBaseExchangeHandler(handler ExchangeHandler, aliases SymbolAliases) *BaseExchangeHandler {
 	return &BaseExchangeHandler{
 		ExchangeHandler: handler,
-		SymbolAliases:   aliases,
+		aliases:         aliases,
 	}
 }
 
 func (h BaseExchangeHandler) Fetch(pairs []Pair) []FetchResult {
-	if h.SymbolAliases == nil {
-		return h.ExchangeHandler.PullPrices(pairs)
+	if h.aliases == nil {
+		return h.PullPrices(pairs)
 	}
 
 	var renamedPairs []Pair
 	for _, pair := range pairs {
-		renamedPairs = append(renamedPairs, h.SymbolAliases.ReplacePair(pair))
+		renamedPairs = append(renamedPairs, h.aliases.replacePair(pair))
 	}
-	results := h.ExchangeHandler.PullPrices(renamedPairs)
+	results := h.PullPrices(renamedPairs)
 
 	// Reverting our replacement
 	for i := range results {
-		results[i].Price.Pair = h.SymbolAliases.RevertPair(results[i].Price.Pair)
+		results[i].Price.Pair = h.aliases.revertPair(results[i].Price.Pair)
 	}
 	return results
 }
 
 type ContractAddresses map[string]string
 
-func (c ContractAddresses) ByPair(p Pair) (string, bool) {
+func (c ContractAddresses) ByPair(p Pair) (string, bool, bool) {
+	var inverted bool
 	contract, ok := c[fmt.Sprintf("%s/%s", p.Base, p.Quote)]
 	if !ok {
+		inverted = true
 		contract, ok = c[fmt.Sprintf("%s/%s", p.Quote, p.Base)]
 	}
-	return contract, ok
+	return contract, inverted, ok
+}
+
+func (c ContractAddresses) AddressByPair(pair Pair) (ethereum.Address, bool, error) {
+	contract, inverted, ok := c.ByPair(pair)
+	if !ok {
+		return ethereum.Address{}, inverted, fmt.Errorf("failed to get contract address for pair: %s", pair.String())
+	}
+	return ethereum.HexToAddress(contract), inverted, nil
 }
 
 type SymbolAliases map[string]string
@@ -89,8 +100,8 @@ func (a SymbolAliases) replaceSymbol(symbol string) (string, bool) {
 	return replacement, ok
 }
 
-// Revert reverts symbol replacement.
-func (a SymbolAliases) Revert(symbol string) string {
+// revertSymbol reverts symbol replacement.
+func (a SymbolAliases) revertSymbol(symbol string) string {
 	for pre, post := range a {
 		if symbol == post {
 			return pre
@@ -100,36 +111,44 @@ func (a SymbolAliases) Revert(symbol string) string {
 	return symbol
 }
 
-func (a SymbolAliases) ReplacePair(pair Pair) Pair {
+func (a SymbolAliases) replacePair(pair Pair) Pair {
 	base, baseOk := a.replaceSymbol(pair.Base)
 	quote, quoteOk := a.replaceSymbol(pair.Quote)
 
 	return Pair{Base: base, Quote: quote, baseReplaced: baseOk, quoteReplaced: quoteOk}
 }
 
-func (a SymbolAliases) RevertPair(pair Pair) Pair {
+func (a SymbolAliases) revertPair(pair Pair) Pair {
 	base := pair.Base
 	if pair.baseReplaced {
-		base = a.Revert(pair.Base)
+		base = a.revertSymbol(pair.Base)
 	}
 
 	quote := pair.Quote
 	if pair.quoteReplaced {
-		quote = a.Revert(pair.Quote)
+		quote = a.revertSymbol(pair.Quote)
 	}
 
 	return Pair{Base: base, Quote: quote, baseReplaced: false, quoteReplaced: false}
 }
 
 type Pair struct {
-	Quote         string
 	Base          string
-	quoteReplaced bool
+	Quote         string
 	baseReplaced  bool
+	quoteReplaced bool
 }
 
 func (p Pair) String() string {
 	return fmt.Sprintf("%s/%s", p.Base, p.Quote)
+}
+func (p Pair) Inverse() Pair {
+	return Pair{
+		Base:          p.Quote,
+		Quote:         p.Base,
+		baseReplaced:  p.quoteReplaced,
+		quoteReplaced: p.baseReplaced,
+	}
 }
 
 func (p Pair) Equal(c Pair) bool {
@@ -210,8 +229,7 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 
 	frs := map[string][]FetchResult{}
 	for origin, pairs := range originPairs {
-		origin := origin
-		pairs := pairs
+		origin, pairs := origin, pairs
 		handler, ok := e.list[origin]
 
 		go func() {
@@ -295,4 +313,47 @@ func validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("bad response: %w", res.Error))
 	}
 	return nil
+}
+
+type jsonrpcMessage struct {
+	Version string          `json:"jsonrpc,omitempty"`
+	ID      json.RawMessage `json:"id,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params,omitempty"`
+	Error   *jsonError      `json:"error,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+}
+
+func (msg *jsonrpcMessage) isCall() bool {
+	return msg.hasValidID() && msg.Method != ""
+}
+
+func (msg *jsonrpcMessage) isResponse() bool {
+	return msg.hasValidID() && msg.Method == "" && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
+}
+
+func (msg *jsonrpcMessage) hasValidID() bool {
+	return len(msg.ID) > 0 && msg.ID[0] != '{' && msg.ID[0] != '['
+}
+
+func (msg *jsonrpcMessage) String() string {
+	b, _ := json.Marshal(msg)
+	return string(b)
+}
+
+type jsonError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func (err *jsonError) Error() string {
+	if err.Message == "" {
+		return fmt.Sprintf("json-rpc error %d", err.Code)
+	}
+	return err.Message
+}
+
+func (err *jsonError) ErrorCode() int {
+	return err.Code
 }

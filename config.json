@@ -210,10 +210,13 @@
       "YFIUSD",
       "ZECUSD",
       "ZRXUSD",
+      "STETHUSD",
+      "WSTETHUSD",
       "MATICUSD"
     ]
   },
   "gofer": {
+    "ethRpc": "",
     "rpc": {
       "disable": false,
       "address": "127.0.0.1:9000"
@@ -245,6 +248,7 @@
             "LEND/WETH": "0xab3f9bf1d81ddb224a2014e98b238638824bcf20",
             "LRC/WETH": "0x8878df9e1a7c87dcbf6d3999d997f262c05d8c70",
             "PAXG/WETH": "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c",
+            "BAL/WETH": "0xa70d458a4d9bc0e6571565faee18a48da5c0d593",
             "YFI/WETH": "0x2fdbadf3c4d5a8666bc06645b8358ab803996e28"
           }
         }
@@ -311,9 +315,73 @@
             "CRV/WETH": "0x58dc5a51fe44589beb22e8ce67720b5bc5378009"
           }
         }
+      },
+      "curve": {
+        "type": "curve",
+        "name": "curve",
+        "params": {
+          "contracts": {
+            "ETH/STETH": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"
+          }
+        }
+      },
+      "balancerV2": {
+        "type": "balancerV2",
+        "name": "balancerV2",
+        "params": {
+          "contracts": {
+            "STETH/ETH": "0x32296969ef14eb0c6d29669c550d4a0449130230"
+          }
+        }
+      },
+      "wsteth": {
+        "type": "wsteth",
+        "name": "wsteth",
+        "params": {
+          "contracts": {
+            "WSTETH/STETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+          }
+        }
       }
     },
     "priceModels": {
+      "STETH/ETH": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "curve", "pair": "STETH/ETH" }],
+          [{ "origin": "balancerV2", "pair": "STETH/ETH" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 2
+        }
+      },
+      "WSTETH/ETH": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "wsteth", "pair": "WSTETH/STETH" },{ "origin": ".", "pair": "STETH/ETH" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
+      },
+      "STETH/USD": {
+        "method": "median",
+        "sources": [
+          [{ "origin": ".", "pair": "STETH/ETH" },{ "origin": ".", "pair": "ETH/USD" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
+      },
+      "WSTETH/USD": {
+        "method": "median",
+        "sources": [
+          [{ "origin": ".", "pair": "WSTETH/ETH" },{ "origin": ".", "pair": "ETH/USD" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
+      },
       "AAVE/USD": {
         "method": "median",
         "sources": [
@@ -460,6 +528,20 @@
           [{ "origin": "ftx", "pair": "MKR/USD" }],
           [{ "origin": "gemini", "pair": "MKR/USD" }],
           [{ "origin": "kraken", "pair": "MKR/USD" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 4
+        }
+      },
+      "MKR/ETH": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "binance", "pair": "MKR/BTC" },{ "origin": ".", "pair": "ETH/BTC" }],
+          [{ "origin": "bitstamp", "pair": "MKR/USD" },{ "origin": ".", "pair": "ETH/USD" }],
+          [{ "origin": "coinbasepro", "pair": "MKR/USD" },{ "origin": ".", "pair": "ETH/USD" }],
+          [{ "origin": "ftx", "pair": "MKR/USD" },{ "origin": ".", "pair": "ETH/USD" }],
+          [{ "origin": "gemini", "pair": "MKR/USD" },{ "origin": ".", "pair": "ETH/USD" }],
+          [{ "origin": "kraken", "pair": "MKR/USD" },{ "origin": ".", "pair": "ETH/USD" }]
         ],
         "params": {
           "minimumSuccessfulSources": 4

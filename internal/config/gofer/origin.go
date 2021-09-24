@@ -69,7 +69,7 @@ func parseParamsContracts(params json.RawMessage) (origins.ContractAddresses, er
 }
 
 //nolint
-func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage) (origins.Handler, error) {
+func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessage, ethRPC string) (origins.Handler, error) {
 	aliases, err := parseParamsSymbolAliases(params)
 	if err != nil {
 		return nil, err
@@ -161,6 +161,48 @@ func NewHandler(handlerType string, pool query.WorkerPool, params json.RawMessag
 			WorkerPool:        pool,
 			ContractAddresses: contracts,
 		}, aliases), nil
+	case "curve", "curvefinance":
+		contracts, err := parseParamsContracts(params)
+		if err != nil {
+			return nil, err
+		}
+		h, err := origins.NewCurveFinance(
+			ethRPC,
+			pool,
+			contracts,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return origins.NewBaseExchangeHandler(*h, aliases), nil
+	case "balancerV2":
+		contracts, err := parseParamsContracts(params)
+		if err != nil {
+			return nil, err
+		}
+		h, err := origins.NewBalancerV2(
+			ethRPC,
+			pool,
+			contracts,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return origins.NewBaseExchangeHandler(*h, aliases), nil
+	case "wsteth":
+		contracts, err := parseParamsContracts(params)
+		if err != nil {
+			return nil, err
+		}
+		h, err := origins.NewWrappedStakedETH(
+			ethRPC,
+			pool,
+			contracts,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return origins.NewBaseExchangeHandler(*h, aliases), nil
 	case "uniswap", "uniswapV2":
 		contracts, err := parseParamsContracts(params)
 		if err != nil {

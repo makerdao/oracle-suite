@@ -62,6 +62,7 @@ func (e ErrCyclicReference) Error() string {
 
 type Gofer struct {
 	RPC         RPC                   `json:"rpc"`
+	EthRPC      string                `json:"ethRpc"`
 	Origins     map[string]Origin     `json:"origins"`
 	PriceModels map[string]PriceModel `json:"priceModels"`
 }
@@ -156,7 +157,7 @@ func (c *Gofer) buildOrigins() (*origins.Set, error) {
 	defaultOrigins := origins.DefaultOriginSet(httpWorkerPool)
 
 	for name, origin := range c.Origins {
-		handler, err := NewHandler(origin.Type, httpWorkerPool, origin.Params)
+		handler, err := NewHandler(origin.Type, httpWorkerPool, origin.Params, c.EthRPC)
 		if err != nil || handler == nil {
 			return nil, fmt.Errorf("failed to initiate %s origin with name %s due to error: %w",
 				origin.Type, origin.Name, err)

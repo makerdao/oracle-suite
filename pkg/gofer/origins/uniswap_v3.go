@@ -64,7 +64,7 @@ func (u UniswapV3) PullPrices(pairs []Pair) []FetchResult {
 func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 	var err error
 
-	contract, ok := u.ContractAddresses.ByPair(pair)
+	contract, _, ok := u.ContractAddresses.ByPair(pair)
 	if !ok {
 		return nil, fmt.Errorf("failed to find contract address for pair: %s", pair.String())
 	}

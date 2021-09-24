@@ -57,7 +57,7 @@ func (u *Uniswap) pairsToContractAddresses(pairs []Pair) ([]string, error) {
 	var names []string
 
 	for _, pair := range pairs {
-		address, ok := u.ContractAddresses.ByPair(pair)
+		address, _, ok := u.ContractAddresses.ByPair(pair)
 		if !ok {
 			return names, fmt.Errorf("failed to find contract address for pair %s", pair.String())
 		}
