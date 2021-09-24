@@ -14,18 +14,19 @@ import (
 
 func TestLogger_InfoLevel(t *testing.T) {
 	var recordedLogs []log.Fields
-	m := callback.New(log.Info, func(level log.Level, fields log.Fields, msg string) {
+	l := callback.New(log.Info, func(level log.Level, fields log.Fields, msg string) {
 		if level != log.Info {
 			return
 		}
-		fields["_msg"] = msg
 		delete(fields, "duration")
+		fields["_msg"] = msg
 		recordedLogs = append(recordedLogs, fields)
 	})
-	h := (&Logger{Log: m}).Handle(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {}))
+
 	r := httptest.NewRequest("GET", "/", nil)
-	rw := httptest.NewRecorder()
-	h.ServeHTTP(rw, r)
+	w := httptest.NewRecorder()
+	h := (&Logger{Log: l}).Handle(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {}))
+	h.ServeHTTP(w, r)
 
 	require.Len(t, recordedLogs, 1)
 	assert.Equal(t, log.Fields{
@@ -37,21 +38,22 @@ func TestLogger_InfoLevel(t *testing.T) {
 
 func TestLogger_DebugLevel(t *testing.T) {
 	var recordedLogs []log.Fields
-	m := callback.New(log.Debug, func(level log.Level, fields log.Fields, msg string) {
+	l := callback.New(log.Debug, func(level log.Level, fields log.Fields, msg string) {
 		if level != log.Debug {
 			return
 		}
-		fields["_msg"] = msg
 		delete(fields, "duration")
+		fields["_msg"] = msg
 		recordedLogs = append(recordedLogs, fields)
 	})
-	h := (&Logger{Log: m}).Handle(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+
+	r := httptest.NewRequest("GET", "/", strings.NewReader("request"))
+	w := httptest.NewRecorder()
+	h := (&Logger{Log: l}).Handle(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("response"))
 		writer.WriteHeader(http.StatusNotFound)
 	}))
-	r := httptest.NewRequest("GET", "/", strings.NewReader("request"))
-	rw := httptest.NewRecorder()
-	h.ServeHTTP(rw, r)
+	h.ServeHTTP(w, r)
 
 	require.Len(t, recordedLogs, 1)
 	assert.Equal(t, log.Fields{

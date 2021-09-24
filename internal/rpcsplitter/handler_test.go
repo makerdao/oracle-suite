@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
-	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -155,11 +153,6 @@ var transactionReceipt1Resp = json.RawMessage(`
 		"transactionIndex": "0xac"
 	}
 `)
-
-
-func newRPCNumberType(v uint64) *numberType {
-	return (*numberType)(new(big.Int).SetUint64(v))
-}
 
 func Test_RPC_BlockNumber(t *testing.T) {
 	t.Run("median-in-range", func(t *testing.T) {
@@ -945,65 +938,65 @@ func Test_RPC_Version(t *testing.T) {
 
 func Test_useMostCommon(t *testing.T) {
 	tests := []struct {
-		res     []interface{}
+		in      []interface{}
 		minReq  int
 		want    interface{}
 		wantErr bool
 	}{
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
+			in: []interface{}{
+				newNumber("0xA"),
 			},
 			minReq:  1,
-			want:    newRPCNumberType(10),
+			want:    newNumber("0xA"),
 			wantErr: false,
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(10),
-				newRPCNumberType(30),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0xA"),
+				newNumber("0x1E"),
 			},
 			minReq:  1,
-			want:    newRPCNumberType(10),
+			want:    newNumber("0xA"),
 			wantErr: false,
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(10),
-				newRPCNumberType(30),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0xA"),
+				newNumber("0x1E"),
 			},
 			minReq:  2,
-			want:    newRPCNumberType(10),
+			want:    newNumber("0xA"),
 			wantErr: false,
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(10),
-				newRPCNumberType(10),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0xA"),
+				newNumber("0xA"),
 			},
 			minReq:  3,
-			want:    newRPCNumberType(10),
+			want:    newNumber("0xA"),
 			wantErr: false,
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				errors.New("a"),
-				errors.New("a"),
+			in: []interface{}{
+				newNumber("0xA"),
+				errors.New("error#1"),
+				errors.New("error#2"),
 			},
 			minReq:  1,
-			want:    newRPCNumberType(10),
+			want:    newNumber("0xA"),
 			wantErr: false,
 		},
 		// Fails because there is not enough of the same responses:
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(10),
-				newRPCNumberType(15),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0xA"),
+				newNumber("0xF"),
 			},
 			minReq:  3,
 			want:    nil,
@@ -1011,10 +1004,10 @@ func Test_useMostCommon(t *testing.T) {
 		},
 		// Fails because there are multiple responses and all of them occurs only once:
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(15),
-				newRPCNumberType(30),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0xF"),
+				newNumber("0x1E"),
 			},
 			minReq:  1,
 			want:    nil,
@@ -1022,8 +1015,8 @@ func Test_useMostCommon(t *testing.T) {
 		},
 		// Fails because we got an error:
 		{
-			res: []interface{}{
-				errors.New("a"),
+			in: []interface{}{
+				errors.New("error#1"),
 			},
 			minReq:  1,
 			want:    nil,
@@ -1032,9 +1025,14 @@ func Test_useMostCommon(t *testing.T) {
 	}
 	for n, tt := range tests {
 		t.Run(fmt.Sprintf("case-%d", n+1), func(t *testing.T) {
-			got, err := useMostCommon(tt.res, tt.minReq)
+			got, err := useMostCommon(tt.in, tt.minReq)
 			if tt.wantErr {
 				assert.Error(t, err)
+				for _, i := range tt.in {
+					if iErr, ok := i.(error); ok {
+						assert.Contains(t, err.Error(), iErr.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.True(t, compare(got, tt.want))
@@ -1045,93 +1043,82 @@ func Test_useMostCommon(t *testing.T) {
 
 func Test_useMedian(t *testing.T) {
 	tests := []struct {
-		res     []interface{}
+		in      []interface{}
 		minReq  int
 		want    *numberType
 		wantErr bool
 	}{
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
+			in: []interface{}{
+				newNumber("0xA"),
 			},
-			minReq:  1,
-			want:    newRPCNumberType(10),
-			wantErr: false,
+			minReq: 1,
+			want:   newNumber("0xA"),
 		},
 
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(30),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0x1E"),
 			},
-			minReq:  1,
-			want:    newRPCNumberType(20),
-			wantErr: false,
+			minReq: 1,
+			want:   newNumber("0x14"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(30),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0x1E"),
 			},
-			minReq:  2,
-			want:    newRPCNumberType(20),
-			wantErr: false,
+			minReq: 2,
+			want:   newNumber("0x14"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(30),
-				errors.New("a"),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0x1E"),
+				errors.New("error#1"),
 			},
-			minReq:  2,
-			want:    newRPCNumberType(20),
-			wantErr: false,
+			minReq: 2,
+			want:   newNumber("0x14"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(1),
-				newRPCNumberType(10),
-				newRPCNumberType(100),
+			in: []interface{}{
+				newNumber("0x1"),
+				newNumber("0xA"),
+				newNumber("0x64"),
 			},
-			minReq:  3,
-			want:    newRPCNumberType(10),
-			wantErr: false,
-		},
-		{
-			res: []interface{}{
-				newRPCNumberType(math.MaxUint64),
-				newRPCNumberType(math.MaxUint64),
-			},
-			minReq:  2,
-			want:    newRPCNumberType(math.MaxUint64),
-			wantErr: false,
+			minReq: 3,
+			want:   newNumber("0xA"),
 		},
 		// Fails because we got en error:
 		{
-			res: []interface{}{
-				errors.New("a"),
+			in: []interface{}{
+				errors.New("error#1"),
 			},
 			minReq:  1,
-			want:    nil,
 			wantErr: true,
 		},
 		// Fails because there are not enough responses:
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				errors.New("a"),
-				errors.New("a"),
+			in: []interface{}{
+				newNumber("0xA"),
+				errors.New("error#1"),
+				errors.New("error#2"),
 			},
 			minReq:  3,
-			want:    nil,
 			wantErr: true,
 		},
 	}
 	for n, tt := range tests {
 		t.Run(fmt.Sprintf("case-%d", n+1), func(t *testing.T) {
-			got, err := useMedian(tt.res, tt.minReq)
+			got, err := useMedian(tt.in, tt.minReq)
 			if tt.wantErr {
 				assert.Error(t, err)
+				for _, i := range tt.in {
+					if iErr, ok := i.(error); ok {
+						assert.Contains(t, err.Error(), iErr.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.True(t, tt.want.Compare(got))
@@ -1142,119 +1129,107 @@ func Test_useMedian(t *testing.T) {
 
 func Test_useMedianDist(t *testing.T) {
 	tests := []struct {
-		res     []interface{}
+		in      []interface{}
 		dist    int64
 		minReq  int
 		want    *numberType
 		wantErr bool
 	}{
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
+			in: []interface{}{
+				newNumber("0xA"),
 			},
-			dist:    1,
-			minReq:  1,
-			want:    newRPCNumberType(10),
-			wantErr: false,
+			dist:   1,
+			minReq: 1,
+			want:   newNumber("0xA"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(4),
-				newRPCNumberType(5),
-				newRPCNumberType(6),
-				newRPCNumberType(7),
-				newRPCNumberType(8),
-				newRPCNumberType(9),
-				newRPCNumberType(10),
+			in: []interface{}{
+				newNumber("0x4"),
+				newNumber("0x5"),
+				newNumber("0x6"),
+				newNumber("0x7"),
+				newNumber("0x8"),
+				newNumber("0x9"),
+				newNumber("0xA"),
 			},
-			dist:    -2,
-			minReq:  7,
-			want:    newRPCNumberType(5),
-			wantErr: false,
+			dist:   -2,
+			minReq: 7,
+			want:   newNumber("0x5"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(4),
-				newRPCNumberType(5),
-				newRPCNumberType(6),
-				newRPCNumberType(7),
-				newRPCNumberType(8),
-				newRPCNumberType(9),
-				newRPCNumberType(10),
+			in: []interface{}{
+				newNumber("0x4"),
+				newNumber("0x5"),
+				newNumber("0x6"),
+				newNumber("0x7"),
+				newNumber("0x8"),
+				newNumber("0x9"),
+				newNumber("0xA"),
 			},
-			dist:    2,
-			minReq:  7,
-			want:    newRPCNumberType(9),
-			wantErr: false,
+			dist:   2,
+			minReq: 7,
+			want:   newNumber("0x9"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(9),
-				newRPCNumberType(8),
-				newRPCNumberType(7),
-				newRPCNumberType(6),
-				newRPCNumberType(5),
-				newRPCNumberType(4),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0x9"),
+				newNumber("0x8"),
+				newNumber("0x7"),
+				newNumber("0x6"),
+				newNumber("0x5"),
+				newNumber("0x4"),
 			},
-			dist:    -2,
-			minReq:  7,
-			want:    newRPCNumberType(5),
-			wantErr: false,
+			dist:   -2,
+			minReq: 7,
+			want:   newNumber("0x5"),
 		},
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				newRPCNumberType(9),
-				newRPCNumberType(8),
-				newRPCNumberType(7),
-				newRPCNumberType(6),
-				newRPCNumberType(5),
-				newRPCNumberType(4),
+			in: []interface{}{
+				newNumber("0xA"),
+				newNumber("0x9"),
+				newNumber("0x8"),
+				newNumber("0x7"),
+				newNumber("0x6"),
+				newNumber("0x5"),
+				newNumber("0x4"),
 			},
-			dist:    2,
-			minReq:  7,
-			want:    newRPCNumberType(9),
-			wantErr: false,
-		},
-		{
-			res: []interface{}{
-				newRPCNumberType(math.MaxUint64),
-				newRPCNumberType(math.MaxUint64),
-			},
-			dist:    1,
-			minReq:  2,
-			want:    newRPCNumberType(math.MaxUint64),
-			wantErr: false,
+			dist:   2,
+			minReq: 7,
+			want:   newNumber("0x9"),
 		},
 		// Fails because there are not enough responses:
 		{
-			res: []interface{}{
-				newRPCNumberType(10),
-				errors.New("a"),
-				errors.New("a"),
+			in: []interface{}{
+				newNumber("0xA"),
+				errors.New("error#1"),
+				errors.New("error#2"),
 			},
 			dist:    1,
 			minReq:  3,
-			want:    nil,
 			wantErr: true,
 		},
 		// Fails because we got only an error:
 		{
-			res: []interface{}{
-				errors.New("a"),
+			in: []interface{}{
+				errors.New("error#1"),
 			},
 			dist:    1,
 			minReq:  1,
-			want:    nil,
 			wantErr: true,
 		},
 	}
 	for n, tt := range tests {
 		t.Run(fmt.Sprintf("case-%d", n+1), func(t *testing.T) {
-			got, err := useMedianDist(tt.res, tt.minReq, tt.dist)
+			got, err := useMedianDist(tt.in, tt.minReq, tt.dist)
 			if tt.wantErr {
 				assert.Error(t, err)
+				for _, i := range tt.in {
+					if iErr, ok := i.(error); ok {
+						assert.Contains(t, err.Error(), iErr.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.True(t, tt.want.Compare(got))

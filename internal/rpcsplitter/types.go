@@ -88,11 +88,14 @@ func (n *blockNumberType) UnmarshalJSON(input []byte) error {
 		return nil
 	default:
 		u, err := hexToBigInt(input)
+		if err != nil {
+			return err
+		}
 		if u.Cmp(big.NewInt(math.MaxInt64)) > 0 {
 			return fmt.Errorf("block number larger than int64")
 		}
 		*n = blockNumberType(*u)
-		return err
+		return nil
 	}
 }
 

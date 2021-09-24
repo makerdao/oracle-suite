@@ -16,6 +16,8 @@ func (m MiddlewareFunc) Handle(h http.Handler) http.Handler {
 	return m(h)
 }
 
+// HTTPServer allows using middlewares with http.Server and allow controlling
+// server lifecycle using context.
 type HTTPServer struct {
 	ctx    context.Context
 	doneCh chan error
@@ -26,6 +28,7 @@ type HTTPServer struct {
 	middlewares    []Middleware
 }
 
+// New creates a new HTTPServer instance.
 func New(ctx context.Context, srv *http.Server) *HTTPServer {
 	s := &HTTPServer{
 		ctx:    ctx,
@@ -36,6 +39,8 @@ func New(ctx context.Context, srv *http.Server) *HTTPServer {
 	return s
 }
 
+// Use adds a middleware. Middlewares will be called in the order in which they
+// were added. This function will panic after calling ServerHTTP/ListenAndServe.
 func (s *HTTPServer) Use(m ...Middleware) {
 	if s.wrappedHandler != nil {
 		panic("cannot add a middleware after calling ServerHTTP/ListenAndServe")
@@ -43,6 +48,8 @@ func (s *HTTPServer) Use(m ...Middleware) {
 	s.middlewares = append(s.middlewares, m...)
 }
 
+// ServeHTTP prepares middlewares stack if necessary and calls ServerHTTP
+// on the wrapped server.
 func (s *HTTPServer) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if s.wrappedHandler == nil {
 		if len(s.middlewares) == 0 {
@@ -58,6 +65,7 @@ func (s *HTTPServer) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.wrappedHandler.ServeHTTP(rw, r)
 }
 
+// ListenAndServe calls function with the same name on the wrapped server.
 func (s *HTTPServer) ListenAndServe() error {
 	err := s.server.ListenAndServe()
 	if err != nil {
@@ -67,6 +75,7 @@ func (s *HTTPServer) ListenAndServe() error {
 	return nil
 }
 
+// Wait waits until server is closed.
 func (s *HTTPServer) Wait() error {
 	return <-s.doneCh
 }
