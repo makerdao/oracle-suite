@@ -169,6 +169,61 @@ var transactionReceipt1Resp = json.RawMessage(`
 	}
 `)
 
+var feeHistory1Resp = json.RawMessage(`
+	{
+		"oldestBlock": "0xc72641",
+		"reward": [
+			[
+				"0x4a817c7ee",
+				"0x4a817c7ee"
+			], [
+				"0x773593f0",
+				"0x773593f5"
+			], [
+				"0x0",
+				"0x0"
+			], [
+				"0x773593f5",
+				"0x773bae75"
+			]
+		],
+		"baseFeePerGas": [
+			"0x12",
+			"0x10",
+			"0x10",
+			"0xe",
+			"0xd"
+		],
+		"gasUsedRatio": [
+			0.026089875,
+			0.406803,
+			0,
+			0.0866665
+		]
+	}
+`)
+
+var feeHistory2Resp = json.RawMessage(`
+	{
+		"oldestBlock": "0xC72641",
+		"baseFeePerGas": [
+			"0x92db30f56",
+			"0x9a47da3c5",
+			"0x8fb856b5b",
+			"0xa1a3c78d9",
+			"0x91a6775ac",
+			"0x7f71a86f7"
+		],
+		"gasUsedRatio": [
+			0.7022238670892842,
+			0.2261976964422899,
+			0.9987387,
+			0.10431753273738473,
+			0
+		]
+	}
+`)
+
 func Test_RPC_BlockNumber(t *testing.T) {
 	t.Run("median-in-range", func(t *testing.T) {
 		prepareRPCTest(t, 3, "eth_blockNumber").
@@ -846,9 +901,58 @@ func Test_RPC_EstimateGas(t *testing.T) {
 }
 
 func Test_RPC_FeeHistory(t *testing.T) {
+	cn := newNumber("0x5")
+	bn := newNumber("0x10")
+	p := newJSON("[25, 75]")
 	t.Run("simple", func(t *testing.T) {
-		prepareRPCTest(t, 3, "eth_feeHistory").
-			expectedError("does not exist").
+		prepareRPCTest(t, 3, "eth_feeHistory", cn, bn, p).
+			mockClientCall(0, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			mockClientCall(1, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			mockClientCall(2, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			expectedResult(feeHistory1Resp).
+			run()
+	})
+	t.Run("one-failed", func(t *testing.T) {
+		prepareRPCTest(t, 3, "eth_feeHistory", cn, bn, p).
+			mockClientCall(0, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			mockClientCall(1, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			mockClientCall(2, errors.New("error#1"), "eth_feeHistory", cn, bn, p).
+			expectedResult(feeHistory1Resp).
+			run()
+	})
+	t.Run("two-failed", func(t *testing.T) {
+		prepareRPCTest(t, 3, "eth_feeHistory", cn, bn, p).
+			mockClientCall(0, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			mockClientCall(1, errors.New("error#1"), "eth_feeHistory", cn, bn, p).
+			mockClientCall(2, errors.New("error#2"), "eth_feeHistory", cn, bn, p).
+			expectedError("error#1").
+			expectedError("error#2").
+			run()
+	})
+	t.Run("different-responses", func(t *testing.T) {
+		prepareRPCTest(t, 2, "eth_feeHistory", cn, bn, p).
+			mockClientCall(0, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			mockClientCall(1, feeHistory2Resp, "eth_feeHistory", cn, bn, p).
+			expectedError("").
+			run()
+	})
+	t.Run("latest-block", func(t *testing.T) {
+		prepareRPCTest(t, 1, "eth_feeHistory", cn, newBlockNumber("latest"), p).
+			mockClientCall(0, bn, "eth_blockNumber").
+			mockClientCall(0, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			expectedResult(feeHistory1Resp).
+			run()
+	})
+	t.Run("pending-block", func(t *testing.T) {
+		prepareRPCTest(t, 1, "eth_feeHistory", cn, newBlockNumber("pending"), p).
+			mockClientCall(0, bn, "eth_blockNumber").
+			mockClientCall(0, feeHistory1Resp, "eth_feeHistory", cn, bn, p).
+			expectedResult(feeHistory1Resp).
+			run()
+	})
+	t.Run("earliest-block", func(t *testing.T) {
+		prepareRPCTest(t, 1, "eth_getBalance", cn, newBlockNumber("earliest"), p).
+			expectedError("").
 			run()
 	})
 }

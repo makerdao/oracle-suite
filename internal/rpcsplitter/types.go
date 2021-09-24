@@ -363,6 +363,13 @@ type transactionReceiptType struct {
 	Status            *numberType  `json:"status"`
 }
 
+type feeHistoryType struct {
+	OldestBlock   numberType     `json:"oldestBlock"`
+	Reward        [][]numberType `json:"reward"`
+	BaseFeePerGas []numberType   `json:"baseFeePerGas"`
+	GasUsedRatio  []float64      `json:"gasUsedRatio"`
+}
+
 func bigIntToHex(u *big.Int) []byte {
 	r := make([]byte, 2, 10)
 	copy(r, `0x`)

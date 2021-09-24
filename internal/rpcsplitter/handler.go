@@ -263,7 +263,16 @@ func (r *rpcETHAPI) EstimateGas(args jsonType, blockNumber blockNumberType) (int
 	)
 }
 
-// TODO: eth_feeHistory
+// FeeHistory implements the "eth_feeHistory" call.
+//
+// It returns the most common response that occurred at least as many times as
+// specified in the minReq method.
+func (r *rpcETHAPI) FeeHistory(count numberType, newest blockNumberType, percentiles jsonType) (interface{}, error) {
+	return useMostCommon(
+		r.handler.doRPC((*feeHistoryType)(nil), "eth_feeHistory", count, newest, percentiles),
+		r.handler.minReq(),
+	)
+}
 
 // MaxPriorityFeePerGas implements the "eth_maxPriorityFeePerGas" call.
 //
