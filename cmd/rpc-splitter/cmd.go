@@ -16,8 +16,9 @@
 package main
 
 import (
-	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
 	"github.com/spf13/cobra"
+
+	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
 
 	suite "github.com/makerdao/oracle-suite"
 )

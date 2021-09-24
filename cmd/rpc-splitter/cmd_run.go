@@ -22,15 +22,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/makerdao/oracle-suite/internal/httpserver"
 	"github.com/makerdao/oracle-suite/internal/httpserver/middleware"
 	"github.com/makerdao/oracle-suite/internal/rpcsplitter"
-	"github.com/spf13/cobra"
 )
-
-const httpTimeout = 10 * time.Second
 
 func NewRunCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
@@ -78,7 +76,12 @@ func NewRunCmd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer srv.Wait()
+			defer func() {
+				err := srv.Wait()
+				if err != nil {
+					log.WithError(err).Error("Error while closing HTTP server")
+				}
+			}()
 
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)

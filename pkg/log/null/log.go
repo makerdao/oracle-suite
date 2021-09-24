@@ -35,9 +35,9 @@ func (n *Logger) Debugf(_ string, _ ...interface{})            {}
 func (n *Logger) Infof(_ string, _ ...interface{})             {}
 func (n *Logger) Warnf(_ string, _ ...interface{})             {}
 func (n *Logger) Errorf(_ string, _ ...interface{})            {}
-func (n *Logger) Panicf(format string, args ...interface{})    { panic(fmt.Sprintf(format, args)) }
+func (n *Logger) Panicf(format string, args ...interface{})    { panic(fmt.Sprintf(format, args...)) }
 func (n *Logger) Debug(_ ...interface{})                       {}
 func (n *Logger) Info(_ ...interface{})                        {}
 func (n *Logger) Warn(_ ...interface{})                        {}
 func (n *Logger) Error(_ ...interface{})                       {}
-func (n *Logger) Panic(args ...interface{})                    { panic(fmt.Sprint(args)) }
+func (n *Logger) Panic(args ...interface{})                    { panic(fmt.Sprint(args...)) }
