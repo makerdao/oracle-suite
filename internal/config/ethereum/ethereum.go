@@ -56,10 +56,10 @@ var ethClientFactory = func(endpoints []string) (geth.EthClient, error) {
 }
 
 type Ethereum struct {
-	From     string   `json:"from"`
-	Keystore string   `json:"keystore"`
-	Password string   `json:"password"`
-	RPC      []string `json:"rpc"`
+	From     string      `json:"from"`
+	Keystore string      `json:"keystore"`
+	Password string      `json:"password"`
+	RPC      interface{} `json:"rpc"`
 }
 
 func (c *Ethereum) ConfigureSigner() (ethereum.Signer, error) {
@@ -71,7 +71,16 @@ func (c *Ethereum) ConfigureSigner() (ethereum.Signer, error) {
 }
 
 func (c *Ethereum) ConfigureEthereumClient(signer ethereum.Signer) (*geth.Client, error) {
-	client, err := ethClientFactory(c.RPC)
+	var endpoints []string
+	switch v := c.RPC.(type) {
+	case string:
+		endpoints = []string{v}
+	case []string:
+		endpoints = v
+	default:
+		return nil, errors.New("value of the RPC key must be string or array of strings")
+	}
+	client, err := ethClientFactory(endpoints)
 	if err != nil {
 		return nil, err
 	}

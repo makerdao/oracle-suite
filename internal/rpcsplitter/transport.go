@@ -62,7 +62,6 @@ type recorder struct {
 	body    *bytes.Buffer // body is the HTTP response body
 }
 
-// newRecorder returns an initialized recorder.
 func newRecorder() *recorder {
 	return &recorder{
 		headers: make(http.Header),
@@ -71,17 +70,14 @@ func newRecorder() *recorder {
 	}
 }
 
-// Header returns the recorder headers.
 func (r *recorder) Header() http.Header {
 	return r.headers
 }
 
-// Write always succeeds and writes to rw.body, if not nil.
 func (r *recorder) Write(buf []byte) (int, error) {
 	return r.body.Write(buf)
 }
 
-// WriteHeader sets status code.
 func (r *recorder) WriteHeader(code int) {
 	r.code = code
 }
