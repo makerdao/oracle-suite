@@ -12,8 +12,8 @@ let
   ver = "${pkgs.lib.removeSuffix "\n" (builtins.readFile "${rev}")}";
 in buildGoModule {
   pname = "oracle-suite";
-  version = pkgs.lib.fileContents ./version;
-  #  version = "dev-${ver}";
+  #version = pkgs.lib.fileContents ./version;
+  version = "dev-${ver}";
   src = ./.;
   vendorSha256 = "05qq6a2nk03m7zfg2ipaqv80yaqly30qkzw67rdfnfpyd69xnkqw";
   subPackages = [ "cmd/..." ];
