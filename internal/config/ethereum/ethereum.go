@@ -24,6 +24,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+
 	"github.com/makerdao/oracle-suite/internal/rpcsplitter"
 
 	"github.com/makerdao/oracle-suite/pkg/ethereum"

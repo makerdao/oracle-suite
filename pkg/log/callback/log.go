@@ -21,17 +21,17 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
-type CallbackFunc func(level log.Level, fields log.Fields, log string)
+type LogFunc func(level log.Level, fields log.Fields, log string)
 
 // Logger implements the log.Logger interface. It allows using a custom
 // callback function that will be invoked every time a log message is created.
 type Logger struct {
 	level    log.Level
 	fields   log.Fields
-	callback CallbackFunc
+	callback LogFunc
 }
 
-func New(level log.Level, callback CallbackFunc) *Logger {
+func New(level log.Level, callback LogFunc) *Logger {
 	return &Logger{
 		level:    level,
 		fields:   log.Fields{},
