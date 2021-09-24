@@ -38,7 +38,7 @@ func TestCORS_Options(t *testing.T) {
 	assert.Equal(t, "origin", rw.Header().Get("Access-Control-Allow-Origin"))
 	assert.Equal(t, "header", rw.Header().Get("Access-Control-Allow-Headers"))
 	assert.Equal(t, "GET", rw.Header().Get("Access-Control-Allow-Methods"))
-	assert.Equal(t, "86400", rw.Header().Get("Access-Control-Allow-Max-Age"))
+	assert.Equal(t, "86400", rw.Header().Get("Access-Control-Max-Age"))
 }
 
 func TestCORS_Get(t *testing.T) {

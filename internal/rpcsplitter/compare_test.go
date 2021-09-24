@@ -23,7 +23,7 @@ import (
 )
 
 type testComparable struct{ v interface{} }
-type testStruct struct{ v interface{} }
+type testStruct struct{ V interface{} }
 
 func (t *testComparable) Compare(v interface{}) bool {
 	return true
@@ -80,8 +80,8 @@ func Test_compare(t *testing.T) {
 		{a: testVar, b: &testVarPtr, equal: true},
 		{a: (*int)(nil), b: (*int)(nil), equal: true},
 		// Struct
-		{a: testStruct{v: 1}, b: testStruct{v: 1}, equal: true},
-		{a: testStruct{v: 1}, b: testStruct{v: 2}, equal: false},
+		{a: testStruct{V: 1}, b: testStruct{V: 1}, equal: true},
+		{a: testStruct{V: 1}, b: testStruct{V: 2}, equal: false},
 		// Compare method
 		{a: testComparable{v: 1}, b: testComparable{v: 2}, equal: true},
 	}
