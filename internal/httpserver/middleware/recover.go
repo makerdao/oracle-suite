@@ -17,7 +17,6 @@ package middleware
 
 import "net/http"
 
-
 // Recover recovers from panics that occurred during invoking handler's
 // ServeHTTP method.
 type Recover struct {

@@ -71,8 +71,8 @@ func TestEthereum_ConfigureSigner_WithPassword(t *testing.T) {
 func TestEthereum_ConfigureEthereumClient(t *testing.T) {
 	prevEthClientFactory := ethClientFactory
 	defer func() { ethClientFactory = prevEthClientFactory }()
-	ethClientFactory = func(rpc string) (geth.EthClient, error) {
-		assert.Equal(t, "1.2.3.4:1234", rpc)
+	ethClientFactory = func(endpoints []string) (geth.EthClient, error) {
+		assert.Equal(t, "1.2.3.4:1234", endpoints[0])
 		return &mocks.EthClient{}, nil
 	}
 
@@ -81,6 +81,30 @@ func TestEthereum_ConfigureEthereumClient(t *testing.T) {
 		Keystore: "./testdata/keystore",
 		Password: "",
 		RPC:      "1.2.3.4:1234",
+	}
+
+	signer, err := config.ConfigureSigner()
+	require.NoError(t, err)
+
+	client, err := config.ConfigureEthereumClient(signer)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestEthereum_ConfigureEthereumClientWithMultipleEndpoints(t *testing.T) {
+	prevEthClientFactory := ethClientFactory
+	defer func() { ethClientFactory = prevEthClientFactory }()
+	ethClientFactory = func(endpoints []string) (geth.EthClient, error) {
+		assert.Equal(t, "1.2.3.4:1234", endpoints[0])
+		assert.Equal(t, "5.6.7.8:1234", endpoints[1])
+		return &mocks.EthClient{}, nil
+	}
+
+	config := Ethereum{
+		From:     "0x07a35a1d4b751a818d93aa38e615c0df23064881",
+		Keystore: "./testdata/keystore",
+		Password: "",
+		RPC:      []string{"1.2.3.4:1234", "5.6.7.8:1234"},
 	}
 
 	signer, err := config.ConfigureSigner()

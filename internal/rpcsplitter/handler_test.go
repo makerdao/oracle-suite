@@ -487,7 +487,7 @@ func Test_RPC_SendRawTransaction(t *testing.T) {
 }
 
 func Test_RPC_GetBalance(t *testing.T) {
-	addr := newAddress("0xc94770007dda54cF92009BFF0dE90c06F603a09f")
+	addr := newAddress("0xb59f67a8bff5d8cd03f6ac17265c550ed8f33907")
 	balance := newNumber("0x100000000000")
 	bn := newNumber("0x10")
 	t.Run("simple", func(t *testing.T) {
@@ -544,7 +544,7 @@ func Test_RPC_GetBalance(t *testing.T) {
 }
 
 func Test_RPC_GetCode(t *testing.T) {
-	addr := newAddress("0xc94770007dda54cF92009BFF0dE90c06F603a09f")
+	addr := newAddress("0xb59f67a8bff5d8cd03f6ac17265c550ed8f33907")
 	code1 := newBytes("0x606060405236156100965763ffffffff")
 	code2 := newBytes("0x606060405236156100965763ffffff00")
 	bn := newNumber("0x10")

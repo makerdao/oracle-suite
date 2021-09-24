@@ -53,9 +53,8 @@ func (t *jsonType) UnmarshalJSON(data []byte) error {
 }
 
 func (t *jsonType) Compare(v interface{}) bool {
-	switch vt := v.(type) {
-	case *jsonType:
-		return compare(t.j, vt.j)
+	if v, ok := v.(*jsonType); ok {
+		return compare(t.j, v.j)
 	}
 	return false
 }
@@ -115,9 +114,8 @@ func (n *blockNumberType) UnmarshalJSON(input []byte) error {
 }
 
 func (n *blockNumberType) Compare(v interface{}) bool {
-	switch vt := v.(type) {
-	case *blockNumberType:
-		return n.Big().Cmp(vt.Big()) == 0
+	if v, ok := v.(*blockNumberType); ok {
+		return n.Big().Cmp(v.Big()) == 0
 	}
 	return false
 }
@@ -168,9 +166,8 @@ func (n *numberType) UnmarshalJSON(input []byte) error {
 }
 
 func (n *numberType) Compare(v interface{}) bool {
-	switch vt := v.(type) {
-	case *numberType:
-		return n.Big().Cmp(vt.Big()) == 0
+	if v, ok := v.(*numberType); ok {
+		return n.Big().Cmp(v.Big()) == 0
 	}
 	return false
 }
@@ -207,9 +204,8 @@ func (b *bytesType) UnmarshalJSON(input []byte) error {
 }
 
 func (b *bytesType) Compare(v interface{}) bool {
-	switch vt := v.(type) {
-	case *bytesType:
-		return bytes.Equal(*b, *vt)
+	if v, ok := v.(*bytesType); ok {
+		return bytes.Equal(*b, *v)
 	}
 	return false
 }
@@ -246,9 +242,8 @@ func (b *addressType) UnmarshalJSON(input []byte) error {
 }
 
 func (b *addressType) Compare(v interface{}) bool {
-	switch vt := v.(type) {
-	case *addressType:
-		return *b == *vt
+	if v, ok := v.(*addressType); ok {
+		return *b == *v
 	}
 	return false
 }
@@ -285,9 +280,8 @@ func (b *hashType) UnmarshalJSON(input []byte) error {
 }
 
 func (b *hashType) Compare(v interface{}) bool {
-	switch vt := v.(type) {
-	case *hashType:
-		return *b == *vt
+	if v, ok := v.(*hashType); ok {
+		return *b == *v
 	}
 	return false
 }
