@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
-	github.com/ethereum/go-ethereum v1.10.6
+	github.com/ethereum/go-ethereum v1.10.8
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-log/v2 v2.3.0 // indirect
@@ -25,6 +25,5 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 )
