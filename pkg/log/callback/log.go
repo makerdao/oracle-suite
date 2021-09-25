@@ -100,7 +100,9 @@ func (c *Logger) Errorf(format string, args ...interface{}) {
 }
 
 func (c *Logger) Panicf(format string, args ...interface{}) {
-	c.callback(c.level, c.fields, fmt.Sprintf(format, args...))
+	msg := fmt.Sprintf(format, args...)
+	c.callback(c.level, c.fields, msg)
+	panic(msg)
 }
 
 func (c *Logger) Debug(args ...interface{}) {
@@ -128,5 +130,7 @@ func (c *Logger) Error(args ...interface{}) {
 }
 
 func (c *Logger) Panic(args ...interface{}) {
-	c.callback(c.level, c.fields, fmt.Sprint(args...))
+	msg := fmt.Sprint(args...)
+	c.callback(c.level, c.fields, msg)
+	panic(msg)
 }

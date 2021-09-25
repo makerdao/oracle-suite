@@ -29,14 +29,14 @@ import (
 )
 
 func TestLogger_InfoLevel(t *testing.T) {
-	var recordedLogs []log.Fields
+	var recordedLogMsgs []string
+	var recordedLogFields []log.Fields
 	l := callback.New(log.Info, func(level log.Level, fields log.Fields, msg string) {
 		if level != log.Info {
 			return
 		}
-		delete(fields, "duration")
-		fields["_msg"] = msg
-		recordedLogs = append(recordedLogs, fields)
+		recordedLogMsgs = append(recordedLogMsgs, msg)
+		recordedLogFields = append(recordedLogFields, fields)
 	})
 
 	r := httptest.NewRequest("GET", "/", nil)
@@ -44,23 +44,22 @@ func TestLogger_InfoLevel(t *testing.T) {
 	h := (&Logger{Log: l}).Handle(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {}))
 	h.ServeHTTP(w, r)
 
-	require.Len(t, recordedLogs, 1)
-	assert.Equal(t, log.Fields{
-		"_msg":   httpRequestLog,
-		"method": "GET",
-		"url":    "/",
-	}, recordedLogs[0])
+	require.Len(t, recordedLogMsgs, 1)
+	assert.Equal(t, httpRequestLog, recordedLogMsgs[0])
+	assert.Equal(t, "GET", recordedLogFields[0]["method"])
+	assert.Equal(t, "/", recordedLogFields[0]["url"])
+	assert.NotEmpty(t, recordedLogFields[0]["duration"])
 }
 
 func TestLogger_DebugLevel(t *testing.T) {
-	var recordedLogs []log.Fields
+	var recordedLogMsgs []string
+	var recordedLogFields []log.Fields
 	l := callback.New(log.Debug, func(level log.Level, fields log.Fields, msg string) {
 		if level != log.Debug {
 			return
 		}
-		delete(fields, "duration")
-		fields["_msg"] = msg
-		recordedLogs = append(recordedLogs, fields)
+		recordedLogMsgs = append(recordedLogMsgs, msg)
+		recordedLogFields = append(recordedLogFields, fields)
 	})
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader("request"))
@@ -71,13 +70,12 @@ func TestLogger_DebugLevel(t *testing.T) {
 	}))
 	h.ServeHTTP(w, r)
 
-	require.Len(t, recordedLogs, 1)
-	assert.Equal(t, log.Fields{
-		"_msg":     httpRequestLog,
-		"method":   "GET",
-		"url":      "/",
-		"status":   http.StatusNotFound,
-		"request":  "request",
-		"response": "response",
-	}, recordedLogs[0])
+	require.Len(t, recordedLogMsgs, 1)
+	assert.Equal(t, httpRequestLog, recordedLogMsgs[0])
+	assert.Equal(t, "GET", recordedLogFields[0]["method"])
+	assert.Equal(t, "/", recordedLogFields[0]["url"])
+	assert.Equal(t, http.StatusNotFound, recordedLogFields[0]["status"])
+	assert.Equal(t, "request", recordedLogFields[0]["request"])
+	assert.Equal(t, "response", recordedLogFields[0]["response"])
+	assert.NotEmpty(t, recordedLogFields[0]["duration"])
 }

@@ -39,7 +39,7 @@ func ParseLevel(lvl string) (Level, error) {
 		return Panic, nil
 	case "error", "err":
 		return Error, nil
-	case "warn", "warning":
+	case "warning", "warn":
 		return Warn, nil
 	case "info":
 		return Info, nil
@@ -56,7 +56,7 @@ func (l Level) String() string {
 	case Error:
 		return "error"
 	case Warn:
-		return "warn"
+		return "warning"
 	case Info:
 		return "info"
 	case Debug:
