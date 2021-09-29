@@ -76,9 +76,14 @@ func (c *Ethereum) ConfigureEthereumClient(signer ethereum.Signer) (*geth.Client
 	switch v := c.RPC.(type) {
 	case string:
 		endpoints = []string{v}
-	case []string:
-		endpoints = v
-	default:
+	case []interface{}:
+		for _, s := range v {
+			if s, ok := s.(string); ok {
+				endpoints = append(endpoints, s)
+			}
+		}
+	}
+	if len(endpoints) == 0 {
 		return nil, errors.New("value of the RPC key must be string or array of strings")
 	}
 	client, err := ethClientFactory(endpoints)
