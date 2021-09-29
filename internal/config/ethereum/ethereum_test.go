@@ -104,7 +104,7 @@ func TestEthereum_ConfigureEthereumClientWithMultipleEndpoints(t *testing.T) {
 		From:     "0x07a35a1d4b751a818d93aa38e615c0df23064881",
 		Keystore: "./testdata/keystore",
 		Password: "",
-		RPC:      []string{"1.2.3.4:1234", "5.6.7.8:1234"},
+		RPC:      []interface{}{"1.2.3.4:1234", "5.6.7.8:1234"},
 	}
 
 	signer, err := config.ConfigureSigner()
