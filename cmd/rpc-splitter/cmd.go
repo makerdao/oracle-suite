@@ -26,7 +26,7 @@ import (
 type options struct {
 	Listen       string
 	EnableCORS   bool
-	EthRpcUrls   []string
+	EthRPCURLs   []string
 	LogVerbosity string
 	LogFormat    logrusFlag.FormatTypeValue
 }
@@ -67,7 +67,7 @@ func NewRootCommand(opts *options) *cobra.Command {
 		"enables CORS requests for all origins",
 	)
 	rootCmd.PersistentFlags().StringSliceVar(
-		&opts.EthRpcUrls,
+		&opts.EthRPCURLs,
 		"eth-rpc",
 		[]string{},
 		"list of ethereum nodes",
