@@ -33,11 +33,11 @@ import (
 func NewRunCmd(opts *options) *cobra.Command {
 	return &cobra.Command{
 		Use:     "run",
-		Args:    cobra.MinimumNArgs(1),
+		Args:    cobra.ExactArgs(0),
 		Aliases: []string{"agent"},
 		Short:   "",
 		Long:    ``,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			ctx, ctxCancel := context.WithCancel(context.Background())
 			defer ctxCancel()
 
@@ -46,7 +46,7 @@ func NewRunCmd(opts *options) *cobra.Command {
 				return err
 			}
 
-			handler, err := rpcsplitter.NewHandler(args)
+			handler, err := rpcsplitter.NewHandler(opts.EthRPCURLs)
 			if err != nil {
 				return err
 			}

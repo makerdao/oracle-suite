@@ -127,9 +127,10 @@ func ethCall(
 		hexutil.Encode(callData),
 	)
 	res := workerPool.Query(&query.HTTPRequest{
-		URL:    ethRPCURL,
-		Method: "POST",
-		Body:   bytes.NewBuffer([]byte(sprintf)),
+		URL:     ethRPCURL,
+		Method:  "POST",
+		Body:    bytes.NewBuffer([]byte(sprintf)),
+		Headers: map[string]string{"Content-Type": "application/json"},
 	})
 	if res.Error != nil {
 		return 0, res.Error
