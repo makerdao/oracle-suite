@@ -216,7 +216,7 @@
     ]
   },
   "gofer": {
-    "ethRpc": "",
+    "ethRpc": "http://127.0.0.1:9989",
     "rpc": {
       "disable": false,
       "address": "127.0.0.1:9000"
