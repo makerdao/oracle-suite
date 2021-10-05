@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/makerdao/oracle-suite/internal/query"
+	pkgEthereum "github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/gofer"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
 	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
@@ -94,21 +95,21 @@ type Source struct {
 	TTL    int    `json:"ttl"`
 }
 
-func (c *Gofer) ConfigureGofer(ctx context.Context, logger log.Logger, noRPC bool) (gofer.Gofer, error) {
+func (c *Gofer) ConfigureGofer(ctx context.Context, cli pkgEthereum.Client, logger log.Logger, noRPC bool) (gofer.Gofer, error) {
 	if c.RPC.Address == "" || noRPC {
-		return c.configureGofer(ctx, logger)
+		return c.configureGofer(ctx, cli, logger)
 	}
 	return c.configureRPCClient(ctx)
 }
 
 // ConfigureRPCAgent returns a new rpc.Agent instance.
-func (c *Gofer) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.Agent, error) {
+func (c *Gofer) ConfigureRPCAgent(ctx context.Context, cli pkgEthereum.Client, logger log.Logger) (*rpc.Agent, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
 
-	originSet, err := c.buildOrigins()
+	originSet, err := c.buildOrigins(cli)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +131,13 @@ func (c *Gofer) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.
 }
 
 // ConfigureGofer returns a new Gofer instance.
-func (c *Gofer) configureGofer(ctx context.Context, logger log.Logger) (gofer.Gofer, error) {
+func (c *Gofer) configureGofer(ctx context.Context, cli pkgEthereum.Client, logger log.Logger) (gofer.Gofer, error) {
 	gra, err := c.buildGraphs()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load price models: %w", err)
 	}
 
-	originSet, err := c.buildOrigins()
+	originSet, err := c.buildOrigins(cli)
 	if err != nil {
 		return nil, err
 	}
@@ -150,21 +151,19 @@ func (c *Gofer) configureRPCClient(ctx context.Context) (*rpc.Gofer, error) {
 	return rpc.NewGofer(ctx, "tcp", c.RPC.Address)
 }
 
-func (c *Gofer) buildOrigins() (*origins.Set, error) {
+func (c *Gofer) buildOrigins(cli pkgEthereum.Client) (*origins.Set, error) {
 	const defaultWorkerCount = 5
-	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
-
-	defaultOrigins := origins.DefaultOriginSet(httpWorkerPool)
-
+	wp := query.NewHTTPWorkerPool(defaultWorkerCount)
+	originSet := origins.DefaultOriginSet(wp)
 	for name, origin := range c.Origins {
-		handler, err := NewHandler(origin.Type, httpWorkerPool, origin.Params, c.EthRPC)
+		handler, err := NewHandler(origin.Type, wp, cli, origin.Params)
 		if err != nil || handler == nil {
 			return nil, fmt.Errorf("failed to initiate %s origin with name %s due to error: %w",
 				origin.Type, origin.Name, err)
 		}
-		defaultOrigins.SetHandler(name, handler)
+		originSet.SetHandler(name, handler)
 	}
-	return defaultOrigins, nil
+	return originSet, nil
 }
 
 func (c *Gofer) buildGraphs() (map[gofer.Pair]nodes.Aggregator, error) {

@@ -36,8 +36,6 @@ type ExchangeHandler interface {
 	// PullPrices is similar to Handler.Fetch
 	// but pairs will be already renamed based on given BaseExchangeHandler.symbolAliases
 	PullPrices(pairs []Pair) []FetchResult
-
-	Pool() query.WorkerPool
 }
 
 type BaseExchangeHandler struct {

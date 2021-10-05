@@ -16,13 +16,16 @@
 package origins
 
 import (
+	"context"
+	_ "embed"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	pkgEthereum "github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
 // The three values that can be queried:
@@ -39,42 +42,27 @@ import (
 // - INVARIANT: the value of the Pool's invariant, which serves as a measure of its liquidity.
 // enum Variable { PAIR_PRICE, BPT_PRICE, INVARIANT }
 
-const _BalancerV2PoolJSON = `[{
-"inputs":[{"internalType":"enum IPriceOracle.Variable","name":"variable","type":"uint8"}],
-"name":"getLatest",
-"outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-"stateMutability":"view","type":"function"
-}]`
+//go:embed balancerv2_test.go
+var balancerV2PoolABI string
 
 type BalancerV2 struct {
-	EthRPCURL         string
-	WorkerPool        query.WorkerPool
+	ethClient         pkgEthereum.Client
 	ContractAddresses ContractAddresses
 	abi               abi.ABI
 	variable          byte
 }
 
-func NewBalancerV2(
-	ethRPCURL string,
-	workerPool query.WorkerPool,
-	contractAddresses ContractAddresses,
-) (*BalancerV2, error) {
-
-	a, err := abi.JSON(strings.NewReader(_BalancerV2PoolJSON))
+func NewBalancerV2(cli pkgEthereum.Client, addrs ContractAddresses) (*BalancerV2, error) {
+	a, err := abi.JSON(strings.NewReader(balancerV2PoolABI))
 	if err != nil {
 		return nil, err
 	}
 	return &BalancerV2{
-		EthRPCURL:         ethRPCURL,
-		WorkerPool:        workerPool,
-		ContractAddresses: contractAddresses,
+		ethClient:         cli,
+		ContractAddresses: addrs,
 		abi:               a,
 		variable:          0, // PAIR_PRICE
 	}, nil
-}
-
-func (s BalancerV2) Pool() query.WorkerPool {
-	return s.WorkerPool
 }
 
 func (s BalancerV2) PullPrices(pairs []Pair) []FetchResult {
@@ -96,10 +84,12 @@ func (s BalancerV2) callOne(pair Pair) (*Price, error) {
 		return nil, fmt.Errorf("failed to pack contract args for pair %s: %w", pair.String(), err)
 	}
 
-	price, err := ethCall(s.Pool(), s.EthRPCURL, contract, callData)
+	resp, err := s.ethClient.Call(context.Background(), pkgEthereum.Call{Address: contract, Data: callData})
 	if err != nil {
 		return nil, err
 	}
+	bn := new(big.Int).SetBytes(resp)
+	price, _ := new(big.Float).Quo(new(big.Float).SetInt(bn), new(big.Float).SetUint64(1e18)).Float64()
 
 	return &Price{
 		Pair:      pair,
