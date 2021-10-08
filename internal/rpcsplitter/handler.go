@@ -587,7 +587,7 @@ func useMedian(s []interface{}, minReq int) (*numberType, error) {
 	sort.Slice(sn, func(i, j int) bool {
 		return sn[i].Big().Cmp(sn[j].Big()) < 0
 	})
-	if len(s)%2 == 0 {
+	if len(sn)%2 == 0 {
 		m := len(s) / 2
 		bx := sn[m-1].Big()
 		by := sn[m].Big()

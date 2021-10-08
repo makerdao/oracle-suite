@@ -1240,7 +1240,7 @@ func Test_useMedian(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.True(t, tt.want.Compare(got))
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}
