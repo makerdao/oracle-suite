@@ -25,14 +25,18 @@ import (
 	"strings"
 
 	gethRPC "github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
+
+const LoggerTag = "RPCSPLITTER"
 
 // maxBlocksBehind is the number of blocks behind the median of the block
 // numbers reported by the endpoints that determines the lowest block number
 // that can returned by the eth_blockNumber method.
 const maxBlocksBehind = 3
 
-type rpcClient interface {
+type rpcCaller interface {
 	Call(result interface{}, method string, args ...interface{}) error
 }
 
@@ -42,6 +46,12 @@ type handler struct {
 	cli []rpcClient     // cli is a list of RPC clients.
 	eth *rpcETHAPI      // eth implements procedures with the "eth_" prefix.
 	net *rpcNETAPI      // net implements procedures with the "net_" prefix.
+	log log.Logger
+}
+
+type rpcClient struct {
+	rpcCaller
+	endpoint string
 }
 
 type rpcETHAPI struct {
@@ -52,20 +62,27 @@ type rpcNETAPI struct {
 	handler *handler
 }
 
-func NewHandler(endpoints []string) (http.Handler, error) {
+func NewHandler(endpoints []string, log log.Logger) (http.Handler, error) {
 	var clients []rpcClient
 	for _, e := range endpoints {
 		c, err := gethRPC.Dial(e)
 		if err != nil {
 			return nil, err
 		}
-		clients = append(clients, c)
+		clients = append(clients, rpcClient{
+			rpcCaller: c,
+			endpoint:  e,
+		})
 	}
-	return newHandlerWithClients(clients)
+	return newHandlerWithClients(clients, log)
 }
 
-func newHandlerWithClients(clients []rpcClient) (http.Handler, error) {
-	h := &handler{rpc: gethRPC.NewServer(), cli: make([]rpcClient, len(clients))}
+func newHandlerWithClients(clients []rpcClient, log log.Logger) (http.Handler, error) {
+	h := &handler{
+		rpc: gethRPC.NewServer(),
+		cli: make([]rpcClient, len(clients)),
+		log: log.WithField("tag", LoggerTag),
+	}
 	eth := &rpcETHAPI{handler: h}
 	net := &rpcNETAPI{handler: h}
 	h.eth = eth
@@ -92,7 +109,7 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // specified in the minReq method.
 func (r *rpcETHAPI) BlockNumber() (interface{}, error) {
 	return useMedianDist(
-		r.handler.doRPC((*numberType)(nil), "eth_blockNumber"), r.handler.minReq(),
+		r.handler.call((*numberType)(nil), "eth_blockNumber"), r.handler.minReq(),
 		-maxBlocksBehind,
 	)
 }
@@ -103,7 +120,7 @@ func (r *rpcETHAPI) BlockNumber() (interface{}, error) {
 // by the endpoints.
 func (r *rpcETHAPI) GetBlockByHash(blockHash hashType, obj bool) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC(blockTypeNilPtr(obj), "eth_getBlockByHash", blockHash, obj),
+		r.handler.call(blockTypeNilPtr(obj), "eth_getBlockByHash", blockHash, obj),
 		r.handler.minReq(),
 	)
 }
@@ -114,7 +131,7 @@ func (r *rpcETHAPI) GetBlockByHash(blockHash hashType, obj bool) (interface{}, e
 // specified in the minReq method.
 func (r *rpcETHAPI) GetBlockByNumber(blockNumber numberType, obj bool) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC(blockTypeNilPtr(obj), "eth_getBlockByNumber", blockNumber, obj),
+		r.handler.call(blockTypeNilPtr(obj), "eth_getBlockByNumber", blockNumber, obj),
 		r.handler.minReq(),
 	)
 }
@@ -125,7 +142,7 @@ func (r *rpcETHAPI) GetBlockByNumber(blockNumber numberType, obj bool) (interfac
 // specified in the minReq method.
 func (r *rpcETHAPI) GetTransactionByHash(txHash hashType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*transactionType)(nil), "eth_getTransactionByHash", txHash),
+		r.handler.call((*transactionType)(nil), "eth_getTransactionByHash", txHash),
 		r.handler.minReq(),
 	)
 }
@@ -140,7 +157,7 @@ func (r *rpcETHAPI) GetTransactionByHash(txHash hashType) (interface{}, error) {
 // not supported.
 func (r *rpcETHAPI) GetTransactionCount(addr addressType, blockNumber blockNumberType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*numberType)(nil), "eth_getTransactionCount", addr, blockNumber),
+		r.handler.call((*numberType)(nil), "eth_getTransactionCount", addr, blockNumber),
 		r.handler.minReq(),
 	)
 }
@@ -151,7 +168,7 @@ func (r *rpcETHAPI) GetTransactionCount(addr addressType, blockNumber blockNumbe
 // specified in the minReq method.
 func (r *rpcETHAPI) GetTransactionReceipt(txHash hashType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*transactionReceiptType)(nil), "eth_getTransactionReceipt", txHash),
+		r.handler.call((*transactionReceiptType)(nil), "eth_getTransactionReceipt", txHash),
 		r.handler.minReq(),
 	)
 }
@@ -166,7 +183,7 @@ func (r *rpcETHAPI) GetTransactionReceipt(txHash hashType) (interface{}, error) 
 // It returns the most common response.
 func (r *rpcETHAPI) SendRawTransaction(data bytesType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*hashType)(nil), "eth_sendRawTransaction", data),
+		r.handler.call((*hashType)(nil), "eth_sendRawTransaction", data),
 		1,
 	)
 }
@@ -181,7 +198,7 @@ func (r *rpcETHAPI) SendRawTransaction(data bytesType) (interface{}, error) {
 // not supported.
 func (r *rpcETHAPI) GetBalance(addr addressType, blockNumber blockNumberType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*numberType)(nil), "eth_getBalance", addr, blockNumber),
+		r.handler.call((*numberType)(nil), "eth_getBalance", addr, blockNumber),
 		r.handler.minReq(),
 	)
 }
@@ -196,7 +213,7 @@ func (r *rpcETHAPI) GetBalance(addr addressType, blockNumber blockNumberType) (i
 // not supported.
 func (r *rpcETHAPI) GetCode(addr addressType, blockNumber blockNumberType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*bytesType)(nil), "eth_getCode", addr, blockNumber),
+		r.handler.call((*bytesType)(nil), "eth_getCode", addr, blockNumber),
 		r.handler.minReq(),
 	)
 }
@@ -211,7 +228,7 @@ func (r *rpcETHAPI) GetCode(addr addressType, blockNumber blockNumberType) (inte
 // not supported.
 func (r *rpcETHAPI) GetStorageAt(data addressType, pos numberType, blockNumber blockNumberType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*hashType)(nil), "eth_getStorageAt", data, pos, blockNumber),
+		r.handler.call((*hashType)(nil), "eth_getStorageAt", data, pos, blockNumber),
 		r.handler.minReq(),
 	)
 }
@@ -229,7 +246,7 @@ func (r *rpcETHAPI) GetStorageAt(data addressType, pos numberType, blockNumber b
 // not supported.
 func (r *rpcETHAPI) Call(args jsonType, blockNumber blockNumberType, overrides *jsonType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*bytesType)(nil), "eth_call", args, blockNumber, overrides),
+		r.handler.call((*bytesType)(nil), "eth_call", args, blockNumber, overrides),
 		r.handler.minReq(),
 	)
 }
@@ -243,7 +260,7 @@ func (r *rpcETHAPI) Call(args jsonType, blockNumber blockNumberType, overrides *
 // by the endpoints.
 func (r *rpcETHAPI) GasPrice() (interface{}, error) {
 	return useMedian(
-		r.handler.doRPC((*numberType)(nil), "eth_gasPrice"),
+		r.handler.call((*numberType)(nil), "eth_gasPrice"),
 		r.handler.minReq(),
 	)
 }
@@ -258,7 +275,7 @@ func (r *rpcETHAPI) GasPrice() (interface{}, error) {
 // not supported.
 func (r *rpcETHAPI) EstimateGas(args jsonType, blockNumber blockNumberType) (interface{}, error) {
 	return useMedian(
-		r.handler.doRPC((*numberType)(nil), "eth_estimateGas", args, blockNumber),
+		r.handler.call((*numberType)(nil), "eth_estimateGas", args, blockNumber),
 		r.handler.minReq(),
 	)
 }
@@ -269,7 +286,7 @@ func (r *rpcETHAPI) EstimateGas(args jsonType, blockNumber blockNumberType) (int
 // specified in the minReq method.
 func (r *rpcETHAPI) FeeHistory(count numberType, newest blockNumberType, percentiles jsonType) (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*feeHistoryType)(nil), "eth_feeHistory", count, newest, percentiles),
+		r.handler.call((*feeHistoryType)(nil), "eth_feeHistory", count, newest, percentiles),
 		r.handler.minReq(),
 	)
 }
@@ -280,7 +297,7 @@ func (r *rpcETHAPI) FeeHistory(count numberType, newest blockNumberType, percent
 // by the endpoints.
 func (r *rpcETHAPI) MaxPriorityFeePerGas() (interface{}, error) {
 	return useMedian(
-		r.handler.doRPC((*numberType)(nil), "eth_maxPriorityFeePerGas"),
+		r.handler.call((*numberType)(nil), "eth_maxPriorityFeePerGas"),
 		r.handler.minReq(),
 	)
 }
@@ -292,7 +309,7 @@ func (r *rpcETHAPI) MaxPriorityFeePerGas() (interface{}, error) {
 //nolint:golint,stylecheck
 func (r *rpcETHAPI) ChainId() (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*numberType)(nil), "eth_chainId"),
+		r.handler.call((*numberType)(nil), "eth_chainId"),
 		r.handler.minReq(),
 	)
 }
@@ -314,41 +331,30 @@ func (r *rpcETHAPI) ChainId() (interface{}, error) {
 // specified in the minReq method.
 func (r *rpcNETAPI) Version() (interface{}, error) {
 	return useMostCommon(
-		r.handler.doRPC((*jsonType)(nil), "net_version"),
+		r.handler.call((*jsonType)(nil), "net_version"),
 		r.handler.minReq(),
 	)
 }
 
-// doRPC executes RPC on all endpoints and returns a slice with all results.
+// call executes RPC on all endpoints and returns a slice with all results.
+//
 // The typ argument must be an empty pointer with a type to which the results
 // will be converted.
-func (h *handler) doRPC(typ interface{}, method string, args ...interface{}) (res []interface{}) {
+func (h *handler) call(typ interface{}, method string, args ...interface{}) (res []interface{}) {
+	// Process arguments.
 	err := h.processArgs(&args)
 	if err != nil {
 		return []interface{}{err}
 	}
+	// Send requests to all endpoints.
 	ch := make(chan interface{})
-	rt := reflect.TypeOf(typ).Elem()
 	for _, cli := range h.cli {
 		cli := cli
 		go func() {
-			var val interface{}
-			var err error
-			defer func() {
-				panicErr := recover()
-				switch {
-				case panicErr != nil:
-					ch <- fmt.Errorf("panic: %s", panicErr)
-				case err != nil:
-					ch <- err
-				default:
-					ch <- val
-				}
-			}()
-			val = reflect.New(rt).Interface()
-			err = cli.Call(val, method, args...)
+			ch <- h.callOne(cli, typ, method, args...)
 		}()
 	}
+	// Wait for the responses.
 	for {
 		res = append(res, <-ch)
 		if len(res) == len(h.cli) {
@@ -356,6 +362,39 @@ func (h *handler) doRPC(typ interface{}, method string, args ...interface{}) (re
 		}
 	}
 	return res
+}
+
+// call executes RPC on a single endpoint.
+//
+// The typ argument must be an empty pointer with a type to which the results
+// will be converted.
+func (h *handler) callOne(cli rpcClient, typ interface{}, method string, args ...interface{}) (out interface{}) {
+	var err error
+	var val interface{}
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %s", r)
+		}
+		if err != nil {
+			// Errors are returned in the same way as other values. The out
+			// variable is a named return parameter.
+			out = err
+			h.log.WithFields(log.Fields{
+				"endpoint": cli.endpoint,
+				"method":   method,
+			}).WithError(err).Error("Call error")
+		}
+	}()
+	h.log.WithFields(log.Fields{
+		"endpoint": cli.endpoint,
+		"method":   method,
+	}).Info("Call")
+	// typ is a nil pointer, and it's shared by multiple goroutines, so it
+	// cannot be used directly with cli.Call.
+	val = reflect.New(reflect.TypeOf(typ).Elem()).Interface()
+	err = cli.Call(val, method, args...)
+	out = val
+	return
 }
 
 // processArgs removes trailing nil arguments from the args slice and

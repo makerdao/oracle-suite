@@ -42,9 +42,10 @@ func (l *Logger) Handle(next http.Handler) http.Handler {
 		}
 		defer func() {
 			e = e.WithFields(log.Fields{
-				"duration": time.Since(t),
-				"method":   r.Method,
-				"url":      r.URL.String(),
+				"remoteAddr": r.RemoteAddr,
+				"duration":   time.Since(t),
+				"method":     r.Method,
+				"url":        r.URL.String(),
 			})
 			if l.Log.Level() >= log.Debug {
 				e = e.WithFields(log.Fields{

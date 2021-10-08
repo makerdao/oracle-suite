@@ -46,7 +46,7 @@ func NewRunCmd(opts *options) *cobra.Command {
 				return err
 			}
 
-			handler, err := rpcsplitter.NewHandler(opts.EthRPCURLs)
+			handler, err := rpcsplitter.NewHandler(opts.EthRPCURLs, log)
 			if err != nil {
 				return err
 			}

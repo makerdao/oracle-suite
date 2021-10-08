@@ -18,6 +18,7 @@ package rpcsplitter
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/makerdao/oracle-suite/pkg/log/null"
 )
 
 type rpcReq struct {
@@ -95,13 +98,13 @@ type testRPC struct {
 func prepareRPCTest(t *testing.T, clients int, method string, params ...interface{}) *testRPC {
 	var cli []rpcClient
 	for i := 0; i < clients; i++ {
-		cli = append(cli, &clientMock{t: t})
+		cli = append(cli, rpcClient{rpcCaller: &clientMock{t: t}, endpoint: fmt.Sprintf("#%d", i)})
 	}
 	return &testRPC{t: t, clients: cli, method: method, params: params}
 }
 
 func (t *testRPC) mockClientCall(client int, response interface{}, method string, params ...interface{}) *testRPC {
-	t.clients[client].(*clientMock).mockCall(response, method, params...)
+	t.clients[client].rpcCaller.(*clientMock).mockCall(response, method, params...)
 	return t
 }
 
@@ -117,7 +120,7 @@ func (t *testRPC) expectedError(msg string) *testRPC {
 
 func (t *testRPC) run() {
 	// Prepare handler:
-	h, err := newHandlerWithClients(t.clients)
+	h, err := newHandlerWithClients(t.clients, null.New())
 	require.NoError(t.t, err)
 
 	// Prepare request:

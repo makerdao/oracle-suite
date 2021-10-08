@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/makerdao/oracle-suite/internal/rpcsplitter"
+	"github.com/makerdao/oracle-suite/pkg/log/null"
 
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
@@ -41,7 +42,8 @@ var ethClientFactory = func(endpoints []string) (geth.EthClient, error) {
 	case 1:
 		return ethclient.Dial(endpoints[0])
 	default:
-		splitter, err := rpcsplitter.NewTransport(endpoints, splitterVirtualHost, nil)
+		// TODO: pass logger
+		splitter, err := rpcsplitter.NewTransport(endpoints, splitterVirtualHost, nil, null.New())
 		if err != nil {
 			return nil, err
 		}

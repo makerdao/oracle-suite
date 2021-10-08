@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/makerdao/oracle-suite/pkg/log"
 )
 
 type Transport struct {
@@ -28,8 +30,8 @@ type Transport struct {
 	virtualHost string
 }
 
-func NewTransport(endpoints []string, virtualHost string, transport http.RoundTripper) (*Transport, error) {
-	rpc, err := NewHandler(endpoints)
+func NewTransport(endpoints []string, host string, transport http.RoundTripper, log log.Logger) (*Transport, error) {
+	rpc, err := NewHandler(endpoints, log)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +40,7 @@ func NewTransport(endpoints []string, virtualHost string, transport http.RoundTr
 	}
 	return &Transport{
 		transport:   transport,
-		virtualHost: virtualHost,
+		virtualHost: host,
 		handler:     rpc,
 	}, nil
 }
