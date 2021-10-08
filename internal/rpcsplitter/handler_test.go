@@ -1264,17 +1264,13 @@ func Test_useMedianDist(t *testing.T) {
 		},
 		{
 			in: []interface{}{
-				newNumber("0x4"),
-				newNumber("0x5"),
-				newNumber("0x6"),
-				newNumber("0x7"),
-				newNumber("0x8"),
-				newNumber("0x9"),
-				newNumber("0xA"),
+				newNumber("0x1"),
+				newNumber("0x2"),
+				newNumber("0x3"),
 			},
-			dist:   -2,
-			minReq: 7,
-			want:   newNumber("0x5"),
+			dist:   0,
+			minReq: 1,
+			want:   newNumber("0x2"),
 		},
 		{
 			in: []interface{}{
@@ -1287,20 +1283,6 @@ func Test_useMedianDist(t *testing.T) {
 				newNumber("0xA"),
 			},
 			dist:   2,
-			minReq: 7,
-			want:   newNumber("0x9"),
-		},
-		{
-			in: []interface{}{
-				newNumber("0xA"),
-				newNumber("0x9"),
-				newNumber("0x8"),
-				newNumber("0x7"),
-				newNumber("0x6"),
-				newNumber("0x5"),
-				newNumber("0x4"),
-			},
-			dist:   -2,
 			minReq: 7,
 			want:   newNumber("0x5"),
 		},
@@ -1316,7 +1298,7 @@ func Test_useMedianDist(t *testing.T) {
 			},
 			dist:   2,
 			minReq: 7,
-			want:   newNumber("0x9"),
+			want:   newNumber("0x5"),
 		},
 		// Fails because there are not enough responses:
 		{
@@ -1351,7 +1333,7 @@ func Test_useMedianDist(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.True(t, tt.want.Compare(got))
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}

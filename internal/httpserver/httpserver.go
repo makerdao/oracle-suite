@@ -58,7 +58,7 @@ func New(ctx context.Context, srv *http.Server) *HTTPServer {
 // were added. This function will panic after calling ServerHTTP/ListenAndServe.
 func (s *HTTPServer) Use(m ...Middleware) {
 	if s.wrappedHandler != nil {
-		panic("cannot add a middleware after calling ServerHTTP/ListenAndServe")
+		panic("cannot add a middleware after calling ServeHTTP/ListenAndServe")
 	}
 	s.middlewares = append(s.middlewares, m...)
 }

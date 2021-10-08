@@ -110,7 +110,7 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func (r *rpcETHAPI) BlockNumber() (interface{}, error) {
 	return useMedianDist(
 		r.handler.call((*numberType)(nil), "eth_blockNumber"), r.handler.minReq(),
-		-maxBlocksBehind,
+		maxBlocksBehind,
 	)
 }
 
@@ -379,17 +379,18 @@ func (h *handler) callOne(cli rpcClient, typ interface{}, method string, args ..
 			// Errors are returned in the same way as other values. The out
 			// variable is a named return parameter.
 			out = err
-			h.log.WithFields(log.Fields{
-				"endpoint": cli.endpoint,
-				"method":   method,
-			}).WithError(err).Error("Call error")
+			h.log.
+				WithField("endpoint", cli.endpoint).
+				WithField("method", method).
+				WithError(err).
+				Error("Call error")
 		}
 	}()
-	h.log.WithFields(log.Fields{
-		"endpoint": cli.endpoint,
-		"method":   method,
-	}).Info("Call")
-	// typ is a nil pointer, and it's shared by multiple goroutines, so it
+	h.log.
+		WithField("endpoint", cli.endpoint).
+		WithField("method", method).
+		Info("Call")
+	// typ is a nil pointer, and it is shared by multiple goroutines, so it
 	// cannot be used directly with cli.Call.
 	val = reflect.New(reflect.TypeOf(typ).Elem()).Interface()
 	err = cli.Call(val, method, args...)
@@ -468,10 +469,10 @@ func (e rpcErrors) Error() string {
 	}
 }
 
-// addErr adds an error to an error slice. If errs is not an error slice it will
-// be converted into one. If there is already an error with the same message in
-// the slice, it will not be added.
-func addErr(errs error, err error, prepend bool) error {
+// addError adds an error to an error slice. If errs is not an error slice it
+// will be converted into one. If there is already an error with the same
+// message in the slice, it will not be added.
+func addError(errs error, err error, prepend bool) error {
 	if errs, ok := errs.(rpcErrors); ok {
 		msg := err.Error()
 		for _, e := range errs {
@@ -487,7 +488,7 @@ func addErr(errs error, err error, prepend bool) error {
 	if errs == nil {
 		return rpcErrors{err}
 	}
-	return addErr(rpcErrors{errs}, err, prepend)
+	return addError(rpcErrors{errs}, err, prepend)
 }
 
 // useMostCommon compares all responses returned from RPC endpoints and chooses
@@ -500,18 +501,18 @@ func useMostCommon(s []interface{}, minReq int) (interface{}, error) {
 	// in the slice with every other item. The result is stored in a map,
 	// where the key is the item itself and the value is the number of
 	// occurrences.
-	maxCount := 0
-	counters := map[interface{}]int{}
+	occurs := map[interface{}]int{}
+	maxOccurs := 0
 	for _, a := range s {
 		// Errors are handled separately.
 		if e, ok := a.(error); ok {
-			err = addErr(err, e, false)
+			err = addError(err, e, false)
 			continue
 		}
 		// Check if there is an item same as the `a` var already added to
-		// the `counters` map. If so, skip it.
+		// the `occurs` map. If so, skip it.
 		f := false
-		for b := range counters {
+		for b := range occurs {
 			if compare(a, b) {
 				f = true
 				break
@@ -523,28 +524,34 @@ func useMostCommon(s []interface{}, minReq int) (interface{}, error) {
 		// Count occurrences of the `a` item.
 		for _, b := range s {
 			if compare(a, b) {
-				counters[a]++
-				if counters[a] > maxCount {
-					maxCount = counters[a]
+				occurs[a]++
+				if occurs[a] > maxOccurs {
+					maxOccurs = occurs[a]
 				}
 			}
 		}
 	}
 	// Check if there are enough occurrences of the most common item.
-	if maxCount < minReq {
-		err = addErr(err, errors.New("not enough occurrences of the same response from RPC servers"), true)
-		return nil, err
+	if maxOccurs < minReq {
+		return nil, addError(
+			err,
+			errors.New("not enough occurrences of the same response from RPC servers"),
+			true,
+		)
 	}
 	// Find the item with the maximum number of occurrences.
 	var res interface{}
-	for v, c := range counters {
-		if c == maxCount {
+	for v, n := range occurs {
+		if n == maxOccurs {
 			if res != nil {
 				// If `res` is not nil it means, that there are multiple items
-				// that occurred `maxCount` times. In this case, we cannot
+				// that occurred `maxOccurs` times. In this case, we cannot
 				// determine which one should be chosen.
-				err = addErr(err, errors.New("RPC servers returned different responses"), true)
-				return nil, err
+				return nil, addError(
+					err,
+					errors.New("RPC servers returned different responses"),
+					true,
+				)
 			}
 			res = v
 			// We do not want to "break" here because we still have to check
@@ -562,48 +569,54 @@ func useMedian(s []interface{}, minReq int) (*numberType, error) {
 	var err error
 	for _, v := range s {
 		if e, ok := v.(error); ok {
-			err = addErr(err, e, false)
+			err = addError(err, e, false)
 		}
 	}
-	// Filter out anything that is not a number.
-	s = filter(s, (*numberType)(nil))
-	if len(s) < minReq {
-		err = addErr(err, errors.New("not enough responses from RPC servers"), true)
+	// Filter out anything that is not a numberType.
+	var sn []*numberType
+	for _, v := range s {
+		if v, ok := v.(*numberType); ok {
+			sn = append(sn, v)
+		}
+	}
+	if len(sn) < minReq {
+		err = addError(err, errors.New("not enough responses from RPC servers"), true)
 		return nil, err
 	}
 	// Calculate the median.
-	sort.Slice(s, func(i, j int) bool {
-		return s[i].(*numberType).Big().Cmp(s[j].(*numberType).Big()) < 0
+	sort.Slice(sn, func(i, j int) bool {
+		return sn[i].Big().Cmp(sn[j].Big()) < 0
 	})
 	if len(s)%2 == 0 {
 		m := len(s) / 2
-		bx := s[m-1].(*numberType).Big()
-		by := s[m].(*numberType).Big()
-		bm := new(big.Int).Div(new(big.Int).Add(bx, by), big.NewInt(2))
-		return (*numberType)(bm), nil
+		bx := sn[m-1].Big()
+		by := sn[m].Big()
+		return (*numberType)(new(big.Int).Div(new(big.Int).Add(bx, by), big.NewInt(2))), nil
 	}
-	return s[len(s)/2].(*numberType), nil
+	return sn[len(sn)/2], nil
 }
 
 // useMedianDist works similarly to the useMedian function, but instead of
 // median, it will return the lowest value that is greater than or equal to
-// median+distance (when distance is negative) and the highest value that is
-// less than or equal to median+distance (when distance is positive).
+// median-distance.
 func useMedianDist(s []interface{}, minReq int, distance int64) (*numberType, error) {
 	m, err := useMedian(s, minReq)
 	if err != nil {
 		return nil, err
 	}
-	s = filter(s, (*numberType)(nil))
-	bd := big.NewInt(distance)
-	bm := m.Big()
+	// Filter out anything that is not a numberType.
+	var sn []*numberType
+	for _, v := range s {
+		if v, ok := v.(*numberType); ok {
+			sn = append(sn, v)
+		}
+	}
+	// Calculate results.
 	bx := m.Big()
-	for _, n := range s {
-		bn := n.(*numberType).Big()
-		bs := new(big.Int).Sub(bn, bm)
-		if distance < 0 && new(big.Int).Sub(bs, bd).Sign() >= 0 && bn.Cmp(bx) < 0 {
-			bx = bn
-		} else if distance > 0 && new(big.Int).Sub(bs, bd).Sign() <= 0 && bn.Cmp(bx) > 0 {
+	bl := new(big.Int).Sub(m.Big(), big.NewInt(distance))
+	for _, n := range sn {
+		bn := n.Big()
+		if bn.Cmp(bl) >= 0 && bn.Cmp(bx) < 0 {
 			bx = bn
 		}
 	}
@@ -617,18 +630,6 @@ func blockTypeNilPtr(obj bool) interface{} {
 		return (*blockTxObjectsType)(nil)
 	}
 	return (*blockTxHashesType)(nil)
-}
-
-// filter returns values from a slice that have the same type as a typ arg.
-func filter(s []interface{}, typ interface{}) []interface{} {
-	var r []interface{}
-	var t = reflect.TypeOf(typ)
-	for _, v := range s {
-		if reflect.TypeOf(v) == t {
-			r = append(r, v)
-		}
-	}
-	return r
 }
 
 func isNil(v interface{}) bool {
