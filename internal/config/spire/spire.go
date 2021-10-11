@@ -26,7 +26,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
-//nolint:unlambda
+//nolint
 var spireAgentFactory = func(ctx context.Context, cfg spire.AgentConfig) (*spire.Agent, error) {
 	return spire.NewAgent(ctx, cfg)
 }

@@ -31,6 +31,8 @@ import (
 //go:embed wsteth_abi.json
 var wrappedStakedETHABI string
 
+const wsethDenominator = 1e18
+
 type WrappedStakedETH struct {
 	ethClient ethereum.Client
 	addrs     ContractAddresses
@@ -82,7 +84,7 @@ func (s WrappedStakedETH) callOne(pair Pair) (*Price, error) {
 		return nil, err
 	}
 	bn := new(big.Int).SetBytes(resp)
-	price, _ := new(big.Float).Quo(new(big.Float).SetInt(bn), new(big.Float).SetUint64(1e18)).Float64()
+	price, _ := new(big.Float).Quo(new(big.Float).SetInt(bn), new(big.Float).SetUint64(wsethDenominator)).Float64()
 
 	return &Price{
 		Pair:      pair,

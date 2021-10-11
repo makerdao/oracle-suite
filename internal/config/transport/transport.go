@@ -34,7 +34,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
-//nolint:unlambda
+//nolint
 var p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
 	return p2p.New(ctx, cfg)
 }

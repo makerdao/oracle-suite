@@ -154,7 +154,7 @@ func (c *Gofer) configureRPCClient(ctx context.Context) (*rpc.Gofer, error) {
 func (c *Gofer) buildOrigins(cli pkgEthereum.Client) (*origins.Set, error) {
 	const defaultWorkerCount = 5
 	wp := query.NewHTTPWorkerPool(defaultWorkerCount)
-	originSet := origins.DefaultOriginSet(wp)
+	originSet := origins.DefaultOriginSet(wp, defaultWorkerCount)
 	for name, origin := range c.Origins {
 		handler, err := NewHandler(origin.Type, wp, cli, origin.Params)
 		if err != nil || handler == nil {

@@ -33,6 +33,9 @@ import (
 //go:embed curve_abi.json
 var curvePoolABI string
 
+// TODO: should be configurable
+const curveDenominator = 1e18
+
 type CurveFinance struct {
 	ethClient                 pkgEthereum.Client
 	addrs                     ContractAddresses
@@ -88,7 +91,7 @@ func (s CurveFinance) callOne(pair Pair) (*Price, error) {
 		return nil, err
 	}
 	bn := new(big.Int).SetBytes(resp)
-	price, _ := new(big.Float).Quo(new(big.Float).SetInt(bn), new(big.Float).SetUint64(1e18)).Float64()
+	price, _ := new(big.Float).Quo(new(big.Float).SetInt(bn), new(big.Float).SetUint64(curveDenominator)).Float64()
 
 	return &Price{
 		Pair:      pair,
