@@ -56,7 +56,6 @@ type BalancerV2 struct {
 }
 
 func NewBalancerV2(cli pkgEthereum.Client, addrs ContractAddresses) (*BalancerV2, error) {
-
 	a, err := abi.JSON(strings.NewReader(balancerV2PoolABI))
 	if err != nil {
 		return nil, err

@@ -52,10 +52,8 @@ type Uniswap struct {
 	ContractAddresses ContractAddresses
 }
 
-//nolint:gocyclo
 func (u *Uniswap) pairsToContractAddresses(pairs []Pair) ([]string, error) {
 	var names []string
-
 	for _, pair := range pairs {
 		address, _, ok := u.ContractAddresses.ByPair(pair)
 		if !ok {

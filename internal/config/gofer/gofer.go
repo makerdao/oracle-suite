@@ -95,7 +95,12 @@ type Source struct {
 	TTL    int    `json:"ttl"`
 }
 
-func (c *Gofer) ConfigureGofer(ctx context.Context, cli pkgEthereum.Client, logger log.Logger, noRPC bool) (gofer.Gofer, error) {
+func (c *Gofer) ConfigureGofer(
+	ctx context.Context,
+	cli pkgEthereum.Client,
+	logger log.Logger,
+	noRPC bool) (gofer.Gofer, error) {
+
 	if c.RPC.Address == "" || noRPC {
 		return c.configureGofer(ctx, cli, logger)
 	}

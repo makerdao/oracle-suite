@@ -68,7 +68,6 @@ func (s Sushiswap) PullPrices(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(&s, pairs)
 }
 
-//nolint:dupl
 func (s *Sushiswap) callOne(pair Pair) (*Price, error) {
 	var err error
 
