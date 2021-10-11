@@ -33,7 +33,6 @@ import (
 
 const splitterVirtualHost = "makerdao-splitter"
 
-//nolint
 var ethClientFactory = func(endpoints []string) (geth.EthClient, error) {
 	switch len(endpoints) {
 	case 0:

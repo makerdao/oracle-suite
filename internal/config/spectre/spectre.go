@@ -33,7 +33,6 @@ var spectreFactory = func(ctx context.Context, cfg spectre.Config) (*spectre.Spe
 	return spectre.NewSpectre(ctx, cfg)
 }
 
-//nolint
 var datastoreFactory = func(ctx context.Context, cfg datastoreMemory.Config) (datastore.Datastore, error) {
 	return datastoreMemory.NewDatastore(ctx, cfg)
 }

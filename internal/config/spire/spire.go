@@ -36,7 +36,6 @@ var spireClientFactory = func(ctx context.Context, cfg spire.ClientConfig) (*spi
 	return spire.NewClient(ctx, cfg)
 }
 
-//nolint
 var datastoreFactory = func(ctx context.Context, cfg datastoreMemory.Config) (datastore.Datastore, error) {
 	return datastoreMemory.NewDatastore(ctx, cfg)
 }
