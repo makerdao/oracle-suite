@@ -199,11 +199,12 @@ func fetchResultListWithErrors(pairs []Pair, err error) []FetchResult {
 }
 
 type Set struct {
-	list map[string]Handler
+	list       map[string]Handler
+	goroutines int
 }
 
-func NewSet(list map[string]Handler) *Set {
-	return &Set{list: list}
+func NewSet(list map[string]Handler, goroutines int) *Set {
+	return &Set{list: list, goroutines: goroutines}
 }
 
 func (e *Set) SetHandler(name string, handler Handler) {
@@ -222,15 +223,20 @@ func (e *Set) Handlers() map[string]Handler {
 func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
+	ch := make(chan struct{}, e.goroutines)
 
 	wg.Add(len(originPairs))
 
 	frs := map[string][]FetchResult{}
 	for origin, pairs := range originPairs {
+		ch <- struct{}{}
+
 		origin, pairs := origin, pairs
 		handler, ok := e.list[origin]
 
 		go func() {
+			defer func() { <-ch }()
+
 			if !ok {
 				mu.Lock()
 				frs[origin] = fetchResultListWithErrors(
@@ -253,7 +259,7 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	return frs
 }
 
-func DefaultOriginSet(pool query.WorkerPool) *Set {
+func DefaultOriginSet(pool query.WorkerPool, goroutines int) *Set {
 	return NewSet(map[string]Handler{
 		"binance":       NewBaseExchangeHandler(Binance{WorkerPool: pool}, nil),
 		"bitfinex":      NewBaseExchangeHandler(Bitfinex{WorkerPool: pool}, nil),
@@ -276,7 +282,7 @@ func DefaultOriginSet(pool query.WorkerPool) *Set {
 		"loopring":      NewBaseExchangeHandler(Loopring{WorkerPool: pool}, nil),
 		"okex":          NewBaseExchangeHandler(Okex{WorkerPool: pool}, nil),
 		"upbit":         NewBaseExchangeHandler(Upbit{WorkerPool: pool}, nil),
-	})
+	}, goroutines)
 }
 
 type singlePairOrigin interface {

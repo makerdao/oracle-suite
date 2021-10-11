@@ -42,7 +42,7 @@ import (
 // - INVARIANT: the value of the Pool's invariant, which serves as a measure of its liquidity.
 // enum Variable { PAIR_PRICE, BPT_PRICE, INVARIANT }
 
-//go:embed balancerv2_test.go
+//go:embed balancerv2_abi.json
 var balancerV2PoolABI string
 
 type BalancerV2 struct {
@@ -53,6 +53,7 @@ type BalancerV2 struct {
 }
 
 func NewBalancerV2(cli pkgEthereum.Client, addrs ContractAddresses) (*BalancerV2, error) {
+
 	a, err := abi.JSON(strings.NewReader(balancerV2PoolABI))
 	if err != nil {
 		return nil, err

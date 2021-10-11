@@ -70,7 +70,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kraken).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(fmt.Errorf("bad response: %w", ourErr), cr[0].Error)
 
@@ -78,7 +78,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kraken).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -86,7 +86,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":["abcd"]}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kraken).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -94,7 +94,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{}}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kraken).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -102,7 +102,7 @@ func (suite *KrakenSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"error":[], "result":{"XDAIZUSD":{}})`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kraken).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -112,7 +112,7 @@ func (suite *KrakenSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"error":[],"result":{"DAI/USD":{"c":["1"],"v":["2"]}}}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kraken).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(1.0, cr[0].Price.Price)

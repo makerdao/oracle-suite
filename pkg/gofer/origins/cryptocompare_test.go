@@ -57,7 +57,7 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(CryptoCompare).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -73,7 +73,7 @@ func (suite *CryptoCompareSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+			suite.origin.ExchangeHandler.(CryptoCompare).Pool().(*query.MockWorkerPool).MockResp(resp)
 			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
@@ -91,7 +91,7 @@ func (suite *CryptoCompareSuite) TestSuccessResponse() {
 		"LASTUPDATE": 1599982420
 		}}}}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(CryptoCompare).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(0.04687, cr[0].Price.Price)

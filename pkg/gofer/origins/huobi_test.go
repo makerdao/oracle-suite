@@ -70,7 +70,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -78,7 +78,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -86,7 +86,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"error"}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -94,7 +94,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","vol":"abc"}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -102,7 +102,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","data":[],"ts":"abc"}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -110,7 +110,7 @@ func (suite *HuobiSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"status":"success","ts":2,"data":[{"bid":"abc"}]}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -120,7 +120,7 @@ func (suite *HuobiSuite) TestSuccessResponse() {
 	resp := &query.HTTPResponse{
 		Body: []byte(`{"status":"success","ts":2000,"data":[{"symbol":"btceth","ask":1,"bid":2.1,"vol":1.3}]}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Huobi).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 
 	suite.NoError(cr[0].Error)

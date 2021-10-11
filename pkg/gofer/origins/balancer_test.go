@@ -60,7 +60,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Balancer).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -68,7 +68,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Balancer).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -88,7 +88,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Balancer).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -108,7 +108,7 @@ func (suite *BalancerSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Balancer).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -130,7 +130,7 @@ func (suite *BalancerSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Balancer).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairBALUSD})
 
 	suite.Len(fr, 1)
