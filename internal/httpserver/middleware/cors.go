@@ -22,13 +22,13 @@ import (
 // CORS adds a basic support for CORS preflight requests.
 type CORS struct {
 	// Origin is a function that returns a value of
-	// an Access-Control-Allow-Origin header. It can not be nil.
+	// an Access-Control-Allow-Origin header. It cannot be nil.
 	Origin func(r *http.Request) string
 	// Headers is a function that returns a value of
-	// an Access-Control-Allow-Headers header. It can not be nil.
+	// an Access-Control-Allow-Headers header. It cannot be nil.
 	Headers func(r *http.Request) string
 	// Methods is a function that returns a value of
-	// an Access-Control-Allow-Methods. It can not be nil.
+	// an Access-Control-Allow-Methods. It cannot be nil.
 	Methods func(r *http.Request) string
 }
 

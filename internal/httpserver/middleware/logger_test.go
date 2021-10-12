@@ -49,6 +49,7 @@ func TestLogger_InfoLevel(t *testing.T) {
 	assert.Equal(t, "GET", recordedLogFields[0]["method"])
 	assert.Equal(t, "/", recordedLogFields[0]["url"])
 	assert.NotEmpty(t, recordedLogFields[0]["duration"])
+	assert.NotEmpty(t, recordedLogFields[0]["remoteAddr"])
 }
 
 func TestLogger_DebugLevel(t *testing.T) {
@@ -78,4 +79,5 @@ func TestLogger_DebugLevel(t *testing.T) {
 	assert.Equal(t, "request", recordedLogFields[0]["request"])
 	assert.Equal(t, "response", recordedLogFields[0]["response"])
 	assert.NotEmpty(t, recordedLogFields[0]["duration"])
+	assert.NotEmpty(t, recordedLogFields[0]["remoteAddr"])
 }
