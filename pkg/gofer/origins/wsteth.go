@@ -16,62 +16,47 @@
 package origins
 
 import (
+	"context"
+	_ "embed"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
-	"github.com/makerdao/oracle-suite/internal/query"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 )
 
-const _WrappedStakedETHJSON = `[{
-"inputs":[],"name":"stEthPerToken","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-"stateMutability":"view","type":"function"
-},{
-"inputs":[],"name":"tokensPerStEth","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-"stateMutability":"view","type":"function"
-},{
-"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
-"stateMutability":"view","type":"function"
-}]`
+//go:embed wsteth_abi.json
+var wrappedStakedETHABI string
+
+const wsethDenominator = 1e18
 
 type WrappedStakedETH struct {
-	EthRPCURL         string
-	WorkerPool        query.WorkerPool
-	ContractAddresses ContractAddresses
-	abi               abi.ABI
+	ethClient ethereum.Client
+	addrs     ContractAddresses
+	abi       abi.ABI
 }
 
-func NewWrappedStakedETH(
-	ethRPCURL string,
-	workerPool query.WorkerPool,
-	contractAddresses ContractAddresses,
-) (*WrappedStakedETH, error) {
-
-	a, err := abi.JSON(strings.NewReader(_WrappedStakedETHJSON))
+func NewWrappedStakedETH(cli ethereum.Client, addrs ContractAddresses) (*WrappedStakedETH, error) {
+	a, err := abi.JSON(strings.NewReader(wrappedStakedETHABI))
 	if err != nil {
 		return nil, err
 	}
 	return &WrappedStakedETH{
-		EthRPCURL:         ethRPCURL,
-		WorkerPool:        workerPool,
-		ContractAddresses: contractAddresses,
-		abi:               a,
+		ethClient: cli,
+		addrs:     addrs,
+		abi:       a,
 	}, nil
 }
 
 func (s WrappedStakedETH) pairsToContractAddress(pair Pair) (ethereum.Address, bool, error) {
-	contract, inverted, ok := s.ContractAddresses.ByPair(pair)
+	contract, inverted, ok := s.addrs.ByPair(pair)
 	if !ok {
 		return ethereum.Address{}, inverted, fmt.Errorf("failed to get Curve contract address for pair: %s", pair.String())
 	}
 	return ethereum.HexToAddress(contract), inverted, nil
-}
-
-func (s WrappedStakedETH) Pool() query.WorkerPool {
-	return s.WorkerPool
 }
 
 func (s WrappedStakedETH) PullPrices(pairs []Pair) []FetchResult {
@@ -94,10 +79,12 @@ func (s WrappedStakedETH) callOne(pair Pair) (*Price, error) {
 		return nil, fmt.Errorf("failed to get contract args for pair: %s", pair.String())
 	}
 
-	price, err := ethCall(s.Pool(), s.EthRPCURL, contract, callData)
+	resp, err := s.ethClient.Call(context.Background(), ethereum.Call{Address: contract, Data: callData})
 	if err != nil {
 		return nil, err
 	}
+	bn := new(big.Int).SetBytes(resp)
+	price, _ := new(big.Float).Quo(new(big.Float).SetInt(bn), new(big.Float).SetUint64(wsethDenominator)).Float64()
 
 	return &Price{
 		Pair:      pair,

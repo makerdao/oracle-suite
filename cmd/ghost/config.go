@@ -51,14 +51,19 @@ type Dependencies struct {
 }
 
 func (c *Config) Configure(d Dependencies, noGoferRPC bool) (transport.Transport, gofer.Gofer, *ghost.Ghost, error) {
-	gof, err := c.Gofer.ConfigureGofer(d.Context, d.Logger, noGoferRPC)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 	sig, err := c.Ethereum.ConfigureSigner()
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	cli, err := c.Ethereum.ConfigureEthereumClient(nil) // signer may be empty here
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	gof, err := c.Gofer.ConfigureGofer(d.Context, cli, d.Logger, noGoferRPC)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	if sig.Address() == ethereum.EmptyAddress {
 		return nil, nil, nil, errors.New("ethereum account must be configured")
 	}

@@ -40,6 +40,9 @@ var IsHexAddress = common.IsHexAddress
 // EmptyAddress contains empty Ethereum address: 0x0000000000000000000000000000000000000000
 var EmptyAddress Address
 
+// HexToBytes returns bytes from hex string.
+var HexToBytes = common.FromHex
+
 // SHA3Hash calculates SHA3 hash.
 func SHA3Hash(b []byte) []byte {
 	return crypto.Keccak256Hash(b).Bytes()

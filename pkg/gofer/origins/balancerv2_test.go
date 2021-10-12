@@ -16,10 +16,12 @@
 package origins
 
 import (
-	"encoding/json"
 	"testing"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	ethereumMocks "github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -27,7 +29,7 @@ import (
 type BalancerV2Suite struct {
 	suite.Suite
 	addresses ContractAddresses
-	pool      *query.MockWorkerPool
+	client    *ethereumMocks.Client
 	origin    *BaseExchangeHandler
 }
 
@@ -35,15 +37,15 @@ func (suite *BalancerV2Suite) SetupSuite() {
 	suite.addresses = ContractAddresses{
 		"STETH/ETH": "0x32296969ef14eb0c6d29669c550d4a0449130230",
 	}
-	suite.pool = query.NewMockWorkerPool()
+	suite.client = &ethereumMocks.Client{}
 }
 func (suite *BalancerV2Suite) TearDownSuite() {
 	suite.addresses = nil
-	suite.pool = nil
+	suite.client = nil
 }
 
 func (suite *BalancerV2Suite) SetupTest() {
-	balancerV2Finance, err := NewBalancerV2("", suite.pool, suite.addresses)
+	balancerV2Finance, err := NewBalancerV2(suite.client, suite.addresses)
 	suite.NoError(err)
 	suite.origin = NewBaseExchangeHandler(balancerV2Finance, nil)
 }
@@ -61,20 +63,10 @@ func TestBalancerV2Suite(t *testing.T) {
 }
 
 func (suite *BalancerV2Suite) TestSuccessResponse() {
-	suite.pool.MockBody(`{"jsonrpc":"2.0","id":1,"result":"0x0000000000000000000000000000000000000000000000000dc19f91822f3fe3"}`)
-	suite.pool.SetRequestAssertions(func(req *query.HTTPRequest) {
-		suite.NotEmpty(req)
-		suite.NotEmpty(req.Body)
-
-		var request jsonrpcMessage
-		err := json.NewDecoder(req.Body).Decode(&request)
-		suite.Require().NoError(err)
-
-		suite.True(request.isCall())
-		suite.Equal("eth_call", request.Method)
-
-		suite.Contains(string(request.Params), `{"to":"0x32296969Ef14EB0c6d29669C550D4a0449130230","data":"0xb10be739`)
-	})
+	suite.client.On("Call", mock.Anything, ethereum.Call{
+		Address: ethereum.HexToAddress("0x32296969Ef14EB0c6d29669C550D4a0449130230"),
+		Data:    ethereum.HexToBytes("0xb10be7390000000000000000000000000000000000000000000000000000000000000000"),
+	}).Return(ethereum.HexToBytes("0x0000000000000000000000000000000000000000000000000dc19f91822f3fe3"), nil)
 
 	pair := Pair{Base: "STETH", Quote: "ETH"}
 

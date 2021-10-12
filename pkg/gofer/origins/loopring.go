@@ -99,15 +99,15 @@ func (l *Loopring) pickPairDetails(response loopringResponse, pair Pair) FetchRe
 		return fetchResultWithError(pair, fmt.Errorf("failed to parse timestamp for pair %s: %w", pair, err))
 	}
 
-	price, err := strconv.ParseFloat(pairRes[7], 10)
+	price, err := strconv.ParseFloat(pairRes[7], 64)
 	if err != nil {
 		return fetchResultWithError(pair, fmt.Errorf("failed to parse price for pair %s: %w", pair, err))
 	}
-	bid, err := strconv.ParseFloat(pairRes[9], 10)
+	bid, err := strconv.ParseFloat(pairRes[9], 64)
 	if err != nil {
 		return fetchResultWithError(pair, fmt.Errorf("failed to parse bid for pair %s: %w", pair, err))
 	}
-	ask, err := strconv.ParseFloat(pairRes[10], 10)
+	ask, err := strconv.ParseFloat(pairRes[10], 64)
 	if err != nil {
 		return fetchResultWithError(pair, fmt.Errorf("failed to parse ask for pair %s: %w", pair, err))
 	}

@@ -16,7 +16,6 @@
 package origins
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -36,8 +35,6 @@ type ExchangeHandler interface {
 	// PullPrices is similar to Handler.Fetch
 	// but pairs will be already renamed based on given BaseExchangeHandler.symbolAliases
 	PullPrices(pairs []Pair) []FetchResult
-
-	Pool() query.WorkerPool
 }
 
 type BaseExchangeHandler struct {
@@ -201,11 +198,12 @@ func fetchResultListWithErrors(pairs []Pair, err error) []FetchResult {
 }
 
 type Set struct {
-	list map[string]Handler
+	list       map[string]Handler
+	goroutines int
 }
 
-func NewSet(list map[string]Handler) *Set {
-	return &Set{list: list}
+func NewSet(list map[string]Handler, goroutines int) *Set {
+	return &Set{list: list, goroutines: goroutines}
 }
 
 func (e *Set) SetHandler(name string, handler Handler) {
@@ -224,15 +222,20 @@ func (e *Set) Handlers() map[string]Handler {
 func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
+	ch := make(chan struct{}, e.goroutines)
 
 	wg.Add(len(originPairs))
 
 	frs := map[string][]FetchResult{}
 	for origin, pairs := range originPairs {
+		ch <- struct{}{}
+
 		origin, pairs := origin, pairs
 		handler, ok := e.list[origin]
 
 		go func() {
+			defer func() { <-ch }()
+
 			if !ok {
 				mu.Lock()
 				frs[origin] = fetchResultListWithErrors(
@@ -255,7 +258,7 @@ func (e *Set) Fetch(originPairs map[string][]Pair) map[string][]FetchResult {
 	return frs
 }
 
-func DefaultOriginSet(pool query.WorkerPool) *Set {
+func DefaultOriginSet(pool query.WorkerPool, goroutines int) *Set {
 	return NewSet(map[string]Handler{
 		"binance":       NewBaseExchangeHandler(Binance{WorkerPool: pool}, nil),
 		"bitfinex":      NewBaseExchangeHandler(Bitfinex{WorkerPool: pool}, nil),
@@ -278,7 +281,7 @@ func DefaultOriginSet(pool query.WorkerPool) *Set {
 		"loopring":      NewBaseExchangeHandler(Loopring{WorkerPool: pool}, nil),
 		"okex":          NewBaseExchangeHandler(Okex{WorkerPool: pool}, nil),
 		"upbit":         NewBaseExchangeHandler(Upbit{WorkerPool: pool}, nil),
-	})
+	}, goroutines)
 }
 
 type singlePairOrigin interface {
@@ -313,47 +316,4 @@ func validateResponse(pairs []Pair, res *query.HTTPResponse) []FetchResult {
 		return fetchResultListWithErrors(pairs, fmt.Errorf("bad response: %w", res.Error))
 	}
 	return nil
-}
-
-type jsonrpcMessage struct {
-	Version string          `json:"jsonrpc,omitempty"`
-	ID      json.RawMessage `json:"id,omitempty"`
-	Method  string          `json:"method,omitempty"`
-	Params  json.RawMessage `json:"params,omitempty"`
-	Error   *jsonError      `json:"error,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
-}
-
-func (msg *jsonrpcMessage) isCall() bool {
-	return msg.hasValidID() && msg.Method != ""
-}
-
-func (msg *jsonrpcMessage) isResponse() bool {
-	return msg.hasValidID() && msg.Method == "" && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
-}
-
-func (msg *jsonrpcMessage) hasValidID() bool {
-	return len(msg.ID) > 0 && msg.ID[0] != '{' && msg.ID[0] != '['
-}
-
-func (msg *jsonrpcMessage) String() string {
-	b, _ := json.Marshal(msg)
-	return string(b)
-}
-
-type jsonError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-func (err *jsonError) Error() string {
-	if err.Message == "" {
-		return fmt.Sprintf("json-rpc error %d", err.Code)
-	}
-	return err.Message
-}
-
-func (err *jsonError) ErrorCode() int {
-	return err.Code
 }
