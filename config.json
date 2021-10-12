@@ -16,7 +16,7 @@
     "from": "",
     "keystore": "",
     "password": "",
-    "rpc": "https://mainnet.infura.io/v3/5ae6ec7aead6431daa2f7f7899fc91a1"
+    "rpc": ""
   },
   "feeds": [
     "0xDA1d2961Da837891f43235FddF66BAD26f41368b",
