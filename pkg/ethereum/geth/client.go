@@ -99,8 +99,13 @@ func NewClient(ethClient EthClient, signer pkgEthereum.Signer) *Client {
 
 // Call implements the ethereum.Client interface.
 func (e *Client) Call(ctx context.Context, call pkgEthereum.Call) ([]byte, error) {
+	addr := common.Address{}
+	if e.signer != nil {
+		addr = e.signer.Address()
+	}
+
 	cm := ethereum.CallMsg{
-		From:     e.signer.Address(),
+		From:     addr,
 		To:       &call.Address,
 		Gas:      0,
 		GasPrice: nil,

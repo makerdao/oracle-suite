@@ -64,7 +64,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(OpenExchangeRates).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -72,7 +72,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(OpenExchangeRates).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -80,7 +80,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{}}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(OpenExchangeRates).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -88,7 +88,7 @@ func (suite *OpenExchangeRatesSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(`{"rates":{"EUR":0}}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(OpenExchangeRates).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 }
@@ -106,7 +106,7 @@ func (suite *OpenExchangeRatesSuite) TestSuccessResponse() {
 		  }
 		}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(OpenExchangeRates).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(0.000891, cr[0].Price.Price)

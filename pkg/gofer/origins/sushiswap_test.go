@@ -67,7 +67,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 		Error: ourErr,
 	}
 
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Sushiswap).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, fr[0].Error)
 
@@ -75,7 +75,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Sushiswap).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -103,7 +103,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Sushiswap).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 
@@ -131,7 +131,7 @@ func (suite *SushiswapSuite) TestFailOnWrongInput() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Sushiswap).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(fr[0].Error)
 }
@@ -162,7 +162,7 @@ func (suite *SushiswapSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Sushiswap).Pool().(*query.MockWorkerPool).MockResp(resp)
 	fr := suite.origin.Fetch([]Pair{pairSNXWETH})
 
 	suite.Len(fr, 1)
@@ -200,7 +200,7 @@ func (suite *SushiswapSuite) TestSuccessResponse() {
 			}
 		`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp1)
+	suite.origin.ExchangeHandler.(Sushiswap).Pool().(*query.MockWorkerPool).MockResp(resp1)
 	fr1 := suite.origin.Fetch([]Pair{pairCRVWETH})
 
 	suite.Len(fr1, 1)

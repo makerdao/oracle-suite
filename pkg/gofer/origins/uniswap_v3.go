@@ -60,7 +60,6 @@ func (u UniswapV3) PullPrices(pairs []Pair) []FetchResult {
 	return callSinglePairOrigin(&u, pairs)
 }
 
-//nolint:dupl
 func (u *UniswapV3) callOne(pair Pair) (*Price, error) {
 	var err error
 

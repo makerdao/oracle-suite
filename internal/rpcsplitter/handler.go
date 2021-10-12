@@ -306,7 +306,7 @@ func (r *rpcETHAPI) MaxPriorityFeePerGas() (interface{}, error) {
 //
 // It returns the most common response that occurred at least as many times as
 // specified in the minReq method.
-//nolint:golint,stylecheck
+//nolint:revive,stylecheck
 func (r *rpcETHAPI) ChainId() (interface{}, error) {
 	return useMostCommon(
 		r.handler.call((*numberType)(nil), "eth_chainId"),

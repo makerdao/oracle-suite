@@ -68,7 +68,7 @@ func originsSetMock(prices map[string][]origins.Price, delay time.Duration, upda
 		}
 		handlers[origin] = &mockHandler{mockedPrices: pricesMap, delay: delay, updateTimestamp: updateTimestamp}
 	}
-	return origins.NewSet(handlers)
+	return origins.NewSet(handlers, 10)
 }
 
 func TestFeeder_Feed_EmptyGraph(t *testing.T) {

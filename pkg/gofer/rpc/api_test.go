@@ -35,7 +35,6 @@ var (
 
 func TestMain(m *testing.M) {
 	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
 	var err error
 
 	mockGofer = &mocks.Gofer{}
@@ -61,6 +60,7 @@ func TestMain(m *testing.M) {
 	}
 
 	retCode := m.Run()
+	ctxCancel()
 	os.Exit(retCode)
 }
 

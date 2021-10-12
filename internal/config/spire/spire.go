@@ -26,17 +26,16 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport"
 )
 
-//nolint:unlambda
+//nolint
 var spireAgentFactory = func(ctx context.Context, cfg spire.AgentConfig) (*spire.Agent, error) {
 	return spire.NewAgent(ctx, cfg)
 }
 
-//nolint:unlambda
+//nolint
 var spireClientFactory = func(ctx context.Context, cfg spire.ClientConfig) (*spire.Client, error) {
 	return spire.NewClient(ctx, cfg)
 }
 
-//nolint:unlambda
 var datastoreFactory = func(ctx context.Context, cfg datastoreMemory.Config) (datastore.Datastore, error) {
 	return datastoreMemory.NewDatastore(ctx, cfg)
 }

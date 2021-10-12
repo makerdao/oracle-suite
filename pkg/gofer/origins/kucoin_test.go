@@ -70,7 +70,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	resp := &query.HTTPResponse{
 		Error: ourErr,
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kucoin).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Equal(ourErr, cr[0].Error)
 
@@ -78,7 +78,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	resp = &query.HTTPResponse{
 		Body: []byte(""),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kucoin).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr = suite.origin.Fetch([]Pair{pair})
 	suite.Error(cr[0].Error)
 
@@ -128,7 +128,7 @@ func (suite *KucoinSuite) TestFailOnWrongInput() {
 	} {
 		suite.T().Run(fmt.Sprintf("Case-%d", n+1), func(t *testing.T) {
 			resp = &query.HTTPResponse{Body: r}
-			suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+			suite.origin.ExchangeHandler.(Kucoin).Pool().(*query.MockWorkerPool).MockResp(resp)
 			cr = suite.origin.Fetch([]Pair{pair})
 			suite.Error(cr[0].Error)
 		})
@@ -152,7 +152,7 @@ func (suite *KucoinSuite) TestSuccessResponse() {
 			}
 		}`),
 	}
-	suite.origin.Pool().(*query.MockWorkerPool).MockResp(resp)
+	suite.origin.ExchangeHandler.(Kucoin).Pool().(*query.MockWorkerPool).MockResp(resp)
 	cr := suite.origin.Fetch([]Pair{pair})
 	suite.NoError(cr[0].Error)
 	suite.Equal(int64(1596632420), cr[0].Price.Timestamp.Unix())

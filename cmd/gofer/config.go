@@ -22,6 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/makerdao/oracle-suite/internal/config"
+	ethereumConfig "github.com/makerdao/oracle-suite/internal/config/ethereum"
 	goferConfig "github.com/makerdao/oracle-suite/internal/config/gofer"
 	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
 	pkgGofer "github.com/makerdao/oracle-suite/pkg/gofer"
@@ -31,15 +32,24 @@ import (
 )
 
 type Config struct {
-	Gofer goferConfig.Gofer `json:"gofer"`
+	Ethereum ethereumConfig.Ethereum `json:"ethereum"`
+	Gofer    goferConfig.Gofer       `json:"gofer"`
 }
 
 func (c *Config) Configure(ctx context.Context, logger log.Logger, noRPC bool) (pkgGofer.Gofer, error) {
-	return c.Gofer.ConfigureGofer(ctx, logger, noRPC)
+	cli, err := c.Ethereum.ConfigureEthereumClient(nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Gofer.ConfigureGofer(ctx, cli, logger, noRPC)
 }
 
 func (c *Config) ConfigureRPCAgent(ctx context.Context, logger log.Logger) (*rpc.Agent, error) {
-	return c.Gofer.ConfigureRPCAgent(ctx, logger)
+	cli, err := c.Ethereum.ConfigureEthereumClient(nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Gofer.ConfigureRPCAgent(ctx, cli, logger)
 }
 
 type GoferClientServices struct {

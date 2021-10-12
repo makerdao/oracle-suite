@@ -16,10 +16,12 @@
 package origins
 
 import (
-	"encoding/json"
 	"testing"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	ethereumMocks "github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -27,7 +29,7 @@ import (
 type CurveSuite struct {
 	suite.Suite
 	addresses ContractAddresses
-	pool      *query.MockWorkerPool
+	client    *ethereumMocks.Client
 	origin    *BaseExchangeHandler
 }
 
@@ -35,15 +37,15 @@ func (suite *CurveSuite) SetupSuite() {
 	suite.addresses = ContractAddresses{
 		"ETH/STETH": "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
 	}
-	suite.pool = query.NewMockWorkerPool()
+	suite.client = &ethereumMocks.Client{}
 }
 func (suite *CurveSuite) TearDownSuite() {
 	suite.addresses = nil
-	suite.pool = nil
+	suite.client = nil
 }
 
 func (suite *CurveSuite) SetupTest() {
-	curveFinance, err := NewCurveFinance("", suite.pool, suite.addresses)
+	curveFinance, err := NewCurveFinance(suite.client, suite.addresses)
 	suite.NoError(err)
 	suite.origin = NewBaseExchangeHandler(curveFinance, nil)
 }
@@ -61,20 +63,10 @@ func TestCurveSuite(t *testing.T) {
 }
 
 func (suite *CurveSuite) TestSuccessResponse() {
-	suite.pool.MockBody(`{"jsonrpc":"2.0","id":1,"result":"0x0000000000000000000000000000000000000000000000000dc19f91822f3fe3"}`)
-	suite.pool.SetRequestAssertions(func(req *query.HTTPRequest) {
-		suite.NotEmpty(req)
-		suite.NotEmpty(req.Body)
-
-		var request jsonrpcMessage
-		err := json.NewDecoder(req.Body).Decode(&request)
-		suite.Require().NoError(err)
-
-		suite.True(request.isCall())
-		suite.Equal("eth_call", request.Method)
-
-		suite.Contains(string(request.Params), `{"to":"0xDC24316b9AE028F1497c275EB9192a3Ea0f67022","data":"0x5e0d443f`)
-	})
+	suite.client.On("Call", mock.Anything, ethereum.Call{
+		Address: ethereum.HexToAddress("0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"),
+		Data:    ethereum.HexToBytes("0x5e0d443f000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000de0b6b3a7640000"),
+	}).Return(ethereum.HexToBytes("0x0000000000000000000000000000000000000000000000000dc19f91822f3fe3"), nil)
 
 	pair := Pair{Base: "STETH", Quote: "ETH"}
 
@@ -82,6 +74,11 @@ func (suite *CurveSuite) TestSuccessResponse() {
 	suite.Require().NoError(results1[0].Error)
 	suite.Equal(0.9912488403014287, results1[0].Price.Price)
 	suite.Greater(results1[0].Price.Timestamp.Unix(), int64(0))
+
+	suite.client.On("Call", mock.Anything, ethereum.Call{
+		Address: ethereum.HexToAddress("0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"),
+		Data:    ethereum.HexToBytes("0x5e0d443f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000de0b6b3a7640000"),
+	}).Return(ethereum.HexToBytes("0x0000000000000000000000000000000000000000000000000dc19f91822f3fe3"), nil)
 
 	results2 := suite.origin.Fetch([]Pair{pair.Inverse()})
 	suite.Require().NoError(results2[0].Error)
