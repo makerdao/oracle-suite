@@ -7,7 +7,7 @@ RUN    export CGO_ENABLED=1 \
     && go mod download \
     && go build -o dist/spectre ./cmd/spectre
 
-FROM golang:1-alpine
+FROM alpine:3.14
 RUN apk --no-cache add ca-certificates
 WORKDIR /root
 COPY --from=builder /go/src/spectre/dist/ /usr/local/bin/
