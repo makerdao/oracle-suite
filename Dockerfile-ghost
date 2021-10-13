@@ -7,7 +7,7 @@ RUN    export CGO_ENABLED=1 \
     && go mod download \
     && go build -o dist/ghost ./cmd/ghost
 
-FROM golang:1-alpine
+FROM alpine:3.14
 RUN apk --no-cache add ca-certificates
 WORKDIR /root
 COPY --from=builder /go/src/ghost/dist/ /usr/local/bin/

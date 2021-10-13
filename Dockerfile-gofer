@@ -7,7 +7,7 @@ RUN    export CGO_ENABLED=0 \
     && go mod download \
     && go build -o dist/gofer ./cmd/gofer
 
-FROM golang:1-alpine
+FROM alpine:3.14
 RUN apk --no-cache add ca-certificates 
 WORKDIR /root
 COPY --from=builder /go/src/gofer/dist/ /usr/local/bin/
