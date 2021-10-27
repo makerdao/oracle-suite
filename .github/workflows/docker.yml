@@ -28,6 +28,8 @@ jobs:
             fi
           fi
           TAGS="${VERSION}"
+          echo $VERSION
+          echo ${TAGS}
           echo ::set-output name=tags::${TAGS}
 #      - name: Set up QEMU
 #        uses: docker/setup-qemu-action@master
