@@ -43,14 +43,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 #
-#      - name: Build and Publish Gofer to Github Packages
-#        uses: docker/build-push-action@v2.7.0
-#        with:
-#          context: .
-#          file: ./Dockerfile-gofer
-#          platforms: linux/amd64,linux/arm64
-#          push: ${{ github.event_name != 'pull_request' }}
-#          tags: ${{ steps.prep.outputs.tag }}
+      - name: Build and Publish Gofer to Github Packages
+        uses: docker/build-push-action@v2.7.0
+        with:
+          context: .
+          file: ./Dockerfile-gofer
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ghcr.io/chroniclelabs/spire:${{ steps.prep.outputs.version }},ghcr.io/chroniclelabs/spire:latest
 #
       - name: Build and Publish Spire to Github Packages
         uses: docker/build-push-action@v2.7.0
@@ -59,4 +59,4 @@ jobs:
           file: ./Dockerfile-spire
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/konstantinzolotarev/spire:${{ steps.prep.outputs.version }},ghcr.io/konstantinzolotarev/spire:latest
+          tags: ghcr.io/chroniclelabs/spire:${{ steps.prep.outputs.version }},ghcr.io/chroniclelabs/spire:latest
