@@ -4,7 +4,7 @@ WORKDIR /go/src/spectre
 COPY . .
 RUN    export CGO_ENABLED=1 \
     && mkdir dist \
-    && go mod download \
+    && go mod vendor \
     && go build -o dist/spectre ./cmd/spectre
 
 FROM alpine:3.14

@@ -4,7 +4,7 @@ WORKDIR /go/src/ghost
 COPY . .
 RUN    export CGO_ENABLED=1 \
     && mkdir dist \
-    && go mod download \
+    && go mod vendor \
     && go build -o dist/ghost ./cmd/ghost
 
 FROM alpine:3.14
