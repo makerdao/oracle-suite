@@ -1,0 +1,29 @@
+builds:
+  - main: ./cmd/gofer
+    id: "gofer"
+    binary: gofer
+    goos:
+      - linux
+      - darwin
+      # - windows
+
+  - main: ./cmd/spire
+    id: "spire"
+    binary: spire
+    goos:
+      - linux
+      - darwin
+      # - windows
+
+archives:
+  - 
+    id: "gofer"
+    builds:
+      - gofer
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+  - 
+    id: "spire"
+    builds:
+      - spire
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
