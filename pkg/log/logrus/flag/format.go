@@ -24,9 +24,9 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log/logrus/formatter"
 )
 
-// FormattersMap is a map of supported logrus formatters. It is safe to add
+// formattersMap is a map of supported logrus formatters. It is safe to add
 // custom formatters to this map.
-var FormattersMap = map[string]func() logrus.Formatter{
+var formattersMap = map[string]func() logrus.Formatter{
 	"text": func() logrus.Formatter {
 		return &formatter.XFilterFormatter{Formatter: &logrus.TextFormatter{}}
 	},
@@ -35,25 +35,26 @@ var FormattersMap = map[string]func() logrus.Formatter{
 	},
 }
 
-// DefaultFormatter is a name of a default formatter. This formatter *must* be
-// registered in the FormattersMap map.
-var DefaultFormatter = "text"
+const defaultFormatter = "text"
 
-// FormatTypeValue implements pflag.Value. It represents a flag that allow
+// Format implements pflag.Value. It represents a flag that allow
 // to choose a different logrus formatter.
-type FormatTypeValue struct {
+type Format struct {
 	format string
 }
 
 // String implements the pflag.Value interface.
-func (f *FormatTypeValue) String() string {
+func (f *Format) String() string {
+	if f.format == "" {
+		return defaultFormatter
+	}
 	return f.format
 }
 
 // Set implements the pflag.Value interface.
-func (f *FormatTypeValue) Set(v string) error {
+func (f *Format) Set(v string) error {
 	v = strings.ToLower(v)
-	if _, ok := FormattersMap[v]; !ok {
+	if _, ok := formattersMap[v]; !ok {
 		return fmt.Errorf("unsupported format")
 	}
 	f.format = v
@@ -61,14 +62,14 @@ func (f *FormatTypeValue) Set(v string) error {
 }
 
 // Type implements the pflag.Value interface.
-func (f *FormatTypeValue) Type() string {
+func (f *Format) Type() string {
 	return "text|json"
 }
 
 // Formatter returns the logrus.Formatter for selected type.
-func (f *FormatTypeValue) Formatter() logrus.Formatter {
+func (f *Format) Formatter() logrus.Formatter {
 	if f.format == "" {
-		return FormattersMap[DefaultFormatter]()
+		return formattersMap[defaultFormatter]()
 	}
-	return FormattersMap[f.format]()
+	return formattersMap[f.format]()
 }

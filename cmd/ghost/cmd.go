@@ -23,8 +23,8 @@ import (
 )
 
 type options struct {
-	LogVerbosity   string
-	LogFormat      logrusFlag.FormatTypeValue
+	LogVerbosity   logrusFlag.Verbosity
+	LogFormat      logrusFlag.Format
 	ConfigFilePath string
 	Config         Config
 	GoferNoRPC     bool
@@ -40,10 +40,10 @@ func NewRootCommand(opts *options) *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(
+	rootCmd.PersistentFlags().VarP(
 		&opts.LogVerbosity,
-		"log.verbosity", "v",
-		"info",
+		"log.verbosity",
+		"v",
 		"verbosity level",
 	)
 	rootCmd.PersistentFlags().Var(

@@ -73,7 +73,7 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	tra, err := c.Transport.Configure(transportConfig.Dependencies{
+	tra, err := c.Transport.ConfigureLibP2P(transportConfig.LibP2PDependencies{
 		Context: d.Context,
 		Signer:  sig,
 		Feeds:   fed,
@@ -176,14 +176,10 @@ func PrepareAgentServices(ctx context.Context, opts *options) (*AgentServices, e
 	}
 
 	// Logger:
-	ll, err := logrus.ParseLevel(opts.LogVerbosity)
-	if err != nil {
-		return nil, err
-	}
-	lr := logrus.New()
-	lr.SetLevel(ll)
-	lr.SetFormatter(opts.LogFormat.Formatter())
-	logger := logLogrus.New(lr)
+	l := logrus.New()
+	l.SetLevel(opts.LogVerbosity.Level())
+	l.SetFormatter(opts.LogFormat.Formatter())
+	logger := logLogrus.New(l)
 
 	// Services:
 	tra, dat, age, err := opts.Config.ConfigureAgent(AgentDependencies{

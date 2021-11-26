@@ -1,6 +1,6 @@
 {
   "transport": {
-    "p2p": {
+    "libP2P": {
       "privKeySeed": "",
       "listenAddrs": ["/ip4/0.0.0.0/tcp/8000"],
       "bootstrapAddrs": [
@@ -10,6 +10,10 @@
       "directPeersAddrs": [],
       "blockedAddrs": [],
       "disableDiscovery": false
+    },
+    "ssb": {
+      "caps": "./local.caps.json",
+      "key": "./local.ssb.json"
     }
   },
   "ethereum": {

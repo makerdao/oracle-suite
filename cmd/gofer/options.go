@@ -26,8 +26,8 @@ import (
 
 // These are the command options that can be set by CLI flags.
 type options struct {
-	LogVerbosity   string
-	LogFormat      logrusFlag.FormatTypeValue
+	LogVerbosity   logrusFlag.Verbosity
+	LogFormat      logrusFlag.Format
 	ConfigFilePath string
 	Format         formatTypeValue
 	Config         Config

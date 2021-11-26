@@ -26,21 +26,21 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
 	"github.com/makerdao/oracle-suite/pkg/log/null"
 	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/libp2p"
 	"github.com/makerdao/oracle-suite/pkg/transport/local"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
 )
 
 func TestTransport_P2P_EmptyConfig(t *testing.T) {
-	prevP2PTransportFactory := p2pTransportFactory
-	defer func() { p2pTransportFactory = prevP2PTransportFactory }()
+	prevP2PTransportFactory := libP2PTransportFactory
+	defer func() { libP2PTransportFactory = prevP2PTransportFactory }()
 
 	feeds := []ethereum.Address{ethereum.HexToAddress("0x07a35a1d4b751a818d93aa38e615c0df23064881")}
 	signer := &mocks.Signer{}
 	logger := null.New()
 
 	config := Transport{
-		P2P: P2P{
+		LibP2P: LibP2P{
 			PrivKeySeed:      "",
 			ListenAddrs:      nil,
 			BootstrapAddrs:   nil,
@@ -50,7 +50,7 @@ func TestTransport_P2P_EmptyConfig(t *testing.T) {
 		},
 	}
 
-	p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+	libP2PTransportFactory = func(ctx context.Context, cfg libp2p.Config) (transport.Transport, error) {
 		assert.NotNil(t, ctx)
 		assert.NotNil(t, cfg.PeerPrivKey)
 		assert.Len(t, cfg.ListenAddrs, 0)
@@ -67,7 +67,7 @@ func TestTransport_P2P_EmptyConfig(t *testing.T) {
 		return local.New(context.Background(), 0, nil), nil
 	}
 
-	tra, err := config.Configure(Dependencies{
+	tra, err := config.ConfigureLibP2P(LibP2PDependencies{
 		Context: context.Background(),
 		Signer:  signer,
 		Feeds:   feeds,
@@ -78,8 +78,8 @@ func TestTransport_P2P_EmptyConfig(t *testing.T) {
 }
 
 func TestTransport_P2P_CustomValues(t *testing.T) {
-	prevP2PTransportFactory := p2pTransportFactory
-	defer func() { p2pTransportFactory = prevP2PTransportFactory }()
+	prevP2PTransportFactory := libP2PTransportFactory
+	defer func() { libP2PTransportFactory = prevP2PTransportFactory }()
 
 	feeds := []ethereum.Address{ethereum.HexToAddress("0x07a35a1d4b751a818d93aa38e615c0df23064881")}
 	signer := &mocks.Signer{}
@@ -91,7 +91,7 @@ func TestTransport_P2P_CustomValues(t *testing.T) {
 	blockedAddrs := []string{"/ip4/1.1.1.3/tcp/8000/p2p/abc"}
 
 	config := Transport{
-		P2P: P2P{
+		LibP2P: LibP2P{
 			PrivKeySeed:      privKeySeed,
 			ListenAddrs:      listenAddrs,
 			BootstrapAddrs:   bootstrapAddrs,
@@ -101,7 +101,7 @@ func TestTransport_P2P_CustomValues(t *testing.T) {
 		},
 	}
 
-	p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+	libP2PTransportFactory = func(ctx context.Context, cfg libp2p.Config) (transport.Transport, error) {
 		assert.NotNil(t, ctx)
 		assert.NotNil(t, cfg.PeerPrivKey)
 		assert.Equal(t, listenAddrs, cfg.ListenAddrs)
@@ -118,7 +118,7 @@ func TestTransport_P2P_CustomValues(t *testing.T) {
 		return local.New(context.Background(), 0, nil), nil
 	}
 
-	tra, err := config.Configure(Dependencies{
+	tra, err := config.ConfigureLibP2P(LibP2PDependencies{
 		Context: context.Background(),
 		Signer:  signer,
 		Feeds:   feeds,
@@ -129,11 +129,11 @@ func TestTransport_P2P_CustomValues(t *testing.T) {
 }
 
 func TestTransport_P2P_InvalidSeed(t *testing.T) {
-	prevP2PTransportFactory := p2pTransportFactory
-	defer func() { p2pTransportFactory = prevP2PTransportFactory }()
+	prevP2PTransportFactory := libP2PTransportFactory
+	defer func() { libP2PTransportFactory = prevP2PTransportFactory }()
 
 	config := Transport{
-		P2P: P2P{
+		LibP2P: LibP2P{
 			PrivKeySeed:      "invalid",
 			ListenAddrs:      nil,
 			BootstrapAddrs:   nil,
@@ -147,12 +147,12 @@ func TestTransport_P2P_InvalidSeed(t *testing.T) {
 	signer := &mocks.Signer{}
 	logger := null.New()
 
-	p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
+	libP2PTransportFactory = func(ctx context.Context, cfg libp2p.Config) (transport.Transport, error) {
 		assert.NotNil(t, ctx)
 		return local.New(context.Background(), 0, nil), nil
 	}
 
-	_, err := config.Configure(Dependencies{
+	_, err := config.ConfigureLibP2P(LibP2PDependencies{
 		Context: context.Background(),
 		Signer:  signer,
 		Feeds:   feeds,

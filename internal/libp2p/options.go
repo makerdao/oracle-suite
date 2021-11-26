@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package libp2p
 
 import (
 	"time"
@@ -29,7 +29,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/makerdao/oracle-suite/internal/p2p/sets"
+	"github.com/makerdao/oracle-suite/internal/libp2p/sets"
 )
 
 type Options func(n *Node) error

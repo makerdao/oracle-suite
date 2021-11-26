@@ -29,20 +29,21 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/libp2p"
+	"github.com/makerdao/oracle-suite/pkg/transport/libp2p/crypto/ethkey"
 	"github.com/makerdao/oracle-suite/pkg/transport/messages"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
-var p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.Transport, error) {
-	return p2p.New(ctx, cfg)
+var libP2PTransportFactory = func(ctx context.Context, cfg libp2p.Config) (transport.Transport, error) {
+	return libp2p.New(ctx, cfg)
 }
 
 type Transport struct {
-	P2P P2P `json:"p2p"`
+	LibP2P LibP2P      `json:"libp2p"`
+	SSB    Scuttlebutt `json:"ssb"`
 }
 
-type P2P struct {
+type LibP2P struct {
 	PrivKeySeed      string   `json:"privKeySeed"`
 	ListenAddrs      []string `json:"listenAddrs"`
 	BootstrapAddrs   []string `json:"bootstrapAddrs"`
@@ -51,7 +52,17 @@ type P2P struct {
 	DisableDiscovery bool     `json:"disableDiscovery"`
 }
 
-type Dependencies struct {
+type Scuttlebutt struct {
+	Caps string `json:"caps"`
+}
+
+type Caps struct {
+	Shs    string `json:"shs"`
+	Sign   string `json:"sign"`
+	Invite string `json:"invite,omitempty"`
+}
+
+type LibP2PDependencies struct {
 	Context context.Context
 	Signer  ethereum.Signer
 	Feeds   []ethereum.Address
@@ -63,28 +74,31 @@ type BootstrapDependencies struct {
 	Logger  log.Logger
 }
 
-func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
+func (c *Transport) ConfigureSSB() (transport.Transport, error) {
+	return nil, nil
+}
+func (c *Transport) ConfigureLibP2P(d LibP2PDependencies) (transport.Transport, error) {
 	peerPrivKey, err := c.generatePrivKey()
 	if err != nil {
 		return nil, err
 	}
-	cfg := p2p.Config{
-		Mode:             p2p.ClientMode,
+	cfg := libp2p.Config{
+		Mode:             libp2p.ClientMode,
 		PeerPrivKey:      peerPrivKey,
 		Topics:           map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
 		MessagePrivKey:   ethkey.NewPrivKey(d.Signer),
-		ListenAddrs:      c.P2P.ListenAddrs,
-		BootstrapAddrs:   c.P2P.BootstrapAddrs,
-		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
-		BlockedAddrs:     c.P2P.BlockedAddrs,
+		ListenAddrs:      c.LibP2P.ListenAddrs,
+		BootstrapAddrs:   c.LibP2P.BootstrapAddrs,
+		DirectPeersAddrs: c.LibP2P.DirectPeersAddrs,
+		BlockedAddrs:     c.LibP2P.BlockedAddrs,
 		FeedersAddrs:     d.Feeds,
-		Discovery:        !c.P2P.DisableDiscovery,
+		Discovery:        !c.LibP2P.DisableDiscovery,
 		Signer:           d.Signer,
 		Logger:           d.Logger,
 		AppName:          "spire",
 		AppVersion:       suite.Version,
 	}
-	p, err := p2pTransportFactory(d.Context, cfg)
+	p, err := libP2PTransportFactory(d.Context, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -96,18 +110,18 @@ func (c *Transport) ConfigureP2PBoostrap(d BootstrapDependencies) (transport.Tra
 	if err != nil {
 		return nil, err
 	}
-	cfg := p2p.Config{
-		Mode:             p2p.BootstrapMode,
+	cfg := libp2p.Config{
+		Mode:             libp2p.BootstrapMode,
 		PeerPrivKey:      peerPrivKey,
-		ListenAddrs:      c.P2P.ListenAddrs,
-		BootstrapAddrs:   c.P2P.BootstrapAddrs,
-		DirectPeersAddrs: c.P2P.DirectPeersAddrs,
-		BlockedAddrs:     c.P2P.BlockedAddrs,
+		ListenAddrs:      c.LibP2P.ListenAddrs,
+		BootstrapAddrs:   c.LibP2P.BootstrapAddrs,
+		DirectPeersAddrs: c.LibP2P.DirectPeersAddrs,
+		BlockedAddrs:     c.LibP2P.BlockedAddrs,
 		Logger:           d.Logger,
 		AppName:          "bootstrap",
 		AppVersion:       suite.Version,
 	}
-	p, err := p2pTransportFactory(d.Context, cfg)
+	p, err := libP2PTransportFactory(d.Context, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +130,8 @@ func (c *Transport) ConfigureP2PBoostrap(d BootstrapDependencies) (transport.Tra
 
 func (c *Transport) generatePrivKey() (crypto.PrivKey, error) {
 	seedReader := rand.Reader
-	if len(c.P2P.PrivKeySeed) != 0 {
-		seed, err := hex.DecodeString(c.P2P.PrivKeySeed)
+	if len(c.LibP2P.PrivKeySeed) != 0 {
+		seed, err := hex.DecodeString(c.LibP2P.PrivKeySeed)
 		if err != nil {
 			return nil, fmt.Errorf("invalid privKeySeed value, failed to decode hex data: %w", err)
 		}

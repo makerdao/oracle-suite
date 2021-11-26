@@ -33,10 +33,10 @@ with aggregates that increase reliability in the DeFi environment.`,
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(
+	rootCmd.PersistentFlags().VarP(
 		&opts.LogVerbosity,
-		"log.verbosity", "v",
-		"info",
+		"log.verbosity",
+		"v",
 		"verbosity level",
 	)
 	rootCmd.PersistentFlags().Var(

@@ -22,6 +22,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/stretchr/testify v1.7.0
+	go.cryptoscope.co/muxrpc/v2 v2.0.13 // indirect
+	go.cryptoscope.co/ssb v0.2.1
+	go.mindeco.de v1.12.0
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect

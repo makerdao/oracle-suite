@@ -58,7 +58,7 @@ func (c *Config) Configure(d Dependencies) (transport.Transport, datastore.Datas
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	tra, err := c.Transport.Configure(transportConfig.Dependencies{
+	tra, err := c.Transport.ConfigureLibP2P(transportConfig.LibP2PDependencies{
 		Context: d.Context,
 		Signer:  sig,
 		Feeds:   fed,

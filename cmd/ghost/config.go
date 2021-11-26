@@ -71,7 +71,7 @@ func (c *Config) Configure(d Dependencies, noGoferRPC bool) (transport.Transport
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	tra, err := c.Transport.Configure(transportConfig.Dependencies{
+	tra, err := c.Transport.ConfigureLibP2P(transportConfig.LibP2PDependencies{
 		Context: d.Context,
 		Signer:  sig,
 		Feeds:   fed,

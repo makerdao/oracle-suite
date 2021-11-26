@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package libp2p
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/makerdao/oracle-suite/internal/p2p"
+	"github.com/makerdao/oracle-suite/internal/libp2p"
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport"
@@ -61,14 +61,14 @@ const priceUpdateInterval = time.Minute
 // be listening on.
 var defaultListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
-// P2P is a little wrapper for the Node that implements the transport.Transport
+// LibP2P is a little wrapper for the Node that implements the transport.Transport
 // interface.
-type P2P struct {
-	node   *p2p.Node
+type LibP2P struct {
+	node   *libp2p.Node
 	topics map[string]transport.Message
 }
 
-// Config is a configuration for the P2P transport.
+// Config is a configuration for the LibP2P transport.
 type Config struct {
 	// Mode describes in what mode the node should operate.
 	Mode Mode
@@ -116,7 +116,7 @@ type Config struct {
 
 // New returns a new instance of a transport, implemented with
 // the libp2p library.
-func New(ctx context.Context, cfg Config) (*P2P, error) {
+func New(ctx context.Context, cfg Config) (*LibP2P, error) {
 	var err error
 
 	if len(cfg.ListenAddrs) == 0 {
@@ -143,30 +143,30 @@ func New(ctx context.Context, cfg Config) (*P2P, error) {
 	}
 
 	logger := cfg.Logger.WithField("tag", LoggerTag)
-	opts := []p2p.Options{
-		p2p.Logger(logger),
-		p2p.ConnectionLogger(),
-		p2p.PeerLogger(),
-		p2p.UserAgent(fmt.Sprintf("%s/%s", cfg.AppName, cfg.AppVersion)),
-		p2p.ListenAddrs(listenAddrs),
-		p2p.DirectPeers(directPeersAddrs),
-		p2p.Denylist(blockedAddrs),
-		p2p.ConnectionLimit(
+	opts := []libp2p.Options{
+		libp2p.Logger(logger),
+		libp2p.ConnectionLogger(),
+		libp2p.PeerLogger(),
+		libp2p.UserAgent(fmt.Sprintf("%s/%s", cfg.AppName, cfg.AppVersion)),
+		libp2p.ListenAddrs(listenAddrs),
+		libp2p.DirectPeers(directPeersAddrs),
+		libp2p.Denylist(blockedAddrs),
+		libp2p.ConnectionLimit(
 			minConnections,
 			maxConnections,
 			5*time.Minute,
 		),
-		p2p.Monitor(),
+		libp2p.Monitor(),
 	}
 	if cfg.PeerPrivKey != nil {
-		opts = append(opts, p2p.PeerPrivKey(cfg.PeerPrivKey))
+		opts = append(opts, libp2p.PeerPrivKey(cfg.PeerPrivKey))
 	}
 	switch cfg.Mode {
 	case ClientMode:
 		opts = append(opts,
-			p2p.MessageLogger(),
-			p2p.RateLimiter(rateLimiterConfig(cfg)),
-			p2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
+			libp2p.MessageLogger(),
+			libp2p.RateLimiter(rateLimiterConfig(cfg)),
+			libp2p.PeerScoring(peerScoreParams, thresholds, func(topic string) *pubsub.TopicScoreParams {
 				if topic == messages.PriceMessageName {
 					return priceTopicScoreParams(cfg)
 				}
@@ -175,29 +175,29 @@ func New(ctx context.Context, cfg Config) (*P2P, error) {
 			oracle(cfg.FeedersAddrs, cfg.Signer, logger),
 		)
 		if cfg.MessagePrivKey != nil {
-			opts = append(opts, p2p.MessagePrivKey(cfg.MessagePrivKey))
+			opts = append(opts, libp2p.MessagePrivKey(cfg.MessagePrivKey))
 		}
 		if cfg.Discovery {
-			opts = append(opts, p2p.Discovery(bootstrapAddrs))
+			opts = append(opts, libp2p.Discovery(bootstrapAddrs))
 		}
 	case BootstrapMode:
 		cfg.Topics = nil
 		opts = append(opts,
-			p2p.DisablePubSub(),
-			p2p.Discovery(bootstrapAddrs),
+			libp2p.DisablePubSub(),
+			libp2p.Discovery(bootstrapAddrs),
 		)
 	}
 
-	n, err := p2p.NewNode(ctx, opts...)
+	n, err := libp2p.NewNode(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("P2P transport error, unable to initialize node: %w", err)
 	}
 
-	return &P2P{node: n, topics: cfg.Topics}, nil
+	return &LibP2P{node: n, topics: cfg.Topics}, nil
 }
 
 // Start implements the transport.Transport interface.
-func (p *P2P) Start() error {
+func (p *LibP2P) Start() error {
 	err := p.node.Start()
 	if err != nil {
 		return fmt.Errorf("P2P transport error, unable to start node: %w", err)
@@ -212,12 +212,12 @@ func (p *P2P) Start() error {
 }
 
 // Wait implements the transport.Transport interface.
-func (p *P2P) Wait() {
+func (p *LibP2P) Wait() {
 	p.node.Wait()
 }
 
 // Broadcast implements the transport.Transport interface.
-func (p *P2P) Broadcast(topic string, message transport.Message) error {
+func (p *LibP2P) Broadcast(topic string, message transport.Message) error {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return fmt.Errorf("P2P transport error, unable to get subscription for %s topic: %w", topic, err)
@@ -226,7 +226,7 @@ func (p *P2P) Broadcast(topic string, message transport.Message) error {
 }
 
 // Messages implements the transport.Transport interface.
-func (p *P2P) Messages(topic string) chan transport.ReceivedMessage {
+func (p *LibP2P) Messages(topic string) chan transport.ReceivedMessage {
 	sub, err := p.node.Subscription(topic)
 	if err != nil {
 		return nil
@@ -234,7 +234,7 @@ func (p *P2P) Messages(topic string) chan transport.ReceivedMessage {
 	return sub.Next()
 }
 
-func (p *P2P) subscribe(topic string, typ transport.Message) error {
+func (p *LibP2P) subscribe(topic string, typ transport.Message) error {
 	err := p.node.Subscribe(topic, typ)
 	if err != nil {
 		return fmt.Errorf("P2P transport error, unable to subscribe to topic %s: %w", topic, err)
@@ -256,10 +256,10 @@ func strsToMaddrs(addrs []string) ([]core.Multiaddr, error) {
 	return maddrs, nil
 }
 
-func rateLimiterConfig(cfg Config) p2p.RateLimiterConfig {
+func rateLimiterConfig(cfg Config) libp2p.RateLimiterConfig {
 	bytesPerSecond := maxBytesPerSecond
 	burstSize := maxBytesPerSecond * priceUpdateInterval.Seconds()
-	return p2p.RateLimiterConfig{
+	return libp2p.RateLimiterConfig{
 		BytesPerSecond:      maxBytesPerSecond / float64(len(cfg.FeedersAddrs)),
 		BurstSize:           int(burstSize / float64(len(cfg.FeedersAddrs))),
 		RelayBytesPerSecond: bytesPerSecond,

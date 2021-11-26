@@ -22,11 +22,12 @@ import (
 )
 
 type options struct {
-	LogVerbosity   string
-	LogFormat      logrusFlag.FormatTypeValue
+	LogVerbosity   logrusFlag.Verbosity
+	LogFormat      logrusFlag.Format
 	ConfigFilePath string
 	Config         Config
 	Version        string
+	Transport      string
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
@@ -34,15 +35,15 @@ func NewRootCommand(opts *options) *cobra.Command {
 		Use:           "spire",
 		Version:       opts.Version,
 		Short:         "",
-		Long:          ``,
+		Long:          "",
 		SilenceErrors: false,
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(
+	rootCmd.PersistentFlags().VarP(
 		&opts.LogVerbosity,
-		"log.verbosity", "v",
-		"info",
+		"log.verbosity",
+		"v",
 		"verbosity level",
 	)
 	rootCmd.PersistentFlags().Var(
@@ -56,6 +57,12 @@ func NewRootCommand(opts *options) *cobra.Command {
 		"c",
 		"./config.json",
 		"spire config file",
+	)
+	rootCmd.PersistentFlags().StringVar(
+		&opts.Transport,
+		"transport",
+		"libp2p",
+		"`libp2p|ssb` transport spire connects to",
 	)
 
 	rootCmd.AddCommand(

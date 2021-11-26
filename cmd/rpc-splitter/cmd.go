@@ -27,8 +27,8 @@ type options struct {
 	Listen       string
 	EnableCORS   bool
 	EthRPCURLs   []string
-	LogVerbosity string
-	LogFormat    logrusFlag.FormatTypeValue
+	LogVerbosity logrusFlag.Verbosity
+	LogFormat    logrusFlag.Format
 }
 
 func NewRootCommand(opts *options) *cobra.Command {
@@ -41,11 +41,11 @@ func NewRootCommand(opts *options) *cobra.Command {
 		SilenceUsage:  true,
 	}
 
-	rootCmd.PersistentFlags().StringVarP(
+	rootCmd.PersistentFlags().VarP(
 		&opts.LogVerbosity,
-		"log.verbosity", "v",
-		"info",
-		"verbosity level",
+		"log.verbosity",
+		"v",
+		"log verbosity",
 	)
 	rootCmd.PersistentFlags().Var(
 		&opts.LogFormat,
