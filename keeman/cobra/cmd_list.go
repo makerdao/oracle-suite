@@ -13,37 +13,42 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cobra
 
 import (
-	"fmt"
-	"log"
-	"os"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	if err := cmd(os.Args[1:]); err != nil {
-		log.Fatalln(err)
+func NewList(opts *Options) *cobra.Command {
+	var all bool
+	cmd := &cobra.Command{
+		Use:   "list [--all]",
+		Short: "List word count and first word from the input, omitting the comments",
+		RunE: func(_ *cobra.Command, args []string) error {
+			if all {
+				lines, err := linesFromFile(opts.InputFile)
+				if err != nil {
+					return err
+				}
+				for _, l := range lines {
+					printLine(l)
+				}
+				return nil
+			}
+			l, err := lineFromFile(opts.InputFile, opts.Index)
+			if err != nil {
+				return err
+			}
+			printLine(l)
+			return nil
+		},
 	}
-}
-
-func cmd(args []string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("missing command")
-	}
-
-	c := args[0]
-	switch c {
-	case "g", "gen", "generate":
-		return cmdGen(args)
-	case "d", "der", "derive":
-		return cmdDer(args)
-	}
-
-	return fmt.Errorf("unknown command: %s", c)
-}
-
-func fileIsEmpty(file *os.File) bool {
-	info, err := file.Stat()
-	return err != nil || info.Size() == 0 && info.Mode()&os.ModeNamedPipe == 0
+	cmd.Flags().BoolVarP(
+		&all,
+		"all",
+		"a",
+		false,
+		"all data",
+	)
+	return cmd
 }
