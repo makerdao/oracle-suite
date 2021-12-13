@@ -29,9 +29,9 @@ import (
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/spf13/cobra"
 
-	"github.com/chronicleprotocol/oracle-suite/keeman/eth"
-	"github.com/chronicleprotocol/oracle-suite/keeman/rand"
-	"github.com/chronicleprotocol/oracle-suite/keeman/ssb"
+	"github.com/chronicleprotocol/oracle-suite/cmd/keeman/eth"
+	"github.com/chronicleprotocol/oracle-suite/cmd/keeman/rand"
+	"github.com/chronicleprotocol/oracle-suite/cmd/keeman/ssb"
 )
 
 const (

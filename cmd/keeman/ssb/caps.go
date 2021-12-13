@@ -25,7 +25,7 @@ import (
 	"go.cryptoscope.co/ssb"
 	refs "go.mindeco.de/ssb-refs"
 
-	"github.com/chronicleprotocol/oracle-suite/keeman/rand"
+	"github.com/chronicleprotocol/oracle-suite/cmd/keeman/rand"
 )
 
 type Caps struct {
