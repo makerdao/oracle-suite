@@ -21,6 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -39,7 +40,8 @@ var p2pTransportFactory = func(ctx context.Context, cfg p2p.Config) (transport.T
 }
 
 type Transport struct {
-	P2P P2P `json:"p2p"`
+	P2P P2P         `json:"libp2p"`
+	SSB Scuttlebutt `json:"ssb"`
 }
 
 type P2P struct {
@@ -49,6 +51,16 @@ type P2P struct {
 	DirectPeersAddrs []string `json:"directPeersAddrs"`
 	BlockedAddrs     []string `json:"blockedAddrs"`
 	DisableDiscovery bool     `json:"disableDiscovery"`
+}
+
+type Scuttlebutt struct {
+	Caps string `json:"caps"`
+}
+
+type Caps struct {
+	Shs    string `json:"shs"`
+	Sign   string `json:"sign"`
+	Invite string `json:"invite,omitempty"`
 }
 
 type Dependencies struct {
@@ -61,6 +73,10 @@ type Dependencies struct {
 type BootstrapDependencies struct {
 	Context context.Context
 	Logger  log.Logger
+}
+
+func (c *Transport) ConfigureSSB() (transport.Transport, error) {
+	return nil, errors.New("ssb not yet implemented")
 }
 
 func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
