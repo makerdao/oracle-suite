@@ -34,7 +34,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/makerdao/oracle-suite/keeman/cobra"
+	"github.com/chronicleprotocol/oracle-suite/keeman/cobra"
 )
 
 func main() {

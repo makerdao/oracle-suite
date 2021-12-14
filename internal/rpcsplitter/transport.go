@@ -21,7 +21,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/chronicleprotocol/oracle-suite/pkg/log"
 )
 
 type Transport struct {

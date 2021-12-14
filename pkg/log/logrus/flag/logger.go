@@ -22,9 +22,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logrus2 "github.com/makerdao/oracle-suite/pkg/log/logrus"
-	formatter2 "github.com/makerdao/oracle-suite/pkg/log/logrus/formatter"
+	"github.com/chronicleprotocol/oracle-suite/pkg/log"
+	logrus2 "github.com/chronicleprotocol/oracle-suite/pkg/log/logrus"
+	formatter2 "github.com/chronicleprotocol/oracle-suite/pkg/log/logrus/formatter"
 )
 
 type LoggerFlag struct {
