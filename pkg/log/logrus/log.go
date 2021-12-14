@@ -54,19 +54,19 @@ func (l *Logger) Level() log.Level {
 }
 
 func (l *Logger) WithField(key string, value interface{}) log.Logger {
-	return &Logger{log: l.log.WithField(key, value)}
+	return &Logger{log: l.log.WithField(key, value), lvl: l.lvl}
 }
 
 func (l *Logger) WithFields(fields log.Fields) log.Logger {
-	return &Logger{log: l.log.WithFields(fields)}
+	return &Logger{log: l.log.WithFields(fields), lvl: l.lvl}
 }
 
 func (l *Logger) WithError(err error) log.Logger {
 	if fErr, ok := err.(log.ErrorWithFields); ok {
-		return &Logger{log: l.log.WithFields(fErr.Fields()).WithError(err)}
+		return &Logger{log: l.log.WithFields(fErr.Fields()).WithError(err), lvl: l.lvl}
 	}
 
-	return &Logger{log: l.log.WithError(err)}
+	return &Logger{log: l.log.WithError(err), lvl: l.lvl}
 }
 
 func (l *Logger) Debugf(format string, args ...interface{}) {
