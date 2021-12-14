@@ -28,6 +28,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/spire"
 	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 )
 
 type Config struct {
@@ -66,7 +67,6 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
 	fed, err := c.Feeds.Addresses()
 	if err != nil {
 		return nil, nil, nil, err
@@ -80,7 +80,9 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 			Signer:  sig,
 			Feeds:   fed,
 			Logger:  d.Logger,
-		})
+		},
+			map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
+		)
 	case spireConfig.TransportLibSSB:
 		tra, err = c.Transport.ConfigureSSB()
 	default:
@@ -89,7 +91,6 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
 	dat, err := c.Spire.ConfigureDatastore(spireConfig.DatastoreDependencies{
 		Context:   d.Context,
 		Signer:    sig,
@@ -100,7 +101,6 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
 	age, err := c.Spire.ConfigureAgent(spireConfig.AgentDependencies{
 		Context:   d.Context,
 		Signer:    sig,
@@ -112,7 +112,6 @@ func (c *Config) ConfigureAgent(d AgentDependencies) (transport.Transport, datas
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
 	return tra, dat, age, nil
 }
 

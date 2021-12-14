@@ -29,10 +29,59 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
-// oracle adds a validator for price messages. The validator checks if the
-// author of the message is allowed to send price messages, the price
-// message is valid, and if the price is not older than 5 min.
-func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logger) p2p.Options {
+func feederValidator(feeders []ethereum.Address, logger log.Logger) p2p.Options {
+	return func(n *p2p.Node) error {
+		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
+			feedAddr := ethkey.PeerIDToAddress(psMsg.GetFrom())
+			feedAllowed := false
+			for _, addr := range feeders {
+				if addr == feedAddr {
+					feedAllowed = true
+					break
+				}
+			}
+			if !feedAllowed {
+				logger.
+					WithField("peerID", psMsg.GetFrom().String()).
+					WithField("from", feedAddr).
+					Warn("The message has been ignored, the feeder is not allowed to send messages")
+				return pubsub.ValidationIgnore
+			}
+			return pubsub.ValidationAccept
+		})
+		return nil
+	}
+}
+
+// eventValidator adds a validator for event messages.
+func eventValidator(logger log.Logger) p2p.Options {
+	return func(n *p2p.Node) error {
+		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
+			eventMsg, ok := psMsg.ValidatorData.(*messages.Event)
+			if !ok {
+				return pubsub.ValidationAccept
+			}
+			feedAddr := ethkey.PeerIDToAddress(psMsg.GetFrom())
+			// Check when message was created, ignore if older than 5 min, reject if older than 10 min:
+			if time.Since(eventMsg.Date) > 5*time.Minute {
+				logger.
+					WithField("peerID", psMsg.GetFrom().String()).
+					WithField("from", feedAddr.String()).
+					Warn("The event message has been rejected, the message is older than 5 min")
+				if time.Since(eventMsg.Date) > 10*time.Minute {
+					return pubsub.ValidationReject
+				}
+				return pubsub.ValidationIgnore
+			}
+			return pubsub.ValidationAccept
+		})
+		return nil
+	}
+}
+
+// priceValidator adds a validator for price messages. The validator checks if
+// the price message is valid, and if the price is not older than 5 min.
+func priceValidator(signer ethereum.Signer, logger log.Logger) p2p.Options {
 	return func(n *p2p.Node) error {
 		n.AddValidator(func(ctx context.Context, topic string, id peer.ID, psMsg *pubsub.Message) pubsub.ValidationResult {
 			priceMsg, ok := psMsg.ValidatorData.(*messages.Price)
@@ -51,7 +100,7 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 					WithField("wat", wat).
 					WithField("age", age).
 					WithField("val", val).
-					Warn("The price message was rejected, invalid signature")
+					Warn("The price message has been rejected, invalid signature")
 				return pubsub.ValidationReject
 			}
 			// The libp2p message should be created by the same person who signs the price message:
@@ -62,26 +111,8 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 					WithField("wat", wat).
 					WithField("age", age).
 					WithField("val", val).
-					Warn("The price message was rejected, the message author and price signature don't match")
+					Warn("The price message has been rejected, the message and price signatures do not match")
 				return pubsub.ValidationReject
-			}
-			// Check if an author is allowed to send price messages:
-			feedAllowed := false
-			for _, addr := range feeders {
-				if addr == *priceFrom {
-					feedAllowed = true
-					break
-				}
-			}
-			if !feedAllowed {
-				logger.
-					WithField("peerID", psMsg.GetFrom().String()).
-					WithField("from", priceFrom.String()).
-					WithField("wat", wat).
-					WithField("age", age).
-					WithField("val", val).
-					Warn("The price message was ignored, the feeder is not allowed to send price messages")
-				return pubsub.ValidationIgnore
 			}
 			// Check when message was created, ignore if older than 5 min, reject if older than 10 min:
 			if time.Since(priceMsg.Price.Age) > 5*time.Minute {
@@ -91,13 +122,12 @@ func oracle(feeders []ethereum.Address, signer ethereum.Signer, logger log.Logge
 					WithField("wat", wat).
 					WithField("age", age).
 					WithField("val", val).
-					Warn("The price message was rejected, the message is older than 5 min")
+					Warn("The price message has been rejected, the message is older than 5 min")
 				if time.Since(priceMsg.Price.Age) > 10*time.Minute {
 					return pubsub.ValidationReject
 				}
 				return pubsub.ValidationIgnore
 			}
-
 			return pubsub.ValidationAccept
 		})
 		return nil

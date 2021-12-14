@@ -30,7 +30,6 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/ethereum"
 	"github.com/makerdao/oracle-suite/pkg/log"
 	"github.com/makerdao/oracle-suite/pkg/transport"
-	"github.com/makerdao/oracle-suite/pkg/transport/messages"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p"
 	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
@@ -79,7 +78,7 @@ func (c *Transport) ConfigureSSB() (transport.Transport, error) {
 	return nil, errors.New("ssb not yet implemented")
 }
 
-func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
+func (c *Transport) Configure(d Dependencies, t map[string]transport.Message) (transport.Transport, error) {
 	peerPrivKey, err := c.generatePrivKey()
 	if err != nil {
 		return nil, err
@@ -87,7 +86,7 @@ func (c *Transport) Configure(d Dependencies) (transport.Transport, error) {
 	cfg := p2p.Config{
 		Mode:             p2p.ClientMode,
 		PeerPrivKey:      peerPrivKey,
-		Topics:           map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
+		Topics:           t,
 		MessagePrivKey:   ethkey.NewPrivKey(d.Signer),
 		ListenAddrs:      c.P2P.ListenAddrs,
 		BootstrapAddrs:   c.P2P.BootstrapAddrs,

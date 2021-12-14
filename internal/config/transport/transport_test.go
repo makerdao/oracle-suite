@@ -72,7 +72,9 @@ func TestTransport_P2P_EmptyConfig(t *testing.T) {
 		Signer:  signer,
 		Feeds:   feeds,
 		Logger:  logger,
-	})
+	},
+		map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
+	)
 	require.NoError(t, err)
 	assert.NotNil(t, tra)
 }
@@ -123,7 +125,9 @@ func TestTransport_P2P_CustomValues(t *testing.T) {
 		Signer:  signer,
 		Feeds:   feeds,
 		Logger:  logger,
-	})
+	},
+		map[string]transport.Message{messages.PriceMessageName: (*messages.Price)(nil)},
+	)
 	require.NoError(t, err)
 	assert.NotNil(t, tra)
 }
@@ -157,6 +161,6 @@ func TestTransport_P2P_InvalidSeed(t *testing.T) {
 		Signer:  signer,
 		Feeds:   feeds,
 		Logger:  logger,
-	})
+	}, nil)
 	require.Error(t, err)
 }

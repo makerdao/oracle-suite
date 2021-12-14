@@ -22,7 +22,7 @@ import (
 	"github.com/makerdao/oracle-suite/pkg/oracle"
 )
 
-var PriceMessageName = "price/v0"
+const PriceMessageName = "price/v0"
 
 var ErrPriceMalformedMessage = errors.New("malformed price message")
 
@@ -32,10 +32,12 @@ type Price struct {
 }
 
 func (p *Price) Marshall() ([]byte, error) {
+	// TODO: remove
 	return json.Marshal(p)
 }
 
 func (p *Price) Unmarshall(b []byte) error {
+	// TODO: remove
 	err := json.Unmarshal(b, p)
 	if err != nil {
 		return err
@@ -46,10 +48,12 @@ func (p *Price) Unmarshall(b []byte) error {
 	return nil
 }
 
-func (p *Price) MarshalBinary() ([]byte, error) {
+// MarshallBinary implements the transport.Message interface.
+func (p *Price) MarshallBinary() ([]byte, error) {
 	return p.Marshall()
 }
 
-func (p *Price) UnmarshalBinary(data []byte) error {
+// UnmarshallBinary implements the transport.Message interface.
+func (p *Price) UnmarshallBinary(data []byte) error {
 	return p.Unmarshall(data)
 }
