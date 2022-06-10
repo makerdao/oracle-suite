@@ -39,7 +39,7 @@ jobs:
 
       - run:
           name: Run linting
-          command: make lint
+          command: echo "Test"; make lint
 
       - run:
           name: Build binary
