@@ -22,8 +22,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/mocks"
 )
 
 func TestPubKey_Equals(t *testing.T) {

@@ -20,8 +20,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
-	"github.com/makerdao/oracle-suite/pkg/transport/messages"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/geth"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/messages"
 )
 
 func NewPriceCmd(opts *options) *cobra.Command {

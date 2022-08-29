@@ -21,16 +21,16 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/oracle-suite/internal/config"
-	ethereumConfig "github.com/makerdao/oracle-suite/internal/config/ethereum"
-	feedsConfig "github.com/makerdao/oracle-suite/internal/config/feeds"
-	spectreConfig "github.com/makerdao/oracle-suite/internal/config/spectre"
-	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
-	"github.com/makerdao/oracle-suite/pkg/datastore"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
-	"github.com/makerdao/oracle-suite/pkg/spectre"
-	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/internal/config"
+	ethereumConfig "github.com/kRoqmoq/oracle-suite/internal/config/ethereum"
+	feedsConfig "github.com/kRoqmoq/oracle-suite/internal/config/feeds"
+	spectreConfig "github.com/kRoqmoq/oracle-suite/internal/config/spectre"
+	transportConfig "github.com/kRoqmoq/oracle-suite/internal/config/transport"
+	"github.com/kRoqmoq/oracle-suite/pkg/datastore"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	logLogrus "github.com/kRoqmoq/oracle-suite/pkg/log/logrus"
+	"github.com/kRoqmoq/oracle-suite/pkg/spectre"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
 )
 
 type Config struct {

@@ -22,8 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
-	"github.com/makerdao/oracle-suite/pkg/ethereum/geth/mocks"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/geth"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/geth/mocks"
 )
 
 func TestEthereum_ConfigureSigner_WithoutPassword(t *testing.T) {

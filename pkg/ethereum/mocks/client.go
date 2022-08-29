@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
 )
 
 type Client struct {

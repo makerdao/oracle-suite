@@ -19,9 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/makerdao/oracle-suite/internal/query"
-	pkgEthereum "github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
+	pkgEthereum "github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/origins"
 )
 
 func parseParamsSymbolAliases(params json.RawMessage) (origins.SymbolAliases, error) {

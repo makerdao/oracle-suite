@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/makerdao/oracle-suite/internal/gofer/marshal/testutil"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/internal/gofer/marshal/testutil"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
 )
 
 func TestJSON_Nodes(t *testing.T) {

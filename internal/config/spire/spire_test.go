@@ -22,12 +22,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	ethereumMocks "github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
-	"github.com/makerdao/oracle-suite/pkg/log/null"
-	"github.com/makerdao/oracle-suite/pkg/spire"
-	"github.com/makerdao/oracle-suite/pkg/transport/local"
+	datastoreMemory "github.com/kRoqmoq/oracle-suite/pkg/datastore/memory"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	ethereumMocks "github.com/kRoqmoq/oracle-suite/pkg/ethereum/mocks"
+	"github.com/kRoqmoq/oracle-suite/pkg/log/null"
+	"github.com/kRoqmoq/oracle-suite/pkg/spire"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/local"
 )
 
 func TestSpire_ConfigureAgent(t *testing.T) {

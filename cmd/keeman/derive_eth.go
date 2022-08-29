@@ -26,7 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
-	"github.com/makerdao/oracle-suite/cmd/keeman/internal"
+	"github.com/kRoqmoq/oracle-suite/cmd/keeman/internal"
 )
 
 type eth struct {

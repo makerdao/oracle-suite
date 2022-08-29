@@ -19,9 +19,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/oracle"
-	"github.com/makerdao/oracle-suite/pkg/transport/messages"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/oracle"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/messages"
 )
 
 var (

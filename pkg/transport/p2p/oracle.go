@@ -22,11 +22,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/makerdao/oracle-suite/internal/p2p"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/transport/messages"
-	"github.com/makerdao/oracle-suite/pkg/transport/p2p/crypto/ethkey"
+	"github.com/kRoqmoq/oracle-suite/internal/p2p"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/messages"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/p2p/crypto/ethkey"
 )
 
 // oracle adds a validator for price messages. The validator checks if the

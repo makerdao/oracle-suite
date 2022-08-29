@@ -21,14 +21,14 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/oracle-suite/internal/config"
-	ethereumConfig "github.com/makerdao/oracle-suite/internal/config/ethereum"
-	goferConfig "github.com/makerdao/oracle-suite/internal/config/gofer"
-	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
-	pkgGofer "github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/gofer/rpc"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
+	"github.com/kRoqmoq/oracle-suite/internal/config"
+	ethereumConfig "github.com/kRoqmoq/oracle-suite/internal/config/ethereum"
+	goferConfig "github.com/kRoqmoq/oracle-suite/internal/config/gofer"
+	"github.com/kRoqmoq/oracle-suite/internal/gofer/marshal"
+	pkgGofer "github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/rpc"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	logLogrus "github.com/kRoqmoq/oracle-suite/pkg/log/logrus"
 )
 
 type Config struct {

@@ -19,7 +19,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
 )
 
 const httpRequestLog = "HTTP request"

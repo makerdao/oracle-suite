@@ -20,8 +20,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	logLogrus "github.com/kRoqmoq/oracle-suite/pkg/log/logrus"
 )
 
 func main() {

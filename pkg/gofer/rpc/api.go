@@ -16,10 +16,10 @@
 package rpc
 
 import (
-	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/internal/gofer/marshal"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph/feeder"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
 )
 
 type Nothing = struct{}

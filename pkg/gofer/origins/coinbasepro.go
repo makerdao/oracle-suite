@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-//TODO: check if it's possible to merge coinbase and coinbasepro
+// TODO: check if it's possible to merge coinbase and coinbasepro
 package origins
 
 import (
@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
 )
 
 // Coinbase URL

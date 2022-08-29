@@ -18,9 +18,9 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
+	logrusFlag "github.com/kRoqmoq/oracle-suite/pkg/log/logrus/flag"
 
-	suite "github.com/makerdao/oracle-suite"
+	suite "github.com/kRoqmoq/oracle-suite"
 )
 
 type options struct {

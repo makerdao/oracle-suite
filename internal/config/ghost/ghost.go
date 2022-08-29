@@ -19,14 +19,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/ghost"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ghost"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
 )
 
-//nolint
+// nolint
 var ghostFactory = func(ctx context.Context, cfg ghost.Config) (*ghost.Ghost, error) {
 	return ghost.NewGhost(ctx, cfg)
 }

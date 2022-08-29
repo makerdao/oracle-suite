@@ -24,15 +24,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/query"
-	pkgEthereum "github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
-	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
-	"github.com/makerdao/oracle-suite/pkg/gofer/rpc"
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
+	pkgEthereum "github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph/feeder"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph/nodes"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/origins"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/rpc"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
 )
 
 const defaultTTL = 60 * time.Second

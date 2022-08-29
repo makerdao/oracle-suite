@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/query"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
 )
 
 // Handler is interface that all Origin API handlers should implement.

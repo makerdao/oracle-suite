@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strings"
 
-	logrusFlag "github.com/makerdao/oracle-suite/pkg/log/logrus/flag"
+	logrusFlag "github.com/kRoqmoq/oracle-suite/pkg/log/logrus/flag"
 
-	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
+	"github.com/kRoqmoq/oracle-suite/internal/gofer/marshal"
 )
 
 // These are the command options that can be set by CLI flags.

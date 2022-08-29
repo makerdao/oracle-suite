@@ -20,12 +20,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/oracle-suite/internal/config"
-	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
-	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/internal/config"
+	transportConfig "github.com/kRoqmoq/oracle-suite/internal/config/transport"
+	logLogrus "github.com/kRoqmoq/oracle-suite/pkg/log/logrus"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
 )
 
 type Config struct {

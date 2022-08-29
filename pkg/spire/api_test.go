@@ -26,15 +26,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore"
-	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
-	"github.com/makerdao/oracle-suite/pkg/log/null"
-	"github.com/makerdao/oracle-suite/pkg/oracle"
-	"github.com/makerdao/oracle-suite/pkg/transport"
-	"github.com/makerdao/oracle-suite/pkg/transport/local"
-	"github.com/makerdao/oracle-suite/pkg/transport/messages"
+	"github.com/kRoqmoq/oracle-suite/pkg/datastore"
+	datastoreMemory "github.com/kRoqmoq/oracle-suite/pkg/datastore/memory"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/mocks"
+	"github.com/kRoqmoq/oracle-suite/pkg/log/null"
+	"github.com/kRoqmoq/oracle-suite/pkg/oracle"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/local"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/messages"
 )
 
 var (

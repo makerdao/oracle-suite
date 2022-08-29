@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	ethereumMocks "github.com/makerdao/oracle-suite/pkg/ethereum/mocks"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	ethereumMocks "github.com/kRoqmoq/oracle-suite/pkg/ethereum/mocks"
 
 	"github.com/stretchr/testify/suite"
 )

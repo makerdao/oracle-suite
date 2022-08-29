@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
 )
 
 // Huobi URL

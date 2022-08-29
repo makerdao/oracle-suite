@@ -18,20 +18,20 @@ package spire
 import (
 	"context"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore"
-	datastoreMemory "github.com/makerdao/oracle-suite/pkg/datastore/memory"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/spire"
-	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/pkg/datastore"
+	datastoreMemory "github.com/kRoqmoq/oracle-suite/pkg/datastore/memory"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/spire"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
 )
 
-//nolint
+// nolint
 var spireAgentFactory = func(ctx context.Context, cfg spire.AgentConfig) (*spire.Agent, error) {
 	return spire.NewAgent(ctx, cfg)
 }
 
-//nolint
+// nolint
 var spireClientFactory = func(ctx context.Context, cfg spire.ClientConfig) (*spire.Client, error) {
 	return spire.NewClient(ctx, cfg)
 }

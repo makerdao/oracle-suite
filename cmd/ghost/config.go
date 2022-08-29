@@ -22,19 +22,19 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/oracle-suite/internal/config"
-	ethereumConfig "github.com/makerdao/oracle-suite/internal/config/ethereum"
-	feedsConfig "github.com/makerdao/oracle-suite/internal/config/feeds"
-	ghostConfig "github.com/makerdao/oracle-suite/internal/config/ghost"
-	goferConfig "github.com/makerdao/oracle-suite/internal/config/gofer"
-	transportConfig "github.com/makerdao/oracle-suite/internal/config/transport"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/ghost"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	logLogrus "github.com/makerdao/oracle-suite/pkg/log/logrus"
-	"github.com/makerdao/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/internal/config"
+	ethereumConfig "github.com/kRoqmoq/oracle-suite/internal/config/ethereum"
+	feedsConfig "github.com/kRoqmoq/oracle-suite/internal/config/feeds"
+	ghostConfig "github.com/kRoqmoq/oracle-suite/internal/config/ghost"
+	goferConfig "github.com/kRoqmoq/oracle-suite/internal/config/gofer"
+	transportConfig "github.com/kRoqmoq/oracle-suite/internal/config/transport"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ghost"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	logLogrus "github.com/kRoqmoq/oracle-suite/pkg/log/logrus"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
 
-	"github.com/makerdao/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
 )
 
 type Config struct {

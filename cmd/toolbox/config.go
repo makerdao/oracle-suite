@@ -18,10 +18,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/makerdao/oracle-suite/internal/config"
-	ethereumConfig "github.com/makerdao/oracle-suite/internal/config/ethereum"
-	spectreConfig "github.com/makerdao/oracle-suite/internal/config/spectre"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/internal/config"
+	ethereumConfig "github.com/kRoqmoq/oracle-suite/internal/config/ethereum"
+	spectreConfig "github.com/kRoqmoq/oracle-suite/internal/config/spectre"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
 )
 
 type Config struct {

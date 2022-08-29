@@ -19,7 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/makerdao/oracle-suite/pkg/oracle"
+	"github.com/kRoqmoq/oracle-suite/pkg/oracle"
 )
 
 var PriceMessageName = "price/v0"

@@ -19,8 +19,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/geth"
 
 	"github.com/spf13/cobra"
 )

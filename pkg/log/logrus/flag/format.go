@@ -21,7 +21,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/makerdao/oracle-suite/pkg/log/logrus/formatter"
+	"github.com/kRoqmoq/oracle-suite/pkg/log/logrus/formatter"
 )
 
 // FormattersMap is a map of supported logrus formatters. It is safe to add

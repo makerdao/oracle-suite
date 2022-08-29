@@ -22,13 +22,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/gofer/marshal"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/oracle"
-	"github.com/makerdao/oracle-suite/pkg/transport"
-	"github.com/makerdao/oracle-suite/pkg/transport/messages"
+	"github.com/kRoqmoq/oracle-suite/internal/gofer/marshal"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/oracle"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport"
+	"github.com/kRoqmoq/oracle-suite/pkg/transport/messages"
 )
 
 const LoggerTag = "GHOST"

@@ -13,7 +13,7 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package suite
+package main
 
 import (
 	// We need to import embed package to be able to embed files
@@ -22,6 +22,7 @@ import (
 )
 
 // Version is being used in executables
+//
 //go:embed version
 var version string
 

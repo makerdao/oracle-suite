@@ -23,13 +23,13 @@ exactly, from how many sources you want to pull prices and what conditions they 
 ## Installation
 
 To install it, you'll first need Go installed on your machine. Then you can use standard Go
-command: `go get -u github.com/makerdao/oracle-suite/cmd/gofer`.
+command: `go get -u github.com/kRoqmoq/oracle-suite/cmd/gofer`.
 
 Alternatively, you can build Gofer using `Makefile` directly from the repository. This approach is recommended if you
 wish to work on Gofer source.
 
 ```bash
-git clone https://github.com/makerdao/oracle-suite.git
+git clone https://github.com/kRoqmoq/oracle-suite.git
 cd oracle-suite
 make
 ```
@@ -396,7 +396,7 @@ func main() {
 ```
 
 The full documentation for Gofer library can be found
-here: https://pkg.go.dev/github.com/makerdao/oracle-suite/pkg/gofer
+here: https://pkg.go.dev/github.com/kRoqmoq/oracle-suite/pkg/gofer
 
 ## License
 

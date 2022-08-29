@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/makerdao/oracle-suite/pkg/datastore"
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/log"
-	"github.com/makerdao/oracle-suite/pkg/oracle"
+	"github.com/kRoqmoq/oracle-suite/pkg/datastore"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/log"
+	"github.com/kRoqmoq/oracle-suite/pkg/oracle"
 )
 
 const LoggerTag = "SPECTRE"

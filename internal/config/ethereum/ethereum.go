@@ -25,11 +25,11 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/makerdao/oracle-suite/internal/rpcsplitter"
-	"github.com/makerdao/oracle-suite/pkg/log/null"
+	"github.com/kRoqmoq/oracle-suite/internal/rpcsplitter"
+	"github.com/kRoqmoq/oracle-suite/pkg/log/null"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
-	"github.com/makerdao/oracle-suite/pkg/ethereum/geth"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum/geth"
 )
 
 const splitterVirtualHost = "makerdao-splitter"

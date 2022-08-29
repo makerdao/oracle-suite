@@ -1,4 +1,4 @@
-module github.com/makerdao/oracle-suite
+module github.com/kRoqmoq/oracle-suite
 
 go 1.16
 

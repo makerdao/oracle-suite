@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
 )
 
 type Bitfinex struct {
@@ -166,6 +166,7 @@ func (*Bitfinex) parseTicker(tt []interface{}) bitfinexTicker {
 }
 
 // TODO: move to aliases ?
+//
 //nolint:lll
 const bitfinexConfig = `[[["AAA","TESTAAA"],["ABS","ABYSS"],["AIO","AION"],["ALG","ALGO"],["AMP","AMPL"],["AMPF0","AMPLF0"],["ATO","ATOM"],["BAB","BCH"],["BBB","TESTBBB"],["CNHT","CNHt"],["CSX","CS"],["CTX","CTXC"],["DAT","DATA"],["DOG","MDOGE"],["DRN","DRGN"],["DSH","DASH"],["DTX","DT"],["EDO","PNT"],["EUS","EURS"],["EUT","EURt"],["GSD","GUSD"],["IOS","IOST"],["IOT","IOTA"],["LBT","LBTC"],["LES","LEO-EOS"],["LET","LEO-ERC20"],["MIT","MITH"],["MNA","MANA"],["NCA","NCASH"],["OMN","OMNI"],["PAS","PASS"],["POY","POLY"],["QSH","QASH"],["QTM","QTUM"],["RBT","RBTC"],["REP","REP2"],["SCR","XD"],["SNG","SNGLS"],["SPK","SPANK"],["STJ","STORJ"],["TSD","TUSD"],["UDC","USDC"],["USK","USDK"],["UST","USDt"],["USTF0","USDt0"],["UTN","UTNP"],["VSY","VSYS"],["WBT","WBTC"],["XAUT","XAUt"],["XCH","XCHF"],["YGG","YEED"],["YYW","YOYOW"]]]`
 

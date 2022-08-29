@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/makerdao/oracle-suite/pkg/ethereum"
+	"github.com/kRoqmoq/oracle-suite/pkg/ethereum"
 )
 
 type Feeds []string
