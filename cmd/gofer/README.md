@@ -359,14 +359,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/makerdao/oracle-suite/internal/query"
+	"github.com/kRoqmoq/oracle-suite/internal/query"
 
-	"github.com/makerdao/oracle-suite/pkg/gofer"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph/feeder"
-	"github.com/makerdao/oracle-suite/pkg/gofer/graph/nodes"
-	"github.com/makerdao/oracle-suite/pkg/gofer/origins"
-	"github.com/makerdao/oracle-suite/pkg/log/null"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph/feeder"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/graph/nodes"
+	"github.com/kRoqmoq/oracle-suite/pkg/gofer/origins"
+	"github.com/kRoqmoq/oracle-suite/pkg/log/null"
 )
 
 func main() {
