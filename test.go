@@ -28,7 +28,7 @@ func main() {
 	httpWorkerPool := query.NewHTTPWorkerPool(defaultWorkerCount)
 
 	// Feeder is used to fetch prices:
-	f := feeder.NewFeeder(origins.DefaultOriginSet(httpWorkerPool), null.New())
+	f := feeder.NewFeeder(origins.DefaultOriginSet(httpWorkerPool, 1), null.New())
 
 	// Initialize gofer and ask for BTC/USD price:
 	g := graph.NewGofer(m, f)

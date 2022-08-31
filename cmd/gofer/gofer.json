@@ -1,0 +1,21 @@
+{
+  "gofer": {
+    "priceModels": {
+      "BTC/USD": {
+        "method": "median",
+        "sources": [
+          [
+            {
+              "origin": "bitstamp",
+              "pair": "BTC/USD",
+              "ttl": 60
+            }
+          ]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
+      }
+    }
+  }
+}

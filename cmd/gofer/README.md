@@ -80,13 +80,10 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
         - `binance` - [Binance](https://binance.com/)
         - `bitfinex` - [Bitfinex](https://bitfinex.com/)
         - `bitstamp` - [Bitstamp](https://bitstamp.net/)
-        - `bithumb` - [Bithumb](https://bithumb.com/)
         - `bittrex` - [Bittrex](https://bittrex.com/)
         - `coinbasepro` - [CoinbasePro](https://pro.coinbase.com/)
         - `cryptocompare` - [CryptoCompare](https://cryptocompare.com/)
         - `coinmarketcap` - [CoinMarketCap](https://coinmarketcap.com/)
-        - `ddex` - [DDEX](https://ddex.net/)
-        - `folgory` - [Folgory](https://folgory.com/)
         - `ftx` - [FTX](https://ftx.com/)
         - `fx` - [exchangeratesapi.io](https://exchangeratesapi.io/) (fiat currencies)
         - `gateio` - [Gateio](https://gate.io/)
@@ -95,16 +92,10 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
         - `huobi` - [Huobi](https://huobi.com/)
         - `kraken` - [Kraken](https://kraken.com/)
         - `kucoin` - [KuCoin](https://kucoin.com/)
-        - `kyber` - [Kyber](https://blog.kyber.network/)
-        - `loopring` - [Loopring](https://loopring.org/)
         - `okex` - [OKEx](https://okex.com/)
         - `openexchangerates` - [OpenExchangeRates](https://openexchangerates.org)
         - `poloniex` - [Poloniex](https://poloniex.com/)
-        - `sushiswap` - [Sushiswap](https://sushi.com/)
-        - `uniswap` - [Uniswap V2](https://uniswap.org/)
-        - `uniswapV2` - [Uniswap V2](https://uniswap.org/)
         - `uniswapV3` - [Uniswap V3](https://uniswap.org/blog/uniswap-v3/)
-        - `upbit` - [Upbit](https://upbit.com/)
         - `.` - a special value (single dot) which refers to another price model in the config.
     - `pair` - a name of a pair to be fetched from given origin.
     - `ttl` - a number of seconds after which the price should be updated. Additionally, if the price is older than the
@@ -129,6 +120,10 @@ Price model for each asset pair consists of three keys: `method`, `sources` and 
       the `params` field:
         - `minimumSuccessfulSources` - minimum number of successfully retrieved sources to consider calculated median
           price as reliable.
+
+## 対応表
+
+https://docs.google.com/spreadsheets/d/1A4XUwX1Ik0XDiNAjXOU_gxnu82RGS3r2Dkjk_paNv-g/edit#gid=0  
 
 ## Origins configuration
 

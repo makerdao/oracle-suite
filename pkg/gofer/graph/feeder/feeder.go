@@ -75,9 +75,8 @@ type Feeder struct {
 }
 
 // NewFeeder creates new Feeder instance.
-func NewFeeder(ctx context.Context, set *origins.Set, log log.Logger) *Feeder {
+func NewFeeder(set *origins.Set, log log.Logger) *Feeder {
 	return &Feeder{
-		ctx:    ctx,
 		set:    set,
 		log:    log.WithField("tag", LoggerTag),
 		doneCh: make(chan struct{}),
