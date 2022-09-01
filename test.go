@@ -55,8 +55,12 @@ func main() {
 	//}
 	//fmt.Printf("%s: %f", btcusd, p.Price)
 
+	//test, _ := gofer.Gofer.Pairs
 	gETHUSD := graph.NewGofer(mETHUSD, f)
 	pETHUSD, err := gETHUSD.Price(ethusd)
+	if err != nil {
+		panic(err)
+	}
 	gUSDJPY := graph.NewGofer(mUSDJPY, f)
 	pUSDJPY, err := gUSDJPY.Price(usdjpy)
 	if err != nil {
