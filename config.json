@@ -788,6 +788,15 @@
         "params": {
           "minimumSuccessfulSources": 3
         }
+      },
+      "USD/JPY": {
+        "method": "median",
+        "sources": [
+          [{ "origin": "fx", "pair": "USD/JPY" },{ "origin": ".", "pair": "USD/JPY" }]
+        ],
+        "params": {
+          "minimumSuccessfulSources": 1
+        }
       }
     }
   }
