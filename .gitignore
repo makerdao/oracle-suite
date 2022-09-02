@@ -20,3 +20,5 @@
 
 # Output of the go coverage tool
 *.out
+
+test.go
