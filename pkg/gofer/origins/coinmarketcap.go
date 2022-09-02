@@ -100,14 +100,14 @@ func (c CoinMarketCap) PullPrices(pairs []Pair) []FetchResult {
 	var resp coinMarketCapResponse
 	err = json.Unmarshal(res.Body, &resp)
 	if err != nil {
-		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse loopring response: %w", err))
+		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to parse coinmarketcap response: %w", err))
 	}
 	if resp.Status.ErrorCode != 0 || resp.Status.ErrorMessage != "" {
 		//nolint:lll
 		return fetchResultListWithErrors(pairs, fmt.Errorf("failed to get data from coinmarketcap: %s %s", resp.Status.ErrorMessage, res.Body))
 	}
 	if resp.Data == nil {
-		return fetchResultListWithErrors(pairs, fmt.Errorf("empty `data` field for loopring response: %s", res.Body))
+		return fetchResultListWithErrors(pairs, fmt.Errorf("empty `data` field for coinmarketcap response: %s", res.Body))
 	}
 
 	var results []FetchResult
@@ -121,7 +121,7 @@ func (c *CoinMarketCap) pickPairDetails(response coinMarketCapResponse, pair Pai
 	pairName := c.localPairName(pair)
 	pairResp, ok := response.Data[pairName]
 	if !ok {
-		return fetchResultWithError(pair, fmt.Errorf("no %s pair exist in loopring response", pair))
+		return fetchResultWithError(pair, fmt.Errorf("no %s pair exist in coinparketcap response", pair))
 	}
 	quoteRes, ok := pairResp.Quote[pair.Quote]
 	if !ok {

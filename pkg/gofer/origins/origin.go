@@ -263,13 +263,9 @@ func DefaultOriginSet(pool query.WorkerPool, goroutines int) *Set {
 		"binance":       NewBaseExchangeHandler(Binance{WorkerPool: pool}, nil),
 		"bitfinex":      NewBaseExchangeHandler(Bitfinex{WorkerPool: pool}, nil),
 		"bitstamp":      NewBaseExchangeHandler(Bitstamp{WorkerPool: pool}, nil),
-		"bitthumb":      NewBaseExchangeHandler(BitThump{WorkerPool: pool}, nil),
-		"bithumb":       NewBaseExchangeHandler(BitThump{WorkerPool: pool}, nil),
 		"coinbase":      NewBaseExchangeHandler(CoinbasePro{WorkerPool: pool}, nil),
 		"coinbasepro":   NewBaseExchangeHandler(CoinbasePro{WorkerPool: pool}, nil),
 		"cryptocompare": NewBaseExchangeHandler(CryptoCompare{WorkerPool: pool}, nil),
-		"ddex":          NewBaseExchangeHandler(Ddex{WorkerPool: pool}, nil),
-		"folgory":       NewBaseExchangeHandler(Folgory{WorkerPool: pool}, nil),
 		"ftx":           NewBaseExchangeHandler(Ftx{WorkerPool: pool}, nil),
 		"gateio":        NewBaseExchangeHandler(Gateio{WorkerPool: pool}, nil),
 		"gemini":        NewBaseExchangeHandler(Gemini{WorkerPool: pool}, nil),
@@ -277,10 +273,7 @@ func DefaultOriginSet(pool query.WorkerPool, goroutines int) *Set {
 		"huobi":         NewBaseExchangeHandler(Huobi{WorkerPool: pool}, nil),
 		"kraken":        NewBaseExchangeHandler(Kraken{WorkerPool: pool}, nil),
 		"kucoin":        NewBaseExchangeHandler(Kucoin{WorkerPool: pool}, nil),
-		"kyber":         NewBaseExchangeHandler(Kyber{WorkerPool: pool}, nil),
-		"loopring":      NewBaseExchangeHandler(Loopring{WorkerPool: pool}, nil),
 		"okex":          NewBaseExchangeHandler(Okex{WorkerPool: pool}, nil),
-		"upbit":         NewBaseExchangeHandler(Upbit{WorkerPool: pool}, nil),
 	}, goroutines)
 }
 
