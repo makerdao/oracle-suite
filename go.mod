@@ -24,6 +24,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 )
